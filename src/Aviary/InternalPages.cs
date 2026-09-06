@@ -142,21 +142,59 @@ internal static class InternalPages
   .lede{color:var(--ink-2);margin:0 0 26px;font-size:14px;}
   .group{
     background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;
-    overflow:hidden;margin-bottom:18px;
+    margin-bottom:18px;
+    /* NOT overflow:hidden — a dropdown opening near the bottom row has to be able to
+       escape the card, or its last options get clipped off. */
   }
   .row{
     display:flex;align-items:center;gap:18px;padding:14px 18px;min-height:60px;
+    position:relative;
   }
+  /* The open row floats above its neighbours so the popup is never covered. */
+  .row:has(.sel__btn[aria-expanded="true"]){z-index:30;}
   .row + .row{border-top:1px solid var(--line-soft);}
   .row__t{flex:1;min-width:0;}
   .row__t b{display:block;font-weight:500;font-size:14px;}
   .row__t span{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:3px;}
-  select{
-    appearance:none;border:1px solid var(--line);background:var(--fill);color:var(--ink);
-    font:500 13px/1 inherit;padding:8px 30px 8px 11px;border-radius:7px;cursor:default;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='7'><path d='M1 1l4 4 4-4' fill='none' stroke='gray' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-    background-repeat:no-repeat;background-position:right 10px center;
+  /* OUR OWN DROPDOWN, not a native <select>.
+     A native select's popup is drawn by Windows, not by the page: in dark mode Chromium
+     paints that list white while the text stays light, so you get a white box with only
+     the hovered row legible. No CSS reaches inside it — and even if it did, an OS list
+     would never look like Safari. So the popup is ours. */
+  .sel{position:relative;flex:0 0 auto;}
+  .sel__btn{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid var(--line);background:var(--fill);color:var(--ink);
+    font:500 13px/1 inherit;padding:9px 11px;border-radius:7px;cursor:default;
+    min-width:150px;text-align:left;
+    transition:background-color 120ms cubic-bezier(.25,.1,.25,1),border-color 120ms cubic-bezier(.25,.1,.25,1);
   }
+  .sel__btn:hover{background:var(--fill-hover);}
+  .sel__btn[aria-expanded="true"]{border-color:var(--accent);}
+  .sel__btn span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .sel__btn svg{width:10px;height:7px;flex:0 0 auto;opacity:.55;
+    transition:transform 160ms cubic-bezier(.32,.72,0,1);}
+  .sel__btn[aria-expanded="true"] svg{transform:rotate(180deg);}
+  .sel__pop{
+    position:absolute;top:calc(100% + 6px);right:0;z-index:40;min-width:100%;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px;
+    box-shadow:0 1px 2px rgba(0,0,0,.16),0 10px 30px rgba(0,0,0,.28);
+    display:grid;gap:1px;
+    transform-origin:top right;
+    animation:pop 150ms cubic-bezier(.32,.72,0,1);
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.96) translateY(-4px);}to{opacity:1;transform:none;}}
+  .sel__opt{
+    display:flex;align-items:center;gap:9px;width:100%;
+    border:0;background:transparent;color:var(--ink);cursor:default;
+    font:450 13px/1 inherit;padding:0 10px;height:32px;border-radius:6px;text-align:left;
+    white-space:nowrap;
+  }
+  .sel__opt:hover{background:var(--fill-hover);}
+  .sel__opt[aria-selected="true"]{color:var(--accent);font-weight:600;}
+  .sel__opt i{width:12px;flex:0 0 auto;font-style:normal;opacity:0;}
+  .sel__opt[aria-selected="true"] i{opacity:1;}
+  .sel[data-disabled="true"]{opacity:.4;pointer-events:none;}
   .sw{
     width:40px;height:24px;border-radius:99px;background:var(--fill-hover);position:relative;
     flex:0 0 auto;cursor:default;border:0;padding:0;
@@ -323,9 +361,16 @@ function control(row){
   var soon = c.soon ? '<span class="soon">' + c.soon + '</span>' : '';
   if (c.type === 'select'){
     var opts = c.opts.map(function(o){
-      return '<option' + (o === c.value ? ' selected' : '') + '>' + o + '</option>';
+      return '<button class="sel__opt" data-v="' + o + '" aria-selected="' +
+             (o === c.value ? 'true' : 'false') + '"><i>&#10003;</i>' + o + '</button>';
     }).join('');
-    return soon + '<select data-key="' + c.key + '"' + (c.soon ? ' disabled' : '') + '>' + opts + '</select>';
+    return soon +
+      '<div class="sel" data-key="' + c.key + '"' + (c.soon ? ' data-disabled="true"' : '') + '>' +
+        '<button class="sel__btn" aria-expanded="false"><span>' + c.value + '</span>' +
+          '<svg viewBox="0 0 10 7" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" ' +
+          'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
+        '<div class="sel__pop" hidden>' + opts + '</div>' +
+      '</div>';
   }
   if (c.type === 'toggle'){
     return soon + '<button class="sw" data-key="' + c.key + '" role="switch" aria-checked="' +
@@ -388,21 +433,56 @@ nav.addEventListener('click', function(e){
   main.scrollTop = 0;
 });
 
+function closeAllPopups(except){
+  document.querySelectorAll('.sel').forEach(function(s){
+    if (s === except) { return; }
+    s.querySelector('.sel__pop').hidden = true;
+    s.querySelector('.sel__btn').setAttribute('aria-expanded','false');
+  });
+}
+
 main.addEventListener('click', function(e){
   var sw = e.target.closest('.sw');
   if (sw && !sw.disabled){
     var on = sw.getAttribute('aria-checked') !== 'true';
     sw.setAttribute('aria-checked', on ? 'true' : 'false');
     send(sw.getAttribute('data-key'), on);
+    closeAllPopups(null);
     return;
   }
+
+  var opt = e.target.closest('.sel__opt');
+  if (opt){
+    var host = opt.closest('.sel');
+    host.querySelectorAll('.sel__opt').forEach(function(o){ o.setAttribute('aria-selected','false'); });
+    opt.setAttribute('aria-selected','true');
+    host.querySelector('.sel__btn span').textContent = opt.getAttribute('data-v');
+    host.querySelector('.sel__pop').hidden = true;
+    host.querySelector('.sel__btn').setAttribute('aria-expanded','false');
+    send(host.getAttribute('data-key'), opt.getAttribute('data-v'));
+    return;
+  }
+
+  var selBtn = e.target.closest('.sel__btn');
+  if (selBtn){
+    var sel = selBtn.closest('.sel');
+    var pop = sel.querySelector('.sel__pop');
+    var opening = pop.hidden;
+    closeAllPopups(sel);
+    pop.hidden = !opening;
+    selBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    return;
+  }
+
+  closeAllPopups(null);
+
   var btn = e.target.closest('.btn');
-  if (btn && !btn.disabled) send(btn.getAttribute('data-key'), true);
+  if (btn && !btn.disabled) { send(btn.getAttribute('data-key'), true); }
 });
 
-main.addEventListener('change', function(e){
-  if (e.target.tagName === 'SELECT') send(e.target.getAttribute('data-key'), e.target.value);
-});
+nav.addEventListener('click', function(){ closeAllPopups(null); });
+main.addEventListener('scroll', function(){ closeAllPopups(null); }, true);
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeAllPopups(null); } });
 </script>
 </body>
 </html>
