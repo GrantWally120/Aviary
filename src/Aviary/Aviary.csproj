@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+
+    <!-- net9.0-windows10.0.19041.0 is the TFM the WinUI 3 templates use. The minimum
+         platform version stays at 17763 so the app still starts on older Windows 10,
+         even though we only care about Windows 11. -->
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+
+    <RootNamespace>Aviary</RootNamespace>
+    <AssemblyName>Aviary</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- x64 only, on purpose. SelfContained needs a RID, and declaring platforms the
+         project cannot actually produce just gives the solution four configurations that
+         fail. Widen this and RuntimeIdentifiers together, or not at all. -->
+    <Platforms>x64</Platforms>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+
+    <UseWinUI>true</UseWinUI>
+
+    <!-- Unpackaged: a plain double-clickable .exe with no MSIX identity. -->
+    <WindowsPackageType>None</WindowsPackageType>
+
+    <!-- Both runtimes travel with the app, so the user installs nothing first.
+         SelfContained carries .NET 9; WindowsAppSDKSelfContained carries WinUI. -->
+    <SelfContained>true</SelfContained>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+
+    <!-- Explicit rather than inherited. Single-file pulls in a build-time validator that
+         errors unless several other properties are set, and trimming destroys the
+         reflection WinUI's XAML relies on. Both stay off. -->
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+
+    <!-- The XAML compiler generates the x:Name fields into MainWindow.g.i.cs without
+         initialising them, which trips CS8618 under Nullable=enable. They are warnings on
+         generated code, not defects in ours. Never pair this with
+         TreatWarningsAsErrors — that turns them into a hard build failure. -->
+    <NoWarn>$(NoWarn);CS8618</NoWarn>
+
+    <!-- Phase 1 has no icon asset yet. Adding <ApplicationIcon> before the .ico exists
+         is a hard build error, so it lands with the branding work instead. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- VERSION IS DELIBERATELY FLOATING WITHIN A MINOR BAND.
+         Nobody on this project can restore locally to confirm an exact build number, and a
+         wrong exact pin fails restore outright, whereas a floating patch resolves to
+         whatever really exists on nuget.org. Once CI is green, read the resolved version
+         out of the build log and pin it exactly.
+
+         Microsoft.Windows.SDK.BuildTools is deliberately NOT referenced here: it arrives
+         transitively at the version Windows App SDK 1.7 was validated against, and pinning
+         it ahead of that buys nothing while risking a MakePri/MakeAppx tooling mismatch. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.*" />
+  </ItemGroup>
+
+  <!-- Theme dictionaries under Themes\ are picked up by the WinUI SDK's own glob; no
+       explicit Page items needed, and adding them by hand only risks a path mismatch. -->
+
+</Project>

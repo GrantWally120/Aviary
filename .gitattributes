@@ -1,0 +1,11 @@
+# Normalise line endings so the GitHub Actions runner and a Windows checkout agree.
+* text=auto
+
+*.cs      text diff=csharp
+*.csproj  text
+*.sln     text eol=crlf
+*.xaml    text
+*.manifest text
+*.yml     text eol=lf
+*.md      text
+*.html    text

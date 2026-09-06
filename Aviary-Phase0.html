@@ -1,0 +1,1561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aviary Interface Study</title>
+<style>
+/* ═══════════════════════════════════════════════════════════════════════════
+   AVIARY — PHASE 0 INTERFACE STUDY
+   A Safari-inspired browser for Windows 11.
+   Four combinations: Liquid Glass / Classic  ×  Top tabs / Sidebar.
+
+   Nothing here is a real browser. Every pixel is CSS, drawn to the measured
+   spec so the WinUI 3 build has something exact to hit.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── STUDIO SHELL ─────────────────────────────────────────────────────────
+   The page around the mockups is a deliberately single-theme dark room.
+   The specimens are themselves light AND dark; a constant neutral ground is
+   the only honest way to judge them side by side.                          */
+:root{
+  --st-ground:#0E1013;
+  --st-panel:#15181D;
+  --st-panel-2:#1B1F26;
+  --st-line:#252A32;
+  --st-line-soft:#1E232A;
+  --st-text:#E8EBF0;
+  --st-text-2:#98A2AE;
+  --st-text-3:#69737F;
+  --st-accent:#4CC2FF;
+  --st-accent-dim:rgba(76,194,255,.14);
+  --st-warn:#FFB454;
+
+  --st-ui:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --st-display:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  --st-mono:"Cascadia Mono","Cascadia Code",Consolas,"Courier New",monospace;
+
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+html{ -webkit-text-size-adjust:100%; }
+body{
+  margin:0;
+  background:var(--st-ground);
+  color:var(--st-text);
+  font-family:var(--st-ui);
+  font-size:14px;
+  line-height:1.5;
+}
+::selection{ background:rgba(76,194,255,.28); }
+
+/* ── STUDIO HEADER ─────────────────────────────────────────────────────── */
+.studio{
+  position:sticky; top:0; z-index:50;
+  background:rgba(14,16,19,.86);
+  -webkit-backdrop-filter:blur(20px) saturate(150%);
+  backdrop-filter:blur(20px) saturate(150%);
+  border-bottom:1px solid var(--st-line);
+}
+.studio__inner{
+  max-width:1560px; margin:0 auto;
+  padding:14px 28px;
+  display:flex; align-items:center; gap:28px; flex-wrap:wrap;
+}
+.brand{ display:flex; align-items:center; gap:11px; margin-right:4px; }
+.brand__mark{ width:26px; height:26px; flex:0 0 auto; }
+.brand__name{
+  font-family:var(--st-display);
+  font-size:17px; font-weight:650; letter-spacing:-.014em; line-height:1;
+}
+.brand__phase{
+  font-family:var(--st-mono);
+  font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--st-text-3);
+  border:1px solid var(--st-line);
+  padding:3px 7px; border-radius:5px; line-height:1;
+}
+
+.ctrls{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; margin-left:auto; }
+.ctrl{ display:flex; align-items:center; gap:9px; }
+.ctrl__label{
+  font-family:var(--st-mono);
+  font-size:10px; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--st-text-3); white-space:nowrap;
+}
+.seg{
+  display:flex; background:var(--st-panel); border:1px solid var(--st-line);
+  border-radius:8px; padding:2px; gap:2px;
+}
+.seg button{
+  appearance:none; border:0; background:transparent; cursor:pointer;
+  font-family:var(--st-ui); font-size:12.5px; font-weight:500; letter-spacing:-.004em;
+  color:var(--st-text-2);
+  padding:5px 11px; border-radius:6px; line-height:1.25;
+  transition:background-color 130ms cubic-bezier(.33,0,.67,1), color 130ms cubic-bezier(.33,0,.67,1);
+  white-space:nowrap;
+}
+.seg button:hover{ color:var(--st-text); background:rgba(255,255,255,.045); }
+.seg button[aria-pressed="true"]{ background:var(--st-accent-dim); color:var(--st-accent); }
+.seg button:focus-visible{ outline:2px solid var(--st-accent); outline-offset:1px; }
+
+/* ── STAGE ─────────────────────────────────────────────────────────────── */
+.wrap{ max-width:1560px; margin:0 auto; padding:26px 28px 72px; }
+
+.stage{ display:block; }
+.sheet{ display:none; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px; }
+@media (max-width:1180px){ body[data-view="sheet"] .sheet{ grid-template-columns:minmax(0,1fr); } }
+body[data-view="sheet"] .stage{ display:none; }
+body[data-view="sheet"] .sheet{ display:grid; }
+
+.cell__cap{
+  display:flex; align-items:baseline; gap:9px; margin:0 0 9px 2px;
+}
+.cell__name{ font-family:var(--st-display); font-size:14px; font-weight:600; letter-spacing:-.01em; }
+.cell__meta{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-text-3); letter-spacing:.03em; }
+
+/* ═══ THE WINDOWS 11 DESKTOP ═══════════════════════════════════════════ */
+.desktop{
+  position:relative;
+  border-radius:10px;
+  overflow:hidden;
+  isolation:isolate;
+  background-size:cover; background-position:center;
+  box-shadow:0 1px 2px rgba(0,0,0,.5), 0 18px 50px rgba(0,0,0,.55);
+}
+.stage .desktop{ height:min(78vh,860px); min-height:600px; }
+.sheet  .desktop{ height:520px; }
+
+/* "Bloom" — light. Recreated in gradients; the vignette and grain are what
+   stop it reading as a generic Linux gradient theme. */
+.desktop[data-appearance="light"]{
+  background-image:
+    radial-gradient(38% 30% at 50% 61%, rgba(255,214,150,.62) 0%, rgba(255,214,150,0) 68%),
+    radial-gradient(46% 40% at 40% 54%, rgba(232,150,205,.30) 0%, rgba(232,150,205,0) 72%),
+    radial-gradient(50% 44% at 61% 50%, rgba(150,140,240,.28) 0%, rgba(150,140,240,0) 74%),
+    radial-gradient(30% 55% at 50% 56%, rgba(255,255,255,.95) 0%, rgba(255,255,255,.35) 40%, rgba(255,255,255,0) 72%),
+    radial-gradient(70% 60% at 50% 58%, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 70%),
+    radial-gradient(96% 86% at 50% 57%, #C9E7F8 0%, #A6D2EF 40%, #85B6DF 70%, #6B98CB 100%),
+    linear-gradient(180deg, #E2F0FA 0%, #B4D2EC 100%);
+}
+.desktop[data-appearance="dark"]{
+  background-image:
+    radial-gradient(16% 13% at 50% 59%, rgba(255,168,72,.55) 0%, rgba(255,168,72,0) 72%),
+    radial-gradient(30% 25% at 47% 57%, rgba(255,122,60,.28) 0%, rgba(255,122,60,0) 76%),
+    radial-gradient(40% 34% at 42% 55%, rgba(47,182,224,.40) 0%, rgba(47,182,224,0) 74%),
+    radial-gradient(44% 38% at 58% 52%, rgba(123,91,214,.38) 0%, rgba(123,91,214,0) 76%),
+    radial-gradient(62% 54% at 50% 57%, rgba(30,111,217,.50) 0%, rgba(30,111,217,0) 72%),
+    radial-gradient(26% 48% at 50% 56%, rgba(190,232,255,.42) 0%, rgba(190,232,255,0) 66%),
+    radial-gradient(102% 92% at 50% 57%, #0F2A4E 0%, #08182F 40%, #030A18 74%, #01040A 100%);
+}
+.dk-petals{
+  position:absolute; inset:0; pointer-events:none; z-index:0;
+  mix-blend-mode:screen; filter:blur(14px);
+  -webkit-mask-image:radial-gradient(48% 42% at 50% 58%, #000 8%, rgba(0,0,0,.75) 42%, transparent 78%);
+          mask-image:radial-gradient(48% 42% at 50% 58%, #000 8%, rgba(0,0,0,.75) 42%, transparent 78%);
+}
+.desktop[data-appearance="light"] .dk-petals{
+  background:conic-gradient(from 200deg at 50% 58%,
+    rgba(255,255,255,0) 0deg, rgba(255,255,255,.55) 22deg, rgba(255,255,255,0) 46deg,
+    rgba(190,225,250,.45) 74deg, rgba(255,255,255,0) 100deg, rgba(255,255,255,.50) 132deg,
+    rgba(255,255,255,0) 160deg, rgba(236,196,232,.38) 196deg, rgba(255,255,255,0) 228deg,
+    rgba(255,255,255,.48) 268deg, rgba(255,255,255,0) 300deg, rgba(178,206,242,.40) 332deg,
+    rgba(255,255,255,0) 360deg);
+}
+.desktop[data-appearance="dark"] .dk-petals{
+  filter:blur(18px);
+  background:conic-gradient(from 200deg at 50% 57%,
+    rgba(0,0,0,0) 0deg, rgba(126,200,255,.42) 22deg, rgba(0,0,0,0) 46deg,
+    rgba(60,150,235,.34) 74deg, rgba(0,0,0,0) 100deg, rgba(180,225,255,.38) 132deg,
+    rgba(0,0,0,0) 160deg, rgba(150,110,235,.32) 196deg, rgba(0,0,0,0) 228deg,
+    rgba(90,205,225,.34) 268deg, rgba(0,0,0,0) 300deg, rgba(70,140,230,.30) 332deg,
+    rgba(0,0,0,0) 360deg);
+}
+.dk-vignette{ position:absolute; inset:0; pointer-events:none; z-index:0; }
+.desktop[data-appearance="light"] .dk-vignette{
+  background:radial-gradient(120% 110% at 50% 52%, transparent 42%, rgba(72,116,160,.28) 82%, rgba(48,86,128,.45) 100%);
+}
+.desktop[data-appearance="dark"] .dk-vignette{
+  background:radial-gradient(120% 110% at 50% 52%, transparent 34%, rgba(0,4,12,.55) 78%, rgba(0,2,7,.86) 100%);
+}
+.dk-grain{
+  position:absolute; inset:0; pointer-events:none; z-index:0; opacity:.045;
+  background-size:140px 140px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)'/></svg>");
+}
+.desktop[data-appearance="dark"] .dk-grain{ opacity:.06; mix-blend-mode:overlay; }
+
+/* ── TASKBAR ───────────────────────────────────────────────────────────── */
+.tb{
+  position:absolute; left:0; right:0; bottom:0; height:48px; z-index:40;
+  display:flex; align-items:center;
+  -webkit-backdrop-filter:blur(40px) saturate(160%);
+  backdrop-filter:blur(40px) saturate(160%);
+}
+.desktop[data-appearance="light"] .tb{ background:rgba(243,243,243,.72); box-shadow:inset 0 1px 0 rgba(0,0,0,.06); }
+.desktop[data-appearance="dark"]  .tb{ background:rgba(24,24,24,.74);   box-shadow:inset 0 1px 0 rgba(255,255,255,.08); }
+.tb__group{ position:absolute; left:50%; transform:translateX(-50%); display:flex; }
+.tb__btn{
+  position:relative; width:44px; height:44px; display:grid; place-items:center;
+  border:0; background:transparent; border-radius:6px; padding:0; cursor:default;
+}
+.tb__btn svg{ width:24px; height:24px; display:block; }
+.desktop[data-appearance="light"] .tb__btn.is-active{ background:rgba(255,255,255,.55); }
+.desktop[data-appearance="dark"]  .tb__btn.is-active{ background:rgba(255,255,255,.09); }
+.tb__btn[data-state]::after{
+  content:""; position:absolute; left:50%; bottom:-1px; height:3px; border-radius:2px;
+  transform:translateX(-50%);
+}
+.tb__btn[data-state="running"]::after{ width:6px; }
+.tb__btn[data-state="focused"]::after{ width:16px; }
+.desktop[data-appearance="light"] .tb__btn[data-state="focused"]::after{ background:#0078D4; }
+.desktop[data-appearance="light"] .tb__btn[data-state="running"]::after{ background:rgba(0,120,212,.60); }
+.desktop[data-appearance="dark"]  .tb__btn[data-state="focused"]::after{ background:#4CC2FF; }
+.desktop[data-appearance="dark"]  .tb__btn[data-state="running"]::after{ background:rgba(76,194,255,.55); }
+.tb__tray{ margin-left:auto; display:flex; align-items:center; height:32px; }
+.tb__quick{ display:flex; align-items:center; gap:8px; height:32px; padding:0 8px; border-radius:6px; }
+.tb__quick svg{ width:16px; height:16px; display:block; }
+.tb__clock{
+  text-align:right; padding:0 12px;
+  font:400 12px/14px var(--st-ui); letter-spacing:0;
+  font-variant-numeric:tabular-nums;
+}
+.desktop[data-appearance="light"] .tb__clock,
+.desktop[data-appearance="light"] .tb__quick{ color:rgba(0,0,0,.89); }
+.desktop[data-appearance="dark"]  .tb__clock,
+.desktop[data-appearance="dark"]  .tb__quick{ color:rgba(255,255,255,.89); }
+.tb__showdesk{ width:6px; height:100%; }
+
+/* ═══ THE WINDOW ═══════════════════════════════════════════════════════ */
+.win{
+  position:absolute; z-index:20;
+  border-radius:8px;              /* Win11 22H2+ — all four corners, never 12 */
+  overflow:hidden;
+  display:flex; flex-direction:column;
+  isolation:isolate;
+  container:winframe / inline-size;   /* the chrome adapts to the WINDOW, not the page */
+}
+/* A real browser sheds its secondary toolbar buttons before it lets the address
+   field collapse. Measured against the toolbar's own width, which under Liquid
+   Glass + sidebar is the content sheet, not the whole window. */
+@container chromebar (max-width:640px){ .win [data-opt]{ display:none; } }
+@container chromebar (max-width:470px){ .win [data-opt2]{ display:none; } }
+@container winframe (max-width:600px){ .win .side{ width:186px; } }
+.stage .win{ top:34px; left:74px; right:74px; bottom:88px; }
+.sheet  .win{ top:18px; left:26px; right:26px; bottom:66px; }
+
+.win[data-appearance="light"]{
+  box-shadow:
+    inset 0 0 0 1px rgba(117,117,117,.40),
+    0 1px 2px rgba(0,0,0,.10),
+    0 8px 20px rgba(0,0,0,.14),
+    0 32px 64px rgba(0,0,0,.22);
+}
+.win[data-appearance="dark"]{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    inset 0 0 0 1px #454545,
+    0 1px 2px rgba(0,0,0,.30),
+    0 8px 20px rgba(0,0,0,.36),
+    0 32px 64px rgba(0,0,0,.46);
+}
+
+/* Fake Mica: wallpaper only, heavily blurred, saturation-boosted, then an
+   opaque theme plate on top. Contributes ~18% of the final colour — if you
+   can make out wallpaper *shapes*, it is twice too strong. */
+.win__mica{
+  position:absolute; inset:0; z-index:0;
+  -webkit-backdrop-filter:blur(90px) saturate(2.2);
+  backdrop-filter:blur(90px) saturate(2.2);
+}
+.win__mica::after{ content:""; position:absolute; inset:0; }
+.win[data-appearance="light"] .win__mica::after{ background:rgba(243,243,243,.82); }
+.win[data-appearance="dark"]  .win__mica::after{ background:rgba(32,32,32,.84);   }
+/* Mica Alt sits behind a tabbed title bar */
+.win[data-appearance="light"][data-micaalt="1"] .win__mica::after{ background:rgba(218,218,218,.80); }
+.win[data-appearance="dark"][data-micaalt="1"]  .win__mica::after{ background:rgba(10,10,10,.80); }
+
+.win__body{ position:relative; z-index:1; flex:1; min-height:0; display:flex; flex-direction:column; }
+
+/* Every glyph in the window is sized explicitly. This blanket default catches
+   any icon that slips through: an unsized SVG in a flex row expands to fill it. */
+.win svg{ width:16px; height:16px; display:block; flex:0 0 auto; }
+
+/* Thin overlay scrollbars. A chunky always-on bar breaks the illusion faster
+   than almost anything else inside a fake Windows window. */
+.win *{ scrollbar-width:thin; scrollbar-color:rgba(128,128,128,.34) transparent; }
+.win ::-webkit-scrollbar{ width:9px; height:9px; }
+.win ::-webkit-scrollbar-track{ background:transparent; }
+.win ::-webkit-scrollbar-thumb{
+  background:rgba(128,128,128,.30); border-radius:99px;
+  border:3px solid transparent; background-clip:content-box;
+}
+.win ::-webkit-scrollbar-thumb:hover{ background:rgba(128,128,128,.55); background-clip:content-box; }
+
+/* ── CAPTION BUTTONS ───────────────────────────────────────────────────
+   46px wide, filling the height of the topmost chrome row (the Edge/Explorer
+   idiom for an extended title bar). Full-bleed rectangles: no radius, no gap,
+   no gutter, no transition — Windows snaps. */
+.caption{
+  display:flex; flex:0 0 auto; align-self:stretch;
+  -webkit-app-region:no-drag;
+}
+.cap{
+  width:46px; align-self:stretch;
+  display:grid; place-items:center;
+  border:0; padding:0; margin:0; background:transparent; border-radius:0;
+  font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";
+  font-size:10px; line-height:1; cursor:default;
+  transition:none;
+}
+.win[data-appearance="light"] .cap{ color:rgba(0,0,0,.8942); }
+.win[data-appearance="dark"]  .cap{ color:#FFFFFF; }
+.win[data-appearance="light"] .cap:hover{ background:rgba(0,0,0,.0605); }
+.win[data-appearance="dark"]  .cap:hover{ background:rgba(255,255,255,.0605); }
+.win[data-appearance="light"] .cap:active{ background:rgba(0,0,0,.0373); }
+.win[data-appearance="dark"]  .cap:active{ background:rgba(255,255,255,.0419); }
+.cap--close:hover{ background:#C42B1C !important; color:#FFFFFF !important; }
+.cap--close:active{ background:rgba(196,43,28,.90) !important; color:#FFFFFF !important; }
+/* When the toolbar tint is dark, the caption glyphs sit on it and must flip
+   with everything else — we draw these buttons ourselves precisely so they can. */
+.win[data-glyph="light"] .cap{ color:rgba(255,255,255,.92); }
+.win[data-glyph="light"] .cap:hover{ background:rgba(255,255,255,.0605); }
+.win[data-glyph="light"] .cap:active{ background:rgba(255,255,255,.0419); }
+.cap--min::before    { content:"\E921"; }
+.cap--max::before    { content:"\E922"; }
+.cap--close::before  { content:"\E8BB"; }
+/* If Segoe Fluent Icons is missing the glyph slots stay empty rather than
+   rendering "_ [] X" — a fallback that would look worse than nothing. */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME A — LIQUID GLASS  (Safari 26 / macOS 26 "Tahoe")
+   ═══════════════════════════════════════════════════════════════════════ */
+.win[data-theme="glass"]{
+  --lg-pad:6px;
+  --lg-ctl-h:36px; --lg-ctl-r:18px;
+  --lg-tab-h:32px; --lg-tab-r:16px;
+
+  --e-glass:cubic-bezier(.32,.72,0,1);
+  --e-hover:cubic-bezier(.37,0,.63,1);
+  --e-press:cubic-bezier(.40,0,1,1);
+  --spring:linear(0,.0027 2%,.0554 6.9%,.2137 12.5%,.4187 18.1%,.6239 23.7%,.7996 29.4%,.9308 35.2%,1.0159 41%,1.0587 46.9%,1.0703 55.8%,1.0509 67.4%,1.0148 82.4%,1);
+}
+.win[data-theme="glass"][data-appearance="light"]{
+  --lg-backdrop:blur(24px) saturate(180%) brightness(1.06);
+  --lg-fill:rgba(255,255,255,.44);
+  --lg-warm:rgba(255,249,242,.05);
+  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 58%,rgba(255,255,255,.06) 100%);
+  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.42) 14%,rgba(255,255,255,.10) 34%,rgba(255,255,255,.06) 52%,rgba(255,255,255,.16) 70%,rgba(255,255,255,.55) 88%,rgba(255,255,255,.92) 100%);
+  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.78);
+  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.09);
+  --lg-hairline:0 0 0 .5px rgba(0,0,0,.07);
+  --lg-shadow:0 1px 1px rgba(0,0,0,.05),0 3px 8px rgba(0,0,0,.07),0 10px 28px rgba(0,0,0,.13);
+  --lg-rim:blur(2px) brightness(1.22) saturate(150%);
+  --pill-fill:rgba(120,120,128,.12);
+  --pill-inner:inset 0 1px 1.5px rgba(0,0,0,.10),inset 0 0 0 .5px rgba(0,0,0,.05),inset 0 -1px 0 rgba(255,255,255,.42);
+  --btn-hover:rgba(120,120,128,.14);
+  --btn-press:rgba(120,120,128,.22);
+  --tab-active:rgba(255,255,255,.72);
+  --tab-active-sh:0 1px 2px rgba(0,0,0,.10),0 4px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.95);
+  --tab-hover:rgba(120,120,128,.10);
+  --txt-1:rgba(0,0,0,.85); --txt-2:rgba(60,60,67,.60); --txt-3:rgba(60,60,67,.30);
+  --icon:rgba(0,0,0,.72); --accent:#007AFF; --sep:rgba(0,0,0,.10);
+  --sheet-bg:#FFFFFF;
+  --sheet-ring:inset 0 0 0 .5px rgba(0,0,0,.10);
+}
+.win[data-theme="glass"][data-appearance="dark"]{
+  /* Dark glass is a different recipe, not an inversion: less saturation,
+     more blur, higher fill alpha, white specular, ~4x shadow alpha. */
+  --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
+  --lg-fill:rgba(30,31,36,.52);
+  --lg-warm:rgba(120,150,200,.04);
+  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
+  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
+  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.20);
+  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.50);
+  --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
+  --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
+  --lg-rim:blur(2px) brightness(1.30) saturate(130%);
+  --pill-fill:rgba(118,118,128,.24);
+  --pill-inner:inset 0 1px 2px rgba(0,0,0,.32),inset 0 0 0 .5px rgba(0,0,0,.22),inset 0 -1px 0 rgba(255,255,255,.10);
+  --btn-hover:rgba(235,235,245,.13);
+  --btn-press:rgba(235,235,245,.20);
+  --tab-active:rgba(255,255,255,.14);
+  --tab-active-sh:0 1px 3px rgba(0,0,0,.40),inset 0 1px 0 rgba(255,255,255,.22);
+  --tab-hover:rgba(235,235,245,.09);
+  --txt-1:rgba(255,255,255,.92); --txt-2:rgba(235,235,245,.60); --txt-3:rgba(235,235,245,.30);
+  --icon:rgba(255,255,255,.80); --accent:#0A84FF; --sep:rgba(255,255,255,.11);
+  --sheet-bg:#1C1C1E;
+  --sheet-ring:inset 0 0 0 .5px rgba(255,255,255,.10);
+}
+
+/* The five-layer capsule. Order matters: backdrop → fill → rim → sheen → ring. */
+.gcap{
+  position:relative; isolation:isolate; overflow:hidden;   /* nothing escapes the silhouette */
+  display:flex; align-items:center; gap:2px;
+  padding:var(--lg-pad);
+  -webkit-backdrop-filter:var(--lg-backdrop);
+  backdrop-filter:var(--lg-backdrop);
+  background-color:var(--lg-fill);
+  background-image:linear-gradient(var(--lg-warm),var(--lg-warm));
+  box-shadow:var(--lg-edge-top),var(--lg-edge-bot),var(--lg-hairline),var(--lg-shadow);
+}
+.gcap::before{                      /* body sheen */
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  background:var(--lg-sheen); pointer-events:none; z-index:1;
+}
+.gcap::after{                       /* 1px gradient ring — bright at the poles,
+                                       near-invisible at the flanks. The single
+                                       loudest tell of a fake is a uniform border. */
+  content:""; position:absolute; inset:0; border-radius:inherit;
+  padding:1px; background:var(--lg-ring);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  pointer-events:none; z-index:2;
+}
+.gcap > *{ position:relative; z-index:3; }
+.grim{                              /* refraction rim: LESS blur, MORE brightness
+                                       than the centre. That differential is what
+                                       the eye reads as lensing. */
+  position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
+  -webkit-backdrop-filter:var(--lg-rim);
+  backdrop-filter:var(--lg-rim);
+  transform:scale(1.012);
+  padding:7px;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+}
+
+/* Glass toolbar: a stadium. radius = height ÷ 2, exactly. 16px reads as Chrome. */
+.g-toolbar{ height:48px; border-radius:24px; }
+.g-tabcap{ height:44px; border-radius:22px; }
+.g-side{ border-radius:18px; flex-direction:column; align-items:stretch; gap:0; padding:8px; }
+@supports (corner-shape:squircle){ .g-side{ corner-shape:squircle; } }
+
+.gbtn{
+  width:36px; height:36px; flex:0 0 auto;
+  border:0; padding:0; background:transparent; border-radius:18px;
+  display:grid; place-items:center; color:var(--icon); cursor:default;
+  transition:background-color 140ms var(--e-hover), color 140ms var(--e-hover), transform 320ms var(--spring);
+}
+.gbtn:hover{ background:var(--btn-hover); color:var(--txt-1); }
+.gbtn:active{ background:var(--btn-press); transform:scale(.94);
+  transition:background-color 90ms var(--e-press), transform 90ms var(--e-press); }
+.gbtn[aria-pressed="true"]{ color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+.gbtn[disabled]{ opacity:.32; }
+.gbtn svg{ width:18px; height:18px; display:block; }
+.gsep{ width:1px; height:20px; margin:0 7px; background:var(--sep); flex:0 0 auto; }
+
+/* Address field — recessed glass inside floating glass. No backdrop-filter here:
+   exactly one blur per capsule, or it goes to mud. */
+.gurl{
+  flex:1 1 auto; min-width:0; height:36px; border-radius:18px;
+  margin:0 6px; padding:0 6px 0 12px;
+  display:flex; align-items:center; gap:8px;
+  background:var(--pill-fill);
+  box-shadow:var(--pill-inner);
+  overflow:hidden;
+}
+.gurl__lock{ width:15px; height:15px; flex:0 0 auto; color:var(--txt-2); }
+.gurl__txt{
+  flex:1; min-width:0; text-align:center;
+  font:430 13px/36px var(--st-ui); letter-spacing:-.005em; color:var(--txt-1);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gurl__txt.is-placeholder{ color:var(--txt-2); }
+.gurl__act{
+  width:26px; height:26px; flex:0 0 auto; border-radius:13px;
+  display:grid; place-items:center; color:var(--txt-2); border:0; background:transparent;
+}
+.gurl__act:hover{ background:var(--btn-hover); color:var(--txt-1); }
+.gurl__act svg{ width:14px; height:14px; display:block; }
+
+/* Glass tab pills */
+/* Safari tabs divide the full strip width — no Chrome-style max-width cap,
+   or the silhouette reads as Chrome with Apple paint on it. */
+.gtab{
+  height:var(--lg-tab-h); border-radius:var(--lg-tab-r);
+  min-width:52px; flex:1 1 0; padding:0 10px;
+  display:flex; align-items:center; gap:8px;
+  background:transparent; border:0; color:var(--txt-2); cursor:default;
+  font:470 12px/32px var(--st-ui); letter-spacing:-.002em;
+  transition:background-color 380ms var(--e-glass), box-shadow 380ms var(--e-glass), color 380ms var(--e-glass);
+  overflow:hidden;
+}
+.gtab:hover{ background:var(--tab-hover); }
+.gtab[aria-selected="true"]{ background:var(--tab-active); box-shadow:var(--tab-active-sh); color:var(--txt-1); font-weight:550; }
+/* Titles are centred, and truncate behind a 20px gradient mask. Three dots
+   read as a generic browser instantly. */
+.gtab__t{
+  flex:1; min-width:0; text-align:center; white-space:nowrap; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent 100%);
+          mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THEME B — CLASSIC  (Safari 15–18, the unified toolbar era)
+   One opaque plane. No gap, no gradient, no elevation, one hairline.
+   ═══════════════════════════════════════════════════════════════════════ */
+.win[data-theme="classic"]{
+  --sf-toolbar-h:48px;   /* Safari's 52 trimmed to Windows' Tall title bar */
+  --sf-tabstrip-h:40px;
+  --sf-field-h:30px; --sf-field-r:7px;   /* 7px. A pill is Chrome/Edge. */
+  --sf-tab-h:32px;  --sf-tab-r:8px;
+  --sf-btn:28px;    --sf-btn-r:6px;
+  --sf-ease:cubic-bezier(.25,.1,.25,1);
+  --sf-ease-out:cubic-bezier(.16,1,.3,1);
+  --sf-ease-spring:cubic-bezier(.32,.72,0,1);
+}
+.win[data-theme="classic"][data-appearance="light"]{
+  --sf-base:#EDEDED;                /* not #FFF — pure white reads as Edge */
+  --sf-page:#FFFFFF;
+  --sf-hairline:rgba(0,0,0,.16);
+  --sf-label:rgba(0,0,0,.85);
+  --sf-label-2:rgba(0,0,0,.50);
+  --sf-label-3:rgba(0,0,0,.32);
+  --sf-icon:rgba(0,0,0,.75);
+  --sf-hover:rgba(0,0,0,.06);
+  --sf-press:rgba(0,0,0,.12);
+  --sf-selected:rgba(0,0,0,.10);
+  --sf-field:rgba(0,0,0,.055);
+  --sf-field-border:rgba(0,0,0,.06);
+  --sf-field-focus:#FFFFFF;
+  --sf-tab-active:rgba(255,255,255,.72);
+  --sf-tab-active-sh:0 .5px 1px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.06);
+  --sf-tab-hover:rgba(0,0,0,.05);
+  --sf-tab-sepc:rgba(0,0,0,.13);
+  --sf-accent:#007AFF;
+}
+.win[data-theme="classic"][data-appearance="dark"]{
+  --sf-base:#2E2E2E;
+  --sf-page:#1E1E1E;
+  --sf-hairline:rgba(255,255,255,.12);
+  --sf-label:rgba(255,255,255,.92);
+  --sf-label-2:rgba(255,255,255,.55);
+  --sf-label-3:rgba(255,255,255,.34);
+  --sf-icon:rgba(255,255,255,.85);
+  --sf-hover:rgba(255,255,255,.10);
+  --sf-press:rgba(255,255,255,.16);
+  --sf-selected:rgba(255,255,255,.14);
+  --sf-field:rgba(255,255,255,.10);
+  --sf-field-border:rgba(255,255,255,.08);
+  --sf-field-focus:#2C2C2E;
+  --sf-tab-active:rgba(255,255,255,.14);
+  --sf-tab-active-sh:0 .5px 1px rgba(0,0,0,.40),0 0 0 .5px rgba(0,0,0,.30);
+  --sf-tab-hover:rgba(255,255,255,.07);
+  --sf-tab-sepc:rgba(255,255,255,.16);
+  --sf-accent:#0A84FF;
+}
+/* When the computed tint is dark, every glyph-family token flips to its
+   light-on-dark counterpart regardless of OS appearance. This is the trick
+   people actually recognise as Safari. */
+.win[data-theme="classic"][data-glyph="light"]{
+  --sf-hairline:rgba(0,0,0,.24);
+  --sf-label:rgba(255,255,255,.92);
+  --sf-label-2:rgba(255,255,255,.55);
+  --sf-label-3:rgba(255,255,255,.34);
+  --sf-icon:rgba(255,255,255,.85);
+  --sf-hover:rgba(255,255,255,.10);
+  --sf-press:rgba(255,255,255,.16);
+  --sf-selected:rgba(255,255,255,.14);
+  --sf-field:rgba(255,255,255,.10);
+  --sf-field-border:rgba(255,255,255,.08);
+  --sf-tab-active:rgba(255,255,255,.16);
+  --sf-tab-hover:rgba(255,255,255,.07);
+  --sf-tab-sepc:rgba(255,255,255,.16);
+}
+
+.c-chromewrap{ container:chromebar / inline-size; }
+.c-toolbar{
+  height:var(--sf-toolbar-h); flex:0 0 auto;
+  display:flex; align-items:center; gap:0;
+  padding-left:12px;
+  background:var(--sf-tint,var(--sf-base));
+  transition:background-color 260ms var(--sf-ease);
+  position:relative; z-index:3;
+}
+.c-tabstrip{
+  height:var(--sf-tabstrip-h); flex:0 0 auto;
+  display:flex; align-items:center; gap:0;
+  padding:4px 4px 4px 12px;
+  background:var(--sf-tint,var(--sf-base));
+  transition:background-color 260ms var(--sf-ease);
+  position:relative; z-index:2;
+}
+.c-chrome-edge{                  /* the one hairline; fades in only on scroll */
+  position:absolute; left:0; right:0; bottom:0; height:1px;
+  background:var(--sf-hairline); opacity:0;
+  transition:opacity 120ms linear;
+}
+.c-chromewrap[data-scrolled="1"] .c-chrome-edge{ opacity:1; }
+
+.cbtn{
+  width:var(--sf-btn); height:var(--sf-btn); flex:0 0 auto;
+  border:0; padding:0; background:transparent; border-radius:var(--sf-btn-r);
+  display:grid; place-items:center; color:var(--sf-icon); cursor:default;
+  transition:background-color 100ms var(--sf-ease), color 260ms var(--sf-ease);
+}
+.cbtn:hover{ background:var(--sf-hover); }
+.cbtn:active{ background:var(--sf-press); }
+.cbtn[aria-pressed="true"]{ background:var(--sf-selected); }
+.cbtn[disabled]{ opacity:.32; }
+.cbtn svg{ width:17px; height:17px; display:block; }
+
+/* Address field. Reload lives INSIDE at the right, "Aa" INSIDE at the left.
+   Getting this wrong is the fastest way to look like Chrome. */
+.cfield{
+  flex:1 1 auto; min-width:0; height:var(--sf-field-h); border-radius:var(--sf-field-r);
+  display:flex; align-items:center; gap:0; padding:0 4px;
+  background:var(--sf-field);
+  box-shadow:inset 0 0 0 1px var(--sf-field-border);
+  transition:background-color 150ms var(--sf-ease), box-shadow 150ms var(--sf-ease);
+  overflow:hidden;
+}
+.cfield__aa,.cfield__rl{
+  width:24px; height:22px; flex:0 0 auto; border-radius:5px; border:0; background:transparent;
+  display:grid; place-items:center; color:var(--sf-label-2); cursor:default;
+}
+.cfield__aa:hover,.cfield__rl:hover{ background:var(--sf-hover); color:var(--sf-label); }
+.cfield__aa{ font:600 12px/1 var(--st-ui); letter-spacing:-.02em; }
+.cfield__rl svg{ width:13px; height:13px; display:block; }
+.cfield__lock{ width:12px; height:12px; flex:0 0 auto; margin-left:6px; color:var(--sf-label-2); }
+.cfield__txt{
+  flex:1; min-width:0; text-align:center;      /* centred + domain only at rest */
+  font:400 13px/30px var(--st-ui); letter-spacing:-.01em; color:var(--sf-label);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  transition:color 260ms var(--sf-ease);
+}
+.cfield__txt.is-placeholder{ color:var(--sf-label-3); }
+
+/* Classic tabs: detached rounded rects that abut, active one raised */
+.ctab{
+  height:var(--sf-tab-h); border-radius:var(--sf-tab-r);
+  flex:1 1 0; min-width:52px;
+  padding:0 8px; position:relative;
+  display:flex; align-items:center; gap:8px;
+  border:0; background:transparent; color:var(--sf-label-2); cursor:default;
+  font:500 12px/16px var(--st-ui); letter-spacing:-.005em;
+  transition:background-color 120ms var(--sf-ease), color 260ms var(--sf-ease), box-shadow 120ms var(--sf-ease);
+  overflow:hidden;
+}
+.ctab:hover{ background:var(--sf-tab-hover); }
+.ctab[aria-selected="true"]{ background:var(--sf-tab-active); box-shadow:var(--sf-tab-active-sh); color:var(--sf-label); }
+/* The favicon↔close crossfade. Safari puts close at the tab's LEADING edge,
+   in the favicon's own box, and they cross through each other. Shared by both
+   themes — it is the single most-copied Safari micro-interaction. */
+.tslot{ width:16px; height:16px; flex:0 0 auto; position:relative; }
+.tslot .fv,.tslot .xx{
+  position:absolute; inset:0; display:grid; place-items:center;
+  transition:opacity 150ms cubic-bezier(.16,1,.3,1), transform 150ms cubic-bezier(.16,1,.3,1);
+}
+.tslot .xx{ opacity:0; transform:scale(.85); }
+.ctab:hover .tslot .fv,.gtab:hover .tslot .fv{ opacity:0; transform:scale(.85); }
+.ctab:hover .tslot .xx,.gtab:hover .tslot .xx{ opacity:1; transform:scale(1); }
+.tslot .xx svg{ width:9px; height:9px; }
+.ctab .tslot .xx{ color:var(--sf-label-2); }
+.gtab .tslot .xx{ color:var(--txt-2); }
+.ctab__t{
+  flex:1; min-width:0; text-align:center; white-space:nowrap; overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent 100%);
+          mask-image:linear-gradient(90deg,#000 calc(100% - 20px),transparent 100%);
+}
+.ctab + .ctab::before{               /* short vertical hairline, not a dot */
+  content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+  width:1px; height:16px; background:var(--sf-tab-sepc);
+  transition:opacity 100ms linear;
+}
+.ctab:hover::before,
+.ctab[aria-selected="true"]::before,
+.ctab[aria-selected="true"] + .ctab::before,
+.ctab:hover + .ctab::before{ opacity:0; }
+
+/* ═══ SIDEBAR (shared structure, themed skins) ══════════════════════════ */
+.side{ width:224px; flex:0 0 auto; display:flex; flex-direction:column; min-height:0; }
+.side__scroll{ flex:1; min-height:0; overflow:auto; padding:0 8px 12px; }
+/* Sentence case, not uppercase. Wide-tracked caps are a Fluent voice; Safari's
+   sidebar headers are 11px/600 sentence case. */
+.side__h{
+  display:flex; align-items:center; gap:6px;
+  padding:0 8px; height:28px; margin-top:10px;
+  font:600 11px/1 var(--st-ui); letter-spacing:.04em;
+}
+.side__h svg{ width:11px; height:11px; opacity:.5; }
+.side__row{
+  display:flex; align-items:center; gap:9px;
+  height:30px; padding:0 8px; border-radius:6px; cursor:default;
+  font:450 12.5px/1 var(--st-ui); letter-spacing:-.004em;
+  overflow:hidden;
+}
+.side__row .lbl{ flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.side__new{
+  display:flex; align-items:center; gap:9px; height:30px; padding:0 8px;
+  border-radius:6px; border:0; background:transparent; width:100%; cursor:default;
+  font:450 12.5px/1 var(--st-ui);
+}
+/* Glass skin */
+.win[data-theme="glass"] .side__h{ color:var(--txt-2); }
+.win[data-theme="glass"] .side__row{ color:var(--txt-1); }
+.win[data-theme="glass"] .side__row:hover{ background:var(--btn-hover); }
+.win[data-theme="glass"] .side__row[aria-selected="true"]{ background:var(--tab-active); box-shadow:var(--tab-active-sh); }
+.win[data-theme="glass"] .side__new{ color:var(--txt-2); }
+.win[data-theme="glass"] .side__new:hover{ background:var(--btn-hover); color:var(--txt-1); }
+/* Classic skin. The sidebar takes the tint in lockstep with the toolbar — if it
+   kept a neutral fill, a dark tint would leave white labels on light grey. */
+.win[data-theme="classic"] .side{
+  background:var(--sf-tint,var(--sf-base));
+  box-shadow:inset -1px 0 0 var(--sf-hairline);
+  transition:background-color 260ms var(--sf-ease);
+}
+.win[data-theme="classic"] .side__h{ color:var(--sf-label-3); }
+.win[data-theme="classic"] .side__row{ color:var(--sf-label); }
+.win[data-theme="classic"] .side__row:hover{ background:var(--sf-hover); }
+/* Classic selection is a solid accent fill with white text — not a grey overlay. */
+.win[data-theme="classic"] .side__row[aria-selected="true"]{ background:var(--sf-accent); color:#fff; }
+.win[data-theme="classic"] .side__row[aria-selected="true"] .favchip{ box-shadow:0 0 0 1px rgba(255,255,255,.5); }
+.win[data-theme="classic"] .side__new{ color:var(--sf-label-2); }
+.win[data-theme="classic"] .side__new:hover{ background:var(--sf-hover); color:var(--sf-label); }
+
+.favchip{
+  width:16px; height:16px; flex:0 0 auto; border-radius:4px;
+  display:grid; place-items:center; color:#fff;
+  font:700 9px/1 var(--st-ui); letter-spacing:-.02em;
+}
+.favchip--lg{ width:20px; height:20px; border-radius:5px; font-size:11px; }
+
+/* ═══ VIEWPORT / PAGE ══════════════════════════════════════════════════ */
+.stack{ flex:1; min-height:0; display:flex; }
+/* min-width:0 matters: a flex item defaults to min-width:auto and will refuse
+   to shrink below its content, pushing the content sheet off the window. */
+.colstack{ flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; }
+.vp{
+  position:relative; flex:1; min-height:0; overflow:auto;
+  scrollbar-width:thin;
+}
+.vp::-webkit-scrollbar{ width:10px; }
+.vp::-webkit-scrollbar-thumb{ background:rgba(128,128,128,.4); border-radius:5px; border:3px solid transparent; background-clip:content-box; }
+.vp::-webkit-scrollbar-track{ background:transparent; }
+
+/* Glass: the content sheet + the floating chrome that sits over it */
+.gsheet{
+  position:relative; flex:1; min-height:0; display:flex; flex-direction:column;
+  background:var(--sheet-bg); box-shadow:var(--sheet-ring); overflow:hidden;
+  container:chromebar / inline-size;
+}
+.win[data-theme="glass"][data-layout="sidebar"] .gsheet{ border-radius:12px; }
+@supports (corner-shape:squircle){
+  .win[data-theme="glass"][data-layout="sidebar"] .gsheet{ corner-shape:squircle; }
+}
+.gfloat{ position:absolute; left:12px; right:12px; z-index:8; pointer-events:none; }
+.gfloat > *{ pointer-events:auto; }
+
+/* progressive-blur scroll edge: content passing under glass must not collide
+   with the text on it, and the fix is a scrim — never a more opaque capsule. */
+.gscrim{ position:absolute; left:0; right:0; top:0; height:96px; z-index:7; pointer-events:none; opacity:0;
+  transition:opacity 260ms var(--e-hover); }
+.vp[data-scrolled="1"] ~ .gscrim{ opacity:1; }
+.gscrim i{ position:absolute; left:0; right:0; display:block; }
+.gscrim i:nth-child(1){ top:0;   height:24px; -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+  -webkit-mask:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%); mask:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%); }
+.gscrim i:nth-child(2){ top:24px;height:24px; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  -webkit-mask:linear-gradient(180deg,#000 0%,#000 50%,transparent 100%); mask:linear-gradient(180deg,#000 0%,#000 50%,transparent 100%); }
+.gscrim i:nth-child(3){ top:48px;height:24px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px);
+  -webkit-mask:linear-gradient(180deg,#000 0%,transparent 100%); mask:linear-gradient(180deg,#000 0%,transparent 100%); }
+.gscrim i:nth-child(4){ top:0;   height:96px; }
+.win[data-appearance="light"] .gscrim i:nth-child(4){
+  background:linear-gradient(180deg,rgba(255,255,255,.62) 0%,rgba(255,255,255,.34) 34%,rgba(255,255,255,.10) 66%,rgba(255,255,255,0) 100%); }
+.win[data-appearance="dark"] .gscrim i:nth-child(4){
+  background:linear-gradient(180deg,rgba(20,20,24,.62) 0%,rgba(20,20,24,.34) 34%,rgba(20,20,24,.10) 66%,rgba(20,20,24,0) 100%); }
+
+/* ── START PAGE ────────────────────────────────────────────────────────── */
+.page{ min-height:100%; }
+.sp{
+  --sp-label:rgba(0,0,0,.85); --sp-label-2:rgba(0,0,0,.50); --sp-label-3:rgba(0,0,0,.30);
+  --sp-hair:rgba(0,0,0,.06); --sp-hover:rgba(0,0,0,.05);
+  --sp-card:#FFFFFF; --sp-icon-bg:#FFFFFF;
+  --sp-card-sh:0 1px 2px rgba(0,0,0,.07),0 6px 16px rgba(0,0,0,.07);
+  --sp-icon-sh:0 1px 2px rgba(0,0,0,.08),0 4px 10px rgba(0,0,0,.06);
+  position:relative; min-height:100%;
+}
+.win[data-appearance="dark"] .sp{
+  --sp-label:rgba(255,255,255,.88); --sp-label-2:rgba(255,255,255,.55); --sp-label-3:rgba(255,255,255,.35);
+  --sp-hair:rgba(255,255,255,.10); --sp-hover:rgba(255,255,255,.07);
+  --sp-card:#2C2C2E; --sp-icon-bg:#2C2C2E;
+  --sp-card-sh:0 1px 2px rgba(0,0,0,.55),0 8px 20px rgba(0,0,0,.45);
+  --sp-icon-sh:0 1px 2px rgba(0,0,0,.55),0 6px 14px rgba(0,0,0,.40);
+}
+.sp__wall{ position:absolute; inset:0; background-size:cover; background-position:center; }
+.sp__wallover{ position:absolute; inset:0; }
+.win[data-appearance="light"] .sp__wallover{ background:linear-gradient(180deg,rgba(0,0,0,.10) 0%,rgba(0,0,0,.02) 30%,rgba(0,0,0,.16) 100%); }
+.win[data-appearance="dark"]  .sp__wallover{ background:linear-gradient(180deg,rgba(0,0,0,.34) 0%,rgba(0,0,0,.18) 30%,rgba(0,0,0,.44) 100%); }
+/* The frost fades in below the first band, so the wallpaper stays genuinely
+   visible at the top — which also gives the floating glass something with
+   colour in it to refract. */
+.sp__scrim{
+  position:absolute; left:0; right:0; top:0; bottom:0;
+  -webkit-backdrop-filter:blur(30px) saturate(180%); backdrop-filter:blur(30px) saturate(180%);
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 96px,#000 268px);
+          mask-image:linear-gradient(180deg,transparent 0,transparent 96px,#000 268px);
+}
+.win[data-appearance="light"] .sp__scrim{ background:rgba(255,255,255,.58); }
+.win[data-appearance="dark"]  .sp__scrim{ background:rgba(28,28,30,.52); }
+.win[data-theme="classic"] .sp__scrim{
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 40px,#000 190px);
+          mask-image:linear-gradient(180deg,transparent 0,transparent 40px,#000 190px);
+}
+.sp__col{
+  position:relative; z-index:2;
+  width:min(936px,100% - 64px); margin:0 auto;
+  padding-bottom:96px;
+  color:var(--sp-label);
+  letter-spacing:-.006em;
+}
+.win[data-theme="glass"] .sp__col{ padding-top:118px; }
+.win[data-theme="classic"] .sp__col{ padding-top:28px; }
+
+.sp__sec{ margin-top:32px; }
+.sp__sec:first-child{ margin-top:0; }
+.sp__h{
+  display:flex; align-items:center; gap:8px; height:20px; margin-bottom:14px;
+  font:600 15px/20px var(--st-display); letter-spacing:-.012em; color:var(--sp-label);
+}
+.sp__h svg{ width:11px; height:11px; color:var(--sp-label-3); opacity:0; transition:opacity 140ms ease; }
+.sp__sec:hover .sp__h svg{ opacity:1; }
+
+.favgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); column-gap:18px; row-gap:22px; justify-items:center; }
+.fav{ position:relative; width:84px; display:flex; flex-direction:column; align-items:center; }
+.fav::before{
+  content:""; position:absolute; inset:-8px; border-radius:12px; background:transparent;
+  transition:background-color 140ms cubic-bezier(.25,.1,.25,1); z-index:-1;
+}
+.fav:hover::before{ background:var(--sp-hover); }
+.fav__i{
+  width:64px; height:64px; border-radius:16px;
+  border:.5px solid var(--sp-hair); box-shadow:var(--sp-icon-sh);
+  display:grid; place-items:center; transform-origin:center bottom;
+  transition:transform 180ms cubic-bezier(.32,.72,0,1), box-shadow 180ms cubic-bezier(.32,.72,0,1);
+}
+@supports (corner-shape:squircle){ .fav__i{ corner-shape:squircle; } }
+.fav:hover .fav__i{ transform:translateY(-2px) scale(1.03); }
+.fav__m{ font:600 26px/1 var(--st-display); letter-spacing:-.02em; }
+.fav__l{
+  margin-top:8px; max-width:80px; font:500 12px/15px var(--st-ui); letter-spacing:-.004em;
+  color:var(--sp-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.fav--add .fav__i{ border:0; box-shadow:none; }
+.win[data-appearance="light"] .fav--add .fav__i{ background:rgba(0,0,0,.045); color:rgba(0,0,0,.30); }
+.win[data-appearance="dark"]  .fav--add .fav__i{ background:rgba(255,255,255,.07); color:rgba(255,255,255,.35); }
+.fav--add .fav__i svg{ width:22px; height:22px; }
+
+/* The icon-row variant of Frequently Visited. Big thumbnail bands turn the
+   page into a dashboard; Safari's own version is quiet and icon-led. */
+.fvgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(236px,1fr)); gap:12px; }
+.fvc{
+  height:64px; border-radius:12px; background:var(--sp-card);
+  border:.5px solid var(--sp-hair); box-shadow:var(--sp-card-sh); overflow:hidden;
+  display:flex; align-items:center; gap:12px; padding:0 14px 0 10px;
+  transition:transform 200ms cubic-bezier(.32,.72,0,1), box-shadow 200ms cubic-bezier(.32,.72,0,1);
+}
+@supports (corner-shape:squircle){ .fvc{ corner-shape:squircle; } }
+.fvc:hover{ transform:translateY(-2px); }
+.fvc__i{
+  width:44px; height:44px; border-radius:12px; flex:0 0 auto;
+  display:grid; place-items:center; color:#fff;
+  font:700 18px/1 var(--st-display); letter-spacing:-.02em;
+}
+@supports (corner-shape:squircle){ .fvc__i{ corner-shape:squircle; } }
+.fvc__t{ font:600 13px/16px var(--st-ui); letter-spacing:-.006em; color:var(--sp-label); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fvc__u{ font:400 11px/13px var(--st-ui); color:var(--sp-label-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+.prrow{
+  height:56px; border-radius:12px; background:var(--sp-card); border:.5px solid var(--sp-hair);
+  display:flex; align-items:center; gap:12px; padding:0 16px; box-shadow:var(--sp-card-sh);
+}
+.prrow svg{ width:22px; height:22px; color:var(--sp-label-2); flex:0 0 auto; }
+.prrow b{ font:700 22px/1 var(--st-display); letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.prrow span{ font:400 13px/1 var(--st-ui); color:var(--sp-label-2); }
+
+.rl{ background:var(--sp-card); border:.5px solid var(--sp-hair); border-radius:12px; box-shadow:var(--sp-card-sh); overflow:hidden; }
+.rlrow{ display:flex; gap:12px; align-items:center; padding:9px 14px; }
+.rlrow + .rlrow{ box-shadow:inset 0 .5px 0 var(--sp-hair); }
+.rlrow__th{ width:44px; height:44px; border-radius:10px; flex:0 0 auto; display:grid; place-items:center; color:#fff; font:700 15px/1 var(--st-display); }
+.rlrow__t{ font:600 13px/16px var(--st-ui); color:var(--sp-label); }
+.rlrow__x{ font:400 11px/15px var(--st-ui); color:var(--sp-label-2); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+
+.sp__cust{
+  position:absolute; right:20px; bottom:20px; width:32px; height:32px; border-radius:50%;
+  z-index:6; display:grid; place-items:center; border:.5px solid rgba(0,0,0,.08);
+  box-shadow:0 1px 3px rgba(0,0,0,.10),0 6px 16px rgba(0,0,0,.10);
+  -webkit-backdrop-filter:blur(20px) saturate(180%); backdrop-filter:blur(20px) saturate(180%);
+}
+.win[data-appearance="light"] .sp__cust{ background:rgba(255,255,255,.72); color:rgba(0,0,0,.60); }
+.win[data-appearance="dark"]  .sp__cust{ background:rgba(58,58,60,.72); color:rgba(255,255,255,.75); border-color:rgba(255,255,255,.10); }
+.win[data-theme="glass"] .sp__cust{ right:24px; bottom:24px; }
+.sp__cust svg{ width:16px; height:16px; }
+
+/* ── ARTICLE PAGES (these exist to show the tint pipeline) ─────────────── */
+.art{ min-height:100%; }
+.art__hero{ padding:0 0 34px; }
+.art__band{ height:200px; position:relative; }
+.art__inner{ width:min(680px,100% - 72px); margin:0 auto; }
+.win[data-theme="glass"] .art__inner--first{ padding-top:118px; }
+.win[data-theme="classic"] .art__inner--first{ padding-top:34px; }
+.art__eyebrow{
+  font:600 11px/1 var(--st-mono); letter-spacing:.14em; text-transform:uppercase;
+}
+.art__h1{
+  font:700 34px/1.16 var(--st-display); letter-spacing:-.024em; margin:14px 0 0;
+  text-wrap:balance;
+}
+.art__by{ margin-top:14px; font:400 13px/1.5 var(--st-ui); }
+.art__p{ font:400 16px/1.68 var(--st-ui); letter-spacing:-.006em; margin:18px 0 0; }
+.art__pull{
+  margin:26px 0 0; padding-left:18px; font:600 19px/1.42 var(--st-display); letter-spacing:-.014em;
+}
+.art__fig{ margin:28px 0 0; border-radius:12px; height:190px; position:relative; overflow:hidden; }
+.art__cap{ margin-top:9px; font:400 12px/1.5 var(--st-ui); }
+
+/* ── STUDIO NOTES ─────────────────────────────────────────────────────── */
+.notes{
+  margin-top:26px; display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:22px;
+}
+@media (max-width:900px){ .notes{ grid-template-columns:minmax(0,1fr); } }
+.card{ background:var(--st-panel); border:1px solid var(--st-line); border-radius:12px; padding:20px 22px; }
+.card h2{
+  margin:0 0 4px; font-family:var(--st-display); font-size:15px; font-weight:650; letter-spacing:-.012em;
+}
+.card .sub{ margin:0 0 16px; color:var(--st-text-3); font-size:12.5px; }
+.readout{ display:grid; gap:11px; }
+.ro{ display:grid; grid-template-columns:118px minmax(0,1fr); gap:14px; align-items:start; }
+.ro dt{ font-family:var(--st-mono); font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; color:var(--st-text-3); padding-top:2px; }
+.ro dd{ margin:0; font-size:13px; color:var(--st-text-2); line-height:1.55; }
+.ro dd b{ color:var(--st-text); font-weight:600; }
+.chk{ list-style:none; margin:0; padding:0; display:grid; gap:9px; }
+.chk li{ display:grid; grid-template-columns:16px minmax(0,1fr); gap:10px; font-size:13px; color:var(--st-text-2); line-height:1.5; }
+.chk li::before{ content:""; width:6px; height:6px; margin:7px 0 0 5px; border-radius:2px; background:var(--st-accent); opacity:.7; }
+.chk li b{ color:var(--st-text); font-weight:600; }
+.tokrow{ font-family:var(--st-mono); font-size:11.5px; color:var(--st-text-2); }
+.tokrow b{ color:var(--st-accent); font-weight:400; }
+
+.foot{ margin-top:26px; color:var(--st-text-3); font-size:12.5px; line-height:1.65; }
+.foot b{ color:var(--st-text-2); font-weight:600; }
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{ transition-duration:1ms !important; animation-duration:1ms !important; }
+}
+</style>
+</head>
+<body data-view="stage">
+
+<header class="studio">
+  <div class="studio__inner">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <!-- an aviary: a domed enclosure with ribs and a perch -->
+        <path d="M3 22V13a10 10 0 0 1 20 0v9" stroke="#4CC2FF" stroke-width="1.7" stroke-linecap="round"/>
+        <path d="M13 3v19M8.1 4.6V22M17.9 4.6V22" stroke="#4CC2FF" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
+        <path d="M3 15.5h20" stroke="#4CC2FF" stroke-width="1.1" stroke-linecap="round" opacity=".55"/>
+        <path d="M2 22h22" stroke="#4CC2FF" stroke-width="1.7" stroke-linecap="round"/>
+      </svg>
+      <span class="brand__name">Aviary</span>
+      <span class="brand__phase">Phase 0</span>
+    </div>
+
+    <div class="ctrls">
+      <div class="ctrl">
+        <span class="ctrl__label">Theme</span>
+        <div class="seg" data-seg="theme">
+          <button data-v="glass">Liquid Glass</button>
+          <button data-v="classic">Classic</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl__label">Tabs</span>
+        <div class="seg" data-seg="layout">
+          <button data-v="top">Top bar</button>
+          <button data-v="sidebar">Sidebar</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl__label">Appearance</span>
+        <div class="seg" data-seg="appearance">
+          <button data-v="system">System</button>
+          <button data-v="light">Light</button>
+          <button data-v="dark">Dark</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl__label">Page</span>
+        <div class="seg" data-seg="page">
+          <button data-v="start">Start</button>
+          <button data-v="article">Article</button>
+          <button data-v="dark">Dark site</button>
+        </div>
+      </div>
+      <div class="ctrl">
+        <span class="ctrl__label">View</span>
+        <div class="seg" data-seg="view">
+          <button data-v="stage">Stage</button>
+          <button data-v="sheet">All four</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="stage" id="stage"></div>
+  <div class="sheet" id="sheetGrid"></div>
+
+  <section class="notes">
+    <div class="card">
+      <h2 id="noteTitle">Liquid Glass · Top tabs</h2>
+      <p class="sub" id="noteSub"></p>
+      <dl class="readout" id="readout"></dl>
+    </div>
+    <div class="card">
+      <h2>What to judge</h2>
+      <p class="sub">Aesthetics decide this phase. These are the details that separate the real thing from a Fluent default.</p>
+      <ul class="chk">
+        <li><b>Corner radii.</b> Glass capsules are stadiums — radius is exactly half the height. Classic's address field is a 7px rounded rect, never a pill.</li>
+        <li><b>The edge highlight.</b> The glass rim is a gradient that is bright at two poles and almost invisible at the flanks. A uniform white border is the loudest tell of a fake.</li>
+        <li><b>Reload's position.</b> In Classic it lives <em>inside</em> the address field at the right, with "Aa" inside at the left. Outside the field is Chrome.</li>
+        <li><b>The toolbar tint.</b> Switch Page to <em>Dark site</em> and watch every glyph flip to white in one step. That flip is what people recognise as Safari.</li>
+        <li><b>The caption buttons.</b> 46px wide, full-bleed rectangles, no radius, no gap, no fade. Close hovers <span class="tokrow"><b>#C42B1C</b></span>, not the Windows 10 red.</li>
+        <li><b>Content under glass.</b> Scroll the page. Content must pass beneath the floating capsule — that is the theme, not a detail.</li>
+      </ul>
+    </div>
+  </section>
+
+  <p class="foot">
+    <b>Every value here is a token.</b> Colour, radius, blur and spacing all live in one place per theme, so the WinUI 3 build can lift them straight into two resource dictionaries in Phase 3. Nothing is hardcoded in a control.
+    <br><b>Not yet real:</b> nothing renders a web page — the "sites" are hand-drawn so the tint pipeline has something honest to sample.
+  </p>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ── DEMO DATA ───────────────────────────────────────────────────────── */
+const FAVOURITES=[
+  {n:"Microsoft",     h:"microsoft.com",        m:"◳", a:"#0F6CBD"},
+  {n:"GitHub",        h:"github.com",           m:"G", a:"#24292E"},
+  {n:"Stack Overflow",h:"stackoverflow.com",    m:"S", a:"#F48024"},
+  {n:"Hacker News",   h:"news.ycombinator.com", m:"Y", a:"#FF6600"},
+  {n:"Reddit",        h:"reddit.com",           m:"R", a:"#FF4500"},
+  {n:"YouTube",       h:"youtube.com",          m:"▶", a:"#FF0033"},
+  {n:"Wikipedia",     h:"wikipedia.org",        m:"W", a:"#3366CC"},
+  {n:"Steam",         h:"steampowered.com",     m:"◆", a:"#1B2838"},
+  {n:"Discord",       h:"discord.com",          m:"D", a:"#5865F2"},
+  {n:"Twitch",        h:"twitch.tv",            m:"T", a:"#9146FF"},
+  {n:"Figma",         h:"figma.com",            m:"F", a:"#A259FF"},
+  {n:"NVIDIA",        h:"nvidia.com",           m:"N", a:"#76B900"}
+];
+const FREQUENT=[
+  {n:"Windows Central", h:"windowscentral.com",  m:"W", a:"#1273D4"},
+  {n:"Microsoft Learn", h:"learn.microsoft.com", m:"L", a:"#0078D4"},
+  {n:"Tom's Hardware",  h:"tomshardware.com",    m:"T", a:"#B4121B"},
+  {n:"TechPowerUp",     h:"techpowerup.com",     m:"▲", a:"#F3701B"},
+  {n:"PCPartPicker",    h:"pcpartpicker.com",    m:"P", a:"#2F855A"},
+  {n:"Ars Technica",    h:"arstechnica.com",     m:"A", a:"#FF4E00"}
+];
+const READING=[
+  {t:"The quiet return of the desktop application", x:"Native shells are back, and the reasons have nothing to do with nostalgia.", m:"Q", a:"#5B7FD4"},
+  {t:"Notes on translucency", x:"Why every convincing glass material is really five layers pretending to be one.", m:"N", a:"#C8783C"}
+];
+
+/* Pages. themeColor is what the Classic tint pipeline samples; null means the
+   page top is not uniform, so Safari bails out and shows neutral chrome. */
+const PAGES={
+  start:  {title:"Start Page", host:"Start Page", url:"aviary://start", themeColor:null, secure:true},
+  article:{title:"The long afternoon of the browser — Meridian Review",
+           host:"meridianreview.com", url:"meridianreview.com/long-afternoon",
+           themeColor:"#F2E4D0", secure:true},
+  dark:   {title:"Nightshift — Field manual",
+           host:"nightshift.dev", url:"nightshift.dev/manual/rendering",
+           themeColor:"#12212E", secure:true}
+};
+
+const TABS=[
+  {t:"Start Page",                 m:"◈", a:"#4C6EF5"},
+  {t:"The long afternoon of th…",  m:"M", a:"#B4121B"},
+  {t:"Nightshift — Field manual",  m:"N", a:"#12212E"},
+  {t:"Windows App SDK docs",       m:"L", a:"#0078D4"}
+];
+
+/* ── ICONS (17px optical box, 1.6 stroke, round caps — never 2px) ─────── */
+const I={
+  sidebar:'<svg viewBox="0 0 17 17" fill="none"><rect x="1.2" y="2.6" width="14.6" height="11.8" rx="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 2.6v11.8" stroke="currentColor" stroke-width="1.3"/><rect x="1.2" y="2.6" width="5.3" height="11.8" rx="2.5" fill="currentColor" opacity=".3"/></svg>',
+  back:   '<svg viewBox="0 0 17 17" fill="none"><path d="M10.6 3.8 6.4 8.5l4.2 4.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  fwd:    '<svg viewBox="0 0 17 17" fill="none"><path d="M6.4 3.8l4.2 4.7-4.2 4.7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  share:  '<svg viewBox="0 0 17 17" fill="none"><path d="M8.5 11V2.6M8.5 2.6 5.9 5.2M8.5 2.6l2.6 2.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.6 8.4v4.6a1.4 1.4 0 0 0 1.4 1.4h7a1.4 1.4 0 0 0 1.4-1.4V8.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  plus:   '<svg viewBox="0 0 17 17" fill="none"><path d="M8.5 3.6v9.8M3.6 8.5h9.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  grid:   '<svg viewBox="0 0 17 17" fill="none"><rect x="2.2" y="2.2" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.4"/><rect x="8.4" y="8.4" width="6.4" height="6.4" rx="2" stroke="currentColor" stroke-width="1.4"/></svg>',
+  lock:   '<svg viewBox="0 0 17 17" fill="none"><rect x="3.6" y="7.4" width="9.8" height="7" rx="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M5.9 7.4V5.6a2.6 2.6 0 0 1 5.2 0v1.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  reload: '<svg viewBox="0 0 17 17" fill="none"><path d="M13.6 8.5a5.1 5.1 0 1 1-1.6-3.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M13.2 2.6v3.4H9.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  x:      '<svg viewBox="0 0 17 17" fill="none"><path d="M4.4 4.4l8.2 8.2M12.6 4.4l-8.2 8.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  chev:   '<svg viewBox="0 0 17 17" fill="none"><path d="M4.4 6.4 8.5 10.6l4.1-4.2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  shield: '<svg viewBox="0 0 17 17" fill="none"><path d="M8.5 1.8 3.2 4v4.3c0 3.2 2.2 6 5.3 6.9 3.1-.9 5.3-3.7 5.3-6.9V4L8.5 1.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  book:   '<svg viewBox="0 0 17 17" fill="none"><path d="M3 3.4h4.2c.9 0 1.3.6 1.3 1.4v9c0-.8-.4-1.4-1.3-1.4H3V3.4ZM14 3.4H9.8c-.9 0-1.3.6-1.3 1.4v9c0-.8.4-1.4 1.3-1.4H14V3.4Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>',
+  glasses:'<svg viewBox="0 0 17 17" fill="none"><circle cx="4.4" cy="9.4" r="2.6" stroke="currentColor" stroke-width="1.3"/><circle cx="12.6" cy="9.4" r="2.6" stroke="currentColor" stroke-width="1.3"/><path d="M7 9.4h3M2 7 3.4 5.2M15 7l-1.4-1.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  sliders:'<svg viewBox="0 0 17 17" fill="none"><path d="M2.6 4.6h11.8M2.6 8.5h11.8M2.6 12.4h11.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6" cy="4.6" r="1.7" fill="currentColor"/><circle cx="11" cy="8.5" r="1.7" fill="currentColor"/><circle cx="5" cy="12.4" r="1.7" fill="currentColor"/></svg>',
+  clock:  '<svg viewBox="0 0 17 17" fill="none"><circle cx="8.5" cy="8.5" r="6.2" stroke="currentColor" stroke-width="1.3"/><path d="M8.5 4.9v3.8l2.4 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  dl:     '<svg viewBox="0 0 17 17" fill="none"><path d="M8.5 2.8v7.6M5.6 7.8l2.9 2.9 2.9-2.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.4 12.4v.6a1.4 1.4 0 0 0 1.4 1.4h7.4a1.4 1.4 0 0 0 1.4-1.4v-.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+};
+const TBI={
+  start:'<svg viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="7.6" height="7.6" rx="1.4" fill="#4CC2FF"/><rect x="12.9" y="3.5" width="7.6" height="7.6" rx="1.4" fill="#4CC2FF"/><rect x="3.5" y="12.9" width="7.6" height="7.6" rx="1.4" fill="#4CC2FF"/><rect x="12.9" y="12.9" width="7.6" height="7.6" rx="1.4" fill="#4CC2FF"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none"><circle cx="10.5" cy="10.5" r="6.2" stroke="currentColor" stroke-width="1.7"/><path d="m15.2 15.2 4.3 4.3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  task:'<svg viewBox="0 0 24 24" fill="none"><rect x="2.6" y="5.4" width="12.4" height="13.2" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M17.6 7.2v9.6M20.6 9v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+  files:'<svg viewBox="0 0 24 24" fill="none"><path d="M3 7.2A2.2 2.2 0 0 1 5.2 5h3.4l2 2.2h8.2A2.2 2.2 0 0 1 21 9.4v7.4A2.2 2.2 0 0 1 18.8 19H5.2A2.2 2.2 0 0 1 3 16.8V7.2Z" fill="#F5C24A"/></svg>',
+  aviary:'<svg viewBox="0 0 24 24" fill="none"><path d="M3 20V12.6A9 9 0 0 1 21 12.6V20" stroke="#4CC2FF" stroke-width="1.7" stroke-linecap="round"/><path d="M12 3.6V20M7.6 5.1V20M16.4 5.1V20M3 14.4h18" stroke="#4CC2FF" stroke-width="1.05" stroke-linecap="round" opacity=".6"/><path d="M2.2 20h19.6" stroke="#4CC2FF" stroke-width="1.7" stroke-linecap="round"/></svg>',
+  wifi:'<svg viewBox="0 0 16 16" fill="none"><path d="M1.6 5.6a9 9 0 0 1 12.8 0M4 8.3a5.6 5.6 0 0 1 8 0" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.6" r="1.2" fill="currentColor"/></svg>',
+  vol:'<svg viewBox="0 0 16 16" fill="none"><path d="M3 6h2.2L8.4 3.2v9.6L5.2 10H3V6Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M10.6 6.1a2.8 2.8 0 0 1 0 3.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  bat:'<svg viewBox="0 0 16 16" fill="none"><rect x="1.4" y="5.2" width="11.4" height="5.6" rx="1.6" stroke="currentColor" stroke-width="1.2"/><rect x="2.8" y="6.6" width="8" height="2.8" rx=".8" fill="currentColor"/><path d="M14.2 7.2v1.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  up:'<svg viewBox="0 0 16 16" fill="none"><path d="m4.4 9.6 3.6-3.6 3.6 3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
+
+/* ── SAFARI'S TINT PIPELINE ──────────────────────────────────────────────
+   Never use the raw page colour. Desaturate with a knee, reshape lightness,
+   blend 8% back toward neutral chrome, then decide glyph polarity on YIQ
+   perceived brightness — not WCAG luminance, which puts white text on yellow. */
+function hexToRgb(h){h=h.replace('#','');return[parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
+function rgbToHsl(r,g,b){
+  r/=255;g/=255;b/=255;
+  const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;
+  let h=0,s=0;
+  if(mx!==mn){const d=mx-mn; s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    h = mx===r ? (g-b)/d+(g<b?6:0) : mx===g ? (b-r)/d+2 : (r-g)/d+4; h/=6;}
+  return[h,s,l];
+}
+function hslToRgb(h,s,l){
+  if(s===0){const v=Math.round(l*255);return[v,v,v];}
+  const q=l<.5?l*(1+s):l+s-l*s, p=2*l-q;
+  const f=t=>{ if(t<0)t+=1; if(t>1)t-=1;
+    if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+  return[Math.round(f(h+1/3)*255),Math.round(f(h)*255),Math.round(f(h-1/3)*255)];
+}
+function safariTint(hex,appearance){
+  let[h,s,l]=rgbToHsl.apply(null,hexToRgb(hex));
+  s*=0.86; if(s>0.62) s=0.62+(s-0.62)*0.35;
+  l = appearance==='dark' ? l*0.820+0.030 : l*0.955+0.012;
+  l = Math.min(0.965,Math.max(0.09,l));
+  const rgb=hslToRgb(h,s,l);
+  const base = appearance==='dark' ? [46,46,46] : [237,237,237];
+  const out=rgb.map((c,i)=>Math.round(c*0.92+base[i]*0.08));
+  const yiq=(299*out[0]+587*out[1]+114*out[2])/255000;
+  return { css:'rgb('+out.join(',')+')', yiq:yiq, glyph: yiq<0.62 ? 'light' : 'dark' };
+}
+
+/* ── SMALL HELPERS ───────────────────────────────────────────────────── */
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const chip=(f,cls)=>'<span class="favchip '+(cls||'')+'" style="background:'+f.a+'">'+esc(f.m)+'</span>';
+
+function captionHTML(){
+  return '<div class="caption">'+
+    '<button class="cap cap--min"   type="button" aria-label="Minimize"></button>'+
+    '<button class="cap cap--max"   type="button" aria-label="Maximize"></button>'+
+    '<button class="cap cap--close" type="button" aria-label="Close"></button>'+
+  '</div>';
+}
+
+/* ── PAGE BODIES ─────────────────────────────────────────────────────── */
+function startPageHTML(appearance){
+  /* A dark brand colour on a dark card is an invisible monogram, so in dark
+     appearance every mark is mixed toward white before it is drawn. */
+  const ink = c => appearance==='dark' ? 'color-mix(in srgb,'+c+' 46%, #ffffff)' : c;
+
+  const favs=FAVOURITES.map(f=>
+    '<div class="fav"><div class="fav__i" style="background:color-mix(in srgb,'+f.a+' '+(appearance==='dark'?20:12)+'%, var(--sp-icon-bg))">'+
+    '<span class="fav__m" style="color:'+ink(f.a)+'">'+esc(f.m)+'</span></div>'+
+    '<div class="fav__l">'+esc(f.n)+'</div></div>').join('')+
+    '<div class="fav fav--add"><div class="fav__i">'+I.plus+'</div><div class="fav__l">Add</div></div>';
+
+  const freq=FREQUENT.map(f=>
+    '<div class="fvc"><div class="fvc__i" style="background:'+
+      'linear-gradient(145deg,'+f.a+' 0%,color-mix(in srgb,'+f.a+' 72%,#000) 100%)">'+esc(f.m)+'</div>'+
+      '<div style="min-width:0"><div class="fvc__t">'+esc(f.n)+'</div>'+
+      '<div class="fvc__u">'+esc(f.h)+'</div></div></div>').join('');
+
+  const read=READING.map(r=>
+    '<div class="rlrow"><div class="rlrow__th" style="background:'+r.a+'">'+esc(r.m)+'</div>'+
+    '<div style="min-width:0"><div class="rlrow__t">'+esc(r.t)+'</div>'+
+    '<div class="rlrow__x">'+esc(r.x)+'</div></div></div>').join('');
+
+  return '<div class="page sp">'+
+    '<div class="sp__wall"></div><div class="sp__wallover"></div><div class="sp__scrim"></div>'+
+    '<div class="sp__col">'+
+      '<section class="sp__sec"><h3 class="sp__h">Favourites'+I.chev+'</h3><div class="favgrid">'+favs+'</div></section>'+
+      '<section class="sp__sec"><h3 class="sp__h">Frequently Visited'+I.chev+'</h3><div class="fvgrid">'+freq+'</div></section>'+
+      '<section class="sp__sec"><h3 class="sp__h">Privacy Report'+I.chev+'</h3>'+
+        '<div class="prrow">'+I.shield+'<div style="display:flex;align-items:baseline;gap:8px">'+
+        '<b>37</b><span>trackers prevented from profiling you in the last seven days</span></div>'+
+        '<div style="margin-left:auto;color:var(--sp-label-3);transform:rotate(-90deg)">'+I.chev+'</div></div></section>'+
+      '<section class="sp__sec"><h3 class="sp__h">Reading List'+I.chev+'</h3><div class="rl">'+read+'</div></section>'+
+      '<section class="sp__sec"><h3 class="sp__h">Tabs From Other Devices'+I.chev+'</h3>'+
+        '<div style="height:40px;display:flex;align-items:center;font:400 13px/1 var(--st-ui);color:var(--sp-label-2)">'+
+        'No other devices are signed in.</div></section>'+
+    '</div>'+
+    '<div class="sp__cust">'+I.sliders+'</div>'+
+  '</div>';
+}
+
+function articleHTML(kind,appearance){
+  const dark = kind==='dark';
+  const pageBg = dark ? '#0C1620' : (appearance==='dark' ? '#171310' : '#FBF6EE');
+  const ink    = dark ? 'rgba(226,238,248,.90)' : (appearance==='dark' ? 'rgba(244,236,226,.88)' : 'rgba(28,22,16,.88)');
+  const ink2   = dark ? 'rgba(226,238,248,.58)' : (appearance==='dark' ? 'rgba(244,236,226,.55)' : 'rgba(28,22,16,.55)');
+  const accent = dark ? '#4FB6E8' : '#B4121B';
+  const band   = dark
+    ? 'radial-gradient(120% 140% at 20% 0%,rgba(79,182,232,.30),transparent 62%),linear-gradient(160deg,#12212E,#0A121B)'
+    : 'radial-gradient(120% 140% at 22% 0%,rgba(180,18,27,.22),transparent 60%),linear-gradient(160deg,#F2E4D0,#E4CFB2)';
+
+  const body = dark ? [
+    "A renderer is a machine for deciding what not to draw. Everything else — the rasteriser, the compositor, the display list — is bookkeeping in service of that one decision.",
+    "The naive approach redraws the world every frame and lets the GPU sort it out. This works, briefly, on a machine you own. It stops working on the machine your reader owns.",
+    "What follows is the short version of six years of getting this wrong in public."
+  ] : [
+    "For about fifteen years the browser was the most ambitious piece of software on a personal computer, and everybody knew it. It shipped an operating system's worth of surface area behind a single text field.",
+    "Then it became furniture. Not worse — genuinely better, year over year — but furniture: a thing you stop seeing, which is the highest compliment an interface can be paid and the fastest way to stop caring about one.",
+    "The interesting question is not which browser is fastest. It is what a browser should feel like once speed stops being the argument, and the answer that keeps surfacing is a strange one: it should feel like less."
+  ];
+
+  return '<div class="page art" style="background:'+pageBg+';color:'+ink+'">'+
+    '<div class="art__band" style="background:'+band+'"></div>'+
+    '<div class="art__inner">'+
+      '<div style="margin-top:-52px;position:relative">'+
+      '<div class="art__eyebrow" style="color:'+accent+'">'+(dark?'Field manual · 04':'Essay · Long read')+'</div>'+
+      '<h1 class="art__h1">'+(dark?'What a renderer refuses to draw':'The long afternoon of the browser')+'</h1>'+
+      '<div class="art__by" style="color:'+ink2+'">'+(dark?'Nightshift Engineering':'Meridian Review')+' · 12 min read · '+(dark?'Rendering':'Software')+'</div>'+
+      '</div>'+
+      body.map(p=>'<p class="art__p">'+esc(p)+'</p>').join('')+
+      '<blockquote class="art__pull" style="border-left:3px solid '+accent+';color:'+ink+'">'+
+        (dark?'Every frame you skip is a frame you never have to make correct.'
+             :'Chrome that disappears is not the absence of design. It is the most expensive kind.')+
+      '</blockquote>'+
+      body.map(p=>'<p class="art__p">'+esc(p)+'</p>').join('')+
+      '<figure class="art__fig" style="background:'+band+'">'+
+        '<figcaption class="art__cap" style="position:absolute;left:16px;bottom:12px;color:'+ink2+'">'+
+        (dark?'Fig. 4 — occlusion culling across three composited layers':'Above: the 2004 toolbar, restored')+'</figcaption>'+
+      '</figure>'+
+      body.map(p=>'<p class="art__p">'+esc(p)+'</p>').join('')+
+      '<div style="height:80px"></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function pageHTML(pageKey,appearance){
+  return pageKey==='start' ? startPageHTML(appearance) : articleHTML(pageKey,appearance);
+}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────────────── */
+function sidebarInner(activeTab){
+  const tabs=TABS.map((t,i)=>
+    '<div class="side__row" '+(i===activeTab?'aria-selected="true"':'')+'>'+
+    chip(t)+'<span class="lbl">'+esc(t.t)+'</span></div>').join('');
+  const favs=FAVOURITES.slice(0,5).map(f=>
+    '<div class="side__row">'+chip(f)+'<span class="lbl">'+esc(f.n)+'</span></div>').join('');
+  const read=READING.map(r=>
+    '<div class="side__row">'+chip({a:r.a,m:r.m})+'<span class="lbl">'+esc(r.t)+'</span></div>').join('');
+  return '<div class="side__scroll">'+
+    '<div class="side__h">Tabs'+I.chev+'</div>'+tabs+
+    '<button class="side__new" type="button"><span style="width:16px;display:grid;place-items:center">'+I.plus+'</span>New Tab</button>'+
+    '<div class="side__h">Favourites'+I.chev+'</div>'+favs+
+    '<div class="side__h">Reading List'+I.chev+'</div>'+read+
+  '</div>';
+}
+
+/* ── CHROME: LIQUID GLASS ────────────────────────────────────────────── */
+function glassToolbar(page,layout){
+  const showSidebarBtn = true;
+  return '<div class="gcap g-toolbar"><div class="grim"></div>'+
+    '<button class="gbtn" type="button" '+(layout==='sidebar'?'aria-pressed="true"':'')+'>'+I.sidebar+'</button>'+
+    '<span class="gsep"></span>'+
+    '<button class="gbtn" type="button">'+I.back+'</button>'+
+    '<button class="gbtn" type="button" disabled>'+I.fwd+'</button>'+
+    '<div class="gurl">'+
+      '<span class="gurl__lock">'+I.lock+'</span>'+
+      '<span class="gurl__txt'+(page.url==='aviary://start'?' is-placeholder':'')+'">'+
+        esc(page.url==='aviary://start'?'Search or enter website name':page.host)+'</span>'+
+      '<button class="gurl__act" type="button">'+I.reload+'</button>'+
+    '</div>'+
+    '<button class="gbtn" type="button" data-opt>'+I.glasses+'</button>'+
+    '<button class="gbtn" type="button" data-opt>'+I.share+'</button>'+
+    '<span class="gsep" data-opt></span>'+
+    '<button class="gbtn" type="button" data-opt2>'+I.plus+'</button>'+
+    '<button class="gbtn" type="button" data-opt2>'+I.grid+'</button>'+
+  '</div>';
+}
+function glassTabCapsule(active){
+  const tabs=TABS.map((t,i)=>
+    '<button class="gtab" type="button" '+(i===active?'aria-selected="true"':'')+'>'+
+      '<span class="tslot"><span class="fv">'+chip(t)+'</span>'+
+      '<span class="xx">'+I.x+'</span></span>'+
+      '<span class="gtab__t">'+esc(t.t)+'</span></button>').join('');
+  return '<div class="gcap g-tabcap"><div class="grim"></div>'+tabs+
+    '<button class="gbtn" type="button" style="width:32px;height:32px;border-radius:16px;margin-left:4px">'+I.plus+'</button>'+
+  '</div>';
+}
+
+/* ── CHROME: CLASSIC ─────────────────────────────────────────────────── */
+function classicToolbar(page,layout){
+  return '<div class="c-toolbar">'+
+    '<button class="cbtn" type="button" '+(layout==='sidebar'?'aria-pressed="true"':'')+'>'+I.sidebar+'</button>'+
+    '<span style="width:12px"></span>'+
+    '<button class="cbtn" type="button">'+I.back+'</button>'+
+    '<span style="width:2px"></span>'+
+    '<button class="cbtn" type="button" disabled>'+I.fwd+'</button>'+
+    '<span style="width:16px"></span>'+
+    '<div class="cfield">'+
+      '<button class="cfield__aa" type="button">Aa</button>'+
+      '<span class="cfield__lock">'+I.lock+'</span>'+
+      '<span class="cfield__txt'+(page.url==='aviary://start'?' is-placeholder':'')+'">'+
+        esc(page.url==='aviary://start'?'Search or enter website name':page.host)+'</span>'+
+      '<button class="cfield__rl" type="button">'+I.reload+'</button>'+
+    '</div>'+
+    '<span style="width:16px"></span>'+
+    '<button class="cbtn" type="button" data-opt>'+I.share+'</button>'+
+    '<span style="width:6px" data-opt></span>'+
+    '<button class="cbtn" type="button">'+I.plus+'</button>'+
+    '<span style="width:6px"></span>'+
+    '<button class="cbtn" type="button">'+I.grid+'</button>'+
+    '<span style="width:8px"></span>'+
+    captionHTML()+
+  '</div>';
+}
+function classicTabStrip(active){
+  const tabs=TABS.map((t,i)=>
+    '<button class="ctab" type="button" '+(i===active?'aria-selected="true"':'')+'>'+
+      '<span class="tslot"><span class="fv">'+chip(t)+'</span>'+
+      '<span class="xx">'+I.x+'</span></span>'+
+      '<span class="ctab__t">'+esc(t.t)+'</span></button>').join('');
+  return '<div class="c-tabstrip">'+tabs+
+    '<button class="cbtn" type="button" style="margin-left:4px">'+I.plus+'</button>'+
+  '<div class="c-chrome-edge"></div></div>';
+}
+
+/* ── THE WINDOW ──────────────────────────────────────────────────────── */
+function windowHTML(cfg){
+  const page=PAGES[cfg.page];
+  const active=cfg.page==='start'?0:(cfg.page==='article'?1:2);
+  let inner='';
+
+  if(cfg.theme==='glass'){
+    /* Title-bar band holds either the floating tab capsule or just the drag
+       region; caption buttons fill its height at the right. Below it, the
+       toolbar capsule floats over the page and the page scrolls beneath. */
+    const band = cfg.layout==='top'
+      ? '<div style="height:56px;flex:0 0 auto;display:flex;align-items:center;padding:6px 0 6px 12px;gap:8px;position:relative;z-index:6">'+
+          '<div style="flex:1;min-width:0">'+glassTabCapsule(active)+'</div>'+
+          '<div style="align-self:stretch;display:flex">'+captionHTML()+'</div>'+
+        '</div>'
+      : '<div style="height:48px;flex:0 0 auto;display:flex;align-items:center;padding-left:14px;gap:10px;position:relative;z-index:6">'+
+          '<span style="width:16px;height:16px;display:grid;place-items:center">'+TBI.aviary+'</span>'+
+          '<span style="font:400 12px/16px var(--st-ui);color:var(--txt-1);opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(page.title)+'</span>'+
+          '<div style="margin-left:auto;align-self:stretch;display:flex">'+captionHTML()+'</div>'+
+        '</div>';
+
+    const sheet =
+      '<div class="gsheet">'+
+        '<div class="vp">'+pageHTML(cfg.page,cfg.appearance)+'</div>'+
+        '<div class="gscrim"><i></i><i></i><i></i><i></i></div>'+
+        '<div class="gfloat" style="top:8px">'+glassToolbar(page,cfg.layout)+'</div>'+
+      '</div>';
+
+    inner = band +
+      '<div class="stack" style="padding:0 12px 12px;gap:8px">'+
+        (cfg.layout==='sidebar'
+          ? '<div class="gcap g-side side">'+sidebarInner(active)+'</div>'
+          : '')+
+        '<div class="colstack">'+sheet+'</div>'+
+      '</div>';
+
+  }else{
+    /* Classic: one opaque tinted plane welded to the top. Caption buttons fill
+       the toolbar row's height at its right end. */
+    const strip = cfg.layout==='top' ? classicTabStrip(active) : '';
+    const edge  = cfg.layout==='top' ? '' : '<div class="c-chrome-edge"></div>';
+    inner =
+      '<div class="c-chromewrap" style="position:relative;flex:0 0 auto">'+
+        classicToolbar(page,cfg.layout)+strip+edge+
+      '</div>'+
+      '<div class="stack">'+
+        (cfg.layout==='sidebar' ? '<div class="side">'+sidebarInner(active)+'</div>' : '')+
+        '<div class="colstack" style="background:var(--sf-page)">'+
+          '<div class="vp">'+pageHTML(cfg.page,cfg.appearance)+'</div>'+
+        '</div>'+
+      '</div>';
+  }
+
+  return '<div class="win" data-theme="'+cfg.theme+'" data-layout="'+cfg.layout+'" '+
+    'data-appearance="'+cfg.appearance+'" data-micaalt="'+(cfg.theme==='glass'&&cfg.layout==='top'?'1':'0')+'">'+
+    '<div class="win__mica"></div>'+
+    '<div class="win__body">'+inner+'</div>'+
+  '</div>';
+}
+
+function desktopHTML(cfg){
+  const now = cfg.appearance==='dark' ? '9:41 PM' : '9:41 AM';
+  const taskbar=
+    '<div class="tb">'+
+      '<div class="tb__group">'+
+        '<button class="tb__btn" type="button">'+TBI.start+'</button>'+
+        '<button class="tb__btn" type="button">'+TBI.search+'</button>'+
+        '<button class="tb__btn" type="button">'+TBI.task+'</button>'+
+        '<button class="tb__btn" type="button">'+TBI.files+'</button>'+
+        '<button class="tb__btn is-active" type="button" data-state="focused">'+TBI.aviary+'</button>'+
+      '</div>'+
+      '<div class="tb__tray">'+
+        '<div class="tb__quick" style="width:32px;justify-content:center">'+TBI.up+'</div>'+
+        '<div class="tb__quick">'+TBI.wifi+TBI.vol+TBI.bat+'</div>'+
+        '<div class="tb__clock">'+now+'<br>9/4/2026</div>'+
+        '<div class="tb__showdesk"></div>'+
+      '</div>'+
+    '</div>';
+  return '<div class="desktop" data-appearance="'+cfg.appearance+'">'+
+    '<div class="dk-petals"></div><div class="dk-vignette"></div><div class="dk-grain"></div>'+
+    windowHTML(cfg)+taskbar+
+  '</div>';
+}
+
+/* ── TINT + WALLPAPER APPLICATION ────────────────────────────────────── */
+function applyTint(root,cfg){
+  root.querySelectorAll('.win[data-theme="classic"]').forEach(win=>{
+    const key = win.getAttribute('data-page') || cfg.page;
+    const p = PAGES[key];
+    const appearance = win.getAttribute('data-appearance');
+    if(!p.themeColor){
+      /* page top is not uniform → Safari bails out to neutral chrome */
+      win.style.removeProperty('--sf-tint');
+      win.removeAttribute('data-glyph');
+      return;
+    }
+    const t = safariTint(p.themeColor, appearance);
+    win.style.setProperty('--sf-tint', t.css);
+    if(t.glyph==='light') win.setAttribute('data-glyph','light');
+    else win.removeAttribute('data-glyph');
+  });
+}
+function applyWallpaper(root){
+  /* the Start Page wallpaper is the desktop's own Bloom, so the start page
+     reads as continuous with the machine it is running on */
+  root.querySelectorAll('.desktop').forEach(dk=>{
+    const bg=getComputedStyle(dk).backgroundImage;
+    dk.querySelectorAll('.sp__wall').forEach(w=>{ w.style.backgroundImage=bg; });
+  });
+}
+function wireScroll(root){
+  root.querySelectorAll('.vp').forEach(vp=>{
+    const sync=()=>{
+      const on = vp.scrollTop>8 ? '1' : (vp.scrollTop<4 ? '0' : vp.getAttribute('data-scrolled')||'0');
+      vp.setAttribute('data-scrolled',on);
+      const wrap=vp.closest('.win').querySelector('.c-chromewrap');
+      if(wrap) wrap.setAttribute('data-scrolled',on);
+    };
+    vp.addEventListener('scroll',sync,{passive:true}); sync();
+  });
+}
+
+/* ── STATE ───────────────────────────────────────────────────────────── */
+const state={theme:'glass',layout:'top',appearance:'system',page:'start',view:'stage'};
+const mq=window.matchMedia('(prefers-color-scheme: dark)');
+const resolved=()=> state.appearance==='system' ? (mq.matches?'dark':'light') : state.appearance;
+
+const NOTES={
+  'glass|top':{
+    title:'Liquid Glass · Top tabs',
+    sub:'Two glass surfaces with two different backdrops — the tab capsule floats on Mica in the title bar, the toolbar capsule floats on the page.',
+    rows:[
+      ['Capsule','48px tall, <b>24px radius</b> — exactly half the height. A stadium, not a rounded rectangle.'],
+      ['Material','blur 24px · saturate 180% · fill 44% in light. Dark is a different recipe: blur 28px, saturate 150%, fill 52%.'],
+      ['Edge','A 1px gradient ring, bright at two poles and ~6% at the flanks, over an inner white top hairline.'],
+      ['Caption','46px wide, filling the 56px title-bar band. The tab capsule stops short so the buttons never sit on glass.'],
+      ['Scroll','Content passes beneath the toolbar. A four-band progressive blur keeps text legible without thickening the glass.']
+    ]},
+  'glass|sidebar':{
+    title:'Liquid Glass · Sidebar',
+    sub:'The sidebar is a floating glass panel on Mica; the web content becomes a rounded sheet beside it, with the toolbar capsule floating over that sheet.',
+    rows:[
+      ['Sidebar','250px, 18px squircle, its own glass stack. Tabs, Favourites and Reading List share one scroll.'],
+      ['Content','A 12px-radius sheet inset from the frame — the Tahoe move that makes the window read as layered rather than flat.'],
+      ['Title bar','48px, app mark and page title left-aligned in the Windows manner, caption buttons filling the right.'],
+      ['Selection','The selected row is the same 72%-white fill as an active tab pill, so one idea of "current" runs through the whole theme.'],
+      ['Depth','Only the capsules and the sheet cast. If every row had a shadow the hierarchy would flatten.']
+    ]},
+  'classic|top':{
+    title:'Classic · Top tabs',
+    sub:'One opaque plane welded to the top of the window: no gap, no gradient, no elevation, and exactly one hairline that only appears once you scroll.',
+    rows:[
+      ['Toolbar','48px, edge to edge at y=0. Safari\'s 52px trimmed to Windows\' Tall title-bar height so the caption buttons are exactly 46×48.'],
+      ['Field','30px tall, <b>7px radius</b>. Reload sits inside at the right, "Aa" inside at the left. A pill here would read as Edge.'],
+      ['Tabs','32px, 8px radius, abutting, separated by a short vertical hairline. The close button takes over the favicon\'s slot on hover.'],
+      ['Tint','Sampled from the page, desaturated to 86% with a knee at 0.62, then blended 8% back toward neutral chrome.'],
+      ['Flip','Glyphs invert on YIQ perceived brightness below 0.62 — not WCAG luminance, which would put white text on yellow.']
+    ]},
+  'classic|sidebar':{
+    title:'Classic · Sidebar',
+    sub:'The unified toolbar keeps the full width; the sidebar is flush to the frame with a single hairline, and carries the tabs in place of a strip.',
+    rows:[
+      ['Sidebar','250px, solid, no radius, no shadow — an inset 1px hairline is the only separation. Flush, not floating.'],
+      ['Chrome','48px total. With no tab strip the whole chrome collapses to one row, which is the point of "unified".'],
+      ['Rows','30px tall, 6px radius, 12.5px labels. Selected rows use a 10% overlay so they survive any toolbar tint.'],
+      ['Fills','Every fill is an alpha, never a hex. The moment a tint lands, a solid grey row would read as a bug.'],
+      ['Hairline','Fades in across the first 12px of scroll. At rest the toolbar melts into the page — that is a signature, not an oversight.']
+    ]}
+};
+
+function renderStage(){
+  const cfg={theme:state.theme,layout:state.layout,appearance:resolved(),page:state.page};
+  const host=document.getElementById('stage');
+  host.innerHTML=desktopHTML(cfg);
+  applyTint(host,cfg); applyWallpaper(host); wireScroll(host);
+
+  const n=NOTES[state.theme+'|'+state.layout];
+  document.getElementById('noteTitle').textContent=n.title;
+  document.getElementById('noteSub').textContent=n.sub;
+  document.getElementById('readout').innerHTML=
+    n.rows.map(r=>'<div class="ro"><dt>'+r[0]+'</dt><dd>'+r[1]+'</dd></div>').join('');
+}
+
+function renderSheet(){
+  const combos=[
+    {theme:'glass',  layout:'top',     name:'Liquid Glass · Top tabs'},
+    {theme:'glass',  layout:'sidebar', name:'Liquid Glass · Sidebar'},
+    {theme:'classic',layout:'top',     name:'Classic · Top tabs'},
+    {theme:'classic',layout:'sidebar', name:'Classic · Sidebar'}
+  ];
+  const ap=resolved();
+  const host=document.getElementById('sheetGrid');
+  host.innerHTML=combos.map(c=>{
+    const cfg={theme:c.theme,layout:c.layout,appearance:ap,page:state.page};
+    return '<div class="cell"><div class="cell__cap"><span class="cell__name">'+c.name+'</span>'+
+      '<span class="cell__meta">'+ap+' · '+state.page+'</span></div>'+desktopHTML(cfg)+'</div>';
+  }).join('');
+  applyTint(host,{page:state.page}); applyWallpaper(host); wireScroll(host);
+}
+
+function render(){
+  document.body.setAttribute('data-view',state.view);
+  if(state.view==='stage') renderStage(); else renderSheet();
+  document.querySelectorAll('.seg').forEach(seg=>{
+    const k=seg.getAttribute('data-seg');
+    seg.querySelectorAll('button').forEach(b=>
+      b.setAttribute('aria-pressed', String(state[k]===b.getAttribute('data-v'))));
+  });
+}
+
+document.querySelectorAll('.seg').forEach(seg=>{
+  const k=seg.getAttribute('data-seg');
+  seg.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    state[k]=b.getAttribute('data-v'); render();
+  });
+});
+mq.addEventListener('change',()=>{ if(state.appearance==='system') render(); });
+
+render();
+})();
+</script>
+</body>
+</html>

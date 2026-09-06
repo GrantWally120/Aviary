@@ -1,0 +1,19 @@
+<Application
+    x:Class="Aviary.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Order matters. The WinUI defaults land first so our tokens can win. -->
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+
+                <!-- PHASE 3 SWAPS THIS ONE LINE.
+                     Themes/LiquidGlass.xaml declares the identical key set. -->
+                <ResourceDictionary Source="ms-appx:///Themes/Classic.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
+</Application>
