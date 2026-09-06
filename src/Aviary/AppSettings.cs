@@ -37,6 +37,7 @@ internal static class AppSettings
         ["searchEngine"] = "DuckDuckGo",
         ["homeButton"] = "true",
         ["fullUrl"] = "false",
+        ["bookmarksBar"] = "false",
         ["blockTrackers"] = "true",
         ["memorySaver"] = "true",
         ["startup"] = "Start Page",

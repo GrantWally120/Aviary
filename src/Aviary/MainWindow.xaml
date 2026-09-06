@@ -99,6 +99,48 @@
                  connected to the toolbar. A ToggleButton is used rather than a Button
                  purely so "selected" is a visual state the template can express — which
                  keeps every colour in the theme dictionary instead of assigned from code. -->
+            <!-- A favourites-bar chip. Safari's are 22px tall with a 5px radius — much
+                 smaller than a toolbar button, because the bar is a list, not a control
+                 surface. -->
+            <Style x:Key="AvBookmarkButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{ThemeResource AvLabelBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="8,0" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Height" Value="22" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid x:Name="BmRoot"
+                                  Background="{TemplateBinding Background}"
+                                  Padding="{TemplateBinding Padding}"
+                                  CornerRadius="5">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="BmRoot.Background" Value="{ThemeResource AvHoverBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="BmRoot.Background" Value="{ThemeResource AvPressBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="AvTabButton" TargetType="ToggleButton">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Foreground" Value="{ThemeResource AvLabelSecondaryBrush}" />
@@ -168,6 +210,7 @@
         </Grid.Resources>
 
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -399,11 +442,32 @@
         </Grid>
 
 
-        <!-- ══ ROW 2 — FIND IN PAGE ════════════════════════════════════════════
+
+        <!-- ══ ROW 2 — THE FAVOURITES BAR ══════════════════════════════════════
+             Safari's is 32px with 22px items. Hidden unless you turn it on, because an
+             empty strip of chrome is worse than no strip at all. -->
+        <Grid x:Name="BookmarksBar"
+              Grid.Row="2"
+              Height="32"
+              Visibility="Collapsed"
+              Background="{ThemeResource AvChromeBrush}"
+              BorderBrush="{ThemeResource AvHairlineBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,0,8,0">
+            <ScrollViewer HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Disabled"
+                          HorizontalScrollMode="Auto"
+                          VerticalScrollMode="Disabled">
+                <StackPanel x:Name="BookmarksStrip" Orientation="Horizontal" Spacing="2"
+                            VerticalAlignment="Center" />
+            </ScrollViewer>
+        </Grid>
+
+        <!-- ══ ROW 3 — FIND IN PAGE ════════════════════════════════════════════
              Safari's find bar is a strip below the chrome, not a floating box. It only
              takes up space when it is open, so the row is Auto-height and collapsed. -->
         <Grid x:Name="FindBar"
-              Grid.Row="2"
+              Grid.Row="3"
               Height="40"
               Visibility="Collapsed"
               Background="{ThemeResource AvChromeBrush}"
@@ -469,8 +533,8 @@
             </StackPanel>
         </Grid>
 
-        <!-- ══ ROW 3 — THE WEB ═════════════════════════════════════════════════ -->
-        <Grid x:Name="ContentHost" Grid.Row="3" Background="{ThemeResource AvPageBrush}">
+        <!-- ══ ROW 4 — THE WEB ═════════════════════════════════════════════════ -->
+        <Grid x:Name="ContentHost" Grid.Row="4" Background="{ThemeResource AvPageBrush}">
 
             <!-- Shown when WebView2 cannot start, or when a process dies. Better a sentence
                  the owner can read than a silent blank window. -->

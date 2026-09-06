@@ -290,7 +290,8 @@ var SECTIONS = [
       {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
       {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through. Whichever you pick is the one Aviary opens with next time.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
       {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar', soon:'Phase 3'}},
-      {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}}
+      {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
+      {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}}
     ]},
 
   { id:'content', icon:'content', name:'Content', title:'Content',

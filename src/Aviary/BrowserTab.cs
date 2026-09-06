@@ -268,6 +268,7 @@ internal sealed class BrowserTab
     else if (k === 'l') { action = 'address'; }
     else if (k === 'tab') { action = 'nexttab'; }
     else if (k === 'f') { action = 'find'; }
+    else if (k === 'd') { action = 'bookmark'; }
     if (!action) { return; }
     e.preventDefault();
     e.stopPropagation();

@@ -35,6 +35,9 @@ public sealed partial class MainWindow : Window
     private bool _addressFocused;
     private bool _showFullUrl;
     private int _findMatches;
+    private BrowserTab? _dragTab;
+    private double _dragStartX;
+    private bool _dragging;
     private string _searchPrefix = "https://duckduckgo.com/?q=";
 
     public MainWindow()
@@ -64,6 +67,7 @@ public sealed partial class MainWindow : Window
         AddAccelerator(VirtualKey.Tab, VirtualKeyModifiers.Control, (_, _) => CycleTab(1));
         AddAccelerator(VirtualKey.F, VirtualKeyModifiers.Control, (_, _) => OpenFindBar());
         AddAccelerator(VirtualKey.Escape, VirtualKeyModifiers.None, (_, _) => CloseFindBar());
+        AddAccelerator(VirtualKey.D, VirtualKeyModifiers.Control, (_, _) => AddBookmark());
     }
 
     private void AddAccelerator(VirtualKey key, VirtualKeyModifiers mods, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
@@ -164,6 +168,91 @@ public sealed partial class MainWindow : Window
         };
 
         ApplyLook(AppSettings.Get("look"));
+
+        Bookmarks.Changed += RefreshBookmarksBar;
+        RefreshBookmarksBar();
+    }
+
+    // ══ FAVOURITES BAR ═════════════════════════════════════════════════════
+
+    private void AddBookmark()
+    {
+        if (_active is not { } tab || BrowserTab.HostOf(tab.Url).Length == 0)
+        {
+            return;
+        }
+
+        Bookmarks.Add(tab.Title, tab.Url);
+
+        // Adding one with the bar hidden would look like nothing happened.
+        if (!AppSettings.GetBool("bookmarksBar"))
+        {
+            AppSettings.Set("bookmarksBar", "true");
+        }
+
+        RefreshBookmarksBar();
+    }
+
+    private void RefreshBookmarksBar()
+    {
+        BookmarksStrip.Children.Clear();
+
+        foreach (Bookmark bookmark in Bookmarks.Items)
+        {
+            Border chip = new()
+            {
+                Width = 16,
+                Height = 16,
+                CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush(ParseHex(bookmark.Accent)),
+                Child = new TextBlock
+                {
+                    Text = bookmark.Monogram,
+                    FontSize = 9,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                }
+            };
+
+            StackPanel content = new() { Orientation = Orientation.Horizontal, Spacing = 6 };
+            content.Children.Add(chip);
+            content.Children.Add(new TextBlock
+            {
+                Text = bookmark.Title,
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 160
+            });
+
+            Button item = new()
+            {
+                Style = (Style)RootGrid.Resources["AvBookmarkButton"],
+                Content = content
+            };
+            ToolTipService.SetToolTip(item, bookmark.Url);
+
+            Bookmark captured = bookmark;
+            item.Click += (_, _) => { _active?.Navigate(captured.Url); UpdateChrome(); };
+
+            item.RightTapped += (_, e) =>
+            {
+                e.Handled = true;
+                MenuFlyout menu = new();
+                MenuFlyoutItem remove = new() { Text = "Remove" };
+                remove.Click += (_, _) => { Bookmarks.Remove(captured); RefreshBookmarksBar(); };
+                menu.Items.Add(remove);
+                menu.ShowAt(item);
+            };
+
+            BookmarksStrip.Children.Add(item);
+        }
+
+        BookmarksBar.Visibility = AppSettings.GetBool("bookmarksBar") && Bookmarks.Items.Count > 0
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void UpdateCaptionSpacer()
@@ -291,7 +380,7 @@ public sealed partial class MainWindow : Window
         string[] keys =
         {
             "look", "theme", "searchEngine", "homeButton", "fullUrl", "blockTrackers",
-            "memorySaver", "startup", "zoom", "dnt", "safariUa", "thirdPartyCookies"
+            "memorySaver", "startup", "zoom", "dnt", "safariUa", "thirdPartyCookies", "bookmarksBar"
         };
 
         Dictionary<string, string> values = new();
@@ -458,6 +547,7 @@ public sealed partial class MainWindow : Window
             case "address": AddressBox.Focus(FocusState.Programmatic); break;
             case "nexttab": CycleTab(1); break;
             case "find": OpenFindBar(); break;
+            case "bookmark": AddBookmark(); break;
         }
     }
 
@@ -718,6 +808,26 @@ public sealed partial class MainWindow : Window
             SelectTab(tab);
         };
 
+        // Drag to reorder.
+        //
+        // These MUST be AddHandler with handledEventsToo:true. ButtonBase marks pointer
+        // events as handled while driving its own press visuals, so an ordinary +=
+        // subscription never sees them and the drag silently does nothing — which is
+        // exactly what happened the first time.
+        //
+        // The buttons are MOVED between grid columns rather than the strip being rebuilt,
+        // because rebuilding destroys the element holding the pointer capture and the drag
+        // would die on its first swap.
+        button.Tag = tab;
+        button.AddHandler(UIElement.PointerPressedEvent,
+            new PointerEventHandler(Tab_PointerPressed), true);
+        button.AddHandler(UIElement.PointerMovedEvent,
+            new PointerEventHandler(Tab_PointerMoved), true);
+        button.AddHandler(UIElement.PointerReleasedEvent,
+            new PointerEventHandler(Tab_PointerReleased), true);
+        button.AddHandler(UIElement.PointerCaptureLostEvent,
+            new PointerEventHandler(Tab_PointerReleased), true);
+
         // Clicking the close glyph closes rather than selects.
         close.PointerPressed += (_, e) =>
         {
@@ -726,6 +836,92 @@ public sealed partial class MainWindow : Window
         };
 
         return button;
+    }
+
+    private void Tab_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not ToggleButton button || button.Tag is not BrowserTab tab)
+        {
+            return;
+        }
+
+        _dragTab = tab;
+        _dragStartX = e.GetCurrentPoint(TabStrip).Position.X;
+        _dragging = false;
+        button.CapturePointer(e.Pointer);
+    }
+
+    private void Tab_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not ToggleButton button
+            || button.Tag is not BrowserTab tab
+            || !ReferenceEquals(_dragTab, tab))
+        {
+            return;
+        }
+
+        Microsoft.UI.Input.PointerPoint point = e.GetCurrentPoint(TabStrip);
+        if (!point.Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        double x = point.Position.X;
+
+        // A few pixels of slop, so a click with a shaky hand is still a click.
+        if (!_dragging && Math.Abs(x - _dragStartX) < 6)
+        {
+            return;
+        }
+
+        _dragging = true;
+        button.Opacity = 0.75;
+        ReorderDuringDrag(tab, x);
+    }
+
+    private void Tab_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is ToggleButton button)
+        {
+            button.ReleasePointerCapture(e.Pointer);
+            button.Opacity = 1;
+        }
+
+        _dragTab = null;
+
+        if (_dragging)
+        {
+            _dragging = false;
+            RebuildTabStrip();
+        }
+    }
+
+    private void ReorderDuringDrag(BrowserTab tab, double x)
+    {
+        if (_tabs.Count < 2 || TabStrip.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        double slot = TabStrip.ActualWidth / _tabs.Count;
+        int target = Math.Clamp((int)(x / slot), 0, _tabs.Count - 1);
+        int current = _tabs.IndexOf(tab);
+
+        if (current < 0 || target == current)
+        {
+            return;
+        }
+
+        _tabs.RemoveAt(current);
+        _tabs.Insert(target, tab);
+
+        for (int i = 0; i < _tabs.Count; i++)
+        {
+            if (_tabButtons.TryGetValue(_tabs[i], out ToggleButton? b))
+            {
+                Grid.SetColumn(b, i);
+            }
+        }
     }
 
     private static void Fade(UIElement element, double to, int milliseconds)
@@ -934,6 +1130,11 @@ public sealed partial class MainWindow : Window
         find.Click += (_, _) => OpenFindBar();
         menu.Items.Add(find);
 
+        MenuFlyoutItem bookmark = new() { Text = "Add Bookmark" };
+        bookmark.KeyboardAcceleratorTextOverride = "Ctrl+D";
+        bookmark.Click += (_, _) => AddBookmark();
+        menu.Items.Add(bookmark);
+
         MenuFlyoutItem downloads = new() { Text = "Downloads" };
         downloads.Click += (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs());
         menu.Items.Add(downloads);
@@ -995,6 +1196,10 @@ public sealed partial class MainWindow : Window
 
                 case "blockTrackers":
                     TrackerBlocker.Enabled = value.ValueKind == JsonValueKind.True;
+                    break;
+
+                case "bookmarksBar":
+                    RefreshBookmarksBar();
                     break;
 
                 case "memorySaver":
