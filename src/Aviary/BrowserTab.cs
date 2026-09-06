@@ -61,6 +61,9 @@ internal sealed class BrowserTab
     /// <summary>Set for Aviary's own pages, whose titles we own rather than read.</summary>
     private string? _internalTitle;
 
+    /// <summary>Kept so blocked requests can be answered with a synthetic response.</summary>
+    private CoreWebView2Environment? _environment;
+
     public BrowserTab()
     {
         Accent = Palette[_counter++ % Palette.Length];
@@ -78,6 +81,7 @@ internal sealed class BrowserTab
         }
 
         CoreWebView2Environment environment = await WebViewEnvironment.GetAsync();
+        _environment = environment;
         await View.EnsureCoreWebView2Async(environment);
 
         if (View.CoreWebView2 is not CoreWebView2 core)
@@ -104,7 +108,90 @@ internal sealed class BrowserTab
         // working while the caret is inside a text box on somebody else's website.
         await core.AddScriptToExecuteOnDocumentCreatedAsync(ShortcutScript);
 
+        ApplyColorScheme();
+
+        // Every request passes through us before it leaves the machine.
+        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+        core.WebResourceRequested += OnWebResourceRequested;
+
         IsReady = true;
+    }
+
+    /// <summary>
+    /// Ad and tracker requests are answered with a 403 of our own rather than forwarded.
+    /// Nothing reaches the network, which is the whole point — a blocker that merely hides
+    /// elements has already told the tracker you were here.
+    /// </summary>
+    private void OnWebResourceRequested(CoreWebView2 sender, CoreWebView2WebResourceRequestedEventArgs args)
+    {
+        try
+        {
+            if (!TrackerBlocker.ShouldBlock(args.Request.Uri) || _environment is null)
+            {
+                return;
+            }
+
+            TrackerBlocker.CountBlocked();
+            args.Response = _environment.CreateWebResourceResponse(null, 403, "Blocked by Aviary", string.Empty);
+        }
+        catch (Exception)
+        {
+            // Let the request through rather than take the page down. A missed advert is
+            // cheaper than a broken browser.
+        }
+    }
+
+    /// <summary>
+    /// Makes WEB PAGES follow Aviary's theme rather than Windows'. Without this, pinning
+    /// the browser to Light leaves every site still reporting prefers-color-scheme: dark,
+    /// so the chrome goes light and the page underneath stays black.
+    /// </summary>
+    public void ApplyColorScheme()
+    {
+        try
+        {
+            if (View.CoreWebView2?.Profile is not CoreWebView2Profile profile)
+            {
+                return;
+            }
+
+            profile.PreferredColorScheme = AppSettings.Get("theme") switch
+            {
+                "Light" => CoreWebView2PreferredColorScheme.Light,
+                "Dark" => CoreWebView2PreferredColorScheme.Dark,
+                _ => CoreWebView2PreferredColorScheme.Auto
+            };
+        }
+        catch (Exception)
+        {
+            // Older runtimes may not expose the profile; the page just keeps following
+            // Windows, which is a cosmetic mismatch rather than a failure.
+        }
+    }
+
+    /// <summary>
+    /// Gentle memory saving: a background tab is told it may release caches and drop its
+    /// memory priority. Deliberately NOT TrySuspendAsync — suspension stops timers and
+    /// audio, so music in a background tab would die, and the docs are explicit that the
+    /// two approaches must not be mixed.
+    /// </summary>
+    public void SetBackgrounded(bool backgrounded)
+    {
+        try
+        {
+            if (View.CoreWebView2 is not CoreWebView2 core)
+            {
+                return;
+            }
+
+            core.MemoryUsageTargetLevel = backgrounded && AppSettings.GetBool("memorySaver")
+                ? CoreWebView2MemoryUsageTargetLevel.Low
+                : CoreWebView2MemoryUsageTargetLevel.Normal;
+        }
+        catch (Exception)
+        {
+            // Best effort by design — the API can decline.
+        }
     }
 
     private void OnWebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
@@ -261,6 +348,7 @@ internal sealed class BrowserTab
                 core.NewWindowRequested -= OnNewWindowRequested;
                 core.WindowCloseRequested -= OnWindowCloseRequested;
                 core.WebMessageReceived -= OnWebMessageReceived;
+                core.WebResourceRequested -= OnWebResourceRequested;
             }
 
             View.Close();

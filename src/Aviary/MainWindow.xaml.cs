@@ -130,7 +130,37 @@ public sealed partial class MainWindow : Window
         RootGrid.Loaded -= RootGrid_Loaded;
         UpdateCaptionSpacer();
         WebViewEnvironment.EnsureUserDataFolder();
+
+        // Whatever look was last chosen is the one Aviary opens with. Classic only wins
+        // on a fresh install, because that is the default AppSettings falls back to.
+        AppSettings.Load();
+        RestorePreferences();
+
         await OpenNewTabAsync(null);
+    }
+
+    private void RestorePreferences()
+    {
+        TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
+        _showFullUrl = AppSettings.GetBool("fullUrl");
+        HomeButton.Visibility = AppSettings.GetBool("homeButton") ? Visibility.Visible : Visibility.Collapsed;
+
+        _searchPrefix = AppSettings.Get("searchEngine") switch
+        {
+            "Bing" => "https://www.bing.com/search?q=",
+            "Google" => "https://www.google.com/search?q=",
+            "Startpage" => "https://www.startpage.com/sp/search?query=",
+            _ => "https://duckduckgo.com/?q="
+        };
+
+        RootGrid.RequestedTheme = AppSettings.Get("theme") switch
+        {
+            "Light" => ElementTheme.Light,
+            "Dark" => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
+
+        ApplyLook(AppSettings.Get("look"));
     }
 
     private void UpdateCaptionSpacer()
@@ -240,8 +270,102 @@ public sealed partial class MainWindow : Window
             core.WebMessageReceived += Settings_WebMessageReceived;
         }
 
-        tab.NavigateToHtml(InternalPages.Settings, "Settings");
+        tab.NavigateToHtml(BuildSettingsHtml(), "Settings");
         UpdateChrome();
+    }
+
+    /// <summary>
+    /// Settings is a static document, so the saved values are injected into it as a JSON
+    /// blob just before it is navigated to. Without this the page would render its own
+    /// hardcoded defaults and silently disagree with what the browser is actually doing.
+    /// </summary>
+    private static string BuildSettingsHtml()
+    {
+        string[] keys =
+        {
+            "look", "theme", "searchEngine", "homeButton", "fullUrl", "blockTrackers",
+            "memorySaver", "startup", "zoom", "dnt", "safariUa", "thirdPartyCookies"
+        };
+
+        Dictionary<string, string> values = new();
+        foreach (string key in keys)
+        {
+            values[key] = AppSettings.Get(key);
+        }
+
+        string json = JsonSerializer.Serialize(values);
+
+        return InternalPages.Settings
+            .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + json + ";")
+            .Replace("BLOCKCOUNT",
+                TrackerBlocker.BlockedCount == 0
+                    ? "Nothing blocked yet this session."
+                    : TrackerBlocker.BlockedCount + " request" + (TrackerBlocker.BlockedCount == 1 ? "" : "s") +
+                      " blocked so far this session.");
+    }
+
+    // ══ THE TWO LOOKS ══════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Swaps which theme dictionary is merged, then forces the tree to re-resolve against
+    /// it.
+    ///
+    /// Two things make this less simple than it looks. ThemeResource references only
+    /// re-evaluate when the element's theme changes, so the theme is nudged and put back.
+    /// And StaticResource references — which is what geometry uses — resolve exactly once
+    /// at load and never again, so every value that differs between the looks has to be
+    /// re-applied by hand afterwards.
+    /// </summary>
+    private void ApplyLook(string look)
+    {
+        try
+        {
+            bool glass = look.Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
+            var merged = Application.Current.Resources.MergedDictionaries;
+
+            if (merged.Count > 0)
+            {
+                merged.RemoveAt(merged.Count - 1);
+            }
+
+            merged.Add(new ResourceDictionary
+            {
+                Source = new Uri(glass
+                    ? "ms-appx:///Themes/LiquidGlass.xaml"
+                    : "ms-appx:///Themes/Classic.xaml")
+            });
+
+            ElementTheme restore = RootGrid.RequestedTheme;
+            RootGrid.RequestedTheme = restore == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+            RootGrid.RequestedTheme = restore;
+
+            ApplyLookGeometry(glass);
+            ApplyWebViewBackground();
+        }
+        catch (Exception)
+        {
+            // A failed look swap should leave the browser usable in whatever it is wearing.
+        }
+    }
+
+    private void ApplyLookGeometry(bool glass)
+    {
+        // Liquid Glass floats: nothing touches the window edge, and the visible gap is
+        // where Mica finally shows through. Classic is welded to the top at y=0.
+        Thickness toolbarMargin = glass ? new Thickness(12, 8, 12, 0) : new Thickness(0);
+        Thickness stripMargin = glass ? new Thickness(12, 8, 12, 0) : new Thickness(0);
+
+        ToolbarRow.Margin = toolbarMargin;
+        ToolbarRow.CornerRadius = new CornerRadius(glass ? 24 : 0);
+        ToolbarRow.Height = 48;
+
+        TabStripRow.Margin = stripMargin;
+        TabStripRow.CornerRadius = new CornerRadius(glass ? 20 : 0);
+        TabStripRow.BorderThickness = new Thickness(0, 0, 0, glass ? 0 : 1);
+
+        // The content sheet is inset and rounded under Liquid Glass, flush under Classic.
+        ContentHost.Margin = glass ? new Thickness(12, 8, 12, 12) : new Thickness(0);
+        ContentHost.CornerRadius = new CornerRadius(glass ? 12 : 0);
     }
 
     private void SelectTab(BrowserTab tab)
@@ -264,6 +388,12 @@ public sealed partial class MainWindow : Window
         }
 
         _active = tab;
+
+        // Gentle memory saving: only the tab you are looking at keeps normal priority.
+        foreach (BrowserTab other in _tabs)
+        {
+            other.SetBackgrounded(!ReferenceEquals(other, tab));
+        }
 
         foreach (KeyValuePair<BrowserTab, ToggleButton> pair in _tabButtons)
         {
@@ -688,8 +818,32 @@ public sealed partial class MainWindow : Window
             string key = keyElement.GetString() ?? string.Empty;
             JsonElement value = root.TryGetProperty("value", out JsonElement v) ? v : default;
 
+            // Persist first, so a setting survives even if applying it throws.
+            AppSettings.Set(key, value.ValueKind switch
+            {
+                JsonValueKind.True => "true",
+                JsonValueKind.False => "false",
+                JsonValueKind.String => value.GetString() ?? string.Empty,
+                _ => value.ToString()
+            });
+
             switch (key)
             {
+                case "look":
+                    ApplyLook(value.GetString() ?? "Classic");
+                    break;
+
+                case "blockTrackers":
+                    TrackerBlocker.Enabled = value.ValueKind == JsonValueKind.True;
+                    break;
+
+                case "memorySaver":
+                    foreach (BrowserTab t in _tabs)
+                    {
+                        t.SetBackgrounded(!ReferenceEquals(t, _active));
+                    }
+                    break;
+
                 case "theme":
                     RootGrid.RequestedTheme = (value.GetString() ?? "System") switch
                     {
@@ -698,6 +852,10 @@ public sealed partial class MainWindow : Window
                         _ => ElementTheme.Default
                     };
                     ApplyWebViewBackground();
+                    foreach (BrowserTab t2 in _tabs)
+                    {
+                        t2.ApplyColorScheme();
+                    }
                     break;
 
                 case "searchEngine":

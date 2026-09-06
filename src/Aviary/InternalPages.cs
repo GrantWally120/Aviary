@@ -239,6 +239,15 @@ internal static class InternalPages
 <main id="main"></main>
 
 <script>
+/*__AVIARY_SETTINGS__*/
+var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
+function saved(key, fallback){
+  if (!(key in SAVED)) { return fallback; }
+  var v = SAVED[key];
+  if (v === 'true') { return true; }
+  if (v === 'false') { return false; }
+  return v;
+}
 var ICON = {
   start:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8.6 8 3.4l5.5 5.2M4 7.6V13h8V7.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   look:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.2v11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
@@ -273,7 +282,7 @@ var SECTIONS = [
     lede:'How Aviary looks. The two Safari themes become switchable in Phase 3 — the tokens behind them already exist.',
     rows:[
       {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
-      {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic', soon:'Phase 3'}},
+      {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through. Whichever you pick is the one Aviary opens with next time.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
       {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar', soon:'Phase 3'}},
       {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}}
     ]},
@@ -293,6 +302,7 @@ var SECTIONS = [
       {t:'Send a Do Not Track request', d:'Politely asked; widely ignored. Costs nothing.', ctl:{type:'toggle', key:'dnt', value:true}},
       {t:'Identify as Safari', d:'Aviary sends Safari\u2019s user agent so sites serve their Safari code paths. The engine underneath is still Chromium, so a determined site can tell.', ctl:{type:'toggle', key:'safariUa', value:true}},
       {t:'Block third-party cookies', d:'Cookies set by sites other than the one you are visiting.', ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
+      {t:'Block ads and trackers', d:'BLOCKCOUNT', ctl:{type:'toggle', key:'blockTrackers', value:true}},
       {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', ctl:{type:'button', key:'clearData', label:'Clear\u2026', soon:'Phase 4'}}
     ]},
 
@@ -343,6 +353,7 @@ var SECTIONS = [
     rows:[
       {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', ctl:{type:'toggle', key:'gpu', value:true}},
       {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', ctl:{type:'toggle', key:'background', value:false}},
+      {t:'Memory saver', d:'Let background tabs release caches and drop their memory priority. Music and timers in background tabs keep running — nothing is suspended.', ctl:{type:'toggle', key:'memorySaver', value:true}},
       {t:'Experimental features', d:'Opt-in switches that are not ready to be defaults \u2014 including the frame-rate ceiling.', ctl:{type:'none', soon:'Phase 5'}}
     ]},
 
@@ -358,6 +369,7 @@ var SECTIONS = [
 
 function control(row){
   var c = row.ctl || {type:'none'};
+  if (c.key) { c.value = saved(c.key, c.value); }
   var soon = c.soon ? '<span class="soon">' + c.soon + '</span>' : '';
   if (c.type === 'select'){
     var opts = c.opts.map(function(o){
