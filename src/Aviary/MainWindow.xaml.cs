@@ -1,9 +1,17 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.Web.WebView2.Core;
+using Windows.Foundation;
 using Windows.Graphics;
 using Windows.System;
 
@@ -11,64 +19,61 @@ namespace Aviary;
 
 public sealed partial class MainWindow : Window
 {
-    /// <summary>
-    /// Safari 18 on macOS. Set per-WebView so Phase 2 can vary it per tab, and set BEFORE
-    /// the first navigation — changing it later only affects subsequent ones.
-    ///
-    /// The engine underneath is still Chromium, so navigator.userAgentData and the
-    /// Sec-CH-UA headers will contradict this string. That is a known, deliberate trade;
-    /// it becomes a visible per-tab toggle rather than a silent default.
-    /// </summary>
-    private const string SafariUserAgent =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 " +
-        "(KHTML, like Gecko) Version/18.0 Safari/605.1.15";
-
-    private const string SearchPrefix = "https://duckduckgo.com/?q=";
     private const double CaptionSpacerFallback = 141;
+    // No maximum. Safari tabs always share the whole strip; capping them at a fixed
+    // width is precisely what gives Chrome its silhouette.
+    private const double TabMinWidth = 56;
 
     [DllImport("user32.dll")]
     private static extern uint GetDpiForWindow(IntPtr hwnd);
 
+    private readonly List<BrowserTab> _tabs = new();
+    private readonly Dictionary<BrowserTab, ToggleButton> _tabButtons = new();
+
     private AppWindow? _appWindow;
-    private bool _coreReady;
+    private BrowserTab? _active;
     private bool _addressFocused;
-    private string _currentUrl = string.Empty;
+    private bool _showFullUrl;
+    private string _searchPrefix = "https://duckduckgo.com/?q=";
 
     public MainWindow()
     {
         InitializeComponent();
 
-        // Our chrome occupies the title bar row. The system still draws and owns the
-        // caption buttons, which is the point — the window is Windows, the interface is
-        // Safari. DragRegion is a dedicated empty element with a minimum width, so
-        // dragging works regardless of how a given SDK version treats interactive
-        // children up here.
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(DragRegion);
 
         IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         _appWindow = GetAppWindow(hWnd);
-
         ConfigureTitleBar();
 
-        // AppWindow.Resize takes PHYSICAL pixels, so a fixed 1280x840 opens at 853x560
-        // effective on a 150% display — small enough to squeeze the toolbar past its own
-        // layout. Scale by the window's DPI instead.
+        // AppWindow.Resize takes PHYSICAL pixels, so a fixed size opens small on a
+        // scaled display. Scale by the window's DPI.
         double scale = GetScaleForWindow(hWnd);
-        _appWindow?.Resize(new SizeInt32((int)(1280 * scale), (int)(840 * scale)));
+        _appWindow?.Resize(new SizeInt32((int)(1280 * scale), (int)(860 * scale)));
 
         RootGrid.Loaded += RootGrid_Loaded;
         RootGrid.SizeChanged += (_, _) => UpdateCaptionSpacer();
         RootGrid.ActualThemeChanged += (_, _) => ApplyWebViewBackground();
         Closed += MainWindow_Closed;
+
+        AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control, (_, _) => OpenNewTab(null));
+        AddAccelerator(VirtualKey.W, VirtualKeyModifiers.Control, (_, _) => { if (_active is not null) CloseTab(_active); });
+        AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control, (_, _) => AddressBox.Focus(FocusState.Programmatic));
+        AddAccelerator(VirtualKey.Tab, VirtualKeyModifiers.Control, (_, _) => CycleTab(1));
+    }
+
+    private void AddAccelerator(VirtualKey key, VirtualKeyModifiers mods, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
+    {
+        KeyboardAccelerator a = new() { Key = key, Modifiers = mods };
+        a.Invoked += (s, e) => { e.Handled = true; handler(s, e); };
+        RootGrid.KeyboardAccelerators.Add(a);
     }
 
     private static AppWindow? GetAppWindow(IntPtr hWnd)
     {
         try
         {
-            // WindowId lives in Microsoft.UI, which importing Microsoft.UI.Windowing does
-            // not bring in. Fully qualified so it cannot depend on a using directive.
             Microsoft.UI.WindowId id = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             return AppWindow.GetFromWindowId(id);
         }
@@ -116,25 +121,18 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception)
         {
-            // Older Windows 10 builds fall back to the system title bar. Nothing to do.
+            // Older Windows 10 builds fall back to the system title bar.
         }
     }
 
     private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
-        // Loaded fires again whenever the element re-enters the visual tree. Detaching
-        // here means the seven CoreWebView2 handlers can only ever be subscribed once.
         RootGrid.Loaded -= RootGrid_Loaded;
-
         UpdateCaptionSpacer();
-        await InitialiseWebViewAsync();
+        WebViewEnvironment.EnsureUserDataFolder();
+        await OpenNewTabAsync(null);
     }
 
-    /// <summary>
-    /// Reserves exactly as much room as the system caption buttons actually occupy.
-    /// Hardcoding 138px is wrong the moment the display is at 150%, where the real inset
-    /// is 207 device pixels.
-    /// </summary>
     private void UpdateCaptionSpacer()
     {
         try
@@ -152,9 +150,6 @@ public sealed partial class MainWindow : Window
             }
 
             double width = _appWindow.TitleBar.RightInset / scale;
-
-            // A zero inset means the title bar is not reporting yet; never collapse the
-            // spacer, or the Home button ends up underneath the close button.
             CaptionSpacer.Width = width < 100 ? CaptionSpacerFallback : width;
         }
         catch (Exception)
@@ -163,206 +158,379 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    // ══ WEBVIEW2 ═══════════════════════════════════════════════════════════════
+    // ══ TABS ═══════════════════════════════════════════════════════════════
 
-    private async System.Threading.Tasks.Task InitialiseWebViewAsync()
+    private async void OpenNewTab(string? url) => await OpenNewTabAsync(url);
+
+    private async Task OpenNewTabAsync(string? url)
     {
-        if (_coreReady)
-        {
-            return;
-        }
+        BrowserTab tab = new();
+        tab.Changed += OnTabChanged;
+        tab.CloseRequested += t => CloseTab(t);
+        tab.ShortcutPressed += OnShortcut;
+
+        _tabs.Add(tab);
+
+        // Added to the tree BEFORE initialising. A WebView2 created while collapsed and
+        // shown later can come up rendering but not accepting the mouse; creating it in a
+        // visible slot avoids that whole class of bug.
+        ContentHost.Children.Add(tab.View);
+        SelectTab(tab);
+        RebuildTabStrip();
 
         try
         {
-            // Explicit environment rather than the implicit one. Aviary ships unpackaged
-            // and may sit in Program Files, where the default user data folder next to
-            // the .exe is unwritable and creation dies with "Access Denied".
-            CoreWebView2Environment environment = await CoreWebView2Environment.CreateWithOptionsAsync(
-                string.Empty,
-                WebViewPaths.UserDataFolder,
-                new CoreWebView2EnvironmentOptions());
-
-            await Web.EnsureCoreWebView2Async(environment);
+            await tab.InitialiseAsync();
         }
         catch (Exception ex)
         {
-            ShowError(
-                "Aviary can't start its browser engine",
-                "WebView2 failed to initialise. " + ex.Message);
+            ShowError("Aviary can't start its browser engine", ex.Message);
             return;
         }
 
-        if (Web.CoreWebView2 is null)
-        {
-            ShowError(
-                "Aviary can't start its browser engine",
-                "WebView2 initialised without a core. Is the Evergreen runtime installed?");
-            return;
-        }
-
-        CoreWebView2 core = Web.CoreWebView2;
-
-        core.Settings.UserAgent = SafariUserAgent;
-        core.Settings.AreDefaultContextMenusEnabled = true;
-        core.Settings.IsStatusBarEnabled = false;
-
-        core.SourceChanged += Core_SourceChanged;
-        core.HistoryChanged += Core_HistoryChanged;
-        core.NavigationStarting += Core_NavigationStarting;
-        core.NavigationCompleted += Core_NavigationCompleted;
-        core.DocumentTitleChanged += Core_DocumentTitleChanged;
-        core.NewWindowRequested += Core_NewWindowRequested;
-        core.ProcessFailed += Core_ProcessFailed;
-
-        _coreReady = true;
+        HideError();
         ApplyWebViewBackground();
-        UpdateNavigationState();
-        GoHome();
+
+        if (url is null)
+        {
+            tab.NavigateToHtml(InternalPages.StartPage, "Start Page");
+        }
+        else
+        {
+            tab.Navigate(url);
+        }
+
+        UpdateChrome();
+        tab.View.Focus(FocusState.Programmatic);
+    }
+
+    private void OpenSettingsTab()
+    {
+        _ = OpenSettingsTabAsync();
+    }
+
+    private async Task OpenSettingsTabAsync()
+    {
+        BrowserTab tab = new();
+        tab.Changed += OnTabChanged;
+        tab.CloseRequested += t => CloseTab(t);
+        tab.ShortcutPressed += OnShortcut;
+        _tabs.Add(tab);
+        ContentHost.Children.Add(tab.View);
+        SelectTab(tab);
+        RebuildTabStrip();
+
+        try
+        {
+            await tab.InitialiseAsync();
+        }
+        catch (Exception ex)
+        {
+            ShowError("Aviary can't start its browser engine", ex.Message);
+            return;
+        }
+
+        HideError();
+        ApplyWebViewBackground();
+
+        if (tab.View.CoreWebView2 is CoreWebView2 core)
+        {
+            // Settings is the one internal page allowed to talk back to the host. It is
+            // trusted only because we navigate to it ourselves and never from the network.
+            core.WebMessageReceived += Settings_WebMessageReceived;
+        }
+
+        tab.NavigateToHtml(InternalPages.Settings, "Settings");
+        UpdateChrome();
+    }
+
+    private void SelectTab(BrowserTab tab)
+    {
+        if (!_tabs.Contains(tab))
+        {
+            return;
+        }
+
+        // Show the incoming tab BEFORE hiding the outgoing one, or the window flashes
+        // empty for a frame between them.
+        tab.View.Visibility = Visibility.Visible;
+
+        foreach (BrowserTab other in _tabs)
+        {
+            if (!ReferenceEquals(other, tab))
+            {
+                other.View.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        _active = tab;
+
+        foreach (KeyValuePair<BrowserTab, ToggleButton> pair in _tabButtons)
+        {
+            pair.Value.IsChecked = ReferenceEquals(pair.Key, tab);
+        }
+
+        UpdateChrome();
+    }
+
+    private void CloseTab(BrowserTab tab)
+    {
+        int index = _tabs.IndexOf(tab);
+        if (index < 0)
+        {
+            return;
+        }
+
+        // Closing the last tab closes the window, the way every browser behaves.
+        if (_tabs.Count == 1)
+        {
+            Close();
+            return;
+        }
+
+        _tabs.RemoveAt(index);
+        ContentHost.Children.Remove(tab.View);
+        tab.Dispose();
+
+        if (ReferenceEquals(_active, tab))
+        {
+            SelectTab(_tabs[Math.Min(index, _tabs.Count - 1)]);
+        }
+
+        RebuildTabStrip();
+    }
+
+    private void CycleTab(int delta)
+    {
+        if (_active is null || _tabs.Count < 2)
+        {
+            return;
+        }
+
+        int i = (_tabs.IndexOf(_active) + delta + _tabs.Count) % _tabs.Count;
+        SelectTab(_tabs[i]);
+    }
+
+    /// <summary>Shortcuts forwarded up from a page that had keyboard focus.</summary>
+    private void OnShortcut(string action)
+    {
+        switch (action)
+        {
+            case "newtab": OpenNewTab(null); break;
+            case "closetab": if (_active is not null) { CloseTab(_active); } break;
+            case "address": AddressBox.Focus(FocusState.Programmatic); break;
+            case "nexttab": CycleTab(1); break;
+        }
+    }
+
+    private void OnTabChanged(BrowserTab tab)
+    {
+        if (_tabButtons.TryGetValue(tab, out ToggleButton? button)
+            && button.Content is Grid content
+            && content.Children.Count > 1
+            && content.Children[1] is TextBlock title)
+        {
+            title.Text = tab.Title;
+            ToolTipService.SetToolTip(button, tab.Title);
+        }
+
+        if (ReferenceEquals(tab, _active))
+        {
+            UpdateChrome();
+        }
     }
 
     /// <summary>
-    /// Without this every navigation flashes white in dark mode, because WebView2 paints
-    /// its own background before the page has one.
+    /// Rebuilds the strip's columns so tabs divide its full width. Safari tabs always
+    /// share the whole bar; capping them at a Chrome-like fixed width is the fastest way
+    /// to lose the silhouette.
     /// </summary>
-    private void ApplyWebViewBackground()
+    private void RebuildTabStrip()
     {
-        try
+        TabStrip.Children.Clear();
+        TabStrip.ColumnDefinitions.Clear();
+        _tabButtons.Clear();
+
+        for (int i = 0; i < _tabs.Count; i++)
         {
-            if (Application.Current.Resources["AvPageBrush"] is Microsoft.UI.Xaml.Media.SolidColorBrush brush)
+            TabStrip.ColumnDefinitions.Add(new ColumnDefinition
             {
-                Web.DefaultBackgroundColor = brush.Color;
-            }
-        }
-        catch (Exception)
-        {
-            // Leave WebView2's own default. A white flash is survivable; a crash is not.
+                Width = new GridLength(1, GridUnitType.Star),
+                MinWidth = TabMinWidth
+            });
+
+            BrowserTab tab = _tabs[i];
+            ToggleButton button = BuildTabButton(tab);
+            Grid.SetColumn(button, i);
+            TabStrip.Children.Add(button);
+            _tabButtons[tab] = button;
+            button.IsChecked = ReferenceEquals(tab, _active);
         }
     }
 
-    // The args type of SourceChanged differs between the WinRT and .NET WebView2
-    // reference docs. Declaring it as object compiles against both, and the argument is
-    // never read anyway.
-    private void Core_SourceChanged(CoreWebView2 sender, object args)
+    private ToggleButton BuildTabButton(BrowserTab tab)
     {
-        _currentUrl = sender.Source;
+        // The favicon slot. Favicon and close occupy the SAME 16px cell and cross-fade
+        // through each other on hover — Safari puts close at the tab's leading edge, in
+        // the favicon's own box, and that swap is its most-copied micro-interaction.
+        Border chip = new()
+        {
+            Width = 16,
+            Height = 16,
+            CornerRadius = new CornerRadius(4),
+            Background = new SolidColorBrush(ParseHex(tab.Accent)),
+            Child = new TextBlock
+            {
+                Text = tab.Monogram,
+                FontSize = 9,
+                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            }
+        };
+
+        // A text glyph rather than a Path so it inherits the tab's Foreground, which the
+        // template drives from the theme. No colour is assigned in code.
+        TextBlock close = new()
+        {
+            Text = "✕",
+            FontSize = 9,
+            Opacity = 0,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+
+        Grid slot = new() { Width = 16, Height = 16 };
+        slot.Children.Add(chip);
+        slot.Children.Add(close);
+
+        TextBlock title = new()
+        {
+            Text = tab.Title,
+            FontSize = 12,
+            FontWeight = Microsoft.UI.Text.FontWeights.Medium,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            TextWrapping = TextWrapping.NoWrap,
+            TextAlignment = TextAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(8, 0, 0, 0)
+        };
+
+        Grid content = new();
+        content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(slot, 0);
+        Grid.SetColumn(title, 1);
+        content.Children.Add(slot);
+        content.Children.Add(title);
+
+        ToggleButton button = new()
+        {
+            Style = (Style)RootGrid.Resources["AvTabButton"],
+            Content = content
+        };
+        ToolTipService.SetToolTip(button, tab.Title);
+
+        button.PointerEntered += (_, _) => { Fade(chip, 0, 150); Fade(close, 1, 150); };
+        button.PointerExited += (_, _) => { Fade(chip, 1, 120); Fade(close, 0, 120); };
+
+        button.Click += (_, _) =>
+        {
+            // A ToggleButton would otherwise let you un-check the active tab.
+            button.IsChecked = true;
+            SelectTab(tab);
+        };
+
+        // Clicking the close glyph closes rather than selects.
+        close.PointerPressed += (_, e) =>
+        {
+            e.Handled = true;
+            CloseTab(tab);
+        };
+
+        return button;
+    }
+
+    private static void Fade(UIElement element, double to, int milliseconds)
+    {
+        DoubleAnimation animation = new()
+        {
+            To = to,
+            Duration = new Duration(TimeSpan.FromMilliseconds(milliseconds)),
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+        Storyboard.SetTarget(animation, element);
+        Storyboard.SetTargetProperty(animation, "Opacity");
+
+        Storyboard storyboard = new();
+        storyboard.Children.Add(animation);
+        storyboard.Begin();
+    }
+
+    private static Windows.UI.Color ParseHex(string hex)
+    {
+        hex = hex.TrimStart('#');
+        byte r = Convert.ToByte(hex.Substring(0, 2), 16);
+        byte g = Convert.ToByte(hex.Substring(2, 2), 16);
+        byte b = Convert.ToByte(hex.Substring(4, 2), 16);
+        return Windows.UI.Color.FromArgb(255, r, g, b);
+    }
+
+    // ══ CHROME ═════════════════════════════════════════════════════════════
+
+    private void UpdateChrome()
+    {
+        BrowserTab? tab = _active;
+
+        BackButton.IsEnabled = tab?.CanGoBack ?? false;
+        ForwardButton.IsEnabled = tab?.CanGoForward ?? false;
+        ReloadButton.IsEnabled = tab?.IsReady ?? false;
+        LockGlyph.Visibility = (tab?.IsSecure ?? false) ? Visibility.Visible : Visibility.Collapsed;
+
         if (!_addressFocused)
         {
             ShowIdleAddress();
         }
-    }
 
-    private void Core_HistoryChanged(CoreWebView2 sender, object args) => UpdateNavigationState();
-
-    private void Core_NavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
-    {
-        HideError();
-    }
-
-    private void Core_NavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
-    {
-        UpdateNavigationState();
-
-        if (!args.IsSuccess && args.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
-        {
-            ShowError("This page didn't load", args.WebErrorStatus.ToString());
-        }
-    }
-
-    private void Core_DocumentTitleChanged(CoreWebView2 sender, object args)
-    {
-        string title = sender.DocumentTitle;
-
-        // "Page — Aviary" is the Windows convention, but an internal page already called
-        // Aviary would come out as "Aviary — Aviary".
-        Title = string.IsNullOrWhiteSpace(title) || title == "Aviary"
+        Title = tab is null || string.IsNullOrWhiteSpace(tab.Title) || tab.Title == "Aviary"
             ? "Aviary"
-            : title + " — Aviary";
+            : tab.Title + " — Aviary";
     }
 
-    /// <summary>
-    /// Without this, target="_blank" and window.open() escape the app entirely. Phase 2
-    /// turns these into new tabs; for now they open in place.
-    /// </summary>
-    private void Core_NewWindowRequested(CoreWebView2 sender, CoreWebView2NewWindowRequestedEventArgs args)
+    private void ApplyWebViewBackground()
     {
-        args.Handled = true;
-        sender.Navigate(args.Uri);
-    }
-
-    /// <summary>
-    /// A dead render process is recoverable — Reload genuinely works. A dead browser
-    /// process is not, and every guarded call has to stop pretending otherwise, or the
-    /// next click throws and closes the app.
-    /// </summary>
-    private void Core_ProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs args)
-    {
-        if (args.ProcessFailedKind == CoreWebView2ProcessFailedKind.RenderProcessExited)
+        try
         {
-            ShowError("This page stopped responding", "Press Reload to try again.");
-            return;
+            if (Application.Current.Resources["AvPageBrush"] is SolidColorBrush brush)
+            {
+                foreach (BrowserTab tab in _tabs)
+                {
+                    tab.View.DefaultBackgroundColor = brush.Color;
+                }
+            }
         }
-
-        _coreReady = false;
-        UpdateNavigationState();
-        ShowError(
-            "Aviary's browser engine stopped",
-            "The browser process ended unexpectedly (" + args.ProcessFailedKind +
-            "). Close and reopen Aviary to carry on.");
+        catch (Exception)
+        {
+            // A white flash on navigation is survivable; a crash is not.
+        }
     }
 
-    // ══ CHROME ═════════════════════════════════════════════════════════════════
-
-    private void UpdateNavigationState()
-    {
-        BackButton.IsEnabled = _coreReady && Web.CanGoBack;
-        ForwardButton.IsEnabled = _coreReady && Web.CanGoForward;
-        ReloadButton.IsEnabled = _coreReady;
-
-        bool secure = _currentUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-        LockGlyph.Visibility = secure ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    /// <summary>
-    /// An internal page has no address worth showing. Without this the start page reads
-    /// "about:blank", and pressing Enter searches the web for it.
-    /// </summary>
-    private static bool IsInternal(string url) =>
-        string.IsNullOrWhiteSpace(url)
-        || url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
-        || url.StartsWith("about:", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>Idle: the registrable domain only, centred. Not the scheme, not the path.</summary>
     private void ShowIdleAddress()
     {
         AddressBox.TextAlignment = TextAlignment.Center;
-        AddressBox.Text = FriendlyHost(_currentUrl);
-    }
-
-    private static string FriendlyHost(string url)
-    {
-        if (IsInternal(url))
-        {
-            return string.Empty;
-        }
-
-        if (Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
-        {
-            string host = uri.Host;
-            return host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host.Substring(4) : host;
-        }
-
-        return url;
+        string url = _active?.Url ?? string.Empty;
+        AddressBox.Text = _showFullUrl ? url : BrowserTab.HostOf(url);
     }
 
     private void AddressBox_GotFocus(object sender, RoutedEventArgs e)
     {
         _addressFocused = true;
         FieldFocus.Opacity = 1;
-
-        // The switch to left-aligned full URL happens on a single frame. Animating it
-        // reads as a web-page effect; Safari snaps it.
         AddressBox.TextAlignment = TextAlignment.Left;
-        AddressBox.Text = IsInternal(_currentUrl) ? string.Empty : _currentUrl;
+
+        string url = _active?.Url ?? string.Empty;
+        AddressBox.Text = BrowserTab.HostOf(url).Length == 0 ? string.Empty : url;
 
         // Deferred: a click delivers focus and then places the caret, which would collapse
         // a selection made synchronously here.
@@ -392,65 +560,15 @@ public sealed partial class MainWindow : Window
 
         e.Handled = true;
 
-        // Only surrender focus if something actually happened. Pressing Enter on an empty
-        // field should leave the caret where it is.
         if (Navigate(AddressBox.Text))
         {
-            Web.Focus(FocusState.Programmatic);
+            _active?.View.Focus(FocusState.Programmatic);
         }
     }
 
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_coreReady && Web.CanGoBack)
-        {
-            Web.GoBack();
-        }
-    }
-
-    private void ForwardButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_coreReady && Web.CanGoForward)
-        {
-            Web.GoForward();
-        }
-    }
-
-    private void ReloadButton_Click(object sender, RoutedEventArgs e)
-    {
-        if (_coreReady)
-        {
-            Web.Reload();
-        }
-    }
-
-    private void HomeButton_Click(object sender, RoutedEventArgs e) => GoHome();
-
-    private void GoHome()
-    {
-        if (!_coreReady || Web.CoreWebView2 is null)
-        {
-            return;
-        }
-
-        HideError();
-        _currentUrl = string.Empty;
-        Web.CoreWebView2.NavigateToString(HomePage);
-        ShowIdleAddress();
-
-        // Leave focus on the page, not the address bar. Otherwise the window opens
-        // wearing its focus ring, which is the first thing anyone judging the chrome
-        // sees, and a blue outline is not the resting state of this design.
-        Web.Focus(FocusState.Programmatic);
-    }
-
-    /// <summary>
-    /// Something that looks like a host becomes a URL; anything else becomes a search.
-    /// Returns whether a navigation was actually started.
-    /// </summary>
     private bool Navigate(string input)
     {
-        if (!_coreReady || Web.CoreWebView2 is null)
+        if (_active is not { IsReady: true } tab)
         {
             return false;
         }
@@ -463,8 +581,8 @@ public sealed partial class MainWindow : Window
 
         string target;
 
-        if (Uri.TryCreate(text, UriKind.Absolute, out Uri? absolute) &&
-            (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
+        if (Uri.TryCreate(text, UriKind.Absolute, out Uri? absolute)
+            && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
         {
             target = absolute.ToString();
         }
@@ -474,143 +592,167 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            target = SearchPrefix + Uri.EscapeDataString(text);
+            target = _searchPrefix + Uri.EscapeDataString(text);
         }
 
         HideError();
-
-        // Update the model before navigating. Otherwise LostFocus — which fires the moment
-        // focus moves to the WebView — repaints the bar with the PREVIOUS page's domain and
-        // leaves it there for the whole navigation. SourceChanged corrects it on redirect.
-        _currentUrl = target;
-        Web.CoreWebView2.Navigate(target);
+        tab.Navigate(target);
         return true;
     }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is { CanGoBack: true } tab)
+        {
+            tab.View.GoBack();
+        }
+    }
+
+    private void ForwardButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is { CanGoForward: true } tab)
+        {
+            tab.View.GoForward();
+        }
+    }
+
+    private void ReloadButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_active is { IsReady: true } tab)
+        {
+            tab.View.Reload();
+        }
+    }
+
+    private void HomeButton_Click(object sender, RoutedEventArgs e)
+    {
+        _active?.NavigateToHtml(InternalPages.StartPage, "Start Page");
+        UpdateChrome();
+    }
+
+    private void NewTabButton_Click(object sender, RoutedEventArgs e) => OpenNewTab(null);
+
+    // ══ THE APP MENU ═══════════════════════════════════════════════════════
+
+    private void MenuButton_Click(object sender, RoutedEventArgs e)
+    {
+        MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+
+        MenuFlyoutItem newTab = new() { Text = "New Tab" };
+        newTab.KeyboardAcceleratorTextOverride = "Ctrl+T";
+        newTab.Click += (_, _) => OpenNewTab(null);
+        menu.Items.Add(newTab);
+
+        MenuFlyoutItem closeTab = new() { Text = "Close Tab" };
+        closeTab.KeyboardAcceleratorTextOverride = "Ctrl+W";
+        closeTab.Click += (_, _) => { if (_active is not null) CloseTab(_active); };
+        menu.Items.Add(closeTab);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        MenuFlyoutSubItem help = new() { Text = "Help" };
+        MenuFlyoutItem about = new() { Text = "About Aviary" };
+        about.Click += (_, _) => OpenSettingsTab();
+        help.Items.Add(about);
+        menu.Items.Add(help);
+
+        MenuFlyoutItem settings = new() { Text = "Settings" };
+        settings.Click += (_, _) => OpenSettingsTab();
+        menu.Items.Add(settings);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        MenuFlyoutItem exit = new() { Text = "Exit" };
+        exit.Click += (_, _) => Close();
+        menu.Items.Add(exit);
+
+        menu.ShowAt(MenuButton);
+    }
+
+    /// <summary>
+    /// Settings talks back as {type, key, value}. Anything not recognised is ignored
+    /// rather than trusted — the page is ours, but the handler should not assume it.
+    /// </summary>
+    private void Settings_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
+            JsonElement root = doc.RootElement;
+
+            if (!root.TryGetProperty("key", out JsonElement keyElement))
+            {
+                return;
+            }
+
+            string key = keyElement.GetString() ?? string.Empty;
+            JsonElement value = root.TryGetProperty("value", out JsonElement v) ? v : default;
+
+            switch (key)
+            {
+                case "theme":
+                    RootGrid.RequestedTheme = (value.GetString() ?? "System") switch
+                    {
+                        "Light" => ElementTheme.Light,
+                        "Dark" => ElementTheme.Dark,
+                        _ => ElementTheme.Default
+                    };
+                    ApplyWebViewBackground();
+                    break;
+
+                case "searchEngine":
+                    _searchPrefix = (value.GetString() ?? "DuckDuckGo") switch
+                    {
+                        "Bing" => "https://www.bing.com/search?q=",
+                        "Google" => "https://www.google.com/search?q=",
+                        "Startpage" => "https://www.startpage.com/sp/search?query=",
+                        _ => "https://duckduckgo.com/?q="
+                    };
+                    break;
+
+                case "homeButton":
+                    HomeButton.Visibility = value.ValueKind == JsonValueKind.True
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+                    break;
+
+                case "fullUrl":
+                    _showFullUrl = value.ValueKind == JsonValueKind.True;
+                    if (!_addressFocused)
+                    {
+                        ShowIdleAddress();
+                    }
+                    break;
+            }
+        }
+        catch (Exception)
+        {
+            // A malformed message from our own page is a bug to find in testing, not a
+            // reason to take the browser down.
+        }
+    }
+
+    // ══ ERRORS ═════════════════════════════════════════════════════════════
 
     private void ShowError(string title, string detail)
     {
         ErrorTitle.Text = title;
         ErrorDetail.Text = detail;
         ErrorPanel.Visibility = Visibility.Visible;
-        Web.Visibility = Visibility.Collapsed;
     }
 
-    private void HideError()
-    {
-        ErrorPanel.Visibility = Visibility.Collapsed;
-        Web.Visibility = Visibility.Visible;
-    }
+    private void HideError() => ErrorPanel.Visibility = Visibility.Collapsed;
 
-    // ══ SHUTDOWN ═══════════════════════════════════════════════════════════════
+    // ══ SHUTDOWN ═══════════════════════════════════════════════════════════
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
-        // Unsubscribe before closing, then close explicitly. Relying on collection leaves
-        // the renderer process alive. The whole body is guarded because during teardown
-        // the core may already be gone, and an exception escaping a Closed handler is the
-        // exact failure this was written to avoid.
-        try
+        foreach (BrowserTab tab in _tabs)
         {
-            if (Web.CoreWebView2 is CoreWebView2 core)
-            {
-                core.SourceChanged -= Core_SourceChanged;
-                core.HistoryChanged -= Core_HistoryChanged;
-                core.NavigationStarting -= Core_NavigationStarting;
-                core.NavigationCompleted -= Core_NavigationCompleted;
-                core.DocumentTitleChanged -= Core_DocumentTitleChanged;
-                core.NewWindowRequested -= Core_NewWindowRequested;
-                core.ProcessFailed -= Core_ProcessFailed;
-            }
+            tab.Dispose();
+        }
 
-            Web.Close();
-        }
-        catch (Exception)
-        {
-            // Already gone. Nothing useful to do while the window is closing.
-        }
+        _tabs.Clear();
+        _tabButtons.Clear();
     }
-
-    // ══ THE PLACEHOLDER HOME PAGE ══════════════════════════════════════════════
-    // The real Start Page is Phase 4. This exists so Phase 1 has something honest to
-    // open with, and so the Safari user agent can be checked without leaving the app.
-
-    private const string HomePage = """
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Without a title, WebView2 falls back to the document URL — and NavigateToString's
-     URL is the entire page base64'd into a data: URI, which then lands in the window
-     title and the taskbar. -->
-<title>Aviary</title>
-<style>
-  :root { color-scheme: light dark; }
-  html,body { height:100%; margin:0; }
-  body {
-    display:grid; place-items:center;
-    font: 400 15px/1.6 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
-    letter-spacing:-.006em;
-    background:#FFFFFF; color:rgba(0,0,0,.85);
-  }
-  @media (prefers-color-scheme: dark) {
-    body { background:#1E1E1E; color:rgba(255,255,255,.92); }
-    .card { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.10); }
-    .muted { color:rgba(255,255,255,.55); }
-    code { background:rgba(255,255,255,.08); }
-  }
-  main { width:min(560px, 100% - 64px); text-align:center; }
-  h1 { font-size:34px; font-weight:600; letter-spacing:-.024em; margin:0 0 6px; }
-  .muted { color:rgba(0,0,0,.5); }
-  .phase {
-    display:inline-block; margin-bottom:22px; padding:4px 10px; border-radius:99px;
-    font:500 11px/1 ui-monospace,Consolas,monospace; letter-spacing:.08em; text-transform:uppercase;
-    border:1px solid currentColor; opacity:.55;
-  }
-  .links { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:26px 0 0; }
-  .links a {
-    text-decoration:none; padding:8px 14px; border-radius:8px;
-    border:1px solid rgba(128,128,128,.28); color:inherit; font-size:14px;
-  }
-  .links a:hover { border-color:rgba(128,128,128,.6); }
-  .card {
-    margin-top:28px; padding:16px 18px; border-radius:10px; text-align:left;
-    background:rgba(0,0,0,.03); border:1px solid rgba(0,0,0,.07);
-  }
-  .card h2 { margin:0 0 8px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; opacity:.55; font-weight:600; }
-  code { font:400 12px/1.5 ui-monospace,Consolas,monospace; word-break:break-all; background:rgba(0,0,0,.05); padding:2px 5px; border-radius:4px; }
-  .verdict { margin-top:10px; font-size:13px; }
-</style>
-</head>
-<body>
-  <main>
-    <div class="phase">Phase 1 &middot; Shell</div>
-    <h1>Aviary</h1>
-    <p class="muted">The window works. Type a URL above and it browses.<br>
-       The real Start Page arrives in Phase 4.</p>
-
-    <div class="links">
-      <a href="https://en.wikipedia.org">Wikipedia</a>
-      <a href="https://news.ycombinator.com">Hacker News</a>
-      <a href="https://learn.microsoft.com">Microsoft Learn</a>
-      <a href="https://developer.mozilla.org">MDN</a>
-    </div>
-
-    <div class="card">
-      <h2>User agent being sent</h2>
-      <code id="ua"></code>
-      <div class="verdict" id="verdict"></div>
-    </div>
-  </main>
-<script>
-  var ua = navigator.userAgent;
-  document.getElementById('ua').textContent = ua;
-  var looksSafari = ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1;
-  document.getElementById('verdict').textContent = looksSafari
-    ? '✓ Sites will serve their Safari code paths.'
-    : '✗ Still identifying as Chromium — the user agent did not take.';
-</script>
-</body>
-</html>
-""";
 }

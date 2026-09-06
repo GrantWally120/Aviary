@@ -33,6 +33,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="#0F000000" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="#1F000000" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="#1A000000" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="#0D000000" />
 
             <SolidColorBrush x:Key="AvFieldBrush"           Color="#0E000000" />
             <SolidColorBrush x:Key="AvFieldBorderBrush"     Color="#0F000000" />
@@ -59,6 +61,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="#29FFFFFF" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="#12FFFFFF" />
 
             <SolidColorBrush x:Key="AvFieldBrush"           Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="AvFieldBorderBrush"     Color="#14FFFFFF" />
@@ -88,6 +92,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="{ThemeResource SystemColorHighlightColor}" />
 
             <SolidColorBrush x:Key="AvFieldBrush"           Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="AvFieldBorderBrush"     Color="{ThemeResource SystemColorButtonTextColor}" />

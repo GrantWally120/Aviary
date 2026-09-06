@@ -93,9 +93,82 @@
                 <Setter Property="Foreground" Value="{ThemeResource AvLabelSecondaryBrush}" />
             </Style>
 
+            <!-- A TAB.
+                 Safari 15+ tabs are detached rounded rectangles that abut each other inside
+                 the strip, and the active one reads as a raised chip rather than a shape
+                 connected to the toolbar. A ToggleButton is used rather than a Button
+                 purely so "selected" is a visual state the template can express — which
+                 keeps every colour in the theme dictionary instead of assigned from code. -->
+            <Style x:Key="AvTabButton" TargetType="ToggleButton">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{ThemeResource AvLabelSecondaryBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="MinHeight" Value="0" />
+                <Setter Property="Height" Value="{StaticResource AvTabHeight}" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ToggleButton">
+                            <Grid x:Name="TabRoot"
+                                  Background="{TemplateBinding Background}"
+                                  CornerRadius="{StaticResource AvTabCornerRadius}"
+                                  Padding="8,0,8,0">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="TabRoot.Background" Value="{ThemeResource AvTabHoverBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="TabRoot.Background" Value="{ThemeResource AvTabHoverBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                        <!-- The active tab: a raised chip. Its shadow is
+                                             sub-pixel on purpose; any real blur here and it
+                                             stops reading as Safari. -->
+                                        <VisualState x:Name="Checked">
+                                            <VisualState.Setters>
+                                                <Setter Target="TabRoot.Background" Value="{ThemeResource AvTabActiveBrush}" />
+                                                <Setter Target="Presenter.Foreground" Value="{ThemeResource AvLabelBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="CheckedPointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Target="TabRoot.Background" Value="{ThemeResource AvTabActiveBrush}" />
+                                                <Setter Target="Presenter.Foreground" Value="{ThemeResource AvLabelBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="CheckedPressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="TabRoot.Background" Value="{ThemeResource AvTabActiveBrush}" />
+                                                <Setter Target="Presenter.Foreground" Value="{ThemeResource AvLabelBrush}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter x:Name="Presenter"
+                                                  Content="{TemplateBinding Content}"
+                                                  Foreground="{TemplateBinding Foreground}"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  VerticalContentAlignment="Center" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
         </Grid.Resources>
 
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
@@ -111,8 +184,6 @@
               Grid.Row="0"
               Height="{StaticResource AvToolbarHeight}"
               Background="{ThemeResource AvChromeBrush}"
-              BorderBrush="{ThemeResource AvHairlineBrush}"
-              BorderThickness="0,0,0,1"
               Padding="{StaticResource AvToolbarPadding}">
 
             <!-- Two equal drag columns flank the address field, so the field sits on the
@@ -263,6 +334,15 @@
                           StrokeLineJoin="Round"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 </Button>
+                <Border Width="4" />
+                <Button x:Name="MenuButton" Style="{StaticResource AvToolButton}"
+                        Click="MenuButton_Click" ToolTipService.ToolTip="Menu">
+                    <Path Width="17" Height="17"
+                          Data="M2.8,5 H14.2 M2.8,8.5 H14.2 M2.8,12 H14.2"
+                          Stroke="{ThemeResource AvIconBrush}"
+                          StrokeThickness="1.5"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
                 <Border Width="8" />
             </StackPanel>
 
@@ -272,10 +352,42 @@
             <Border x:Name="CaptionSpacer" Grid.Column="5" Width="141" />
         </Grid>
 
-        <!-- ══ ROW 1 — THE WEB ═════════════════════════════════════════════════ -->
-        <Grid Grid.Row="1" Background="{ThemeResource AvPageBrush}">
 
-            <WebView2 x:Name="Web" />
+        <!-- ══ ROW 1 — THE TAB STRIP ═══════════════════════════════════════════
+             Safari puts tabs BELOW the toolbar, not above it. The columns are rebuilt in
+             code so tabs divide the full strip width the way Safari's do — capping them at
+             a fixed width gives you a Chrome silhouette with Apple paint on it.
+
+             This row carries the single hairline, because it is the bottom-most piece of
+             chrome. -->
+        <Grid x:Name="TabStripRow"
+              Grid.Row="1"
+              Height="40"
+              Background="{ThemeResource AvChromeBrush}"
+              BorderBrush="{ThemeResource AvHairlineBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,4,4,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Grid x:Name="TabStrip" Grid.Column="0" />
+
+            <Button x:Name="NewTabButton" Grid.Column="1"
+                    Style="{StaticResource AvToolButton}"
+                    Margin="4,0,0,0"
+                    Click="NewTabButton_Click"
+                    ToolTipService.ToolTip="New tab (Ctrl+T)">
+                <Path Width="17" Height="17" Data="M8.5,3.6 V13.4 M3.6,8.5 H13.4"
+                      Stroke="{ThemeResource AvIconBrush}"
+                      StrokeThickness="1.7"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+            </Button>
+        </Grid>
+
+        <!-- ══ ROW 2 — THE WEB ═════════════════════════════════════════════════ -->
+        <Grid x:Name="ContentHost" Grid.Row="2" Background="{ThemeResource AvPageBrush}">
 
             <!-- Shown when WebView2 cannot start, or when a process dies. Better a sentence
                  the owner can read than a silent blank window. -->

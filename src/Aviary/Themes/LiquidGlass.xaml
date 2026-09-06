@@ -47,6 +47,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="#24787880" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="#38787880" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="#1A787880" />
 
             <!-- The address well is DARKER than the glass around it. Recessed, not raised:
                  a raised control inside a raised capsule looks like a button on a button. -->
@@ -79,6 +81,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="#21EBEBF5" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="#33EBEBF5" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="#17EBEBF5" />
 
             <SolidColorBrush x:Key="AvFieldBrush"           Color="#3D767680" />
             <SolidColorBrush x:Key="AvFieldBorderBrush"     Color="#38000000" />
@@ -108,6 +112,8 @@
             <SolidColorBrush x:Key="AvHoverBrush"           Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvPressBrush"           Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvSelectedBrush"        Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvTabActiveBrush"      Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvTabHoverBrush"       Color="{ThemeResource SystemColorHighlightColor}" />
 
             <SolidColorBrush x:Key="AvFieldBrush"           Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="AvFieldBorderBrush"     Color="{ThemeResource SystemColorButtonTextColor}" />
