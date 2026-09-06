@@ -202,6 +202,7 @@ public sealed partial class MainWindow : Window
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
         tab.DownloadStarted += OnDownloadStarted;
+        tab.NavigationFailed += OnNavigationFailed;
 
         _tabs.Add(tab);
 
@@ -250,6 +251,7 @@ public sealed partial class MainWindow : Window
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
         tab.DownloadStarted += OnDownloadStarted;
+        tab.NavigationFailed += OnNavigationFailed;
         _tabs.Add(tab);
         ContentHost.Children.Add(tab.View);
         SelectTab(tab);
@@ -534,6 +536,22 @@ public sealed partial class MainWindow : Window
     private void FindClose_Click(object sender, RoutedEventArgs e) => CloseFindBar();
 
     // ══ DOWNLOADS ══════════════════════════════════════════════════════════
+
+    private void OnNavigationFailed(BrowserTab tab, CoreWebView2WebErrorStatus status)
+    {
+        if (!ReferenceEquals(tab, _active))
+        {
+            return;
+        }
+
+        string detail = DescribeError(status);
+        if (detail.Length == 0)
+        {
+            return;
+        }
+
+        ShowError("This page didn't load", detail);
+    }
 
     private void OnDownloadStarted(CoreWebView2DownloadOperation operation)
     {
@@ -844,9 +862,12 @@ public sealed partial class MainWindow : Window
         {
             target = absolute.ToString();
         }
-        else if (!text.Contains(' ') && text.Contains('.'))
+        else if (!text.Contains(' ') && (text.Contains('.') || LooksLocal(text)))
         {
-            target = "https://" + text;
+            // https by default, but NOT for localhost and friends: a local dev server is
+            // almost never running TLS, and forcing https there means the address bar
+            // simply cannot reach it. Chrome makes the same exception.
+            target = (LooksLocal(text) ? "http://" : "https://") + text;
         }
         else
         {
@@ -1031,14 +1052,68 @@ public sealed partial class MainWindow : Window
 
     // ══ ERRORS ═════════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// localhost, 127.0.0.1, 0.0.0.0, ::1 and *.localhost — with or without a port.
+    /// </summary>
+    private static bool LooksLocal(string text)
+    {
+        string host = text.Split('/')[0];
+        int colon = host.LastIndexOf(':');
+        if (colon > 0 && !host.Contains(']'))
+        {
+            host = host.Substring(0, colon);
+        }
+
+        host = host.Trim('[', ']');
+
+        return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
+            || host.EndsWith(".localhost", StringComparison.OrdinalIgnoreCase)
+            || host.StartsWith("127.", StringComparison.Ordinal)
+            || host == "0.0.0.0"
+            || host == "::1";
+    }
+
     private void ShowError(string title, string detail)
     {
         ErrorTitle.Text = title;
         ErrorDetail.Text = detail;
         ErrorPanel.Visibility = Visibility.Visible;
+
+        // Hide the WebView, or Chromium's own error page shows behind ours — complete
+        // with a Microsoft Edge logo, which has no business appearing in this browser.
+        if (_active is not null)
+        {
+            _active.View.Visibility = Visibility.Collapsed;
+        }
     }
 
-    private void HideError() => ErrorPanel.Visibility = Visibility.Collapsed;
+    private void HideError()
+    {
+        ErrorPanel.Visibility = Visibility.Collapsed;
+
+        if (_active is not null)
+        {
+            _active.View.Visibility = Visibility.Visible;
+        }
+    }
+
+    /// <summary>Turns a WebView2 error status into something a person can act on.</summary>
+    private static string DescribeError(CoreWebView2WebErrorStatus status) => status switch
+    {
+        CoreWebView2WebErrorStatus.HostNameNotResolved => "That address doesn't seem to exist. Check the spelling.",
+        CoreWebView2WebErrorStatus.CannotConnect => "Nothing answered at that address. The site may be down, or you may be offline.",
+        CoreWebView2WebErrorStatus.Timeout => "The site took too long to answer.",
+        CoreWebView2WebErrorStatus.Disconnected => "The connection dropped.",
+        CoreWebView2WebErrorStatus.ConnectionAborted => "The connection was cut short.",
+        CoreWebView2WebErrorStatus.ConnectionReset => "The site closed the connection.",
+        CoreWebView2WebErrorStatus.ServerUnreachable => "That server can't be reached.",
+        CoreWebView2WebErrorStatus.ErrorHttpInvalidServerResponse => "That address answered with something Aviary couldn't read. If it is a local server, try http:// instead of https://.",
+        CoreWebView2WebErrorStatus.CertificateCommonNameIsIncorrect => "That site's security certificate doesn't match its address.",
+        CoreWebView2WebErrorStatus.CertificateExpired => "That site's security certificate has expired.",
+        CoreWebView2WebErrorStatus.CertificateIsInvalid => "That site's security certificate isn't valid.",
+        CoreWebView2WebErrorStatus.OperationCanceled => "",
+        _ => "The page couldn't be loaded (" + status + ")."
+    };
 
     // ══ SHUTDOWN ═══════════════════════════════════════════════════════════
 

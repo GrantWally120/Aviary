@@ -61,11 +61,22 @@ internal sealed class BrowserTab
     /// <summary>Raised when a page starts downloading a file.</summary>
     public event Action<CoreWebView2DownloadOperation>? DownloadStarted;
 
+    /// <summary>Raised when a navigation fails, so the chrome can show its own message.</summary>
+    public event Action<BrowserTab, CoreWebView2WebErrorStatus>? NavigationFailed;
+
     /// <summary>Set for Aviary's own pages, whose titles we own rather than read.</summary>
     private string? _internalTitle;
 
     /// <summary>Kept so blocked requests can be answered with a synthetic response.</summary>
     private CoreWebView2Environment? _environment;
+
+    /// <summary>
+    /// A navigation that turns into a download reports itself as ABORTED, because from the
+    /// engine's point of view the page load really was cancelled. Without this flag every
+    /// successful download would be followed by an error page saying the connection was
+    /// cut short.
+    /// </summary>
+    private bool _navigationBecameDownload;
 
     public BrowserTab()
     {
@@ -156,6 +167,7 @@ internal sealed class BrowserTab
         try
         {
             args.Handled = true;
+            _navigationBecameDownload = true;
             DownloadStarted?.Invoke(args.DownloadOperation);
         }
         catch (Exception)
@@ -274,6 +286,7 @@ internal sealed class BrowserTab
         {
             Url = url;
             _internalTitle = null;
+            _navigationBecameDownload = false;
             View.CoreWebView2.Navigate(url);
         }
     }
@@ -322,7 +335,20 @@ internal sealed class BrowserTab
     }
 
     private void OnNavigationCompleted(CoreWebView2 sender, CoreWebView2NavigationCompletedEventArgs args)
-        => Changed?.Invoke(this);
+    {
+        Changed?.Invoke(this);
+
+        if (_navigationBecameDownload)
+        {
+            _navigationBecameDownload = false;
+            return;
+        }
+
+        if (!args.IsSuccess && args.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
+        {
+            NavigationFailed?.Invoke(this, args.WebErrorStatus);
+        }
+    }
 
     /// <summary>
     /// target="_blank" and window.open() would otherwise escape the app entirely. Phase 2
@@ -387,6 +413,7 @@ internal sealed class BrowserTab
         CloseRequested = null;
         ShortcutPressed = null;
         DownloadStarted = null;
+        NavigationFailed = null;
         IsReady = false;
     }
 }
