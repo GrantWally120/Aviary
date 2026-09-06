@@ -23,7 +23,7 @@ public partial class App : Application
         // instantly with no window, no message and nothing to report back.
         UnhandledException += App_UnhandledException;
 
-        WebViewPaths.EnsureUserDataFolder();
+        WebViewEnvironment.EnsureUserDataFolder();
 
         InitializeComponent();
     }
