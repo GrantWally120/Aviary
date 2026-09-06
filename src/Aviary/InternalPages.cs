@@ -183,6 +183,12 @@ internal static class InternalPages
     transform-origin:top right;
     animation:pop 150ms cubic-bezier(.32,.72,0,1);
   }
+  /* MUST come after the rule above.
+     The browser hides [hidden] elements with display:none from its own stylesheet, which
+     any author rule setting display outranks. Without this line every popup is open from
+     the moment the page loads and no click can ever close one — which is exactly what
+     happened. */
+  .sel__pop[hidden]{display:none;}
   @keyframes pop{from{opacity:0;transform:scale(.96) translateY(-4px);}to{opacity:1;transform:none;}}
   .sel__opt{
     display:flex;align-items:center;gap:9px;width:100%;

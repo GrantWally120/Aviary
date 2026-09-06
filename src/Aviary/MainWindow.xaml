@@ -170,6 +170,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -335,6 +336,17 @@
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 </Button>
                 <Border Width="4" />
+                <Button x:Name="DownloadsButton" Style="{StaticResource AvToolButton}"
+                        Visibility="Collapsed"
+                        Click="DownloadsButton_Click" ToolTipService.ToolTip="Downloads">
+                    <Path Width="17" Height="17"
+                          Data="M8.5,2.8 V10.4 M5.6,7.8 L8.5,10.7 L11.4,7.8 M3.4,12.4 v0.6 a1.4,1.4 0 0 0 1.4,1.4 h7.4 a1.4,1.4 0 0 0 1.4,-1.4 v-0.6"
+                          Stroke="{ThemeResource AvIconBrush}"
+                          StrokeThickness="1.5"
+                          StrokeLineJoin="Round"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
+                <Border Width="4" />
                 <Button x:Name="MenuButton" Style="{StaticResource AvToolButton}"
                         Click="MenuButton_Click" ToolTipService.ToolTip="Menu">
                     <Path Width="17" Height="17"
@@ -386,8 +398,79 @@
             </Button>
         </Grid>
 
-        <!-- ══ ROW 2 — THE WEB ═════════════════════════════════════════════════ -->
-        <Grid x:Name="ContentHost" Grid.Row="2" Background="{ThemeResource AvPageBrush}">
+
+        <!-- ══ ROW 2 — FIND IN PAGE ════════════════════════════════════════════
+             Safari's find bar is a strip below the chrome, not a floating box. It only
+             takes up space when it is open, so the row is Auto-height and collapsed. -->
+        <Grid x:Name="FindBar"
+              Grid.Row="2"
+              Height="40"
+              Visibility="Collapsed"
+              Background="{ThemeResource AvChromeBrush}"
+              BorderBrush="{ThemeResource AvHairlineBrush}"
+              BorderThickness="0,0,0,1"
+              Padding="12,0,8,0"
+              ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" MaxWidth="360" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="Find" VerticalAlignment="Center"
+                       FontSize="13" Foreground="{ThemeResource AvLabelSecondaryBrush}" />
+
+            <Border Grid.Column="1"
+                    Height="{StaticResource AvFieldHeight}"
+                    VerticalAlignment="Center"
+                    CornerRadius="{StaticResource AvFieldCornerRadius}"
+                    Background="{ThemeResource AvFieldBrush}"
+                    BorderBrush="{ThemeResource AvFieldBorderBrush}"
+                    BorderThickness="1"
+                    Padding="10,0">
+                <TextBox x:Name="FindBox"
+                         VerticalAlignment="Center"
+                         Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
+                         FontSize="13"
+                         Foreground="{ThemeResource AvLabelBrush}"
+                         PlaceholderText="Search this page"
+                         PlaceholderForeground="{ThemeResource AvLabelTertiaryBrush}"
+                         AcceptsReturn="False" TextWrapping="NoWrap"
+                         TextChanged="FindBox_TextChanged"
+                         KeyDown="FindBox_KeyDown" />
+            </Border>
+
+            <TextBlock x:Name="FindCount" Grid.Column="2" VerticalAlignment="Center"
+                       FontSize="12.5" Foreground="{ThemeResource AvLabelSecondaryBrush}"
+                       Text="" />
+
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Spacing="2">
+                <Button x:Name="FindPrev" Style="{StaticResource AvToolButton}"
+                        Click="FindPrev_Click" ToolTipService.ToolTip="Previous (Shift+Enter)">
+                    <Path Width="17" Height="17" Data="M4.4,10.6 L8.5,6.4 L12.6,10.6"
+                          Stroke="{ThemeResource AvIconBrush}" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
+                <Button x:Name="FindNext" Style="{StaticResource AvToolButton}"
+                        Click="FindNext_Click" ToolTipService.ToolTip="Next (Enter)">
+                    <Path Width="17" Height="17" Data="M4.4,6.4 L8.5,10.6 L12.6,6.4"
+                          Stroke="{ThemeResource AvIconBrush}" StrokeThickness="1.7"
+                          StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
+                <Border Width="6" />
+                <Button x:Name="FindClose" Style="{StaticResource AvToolButton}"
+                        Click="FindClose_Click" ToolTipService.ToolTip="Done (Esc)">
+                    <Path Width="17" Height="17" Data="M4.8,4.8 L12.2,12.2 M12.2,4.8 L4.8,12.2"
+                          Stroke="{ThemeResource AvIconBrush}" StrokeThickness="1.6"
+                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ══ ROW 3 — THE WEB ═════════════════════════════════════════════════ -->
+        <Grid x:Name="ContentHost" Grid.Row="3" Background="{ThemeResource AvPageBrush}">
 
             <!-- Shown when WebView2 cannot start, or when a process dies. Better a sentence
                  the owner can read than a silent blank window. -->

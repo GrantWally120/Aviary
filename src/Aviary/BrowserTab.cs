@@ -58,6 +58,9 @@ internal sealed class BrowserTab
     /// </summary>
     public event Action<string>? ShortcutPressed;
 
+    /// <summary>Raised when a page starts downloading a file.</summary>
+    public event Action<CoreWebView2DownloadOperation>? DownloadStarted;
+
     /// <summary>Set for Aviary's own pages, whose titles we own rather than read.</summary>
     private string? _internalTitle;
 
@@ -107,6 +110,9 @@ internal sealed class BrowserTab
         // Injected into EVERY document, including ones we did not write, so Ctrl+T keeps
         // working while the caret is inside a text box on somebody else's website.
         await core.AddScriptToExecuteOnDocumentCreatedAsync(ShortcutScript);
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);
+
+        core.DownloadStarting += OnDownloadStarting;
 
         ApplyColorScheme();
 
@@ -138,6 +144,23 @@ internal sealed class BrowserTab
         {
             // Let the request through rather than take the page down. A missed advert is
             // cheaper than a broken browser.
+        }
+    }
+
+    /// <summary>
+    /// Handled = true suppresses WebView2's own download bar, so ours is the only one the
+    /// user sees. The download itself still proceeds to the default folder.
+    /// </summary>
+    private void OnDownloadStarting(CoreWebView2 sender, CoreWebView2DownloadStartingEventArgs args)
+    {
+        try
+        {
+            args.Handled = true;
+            DownloadStarted?.Invoke(args.DownloadOperation);
+        }
+        catch (Exception)
+        {
+            // Let the default UI take over rather than lose the download entirely.
         }
     }
 
@@ -232,6 +255,7 @@ internal sealed class BrowserTab
     else if (k === 'w') { action = 'closetab'; }
     else if (k === 'l') { action = 'address'; }
     else if (k === 'tab') { action = 'nexttab'; }
+    else if (k === 'f') { action = 'find'; }
     if (!action) { return; }
     e.preventDefault();
     e.stopPropagation();
@@ -349,6 +373,7 @@ internal sealed class BrowserTab
                 core.WindowCloseRequested -= OnWindowCloseRequested;
                 core.WebMessageReceived -= OnWebMessageReceived;
                 core.WebResourceRequested -= OnWebResourceRequested;
+                core.DownloadStarting -= OnDownloadStarting;
             }
 
             View.Close();
@@ -361,6 +386,7 @@ internal sealed class BrowserTab
         Changed = null;
         CloseRequested = null;
         ShortcutPressed = null;
+        DownloadStarted = null;
         IsReady = false;
     }
 }

@@ -34,6 +34,7 @@ public sealed partial class MainWindow : Window
     private BrowserTab? _active;
     private bool _addressFocused;
     private bool _showFullUrl;
+    private int _findMatches;
     private string _searchPrefix = "https://duckduckgo.com/?q=";
 
     public MainWindow()
@@ -61,6 +62,8 @@ public sealed partial class MainWindow : Window
         AddAccelerator(VirtualKey.W, VirtualKeyModifiers.Control, (_, _) => { if (_active is not null) CloseTab(_active); });
         AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control, (_, _) => AddressBox.Focus(FocusState.Programmatic));
         AddAccelerator(VirtualKey.Tab, VirtualKeyModifiers.Control, (_, _) => CycleTab(1));
+        AddAccelerator(VirtualKey.F, VirtualKeyModifiers.Control, (_, _) => OpenFindBar());
+        AddAccelerator(VirtualKey.Escape, VirtualKeyModifiers.None, (_, _) => CloseFindBar());
     }
 
     private void AddAccelerator(VirtualKey key, VirtualKeyModifiers mods, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
@@ -198,6 +201,7 @@ public sealed partial class MainWindow : Window
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
+        tab.DownloadStarted += OnDownloadStarted;
 
         _tabs.Add(tab);
 
@@ -245,6 +249,7 @@ public sealed partial class MainWindow : Window
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
+        tab.DownloadStarted += OnDownloadStarted;
         _tabs.Add(tab);
         ContentHost.Children.Add(tab.View);
         SelectTab(tab);
@@ -450,7 +455,130 @@ public sealed partial class MainWindow : Window
             case "closetab": if (_active is not null) { CloseTab(_active); } break;
             case "address": AddressBox.Focus(FocusState.Programmatic); break;
             case "nexttab": CycleTab(1); break;
+            case "find": OpenFindBar(); break;
         }
+    }
+
+    // ══ FIND IN PAGE ═══════════════════════════════════════════════════════
+
+    private void OpenFindBar()
+    {
+        FindBar.Visibility = Visibility.Visible;
+        FindBox.Focus(FocusState.Programmatic);
+        FindBox.SelectAll();
+
+        if (FindBox.Text.Length > 0)
+        {
+            _ = RunFindAsync(FindBox.Text);
+        }
+    }
+
+    private async void CloseFindBar()
+    {
+        if (FindBar.Visibility != Visibility.Visible)
+        {
+            return;
+        }
+
+        FindBar.Visibility = Visibility.Collapsed;
+        FindCount.Text = string.Empty;
+        await FindInPage.StopAsync(_active);
+        _active?.View.Focus(FocusState.Programmatic);
+    }
+
+    private async System.Threading.Tasks.Task RunFindAsync(string term)
+    {
+        _findMatches = await FindInPage.StartAsync(_active, term);
+        FindCount.Text = term.Length == 0 ? string.Empty
+                       : _findMatches == 0 ? "Not found"
+                       : "1 of " + _findMatches;
+
+        FindPrev.IsEnabled = _findMatches > 0;
+        FindNext.IsEnabled = _findMatches > 0;
+    }
+
+    private async void StepFind(int direction)
+    {
+        if (_findMatches == 0)
+        {
+            return;
+        }
+
+        int index = await FindInPage.StepAsync(_active, direction);
+        FindCount.Text = index + " of " + _findMatches;
+    }
+
+    private void FindBox_TextChanged(object sender, TextChangedEventArgs e) => _ = RunFindAsync(FindBox.Text);
+
+    private void FindBox_KeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key == VirtualKey.Enter)
+        {
+            e.Handled = true;
+            bool back = (Microsoft.UI.Input.InputKeyboardSource
+                .GetKeyStateForCurrentThread(VirtualKey.Shift) & Windows.UI.Core.CoreVirtualKeyStates.Down)
+                == Windows.UI.Core.CoreVirtualKeyStates.Down;
+            StepFind(back ? -1 : 1);
+        }
+        else if (e.Key == VirtualKey.Escape)
+        {
+            e.Handled = true;
+            CloseFindBar();
+        }
+    }
+
+    private void FindNext_Click(object sender, RoutedEventArgs e) => StepFind(1);
+
+    private void FindPrev_Click(object sender, RoutedEventArgs e) => StepFind(-1);
+
+    private void FindClose_Click(object sender, RoutedEventArgs e) => CloseFindBar();
+
+    // ══ DOWNLOADS ══════════════════════════════════════════════════════════
+
+    private void OnDownloadStarted(CoreWebView2DownloadOperation operation)
+    {
+        Downloads.Add(new DownloadItem(operation));
+        DownloadsButton.Visibility = Visibility.Visible;
+    }
+
+    private void DownloadsButton_Click(object sender, RoutedEventArgs e)
+    {
+        MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+
+        if (Downloads.Items.Count == 0)
+        {
+            menu.Items.Add(new MenuFlyoutItem { Text = "No downloads yet", IsEnabled = false });
+        }
+        else
+        {
+            foreach (DownloadItem item in Downloads.Items)
+            {
+                MenuFlyoutItem entry = new()
+                {
+                    Text = item.FileName,
+                    // The status line rides in the tooltip so the menu stays one line per
+                    // file rather than becoming a panel of its own this phase.
+                    Tag = item
+                };
+                ToolTipService.SetToolTip(entry, item.Status);
+                entry.Click += (_, _) => Downloads.Reveal(item);
+                menu.Items.Add(entry);
+            }
+
+            menu.Items.Add(new MenuFlyoutSeparator());
+            MenuFlyoutItem folder = new() { Text = "Open Downloads folder" };
+            folder.Click += (_, _) =>
+            {
+                DownloadItem? first = Downloads.Items.Count > 0 ? Downloads.Items[0] : null;
+                if (first is not null)
+                {
+                    Downloads.Reveal(first);
+                }
+            };
+            menu.Items.Add(folder);
+        }
+
+        menu.ShowAt(DownloadsButton);
     }
 
     private void OnTabChanged(BrowserTab tab)
@@ -777,6 +905,17 @@ public sealed partial class MainWindow : Window
         closeTab.KeyboardAcceleratorTextOverride = "Ctrl+W";
         closeTab.Click += (_, _) => { if (_active is not null) CloseTab(_active); };
         menu.Items.Add(closeTab);
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        MenuFlyoutItem find = new() { Text = "Find in Page…" };
+        find.KeyboardAcceleratorTextOverride = "Ctrl+F";
+        find.Click += (_, _) => OpenFindBar();
+        menu.Items.Add(find);
+
+        MenuFlyoutItem downloads = new() { Text = "Downloads" };
+        downloads.Click += (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs());
+        menu.Items.Add(downloads);
 
         menu.Items.Add(new MenuFlyoutSeparator());
 
