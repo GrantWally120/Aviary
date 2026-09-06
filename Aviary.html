@@ -261,6 +261,13 @@ section{padding:74px 0;}
   color:var(--ink-3);letter-spacing:-.03em;font-variation-settings:"WONK" 1;
   font-variant-numeric:tabular-nums;
 }
+/* Which track a phase belongs to, readable without scrolling back to the band. */
+.ph__track{
+  display:block;margin-top:8px;
+  font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+.ph[data-track="beta"] .ph__track{color:var(--brass);}
 .ph[data-state="done"] .ph__n{color:var(--verdigris);}
 .ph[data-state="active"] .ph__n{color:var(--brass);}
 .ph__t{font-family:var(--display);font-size:21px;font-weight:500;letter-spacing:-.016em;margin:0;line-height:1.25;}
@@ -684,8 +691,9 @@ document.getElementById("phaseList").innerHTML=PHASES.map(p=>{
          '</div>';
   }
 
-  return band+'<article class="ph" data-state="'+p.state+'">'+
-    '<div class="ph__n">'+esc(p.n)+'</div>'+
+  return band+'<article class="ph" data-state="'+p.state+'" data-track="'+p.track+'">'+
+    '<div class="ph__n">'+esc(p.n)+
+      '<span class="ph__track">'+esc(TRACKS[p.track].name)+'</span></div>'+
     '<div>'+
       '<h3 class="ph__t">'+esc(p.title)+'</h3>'+
       '<p class="ph__d">'+esc(p.desc)+'</p>'+
