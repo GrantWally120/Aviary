@@ -225,6 +225,28 @@ section{padding:74px 0;}
 
 /* ── PHASES ──────────────────────────────────────────────────────────── */
 .phases{border-top:1px solid var(--line);}
+
+/* Alpha and beta are two different promises, so they get a visible seam. */
+.track{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  padding:22px 0 14px; border-top:1px solid var(--line);
+}
+.track:first-child{border-top:0;padding-top:0;}
+.track__name{
+  font-family:var(--display); font-size:22px; font-weight:500; letter-spacing:-.018em;
+  font-variation-settings:"WONK" 1;
+}
+.track[data-track="alpha"] .track__name{color:var(--ink-2);}
+.track[data-track="beta"]  .track__name{color:var(--brass);}
+.track__badge{
+  font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+  border:1px solid var(--line); border-radius:6px; padding:3px 8px; color:var(--ink-3);
+}
+.track[data-track="beta"] .track__badge{
+  color:var(--brass); border-color:color-mix(in srgb,var(--brass) 40%,transparent);
+  background:color-mix(in srgb,var(--brass) 9%,transparent);
+}
+.track__note{font-size:14px; color:var(--ink-2); max-width:52ch; line-height:1.55;}
 .ph{
   display:grid;grid-template-columns:60px minmax(0,1fr) 150px;gap:26px;
   padding:26px 0;border-bottom:1px solid var(--line-soft);align-items:start;
@@ -366,7 +388,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
         <div class="hero__meta">
           <span class="pill"><i></i><span id="statusPill">Phase 1 · Shell</span></span>
           <span class="pill">C# · WinUI 3 · WebView2</span>
-          <span class="pill">~20 MB, not ~200</span>
+          <span class="pill">No engine to bundle</span>
         </div>
       </div>
       <div>
@@ -456,8 +478,8 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
     <div class="wrap">
       <div class="sec-h">
         <h2>How it gets built</h2>
-        <p>One phase at a time, with a sign-off between each. Nothing starts until the thing before it
-           actually works.</p>
+        <p>One phase at a time, with a sign-off between each — and two tracks. Alpha builds the thing;
+           beta is where it becomes something you actually use.</p>
       </div>
       <div id="phaseList"></div>
       <div style="margin-top:34px">
@@ -483,7 +505,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
         <div class="st"><dt>Language</dt><dd>C# · .NET 9</dd><p>Native, no runtime for the user to install.</p></div>
         <div class="st"><dt>Interface</dt><dd>WinUI 3</dd><p>Real Mica, real rounded corners, real caption buttons.</p></div>
         <div class="st"><dt>Engine</dt><dd>WebView2</dd><p>Edge's Chromium, already on every Windows 11 machine.</p></div>
-        <div class="st"><dt>Ships as</dt><dd>One .exe</dd><p>Double-click. Nothing else to install first.</p></div>
+        <div class="st"><dt>Ships as</dt><dd>One .exe</dd><p>Double-click. Around 170&nbsp;MB, because .NET and WinUI travel with it — so you install nothing.</p></div>
       </dl>
 
       <div class="tradeoffs">
@@ -523,9 +545,9 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
       <div class="get">
         <h3>Getting a copy</h3>
         <p id="getCopy">
-          Every push builds a fresh Windows app automatically, and the result is a single file you
-          download and run. Until the shell lands there is nothing to install yet — the interface
-          study below is the honest current state.
+          The first real build exists. Aviary launches, browses the live web, and sends Safari's
+          user agent — verified on 6 September against Wikipedia. It is delivered to you directly
+          for now; automatic builds land once the project has a GitHub home.
         </p>
         <div class="btnrow">
           <a class="btn btn--p" href="Aviary-Phase0.html">
@@ -534,7 +556,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
           </a>
           <a class="btn btn--s" id="dlBtn" aria-disabled="true" href="#get">
             <svg viewBox="0 0 16 16" fill="none"><path d="M8 2.4v8M5.2 7.6 8 10.4l2.8-2.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 11.8v.8a1.4 1.4 0 0 0 1.4 1.4h7.6a1.4 1.4 0 0 0 1.4-1.4v-.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Download the app — not yet
+            Download the app — sent directly for now
           </a>
         </div>
       </div>
@@ -565,9 +587,26 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
    Set state to "done" | "active" | "todo". Add a `when` when it ships and a
    `link` when there is something to look at. Everything else follows.
    ════════════════════════════════════════════════════════════════════════ */
+/* Two tracks. Everything up to and including 04 is alpha — building the thing.
+   05 and beyond are beta — the thing exists, and now it gets lived in. */
+const TRACKS={
+  alpha:{
+    name:"Alpha",
+    badge:"Phases 00 – 04",
+    note:"Building it. Each phase adds one layer and has to work before the next one starts. "+
+         "Nothing in alpha is meant to be used as your actual browser yet."
+  },
+  beta:{
+    name:"Beta",
+    badge:"Phases 05 and up",
+    note:"It exists, it is compiled, and it keeps your real data. This is where genuine "+
+         "day-to-day testing starts and where the browser has to earn being the one you open."
+  }
+};
+
 const PHASES=[
   {
-    n:"00", title:"Interface study", state:"done", when:"4 Sep 2026",
+    n:"00", track:"alpha", title:"Interface study", state:"done", when:"4 Sep 2026",
     link:{href:"Aviary-Phase0.html", label:"Open it"},
     desc:"Every combination mocked up in a real Windows 11 frame before a line of C#: two themes "+
          "against two tab layouts, in light and dark, on a Windows 11 desktop, with a Safari Start "+
@@ -575,39 +614,62 @@ const PHASES=[
     bits:["4 combinations","Light + dark","Live toolbar tinting","Real caption glyphs"]
   },
   {
-    n:"01", title:"The shell", state:"active", when:"in progress",
+    n:"01", track:"alpha", title:"The shell", state:"done", when:"6 Sep 2026",
     desc:"A window that launches and browses. Mica, an extended title bar with genuine Windows "+
          "caption buttons, one WebView2, an address bar, and back / forward / reload / home. "+
-         "Safari's user agent from the first navigation.",
+         "Safari's user agent from the first navigation. Built, launched and verified browsing "+
+         "the real web on 6 September.",
     bits:["Mica + rounded corners","Extended title bar","One WebView2","Safari user agent","GitHub Actions build"]
   },
   {
-    n:"02", title:"Tabs", state:"todo",
+    n:"02", track:"alpha", title:"Tabs", state:"active", when:"next",
     desc:"Multiple tabs — new, close, reorder — in both layouts. One WebView2 per tab over a single "+
          "shared environment, so each tab keeps its own history without spawning its own browser process.",
     bits:["Top bar","Vertical sidebar","Shared environment","Per-tab history"]
   },
   {
-    n:"03", title:"Theming", state:"todo",
+    n:"03", track:"alpha", title:"Theming", state:"todo",
     desc:"Both Safari looks as swappable resource dictionaries. Every colour, radius, blur and spacing "+
          "value lives in a token; zero hardcoded colours in any control. Includes the toolbar tint that "+
          "samples the page and flips every glyph when it goes dark.",
     bits:["Two dictionaries","Runtime switch","Toolbar tinting","Zero literal colours"]
   },
   {
-    n:"04", title:"Safari features", state:"todo",
+    n:"04", track:"alpha", title:"Safari features", state:"todo",
     desc:"The things that make it a browser rather than a window: Start Page, Reader mode, a bookmarks "+
          "and reading list sidebar, downloads, history, and find-in-page.",
     bits:["Start Page","Reader","Bookmarks + reading list","Downloads","History","Find in page"]
+  },
+  {
+    n:"05", track:"beta", title:"Beta Build 1", state:"todo",
+    desc:"The first build meant to be lived in rather than looked at. Everything above compiled "+
+         "together into one installable app that keeps your real history, bookmarks and sessions "+
+         "between launches — and then gets used as a daily browser hard enough to find what breaks.",
+    bits:["Real profile data","Session restore","Crash reporting","Performance pass","Installer + updates","Daily-driver testing"]
   }
 ];
 
 const STATUS={done:["tag--done","Done"],active:["tag--active","In progress"],todo:["tag--todo","Planned"]};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+let lastTrack=null;
 document.getElementById("phaseList").innerHTML=PHASES.map(p=>{
   const [cls,label]=STATUS[p.state];
-  return '<article class="ph" data-state="'+p.state+'">'+
+
+  // A track band is emitted the first time a phase of that track appears, so
+  // adding a phase 06 needs no change here — only a new entry above.
+  let band="";
+  if(p.track!==lastTrack){
+    lastTrack=p.track;
+    const t=TRACKS[p.track];
+    band='<div class="track" data-track="'+p.track+'">'+
+           '<span class="track__name">'+esc(t.name)+'</span>'+
+           '<span class="track__badge">'+esc(t.badge)+'</span>'+
+           '<span class="track__note">'+esc(t.note)+'</span>'+
+         '</div>';
+  }
+
+  return band+'<article class="ph" data-state="'+p.state+'">'+
     '<div class="ph__n">'+esc(p.n)+'</div>'+
     '<div>'+
       '<h3 class="ph__t">'+esc(p.title)+'</h3>'+
@@ -624,7 +686,8 @@ document.getElementById("phaseList").innerHTML=PHASES.map(p=>{
 
 /* the hero pill always reflects whichever phase is active */
 const active=PHASES.find(p=>p.state==="active")||PHASES[PHASES.length-1];
-document.getElementById("statusPill").textContent="Phase "+parseInt(active.n,10)+" · "+active.title;
+document.getElementById("statusPill").textContent=
+  TRACKS[active.track].name+" · Phase "+parseInt(active.n,10)+" · "+active.title;
 
 /* theme: follow the system, but let the reader override — the same courtesy
    the browser itself extends. */

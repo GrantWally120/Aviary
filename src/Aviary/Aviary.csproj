@@ -25,6 +25,14 @@
     <!-- Unpackaged: a plain double-clickable .exe with no MSIX identity. -->
     <WindowsPackageType>None</WindowsPackageType>
 
+    <!-- Required even though we ship unpackaged. Without it, WindowsAppSDK's
+         MrtCore.PriGen.targets tries to load ExpandPriContent from Visual Studio's
+         AppxPackage folder, which a bare .NET SDK does not have, and the build dies with
+         MSB4062. This is the documented workaround for building WinUI 3 from the CLI.
+         Safe here only because PublishSingleFile is false — the two together trip a
+         separate build-time validator. -->
+    <EnableMsixTooling>true</EnableMsixTooling>
+
     <!-- Both runtimes travel with the app, so the user installs nothing first.
          SelfContained carries .NET 9; WindowsAppSDKSelfContained carries WinUI. -->
     <SelfContained>true</SelfContained>

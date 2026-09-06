@@ -115,14 +115,16 @@
               BorderThickness="0,0,0,1"
               Padding="{StaticResource AvToolbarPadding}">
 
+            <!-- Two equal drag columns flank the address field, so the field sits on the
+                 optical centre of the USABLE toolbar — between the left button group and
+                 the right group plus the caption inset — rather than being shoved left.
+                 They double as the window drag region, which SetTitleBar needs, and
+                 splitting it in two means neither half can starve. -->
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
-                <!-- Star-sized, not Auto: the field has to breathe with the window, or a
-                     narrow window pushes the Home button under the caption buttons. -->
-                <ColumnDefinition Width="4*" MinWidth="240" />
-                <!-- SetTitleBar makes this the ONLY draggable area, so it must never be
-                     allowed to reach zero width. -->
-                <ColumnDefinition Width="*" MinWidth="48" />
+                <ColumnDefinition Width="*" MinWidth="24" />
+                <ColumnDefinition Width="6*" MinWidth="240" />
+                <ColumnDefinition Width="*" MinWidth="24" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
@@ -167,9 +169,8 @@
                  than a colour assigned from code. That keeps every colour in the theme
                  dictionary where requirement 3 says it belongs. -->
             <Grid x:Name="AddressField"
-                  Grid.Column="1"
+                  Grid.Column="2"
                   Height="{StaticResource AvFieldHeight}"
-                  MaxWidth="720"
                   VerticalAlignment="Center">
 
                 <Border x:Name="FieldRest"
@@ -248,10 +249,11 @@
             <!-- The window drag region. Deliberately its own empty column with a minimum
                  width: a drag region containing no interactive children behaves correctly
                  on every Windows App SDK version. -->
-            <Border x:Name="DragRegion" Grid.Column="2" Background="Transparent" />
+            <Border x:Name="DragRegion" Grid.Column="1" Background="Transparent" />
+            <Border x:Name="DragRegionRight" Grid.Column="3" Background="Transparent" />
 
             <!-- Right group. -->
-            <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
                 <Button x:Name="HomeButton" Style="{StaticResource AvToolButton}"
                         Click="HomeButton_Click" ToolTipService.ToolTip="Home">
                     <Path Width="17" Height="17"
@@ -267,7 +269,7 @@
             <!-- Reserved for the system caption buttons. Width comes from
                  AppWindowTitleBar.RightInset in code-behind — hardcoding 138px is wrong the
                  moment the display is at 150%, where the real inset is 207 device pixels. -->
-            <Border x:Name="CaptionSpacer" Grid.Column="4" Width="141" />
+            <Border x:Name="CaptionSpacer" Grid.Column="5" Width="141" />
         </Grid>
 
         <!-- ══ ROW 1 — THE WEB ═════════════════════════════════════════════════ -->

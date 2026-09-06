@@ -271,7 +271,12 @@ public sealed partial class MainWindow : Window
     private void Core_DocumentTitleChanged(CoreWebView2 sender, object args)
     {
         string title = sender.DocumentTitle;
-        Title = string.IsNullOrWhiteSpace(title) ? "Aviary" : title + " — Aviary";
+
+        // "Page — Aviary" is the Windows convention, but an internal page already called
+        // Aviary would come out as "Aviary — Aviary".
+        Title = string.IsNullOrWhiteSpace(title) || title == "Aviary"
+            ? "Aviary"
+            : title + " — Aviary";
     }
 
     /// <summary>
@@ -432,6 +437,11 @@ public sealed partial class MainWindow : Window
         _currentUrl = string.Empty;
         Web.CoreWebView2.NavigateToString(HomePage);
         ShowIdleAddress();
+
+        // Leave focus on the page, not the address bar. Otherwise the window opens
+        // wearing its focus ring, which is the first thing anyone judging the chrome
+        // sees, and a blue outline is not the resting state of this design.
+        Web.Focus(FocusState.Programmatic);
     }
 
     /// <summary>
@@ -530,6 +540,10 @@ public sealed partial class MainWindow : Window
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Without a title, WebView2 falls back to the document URL — and NavigateToString's
+     URL is the entire page base64'd into a data: URI, which then lands in the window
+     title and the taskbar. -->
+<title>Aviary</title>
 <style>
   :root { color-scheme: light dark; }
   html,body { height:100%; margin:0; }
