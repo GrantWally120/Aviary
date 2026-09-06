@@ -545,9 +545,10 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
       <div class="get">
         <h3>Getting a copy</h3>
         <p id="getCopy">
-          The first real build exists. Aviary launches, browses the live web, and sends Safari's
-          user agent — verified on 6 September against Wikipedia. It is delivered to you directly
-          for now; automatic builds land once the project has a GitHub home.
+          Aviary runs. It opens tabs, browses the live web, sends Safari's user agent, and has a
+          settings page of its own — all verified by driving the real app. There is an Aviary
+          shortcut on the desktop; automatic downloadable builds land once the project has a
+          GitHub home.
         </p>
         <div class="btnrow">
           <a class="btn btn--p" href="Aviary-Phase0.html">
@@ -556,7 +557,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
           </a>
           <a class="btn btn--s" id="dlBtn" aria-disabled="true" href="#get">
             <svg viewBox="0 0 16 16" fill="none"><path d="M8 2.4v8M5.2 7.6 8 10.4l2.8-2.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.8 11.8v.8a1.4 1.4 0 0 0 1.4 1.4h7.6a1.4 1.4 0 0 0 1.4-1.4v-.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-            Download the app — sent directly for now
+            Download the app — on your desktop already
           </a>
         </div>
       </div>
@@ -622,18 +623,22 @@ const PHASES=[
     bits:["Mica + rounded corners","Extended title bar","One WebView2","Safari user agent","GitHub Actions build"]
   },
   {
-    n:"02", track:"alpha", title:"Tabs and settings", state:"active", when:"in progress",
-    desc:"Multiple tabs — new, close, switch — with a real app menu behind them and a settings "+
-         "surface with somewhere to put things. One WebView2 per tab over a single shared "+
-         "environment, so each tab keeps its own history without spawning its own browser process.",
-    bits:["Multiple tabs","Ctrl+T / Ctrl+W","App menu","Settings","Appearance","Search engine","Downloads"]
+    n:"02", track:"alpha", title:"Tabs and settings", state:"done", when:"6 Sep 2026",
+    desc:"Tabs that divide the strip the way Safari's do, with the favicon cross-fading into a "+
+         "close button under the cursor. One WebView2 per tab over a single shared environment, "+
+         "so every tab keeps its own history without spawning its own browser process. Behind "+
+         "them: an app menu, and a settings surface of thirteen sections — four of them already "+
+         "driving the app for real, the rest labelled with the phase they arrive in.",
+    bits:["Multiple tabs","Shared environment","Favicon → close","Ctrl+T · W · L · Tab","App menu","13 settings sections"]
   },
   {
-    n:"03", track:"alpha", title:"Theming", state:"todo",
+    n:"03", track:"alpha", title:"Theming", state:"active", when:"next",
     desc:"Both Safari looks as swappable resource dictionaries. Every colour, radius, blur and spacing "+
-         "value lives in a token; zero hardcoded colours in any control. Includes the toolbar tint that "+
-         "samples the page and flips every glyph when it goes dark.",
-    bits:["Two dictionaries","Runtime switch","Toolbar tinting","Zero literal colours"]
+         "value lives in a token; zero hardcoded colours in any control. Includes the toolbar tint "+
+         "that samples the page and flips every glyph when it goes dark — and it is the phase where "+
+         "Mica finally becomes visible, because Liquid Glass is translucent enough to let the "+
+         "desktop through where Classic's solid plane covers it.",
+    bits:["Two dictionaries","Runtime switch","Toolbar tinting","Mica shows through","Zero literal colours"]
   },
   {
     n:"04", track:"alpha", title:"Safari features", state:"todo",
@@ -648,7 +653,7 @@ const PHASES=[
          "each one named and explained in plain English so it is obvious what you are turning on. "+
          "Frame-rate ceiling is the first of them: hold at 60, run unleashed at 120 or higher, or "+
          "let the display decide.",
-    bits:["Experimental menu","Frame-rate ceiling","Per-flag descriptions","More of everything"]
+    bits:["Experimental menu","Frame-rate ceiling","Reduced compositing","Tab suspension","Per-flag descriptions"]
   },
   {
     n:"06", track:"beta", title:"Beta Build 1", state:"todo",
