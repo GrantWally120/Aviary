@@ -1,0 +1,313 @@
+# Aviary — Phase 5 "Alpha Build 5" plan
+
+## Context
+
+Phase 5 is the **last alpha** — the build good enough that Phase 6 (Beta Build 1,
+"Testing 1") can be lived in. Grant asked for: the original Phase 5 plan, the two items
+carried from Phase 4, new features, optimisation and polish ("cleaner, smoother, more
+dynamic"), and — his headline — **privacy that actually works**, inspired by Brave: a real
+ad blocker, Brave Search, and an opt-in **local diagnostics folder** I read every turn.
+After reviewing the first draft he added three requirements: **diagnostics must genuinely
+work**; **optimisation and polish must be good enough for diagnostics to measure them**;
+and **the Experimental menu must hold a lot, explain everything in plain English for people
+who don't know tech, and never let anyone make themselves less safe.**
+
+An audit of the 7 Sep build found why "privacy that works" is not a slogan:
+
+- **Three Privacy toggles are live, ungated, and do nothing.** `dnt`, `safariUa`,
+  `thirdPartyCookies` exist only in `AppSettings.cs` Defaults; nothing reads them. The
+  Safari UA is set unconditionally at `BrowserTab.cs:122`.
+- **15 of 33 settings do nothing.** Never read: `askDownload`, `autoplay`, `background`,
+  `gpu`, `language`, `minFont`, `savePasswords`, `scrollbars`, `suggest`, `translate`.
+  Defaults only: the three above plus `reduceMotion`, `startup`.
+- **71 exceptions are silently swallowed** (`catch (Exception) {}`: 16 in
+  `MainWindow.xaml.cs`, 12 in `Favicons.cs`, 9 in `BrowserTab.cs`). Each is a failure no
+  one sees — the case for building diagnostics *first*.
+- `WebViewEnvironment.cs:61` passes an **empty** `CoreWebView2EnvironmentOptions()` — the
+  unused hook for GPU, autoplay, language, frame-rate and dark-mode flags.
+
+## Decisions made with Grant
+
+- Direction is **Brave-inspired**: real blocking, GPC instead of the dead DNT header,
+  tracking-parameter stripping, Brave Search.
+- **Diagnostics gathers everything and lists everything it gathers.** Grant, knowingly:
+  "I know it's against our vision but we need the data… all data is required for our
+  improvement." So: every category of activity, full URLs and titles, stored **locally
+  only**, no network code in the feature at all. One switch, all-or-nothing — no partial
+  modes. Kept opt-in (off until switched on), per his original "once enabled" wording.
+- **The one exclusion is secrets, and it is a safety line, not a privacy one:** passwords,
+  anything typed into website forms, cookie values, login tokens, card numbers, clipboard
+  contents. None of it helps fix a bug, and a plaintext file of it — read by me every turn
+  — would be a credential leak, which the "stay safe" requirement rules out.
+- **Ad blocker: "selective, you pick"** → a real filter-list engine plus per-site control.
+- Data folder named exactly `user.data.improvementcollection`.
+- Experimental menu: **many flags, plain-English, safe by construction.**
+
+## Build order
+
+Each milestone ends in a **published build verified by running it**. Diagnostics comes
+first so every later milestone is recorded — and every optimisation is measured by it.
+
+### M0 — Settle Phase 4's debt
+Exercise everything HANDOFF §7 marks as never run, and fix what fails: Liquid Glass swap
+with the new sidebar/favicons/Start Page present; light/dark swap; **tab drag-to-reorder
+after the TabChrome refactor** (all four handlers rewritten; has died silently twice
+before); vertical reorder; pin + pin-restore; both context menus; resize grip; Privacy
+Report on a tracker-heavy site; reading list add/remove; Clear browsing data. Commit
+Phase 4, split by feature.
+
+### M1 — Diagnostics that gathers everything: `user.data.improvementcollection`
+New `Diagnostics.cs`, folder `%LOCALAPPDATA%\Aviary\user.data.improvementcollection\`,
+created the moment the setting is switched on. **Everything below is gathered, all at
+once — one switch, no partial modes.**
+
+**What is gathered — the complete list, 16 categories:**
+
+| # | Category | Detail | File |
+|---|---|---|---|
+| 1 | Browsing | every navigation: full URL, title, referrer, redirect chain, HTTP status, timing, result | `browsing.jsonl` |
+| 2 | Searches | every query typed in the address bar, the engine used, which suggestion was chosen | `browsing.jsonl` |
+| 3 | Network | every request the browser makes: URL, type, status, size, timing, first/third party | `network.jsonl` |
+| 4 | Blocking | every blocked request: full URL, the rule that matched, the page it was on; every Shields change | `blocking.jsonl` |
+| 5 | Interactions | every chrome action: buttons, menu items, shortcuts, tab open/close/switch/reorder/pin, sidebar panes, look and theme swaps, find-in-page terms, zoom | `events.jsonl` |
+| 6 | Settings | every change, old → new value, plus a full snapshot each session | `events.jsonl` |
+| 7 | Experiments | every flag toggled, and which were on when anything went wrong | `events.jsonl` |
+| 8 | Website errors | JavaScript errors and failed resources on pages, captured per page — why a *site* broke | `pages.jsonl` |
+| 9 | Engine failures | WebView2 `ProcessFailed` events: renderer, GPU and browser process crashes, hangs | `issues.jsonl` |
+| 10 | Swallowed errors | **all 71 `catch (Exception) {}` sites, finally visible**, with location and stack | `issues.jsonl` |
+| 11 | Anomalies | self-detected: settings that didn't round-trip, favicon failures, WebViews that didn't start, UI stalls over 50 ms | `issues.jsonl` |
+| 12 | Crashes | exception, stack, build, last ~100 actions, every open tab's URL | `crashes/<time>.json` |
+| 13 | Performance | startup phases, tab-create time, navigation timing, filter match cost, memory and CPU per tab, frame timing | `perf.jsonl` |
+| 14 | Features | how often each feature is used — Reader, sidebar, pins, Start Page sections — and Reader's readable/not-readable verdict per page | `events.jsonl` |
+| 15 | Downloads | file name, source URL, size, result | `events.jsonl` |
+| 16 | Environment | Windows build, WebView2 version, CPU, RAM, GPU, every display's scale and refresh rate, window size, tab count | `session.json` |
+
+**Never gathered — secrets:** passwords and anything typed into password fields; what you
+type into website forms; cookie values, `Authorization` headers and session tokens; card
+numbers; clipboard contents. Logged URLs have secret-bearing parameters **masked, not
+dropped** — `access_token`, `token`, `code`, `auth`, `session`, `password`, `key`,
+`secret`, `sig` keep their name with the value replaced by `•••` — so the URL is still
+useful for debugging but a password-reset or login link is not a working credential on disk.
+
+**"Lists everything it gathers":**
+- `manifest.json` in the folder names every category above, its file, and what it
+  contains — the folder explains itself.
+- The Settings row has a **"What Aviary collects"** disclosure listing all 16 categories
+  and the secrets exclusion, in plain English.
+- `summary.md` opens with the same list, then the digest.
+
+**Mechanics:**
+- Each `catch (Exception) {}` becomes `catch (Exception ex) { Diagnostics.Swallowed(ex, "where"); }` —
+  a near-free no-op while collection is off.
+- Background writer on a channel; the UI thread only enqueues, never waits on disk. Network
+  logging is batched so a busy page cannot flood the writer.
+- **200 MB** rolling cap (network logging needs room), **30-day** retention, rotated per
+  file, both shown in the row. **Private windows are never recorded.**
+- Row at the **bottom of Privacy**, stating plainly that it records every web address,
+  page title and search. Buttons: **Open folder**, **Delete collected data**. Clear
+  browsing data offers to clear it too.
+- `summary.md` is regenerated on exit and every 10 minutes: complete category list, crash
+  count, top recurring issues, slowest operations, sites with the most page errors,
+  engine failures — small enough to read each turn when the raw logs are not.
+- **"Genuinely works" is a test, not a claim** — see Verification: switch on, browse,
+  force an error, force a crash, read every file back, switch off, confirm silence.
+- **Standing practice:** once the folder exists I read `summary.md`, `session.json`, any
+  crash newer than last turn, and the tail of `issues.jsonl` at the start of every turn,
+  dipping into the raw logs only to chase a specific issue — with `cat`/Read, **never
+  Python** (it sees a virtualized stale copy of LocalAppData here; HANDOFF §5). What I
+  report back is bugs and their causes, not a recital of where Grant browsed. Saved to
+  memory when execution starts.
+
+### M2 — Privacy that actually works
+- **Fix the three lying toggles.** `safariUa` genuinely switches the per-tab UA.
+  `thirdPartyCookies` blocks cookies on third-party requests in `OnWebResourceRequested`.
+  **`dnt` becomes Global Privacy Control** (`Sec-GPC: 1` + `navigator.globalPrivacyControl`)
+  — DNT is dead and an uncommon DNT header is itself a fingerprinting bit.
+- **Tracking-parameter stripping** (Brave's Query String Filter): remove `utm_*`, `fbclid`,
+  `gclid`, `mc_eid`, `igshid` and similar from navigations and copied links. On by default.
+- **HTTPS-only** with a clear fallback page and per-site exception (via `SiteSettings`).
+- **Referrer trimming** to origin on cross-site requests.
+- **Fingerprinting reduction**: trim client hints; honest labelling where WebView2 can't reach.
+- **Private window**: separate in-memory profile; `History.Record` already checks `privateMode`.
+- **Save passwords** made real via WebView2's password-autosave setting.
+- **Website data**: per-site list of cookies/storage with remove.
+
+### M3 — The ad blocker: filter engine + selective control
+New `FilterEngine.cs` (parser + token index) and `Shields.cs` (per-site state).
+`TrackerBlocker` stays as the fast pre-filter.
+- Network rules that carry most of the benefit: `||domain^`, `|` anchors, substrings,
+  `$third-party`, `$script`/`image`/`stylesheet`/`xmlhttprequest`/`subdocument`,
+  `$domain=`, `@@` exceptions. Indexed by each rule's longest literal token.
+- **Cosmetic filtering**: `##` rules injected as one stylesheet per document so blocked ads
+  leave no empty boxes.
+- **Lists**: EasyList + EasyPrivacy bundled as **unmodified data files with attribution**
+  (GPLv3 / CC BY-SA 3.0 — never merged into our own list, which would trigger
+  share-alike). Optional categories: cookie banners/annoyances, social widgets. Update is
+  user-initiated plus an optional weekly refresh.
+- **Selective**: Standard / Strict; per-category switches; a **per-site Shields toggle** in
+  the toolbar shield popover, which also shows this page's blocked count and opens the full
+  Privacy Report.
+- Parsed once on a background thread, compiled index cached to disk. **Match cost is
+  logged to `perf.jsonl`** with a budget (see M7).
+
+### M4 — Search
+- Add **Brave Search** (`https://search.brave.com/search?q=`) plus Mojeek, Qwant, Ecosia
+  beside DuckDuckGo (default) and Startpage.
+- Network suggestions (`suggest`): off by default, per-engine, and the row says it sends
+  each keystroke to that engine.
+
+### M5 — Carried from Phase 4
+- **Download ring, popover, persisted history** — straight from the recovered spec
+  `scratchpad/specs/downloads-safari-progress-ring-button-po.md`: `DownloadRing.cs`,
+  `DownloadsPopover.cs`, `FlyoutTheme.cs`; rows `downloadDir`, `askDownload`,
+  `downloadHistory`, `warnExecutables`, `clearDownloads`, and the "never auto-open files"
+  note. `FlyoutTheme` also fixes flyouts ignoring a pinned light/dark theme.
+- **LinkScript** from the same spec: Ctrl/middle-click → background tab, Ctrl+Shift →
+  foreground, Alt+click → download.
+- **Tab groups**: named, persisted, switched from the sidebar Tabs pane.
+
+### M6 — The Experimental menu: a lot, in plain English, safe by construction
+
+A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
+nothing about computers can use it without harm.
+
+**How every flag is presented.** Each one has four parts, written in everyday words:
+1. **Name** a person would say out loud ("Put quiet tabs to sleep", not "Tab suspension").
+2. **What it does** — one or two sentences, no jargon.
+3. **What might happen** — the honest downside, even when it's small.
+4. **A badge**: 🟢 *Safe to try* · 🟡 *Some sites may look wrong* · 🔵 *Privacy trade-off*.
+   (Drawn as small coloured labels in the page, not emoji.)
+
+Example descriptions, to set the tone:
+> **Screen smoothness** — How many times a second Aviary redraws what you see. Higher looks
+> smoother on fast screens but uses more battery. *Not sure? Leave it on "Let my screen decide."*
+>
+> **Put quiet tabs to sleep** — Tabs you haven't looked at in a while go to sleep to free up
+> memory, and wake the moment you click them. Tabs playing sound are never put to sleep.
+>
+> **Preload a page when you point at a link** — Aviary starts loading a link as soon as your
+> mouse rests on it, so it opens faster. *The website finds out you pointed at it, even if
+> you don't click.* 🔵
+
+**The flags (20), in five groups:**
+
+| Group | Flag | Badge | How it works |
+|---|---|---|---|
+| Speed & memory | Screen smoothness (let my screen decide / as smooth as possible) | 🟢 | env args |
+| | Put quiet tabs to sleep (after 5 / 15 / 60 min) | 🟢 | `TrySuspendAsync` |
+| | Open pinned tabs only when clicked | 🟢 | lazy restore |
+| | Smooth scrolling on/off | 🟢 | env arg |
+| | Mute tabs in the background | 🟢 | `CoreWebView2.IsMuted` |
+| | Preload a page when you point at a link | 🔵 | prefetch |
+| Looks | Make every website dark | 🟡 | force-dark env flag |
+| | Tint the toolbar to match the page | 🟢 | page theme colour |
+| | Show a loading bar in the address field | 🟢 | navigation events |
+| | Calm animations on websites too | 🟢 | reduced-motion env flag |
+| Tabs | Open new tabs next to the current one | 🟢 | tab insertion |
+| | Show a preview when you point at a tab | 🟢 | `CapturePreviewAsync` |
+| | Close tabs you haven't used in a week | 🟡 | idle tracking |
+| | Double-click empty tab bar for a new tab | 🟢 | pointer handler |
+| Privacy | Forget everything when Aviary closes | 🟢 | clear-on-exit |
+| | Strip even more tracking from links | 🟡 | extended param list |
+| | Block scripts from other websites | 🟡 | third-party script filter |
+| | Stronger fingerprint protection | 🟡 | injected defences |
+| Troubleshooting | Show a performance overlay (speed and memory) | 🟢 | **reads live diagnostics** |
+| | Turn off video hardware decoding | 🟢 | env arg — for video glitches |
+
+**Safety, by construction — this is what "lets you stay safe" means:**
+- **Nothing here can make you less safe.** Flags that would weaken security are excluded
+  outright and never offered: disabling certificate or HTTPS errors, the sandbox, site
+  isolation, web security or same-origin rules, or opening a debugging port. This rule is
+  written into the code as a comment and into the menu's header.
+- The header says, in plain words: *"These are unfinished features. Some might make a
+  website look wrong. None of them can make Aviary less safe."*
+- **One button turns every experiment off.**
+- 🔵 privacy trade-offs are off by default and ask once before turning on.
+- **Crash protection that does not depend on diagnostics:** a tiny always-on "did the last
+  run end cleanly?" marker. If Aviary crashes soon after an experiment was changed, the
+  next launch starts with all experiments off and says so: *"Aviary switched off
+  experimental features after a problem. [Turn them back on] [Keep them off]."* Safety
+  must not require opting in to data collection.
+- Flags that need a restart say so and offer **Restart Aviary**.
+- **Every flag is proven before it ships.** If one turns out not to work on this WebView2
+  build (the frame-rate cap is the likeliest), it is cut rather than shipped inert — the
+  same "no live, inert row" rule as the rest of Settings.
+
+**Also in M6:** every remaining inert setting made real or honestly gated — `gpu`,
+`autoplay`, `language` via the environment options; `minFont`, `scrollbars` via injected
+CSS; `reduceMotion` driving chrome animations. `translate`, `background`, `startup` stay
+gated for Phase 6. **Target: zero live, inert rows.**
+
+### M7 — Optimisation and polish, measured by diagnostics
+Nothing is "optimised" on feel. Each change is **measured before and after from
+`perf.jsonl`**, and the numbers go in the phase notes.
+- **Budgets** (baseline taken in M1, targets confirmed then): cold start to first paint;
+  new-tab time; filter-engine match cost per request (target well under a millisecond);
+  memory per background tab with sleep on vs off; zero UI-thread stalls over 50 ms.
+- Likely work: the `"*"` WebResourceRequested filter on every context (narrow it, keep the
+  handler allocation-free); startup ordering (pinned tabs, favicon index, filter index all
+  off the critical path); Start Page build cost; long-session memory.
+- **Polish — "cleaner, smoother, more dynamic"**: chrome desaturates when the window loses
+  focus (Safari does); favicon becomes a loading indicator; tab audio indicator and per-tab
+  mute; one easing curve and duration set used everywhere; focus rings; empty states;
+  animated sidebar pane transitions. Real Liquid Glass blur still needs Win2D — **ask first.**
+
+### M8 — Beta preparation
+- **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
+  repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
+- App icon. `BuildInfo` → 0.5.0 / alpha build 5 / `PhaseShipped = 5`. Landing page and
+  HANDOFF updated.
+
+## Critical files
+
+New: `Diagnostics.cs`, `SafetyMarker.cs` (crash protection), `Experiments.cs` (flag
+registry + env-arg builder), `FilterEngine.cs`, `Shields.cs`, `DownloadRing.cs`,
+`DownloadsPopover.cs`, `FlyoutTheme.cs`, `TabGroups.cs`, bundled list data files.
+Modified: `BrowserTab.cs` (request pipeline), `WebViewEnvironment.cs` (environment
+options from `Experiments`), `App.xaml.cs` (crash hook → Diagnostics + SafetyMarker),
+`MainWindow.xaml.cs` and partials, `InternalPages.cs` (`SECTIONS`), `AppSettings.cs`,
+both theme files.
+
+## Reuse, not rebuild
+
+- `AppSettings` schema handshake — new keys register themselves; never reintroduce a list.
+- `BuildInfo` gating — new rows carry `phase:5`, live when M8 bumps `PhaseShipped`.
+- `PrivacyReport` already keeps per-day/per-tracker/per-site counts; the engine feeds it.
+- `SiteSettings` (`MainWindow.Reader.cs`) is the per-site store for Shields and HTTPS
+  exceptions.
+- The debounced-writer pattern in `History` / `Favicons` for the Diagnostics writer.
+- `Res<T>` for look-dependent geometry; both theme files keep an identical key set.
+
+## Verification
+
+- Every milestone: clean build, publish, launch the real exe, confirm foreground before
+  any input, screenshot via the `front-and-shoot` / `click` / `type` scripts.
+- Internal pages (Settings, Experimental, Privacy Report): extract and drive in the
+  browser pane (HANDOFF §5).
+- **Diagnostics end to end — every one of the 16 categories proven, not assumed**: switch
+  on → folder and `manifest.json` appear; browse and search → `browsing.jsonl` has full
+  URLs, titles and queries; load an ad-heavy page → `network.jsonl` and `blocking.jsonl`
+  fill; load a page with a broken script → `pages.jsonl` records the error; trigger a
+  swallowed exception → `issues.jsonl`; kill a renderer → an engine-failure entry; force a
+  crash → `crashes/` gets a file with breadcrumbs and open tabs; `summary.md` regenerates;
+  switch off → nothing further is written; cap and retention trim as designed.
+- **Secrets never land on disk**: sign in to a test page and fill a form, then grep the
+  whole folder for the password, the typed form values, cookie values and an OAuth `code=`
+  value — **zero matches**, and masked parameters show `•••`.
+- **Experimental safety**: turn on a flag, force a crash → next launch comes up with
+  experiments off and the banner; "turn every experiment off" works; confirm no excluded
+  security flag is reachable from the page or from `settings.json` editing.
+- **Every experimental flag** is toggled and its effect observed; any that does nothing
+  is cut.
+- **Ad blocker**: before/after counts on ad-heavy sites; ad boxes collapse; Shields-off
+  site loads unblocked; match cost from `perf.jsonl` within budget.
+- **Privacy**: `Sec-GPC` present, referrers trimmed, tracking params stripped, third-party
+  cookies refused, HTTPS upgraded, UA toggle flips what a UA-echo page reports.
+- **Settings audit re-run** (the key-by-key audit from Context): zero live, inert rows.
+
+## Honest notes
+
+- The largest phase yet; M3 and M6 are each bigger than most earlier phases. Milestones
+  are independent enough to stop cleanly between them if Grant's weekly limit bites.
+- Some fingerprinting defences and the frame-rate cap may not be reachable through
+  WebView2; those will say what they cover, or be cut, rather than overclaim.
