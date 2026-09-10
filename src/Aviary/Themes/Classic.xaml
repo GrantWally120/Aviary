@@ -46,6 +46,37 @@
             <!-- Classic is flat. These exist only to satisfy the contract. -->
             <SolidColorBrush x:Key="AvEdgeTopBrush"         Color="#00FFFFFF" />
             <SolidColorBrush x:Key="AvEdgeBottomBrush"      Color="#00000000" />
+
+            <!-- SITE IDENTITY. The monogram is the fallback when a site has no icon of
+                 its own; the hues live here rather than in code so High Contrast can turn
+                 them into a bordered ButtonFace box instead of a coloured square that
+                 disappears. A REAL favicon is never tinted or rounded. -->
+            <SolidColorBrush x:Key="AvFaviconPlaceholderBrush" Color="#14000000" />
+            <SolidColorBrush x:Key="AvMonogramInkBrush"        Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="AvMonogramBorderBrush"     Color="#00000000" />
+            <SolidColorBrush x:Key="AvMonogram1Brush"          Color="#FF007AFF" />
+            <SolidColorBrush x:Key="AvMonogram2Brush"          Color="#FFFF9500" />
+            <SolidColorBrush x:Key="AvMonogram3Brush"          Color="#FF34C759" />
+            <SolidColorBrush x:Key="AvMonogram4Brush"          Color="#FFFF2D55" />
+            <SolidColorBrush x:Key="AvMonogram5Brush"          Color="#FFAF52DE" />
+            <SolidColorBrush x:Key="AvMonogram6Brush"          Color="#FF30B0C7" />
+            <SolidColorBrush x:Key="AvMonogram7Brush"          Color="#FF5856D6" />
+            <SolidColorBrush x:Key="AvMonogram8Brush"          Color="#FFA2845E" />
+
+            <!-- THE SIDEBAR. One surface carrying Tabs, Bookmarks, Reading List and
+                 History, exactly as Safari switches its sidebar between panes. -->
+            <SolidColorBrush x:Key="AvSidebarBrush"                  Color="#FFEDEDED" />
+            <SolidColorBrush x:Key="AvSidebarBorderBrush"            Color="#1A000000" />
+            <SolidColorBrush x:Key="AvSidebarHeaderBrush"            Color="#8C000000" />
+            <SolidColorBrush x:Key="AvSidebarRowHoverBrush"          Color="#0D000000" />
+            <SolidColorBrush x:Key="AvSidebarRowSelectedBrush"       Color="#1A000000" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisBrush"       Color="#FF007AFF" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisLabelBrush"  Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarGripBrush"              Color="#00000000" />
+            <SolidColorBrush x:Key="AvSidebarGripHoverBrush"         Color="#26007AFF" />
+            <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#14000000" />
+            <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF007AFF" />
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -73,6 +104,37 @@
 
             <SolidColorBrush x:Key="AvEdgeTopBrush"         Color="#00FFFFFF" />
             <SolidColorBrush x:Key="AvEdgeBottomBrush"      Color="#00000000" />
+
+            <!-- SITE IDENTITY. The monogram is the fallback when a site has no icon of
+                 its own; the hues live here rather than in code so High Contrast can turn
+                 them into a bordered ButtonFace box instead of a coloured square that
+                 disappears. A REAL favicon is never tinted or rounded. -->
+            <SolidColorBrush x:Key="AvFaviconPlaceholderBrush" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="AvMonogramInkBrush"        Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="AvMonogramBorderBrush"     Color="#00FFFFFF" />
+            <SolidColorBrush x:Key="AvMonogram1Brush"          Color="#FF0A84FF" />
+            <SolidColorBrush x:Key="AvMonogram2Brush"          Color="#FFFF9F0A" />
+            <SolidColorBrush x:Key="AvMonogram3Brush"          Color="#FF30D158" />
+            <SolidColorBrush x:Key="AvMonogram4Brush"          Color="#FFFF375F" />
+            <SolidColorBrush x:Key="AvMonogram5Brush"          Color="#FFBF5AF2" />
+            <SolidColorBrush x:Key="AvMonogram6Brush"          Color="#FF40C8E0" />
+            <SolidColorBrush x:Key="AvMonogram7Brush"          Color="#FF5E5CE6" />
+            <SolidColorBrush x:Key="AvMonogram8Brush"          Color="#FFAC8E68" />
+
+            <!-- THE SIDEBAR. One surface carrying Tabs, Bookmarks, Reading List and
+                 History, exactly as Safari switches its sidebar between panes. -->
+            <SolidColorBrush x:Key="AvSidebarBrush"                  Color="#FF2E2E2E" />
+            <SolidColorBrush x:Key="AvSidebarBorderBrush"            Color="#1FFFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarHeaderBrush"            Color="#8CFFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarRowHoverBrush"          Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarRowSelectedBrush"       Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisBrush"       Color="#FF0A84FF" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisLabelBrush"  Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarGripBrush"              Color="#00FFFFFF" />
+            <SolidColorBrush x:Key="AvSidebarGripHoverBrush"         Color="#260A84FF" />
+            <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#FF4A4A4E" />
+            <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF0A84FF" />
         </ResourceDictionary>
 
         <!-- Required. With only Light and Dark declared, a machine running a Windows
@@ -104,6 +166,37 @@
 
             <SolidColorBrush x:Key="AvEdgeTopBrush"         Color="Transparent" />
             <SolidColorBrush x:Key="AvEdgeBottomBrush"      Color="Transparent" />
+
+            <!-- SITE IDENTITY. The monogram is the fallback when a site has no icon of
+                 its own; the hues live here rather than in code so High Contrast can turn
+                 them into a bordered ButtonFace box instead of a coloured square that
+                 disappears. A REAL favicon is never tinted or rounded. -->
+            <SolidColorBrush x:Key="AvFaviconPlaceholderBrush" Color="{ThemeResource SystemColorGrayTextColor}" />
+            <SolidColorBrush x:Key="AvMonogramInkBrush"        Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="AvMonogramBorderBrush"     Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="AvMonogram1Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram2Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram3Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram4Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram5Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram6Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram7Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvMonogram8Brush"          Color="{ThemeResource SystemColorButtonFaceColor}" />
+
+            <!-- THE SIDEBAR. One surface carrying Tabs, Bookmarks, Reading List and
+                 History, exactly as Safari switches its sidebar between panes. -->
+            <SolidColorBrush x:Key="AvSidebarBrush"                  Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="AvSidebarBorderBrush"            Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="AvSidebarHeaderBrush"            Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="AvSidebarRowHoverBrush"          Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvSidebarRowSelectedBrush"       Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisBrush"       Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvSidebarRowEmphasisLabelBrush"  Color="{ThemeResource SystemColorHighlightTextColor}" />
+            <SolidColorBrush x:Key="AvSidebarGripBrush"              Color="Transparent" />
+            <SolidColorBrush x:Key="AvSidebarGripHoverBrush"         Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvSegmentBrush"                  Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>
@@ -128,5 +221,20 @@
     <Thickness x:Key="AvToolbarPadding">12,0,0,0</Thickness>
     <Thickness x:Key="AvFieldPadding">4,0,4,0</Thickness>
     <Thickness x:Key="AvChromeMargin">0</Thickness>
+
+
+    <!-- Monogram chip and loading slug only. Classic clips the monogram chip at 4px, matching AvButtonCornerRadius.
+         StaticResource, so ApplyLookGeometry re-applies it by hand on a swap. -->
+    <CornerRadius x:Key="AvMonogramRadius">4</CornerRadius>
+    <x:Double x:Key="AvFaviconSize">16</x:Double>
+    <x:Double x:Key="AvTileIconSize">44</x:Double>
+
+
+    <!-- Sidebar geometry. StaticResource, so ApplyLookGeometry re-reads these. -->
+    <CornerRadius x:Key="AvSidebarRadius">0</CornerRadius>
+    <CornerRadius x:Key="AvSidebarRowRadius">6</CornerRadius>
+    <Thickness x:Key="AvSidebarMargin">0</Thickness>
+    <x:Double x:Key="AvSidebarRowHeight">30</x:Double>
+    <CornerRadius x:Key="AvSegmentRadius">7</CornerRadius>
 
 </ResourceDictionary>

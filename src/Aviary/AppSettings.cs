@@ -45,6 +45,10 @@ internal static class AppSettings
         ["dnt"] = "true",
         ["safariUa"] = "true",
         ["thirdPartyCookies"] = "true",
+        ["downloadHistory"] = "After one day",
+        ["downloadDir"] = "",
+        ["warnExecutables"] = "true",
+        ["siteIcons"] = "true",
     };
 
     public static void Load()
@@ -58,6 +62,19 @@ internal static class AppSettings
 
             _loaded = true;
             _values = new Dictionary<string, string>(Defaults, StringComparer.OrdinalIgnoreCase);
+
+            // The Reduce motion row says "Follow the Windows animation setting", so it had
+            // better START by following it rather than by guessing. A saved value read
+            // below still wins — this only decides what a fresh install inherits.
+            try
+            {
+                _values["reduceMotion"] =
+                    new Windows.UI.ViewManagement.UISettings().AnimationsEnabled ? "false" : "true";
+            }
+            catch (Exception)
+            {
+                _values["reduceMotion"] = "false";
+            }
 
             try
             {
@@ -77,6 +94,11 @@ internal static class AppSettings
                         _ => property.Value.ToString()
                     };
                 }
+
+                // Every install made before Phase 4 carries a junk "reset":"true" written
+                // by the Reset button, which posted itself as if it were a setting and had
+                // no handler on the other end. Drop it on sight; it is not a preference.
+                _values.Remove("reset");
             }
             catch (Exception)
             {
@@ -84,6 +106,71 @@ internal static class AppSettings
                 // browser. Defaults are already in place; carry on.
             }
         }
+    }
+
+    /// <summary>
+    /// EVERY key the store knows — the built-in defaults, overwritten by anything ever
+    /// saved. This is what the settings page is rendered from.
+    ///
+    /// It replaces a hand-written list of thirteen keys that lived in BuildSettingsHtml
+    /// while the message handler happily persisted all twenty-two. Nine controls therefore
+    /// wrote to disk and then rendered their hardcoded default on the next visit, so the
+    /// page and the file disagreed and the switch looked broken. There is no list now.
+    /// Saving a key is what registers it.
+    /// </summary>
+    public static Dictionary<string, string> Snapshot()
+    {
+        Load();
+        lock (Gate)
+        {
+            return new Dictionary<string, string>(_values, StringComparer.OrdinalIgnoreCase);
+        }
+    }
+
+    /// <summary>
+    /// The settings page's own literal defaults, posted up once on load. Only keys never
+    /// seen before are written — a seed must never overwrite a choice — and one Save runs
+    /// at the end rather than one per key.
+    /// </summary>
+    public static void SeedDefaults(IReadOnlyDictionary<string, string> seed)
+    {
+        Load();
+        bool dirty = false;
+
+        lock (Gate)
+        {
+            foreach (KeyValuePair<string, string> pair in seed)
+            {
+                if (string.IsNullOrEmpty(pair.Key) || _values.ContainsKey(pair.Key))
+                {
+                    continue;
+                }
+
+                _values[pair.Key] = pair.Value;
+                dirty = true;
+            }
+        }
+
+        if (dirty)
+        {
+            Save();
+        }
+    }
+
+    /// <summary>
+    /// Puts every preference back to its default. History, bookmarks and downloaded files
+    /// are not touched — this is the settings page only.
+    /// </summary>
+    public static void Reset()
+    {
+        Load();
+
+        lock (Gate)
+        {
+            _values = new Dictionary<string, string>(Defaults, StringComparer.OrdinalIgnoreCase);
+        }
+
+        Save();
     }
 
     public static string Get(string key)

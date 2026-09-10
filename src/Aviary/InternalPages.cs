@@ -43,65 +43,6 @@ internal static class InternalPages
   ::-webkit-scrollbar-track{background:transparent;}
 """;
 
-    // ══ START PAGE ═════════════════════════════════════════════════════════
-    // Phase 4 replaces this with the real Safari Start Page. Until then it stays
-    // deliberately quiet — a wordy placeholder reads as an unfinished app.
-
-    public const string StartPage = """
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Aviary</title>
-<style>
-""" + SharedCss + """
-  body{display:grid;place-items:center;}
-  main{width:min(600px,100% - 72px);text-align:center;}
-  .dome{width:76px;height:auto;margin:0 auto 22px;display:block;opacity:.92;}
-  h1{font-size:40px;font-weight:600;letter-spacing:-.028em;margin:0;}
-  .sub{margin:10px 0 0;color:var(--ink-2);font-size:15px;}
-  .links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:34px 0 0;}
-  .links a{
-    text-decoration:none;padding:9px 15px;border-radius:9px;color:var(--ink);
-    background:var(--fill);font-size:14px;font-weight:500;
-    transition:background-color 140ms cubic-bezier(.25,.1,.25,1),transform 140ms cubic-bezier(.32,.72,0,1);
-  }
-  .links a:hover{background:var(--fill-hover);transform:translateY(-1px);}
-  .foot{margin-top:44px;font-size:12px;color:var(--ink-3);letter-spacing:.02em;}
-  .foot b{font-weight:600;color:var(--ink-2);}
-</style>
-</head>
-<body>
-  <main>
-    <svg class="dome" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M3 20V12.6A9 9 0 0 1 21 12.6V20" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M12 3.6V20M7.6 5.1V20M16.4 5.1V20M3 14.4h18" stroke="var(--accent)" stroke-width=".9" stroke-linecap="round" opacity=".5"/>
-      <path d="M2.2 20h19.6" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round"/>
-    </svg>
-    <h1>Aviary</h1>
-    <p class="sub">Start typing above.</p>
-    <div class="links">
-      <a href="https://en.wikipedia.org">Wikipedia</a>
-      <a href="https://news.ycombinator.com">Hacker News</a>
-      <a href="https://learn.microsoft.com">Microsoft Learn</a>
-      <a href="https://developer.mozilla.org">MDN</a>
-      <a href="https://github.com">GitHub</a>
-    </div>
-    <div class="foot" id="foot"></div>
-  </main>
-<script>
-  var ua = navigator.userAgent;
-  var safari = ua.indexOf('Safari') !== -1 && ua.indexOf('Chrome') === -1;
-  document.getElementById('foot').innerHTML =
-    'Alpha build 2 &middot; ' + (safari
-      ? 'identifying as <b>Safari</b>'
-      : '<b>not</b> identifying as Safari');
-</script>
-</body>
-</html>
-""";
-
     // ══ SETTINGS ═══════════════════════════════════════════════════════════
     // Data-driven on purpose. Adding Phase 5's Experimental menu means appending one
     // object to SECTIONS — no new markup, no new CSS.
@@ -229,6 +170,13 @@ internal static class InternalPages
   .about dt{width:150px;color:var(--ink-2);flex:0 0 auto;}
   .about dd{margin:0;font-weight:500;}
   code{font:400 12.5px/1.5 ui-monospace,Consolas,monospace;word-break:break-all;}
+  /* A filesystem path in a description line. direction:rtl truncates from the FRONT, so a
+     deep folder keeps the part you actually read — the folder's own name. */
+  .path{
+    display:block;font:400 12px/1.5 ui-monospace,Consolas,monospace;color:var(--ink-2);
+    margin-top:3px;max-width:44ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    direction:rtl;text-align:left;
+  }
 </style>
 </head>
 <body>
@@ -246,7 +194,22 @@ internal static class InternalPages
 
 <script>
 /*__AVIARY_SETTINGS__*/
+/*__AVIARY_BUILD__*/
+/*__AVIARY_PATHS__*/
+/*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
+var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
+var BUILD = (typeof window.__aviaryBuild === 'object' && window.__aviaryBuild) ||
+            {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0};
+/* Rows are gated on the last SHIPPED phase, not the one in progress — see BuildInfo. */
+var PHASE = BUILD.phaseShipped | 0;
+
+/* Every keyed control's LITERAL default, collected as the page renders and posted up once
+   at the end. The host writes back only the keys it has never seen, which is what makes a
+   control that saves-but-does-not-reload impossible: registration is a side effect of
+   rendering, not a list somebody has to remember to edit. */
+var SEED = {};
+
 function saved(key, fallback){
   if (!(key in SAVED)) { return fallback; }
   var v = SAVED[key];
@@ -254,6 +217,9 @@ function saved(key, fallback){
   if (v === 'false') { return false; }
   return v;
 }
+function post(o){ try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
+function sendSetting(k, v){ post({type:'setting', key:k, value:v}); }
+function sendCommand(n){ post({type:'command', name:n}); }
 var ICON = {
   start:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8.6 8 3.4l5.5 5.2M4 7.6V13h8V7.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   look:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.2v11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
@@ -270,26 +236,33 @@ var ICON = {
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
 
-function send(key, value){
-  try { window.chrome.webview.postMessage(JSON.stringify({type:'setting', key:key, value:value})); } catch(e){}
-}
+/* Phase 5's Experimental menu is one more entry in this array.
 
-/* Phase 5's Experimental menu is one more entry in this array. */
+   A row that is not ready yet carries `phase:N` — the number of the phase it arrives in.
+   The badge text and the disabled state are BOTH derived from comparing that number
+   against the injected build's phase, so nobody writes "Phase 3" by hand and no badge can
+   outlive the phase it names. Something deliberately never coming carries `never:'…'`. */
 var SECTIONS = [
   { id:'start', icon:'start', name:'Get started', title:'Get started',
-    lede:'Aviary is a Safari-inspired browser for Windows 11, built one phase at a time. This is alpha build 2.',
+    lede:'Aviary is a Safari-inspired browser for Windows 11, built one phase at a time. This is __AV_CHANNEL__.',
     rows:[
-      {t:'On startup', d:'What Aviary opens with when you launch it.', ctl:{type:'select', key:'startup', opts:['Start Page','Continue where you left off','A specific page'], value:'Start Page'}},
+      {t:'On startup', d:'What Aviary opens with when you launch it.', phase:6, ctl:{type:'select', key:'startup', opts:['Start Page','Continue where you left off','A specific page'], value:'Start Page'}},
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
-      {t:'What works today', d:'Tabs, browsing, the address bar, back and forward, and this settings page. Themes arrive in Phase 3; the real Start Page, Reader and bookmarks in Phase 4.', ctl:{type:'none'}}
+      {t:'Start Page sections', d:'The same switches as the Customise button in the corner of the Start Page.', ctl:{type:'none'}},
+      {t:'Show Favourites', d:'', ctl:{type:'toggle', key:'startFavourites', value:true}},
+      {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
+      {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
+      {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},
+      {t:'What works today', d:'Tabs you can drag to reorder, both Safari looks switching live, ad and tracker blocking, find in page, downloads, and a favourites bar. Arriving this phase: the real Start Page, Reader, the sidebar, history and real favicons.', ctl:{type:'none'}}
     ]},
 
   { id:'look', icon:'look', name:'Appearance', title:'Appearance',
-    lede:'How Aviary looks. The two Safari themes become switchable in Phase 3 — the tokens behind them already exist.',
+    lede:'How Aviary looks. Both Safari looks switch while the browser is running, and whichever you leave it on is the one it opens with next time.',
     rows:[
       {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
-      {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through. Whichever you pick is the one Aviary opens with next time.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
-      {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar', soon:'Phase 3'}},
+      {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
+      {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
+      {t:'Show site icons', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
       {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
       {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}}
     ]},
@@ -297,10 +270,12 @@ var SECTIONS = [
   { id:'content', icon:'content', name:'Content', title:'Content',
     lede:'How pages are rendered.',
     rows:[
-      {t:'Default zoom', d:'Applied to every site that has no zoom of its own.', ctl:{type:'select', key:'zoom', opts:['80%','90%','100%','110%','125%','150%'], value:'100%'}},
-      {t:'Block pop-ups', d:'Stop sites opening windows you did not ask for.', ctl:{type:'toggle', key:'popups', value:true}},
-      {t:'Autoplay video', d:'Let sites start video on their own.', ctl:{type:'toggle', key:'autoplay', value:false}},
-      {t:'Reader mode', d:'Strip a page back to its text.', ctl:{type:'none', soon:'Phase 4'}}
+      {t:'Default zoom', d:'Applied to every site that has no zoom of its own.', phase:4, ctl:{type:'select', key:'zoom', opts:['80%','90%','100%','110%','125%','150%'], value:'100%'}},
+      {t:'Block pop-ups', d:'Stop sites opening windows you did not ask for. Links you click yourself always open.', ctl:{type:'toggle', key:'popups', value:true}},
+      {t:'Autoplay video', d:'Let sites start video on their own.', phase:5, ctl:{type:'toggle', key:'autoplay', value:false}},
+      {t:'Reader', d:'Strip an article back to its text. Open it from the “Aa” button inside the address field, or press Ctrl+Shift+R. Aviary offers it only on pages that actually have an article.', ctl:{type:'none'}},
+      {t:'Reader font', d:'The typeface Reader sets articles in.', ctl:{type:'select', key:'readerFont', opts:['San Francisco','New York','Athelas','Charter','Georgia','Iowan','Palatino','Seravek','Times New Roman'], value:'New York'}},
+      {t:'Reader background', d:'White, Sepia, Grey or Black — independent of the browser’s own theme, exactly as Safari keeps it.', ctl:{type:'select', key:'readerTheme', opts:['White','Sepia','Grey','Black'], value:'White'}}
     ]},
 
   { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
@@ -309,65 +284,70 @@ var SECTIONS = [
       {t:'Send a Do Not Track request', d:'Politely asked; widely ignored. Costs nothing.', ctl:{type:'toggle', key:'dnt', value:true}},
       {t:'Identify as Safari', d:'Aviary sends Safari\u2019s user agent so sites serve their Safari code paths. The engine underneath is still Chromium, so a determined site can tell.', ctl:{type:'toggle', key:'safariUa', value:true}},
       {t:'Block third-party cookies', d:'Cookies set by sites other than the one you are visiting.', ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
-      {t:'Block ads and trackers', d:'BLOCKCOUNT', ctl:{type:'toggle', key:'blockTrackers', value:true}},
-      {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', ctl:{type:'button', key:'clearData', label:'Clear\u2026', soon:'Phase 4'}}
+      {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
+      {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear\u2026'}},
+      {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}}
     ]},
 
   { id:'search', icon:'search', name:'Search engine', title:'Search engine',
     lede:'Where the address bar sends anything that is not a web address.',
     rows:[
       {t:'Search engine', d:'Used when what you type is not a URL.', ctl:{type:'select', key:'searchEngine', opts:['DuckDuckGo','Bing','Google','Startpage'], value:'DuckDuckGo'}},
-      {t:'Search suggestions', d:'Show suggestions as you type.', ctl:{type:'toggle', key:'suggest', value:false, soon:'Phase 4'}}
+      {t:'Search suggestions from the engine', d:'Ask the search engine for suggestions as you type. Off by default, and worth leaving off: it sends every keystroke in the address bar to them. Aviary’s own suggestions — from your history and favourites — work either way and never leave the machine.', phase:5, ctl:{type:'toggle', key:'suggest', value:false}}
     ]},
 
   { id:'ext', icon:'ext', name:'Extensions', title:'Extensions',
     lede:'Not in version one, and that is a decision rather than an omission.',
     rows:[
-      {t:'Extension support', d:'Extensions mean an update treadmill, a permissions model and a store. Aviary is about getting the browser itself right first. Revisit after beta.', ctl:{type:'none', soon:'Not in v1'}}
+      {t:'Extension support', d:'Extensions mean an update treadmill, a permissions model and a store. Aviary is about getting the browser itself right first. Revisit after beta.', never:'Not in v1', ctl:{type:'none'}}
     ]},
 
   { id:'autofill', icon:'autofill', name:'Autofill and passwords', title:'Autofill and passwords',
     lede:'Saved details for forms and sign-ins.',
     rows:[
-      {t:'Offer to save passwords', d:'Aviary stores nothing yet — this is here so the shape is right.', ctl:{type:'toggle', key:'savePasswords', value:false, soon:'Phase 4'}},
-      {t:'Addresses and payment', d:'Card and address autofill.', ctl:{type:'none', soon:'After beta'}}
+      {t:'Offer to save passwords', d:'Aviary stores nothing yet — this is here so the shape is right.', phase:5, ctl:{type:'toggle', key:'savePasswords', value:false}},
+      {t:'Addresses and payment', d:'Card and address autofill.', never:'After beta', ctl:{type:'none'}}
     ]},
 
   { id:'lang', icon:'lang', name:'Languages', title:'Languages',
     lede:'What Aviary asks sites for.',
     rows:[
-      {t:'Preferred language', d:'Sent to sites that offer more than one.', ctl:{type:'select', key:'language', opts:['English (United States)','English (United Kingdom)','Filipino','Cebuano'], value:'English (United States)'}},
-      {t:'Offer to translate pages', d:'', ctl:{type:'toggle', key:'translate', value:false, soon:'After beta'}}
+      {t:'Preferred language', d:'Sent to sites that offer more than one.', phase:5, ctl:{type:'select', key:'language', opts:['English (United States)','English (United Kingdom)','Filipino','Cebuano'], value:'English (United States)'}},
+      {t:'Offer to translate pages', d:'', never:'After beta', ctl:{type:'toggle', key:'translate', value:false}}
     ]},
 
   { id:'down', icon:'down', name:'Downloads', title:'Downloads',
     lede:'Where files land.',
     rows:[
-      {t:'Location', d:'C:\\Users\\user\\Downloads', ctl:{type:'button', key:'downloadDir', label:'Change\u2026', soon:'Phase 4'}},
-      {t:'Ask where to save each file', d:'Otherwise everything goes to the folder above.', ctl:{type:'toggle', key:'askDownload', value:false}}
+      /* The path is filled in by script, NOT substituted into this string. A Windows path
+         dropped into a JS string literal loses its separators the moment the escape parser
+         sees \F or \D or \t, and no amount of HTML-encoding helps — backslashes are not an
+         HTML problem. Set as textContent below, from a JSON-encoded global. */
+      {t:'Location', d:'<span class="path" id="dlpath"></span>', phase:5, ctl:{type:'button', cmd:'downloadDir', label:'Change…'}},
+      {t:'Ask where to save each file', d:'Otherwise everything goes to the folder above.', phase:5, ctl:{type:'toggle', key:'askDownload', value:false}}
     ]},
 
   { id:'access', icon:'access', name:'Accessibility', title:'Accessibility',
     lede:'Aviary follows the Windows contrast themes; both Safari looks have a high-contrast palette built in.',
     rows:[
-      {t:'Minimum font size', d:'Never render text smaller than this.', ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
-      {t:'Always show scrollbars', d:'Instead of the thin overlay ones.', ctl:{type:'toggle', key:'scrollbars', value:false}},
-      {t:'Reduce motion', d:'Follow the Windows animation setting and keep chrome transitions short.', ctl:{type:'toggle', key:'reduceMotion', value:true}}
+      {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
+      {t:'Always show scrollbars', d:'Instead of the thin overlay ones.', phase:5, ctl:{type:'toggle', key:'scrollbars', value:false}},
+      {t:'Reduce motion', d:'Follow the Windows animation setting and keep chrome transitions short. Aviary reads your Windows setting the first time it runs, so this usually starts where you want it.', phase:5, ctl:{type:'toggle', key:'reduceMotion', value:false}}
     ]},
 
   { id:'system', icon:'system', name:'System', title:'System',
     lede:'How Aviary uses the machine.',
     rows:[
-      {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', ctl:{type:'toggle', key:'gpu', value:true}},
-      {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', ctl:{type:'toggle', key:'background', value:false}},
+      {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', phase:5, ctl:{type:'toggle', key:'gpu', value:true}},
+      {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', phase:5, ctl:{type:'toggle', key:'background', value:false}},
       {t:'Memory saver', d:'Let background tabs release caches and drop their memory priority. Music and timers in background tabs keep running — nothing is suspended.', ctl:{type:'toggle', key:'memorySaver', value:true}},
-      {t:'Experimental features', d:'Opt-in switches that are not ready to be defaults \u2014 including the frame-rate ceiling.', ctl:{type:'none', soon:'Phase 5'}}
+      {t:'Experimental features', d:'Opt-in switches that are not ready to be defaults — including the frame-rate ceiling.', phase:5, ctl:{type:'none'}}
     ]},
 
   { id:'reset', icon:'reset', name:'Reset settings', title:'Reset settings',
     lede:'Put everything on this page back the way it started.',
     rows:[
-      {t:'Restore defaults', d:'Your history, cookies and downloads are not touched.', ctl:{type:'button', key:'reset', label:'Reset settings', danger:true}}
+      {t:'Restore defaults', d:'Your history, cookies and downloads are not touched.', ctl:{type:'button', cmd:'reset', label:'Reset settings', danger:true}}
     ]},
 
   { id:'about', icon:'about', name:'About Aviary', title:'About Aviary', about:true,
@@ -376,15 +356,31 @@ var SECTIONS = [
 
 function control(row){
   var c = row.ctl || {type:'none'};
-  if (c.key) { c.value = saved(c.key, c.value); }
-  var soon = c.soon ? '<span class="soon">' + c.soon + '</span>' : '';
+
+  /* ONE number decides both the badge and whether the control is live. */
+  var pending = row.never ? row.never
+              : (row.phase && row.phase > PHASE)
+                  ? ('Phase ' + (row.phase < 10 ? '0' : '') + row.phase)
+                  : null;
+  var badge = pending ? '<span class="soon">' + pending + '</span>' : '';
+
+  if (c.key){
+    /* Record the literal default BEFORE the saved value is applied over it. */
+    if (!(c.key in SEED)){
+      SEED[c.key] = (c.value === true) ? 'true'
+                  : (c.value === false) ? 'false'
+                  : String(c.value);
+    }
+    c.value = saved(c.key, c.value);
+  }
+
   if (c.type === 'select'){
     var opts = c.opts.map(function(o){
       return '<button class="sel__opt" data-v="' + o + '" aria-selected="' +
              (o === c.value ? 'true' : 'false') + '"><i>&#10003;</i>' + o + '</button>';
     }).join('');
-    return soon +
-      '<div class="sel" data-key="' + c.key + '"' + (c.soon ? ' data-disabled="true"' : '') + '>' +
+    return badge +
+      '<div class="sel" data-key="' + c.key + '"' + (pending ? ' data-disabled="true"' : '') + '>' +
         '<button class="sel__btn" aria-expanded="false"><span>' + c.value + '</span>' +
           '<svg viewBox="0 0 10 7" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" ' +
           'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>' +
@@ -392,14 +388,16 @@ function control(row){
       '</div>';
   }
   if (c.type === 'toggle'){
-    return soon + '<button class="sw" data-key="' + c.key + '" role="switch" aria-checked="' +
-           (c.value ? 'true' : 'false') + '"' + (c.soon ? ' disabled' : '') + '></button>';
+    return badge + '<button class="sw" data-key="' + c.key + '" role="switch" aria-checked="' +
+           (c.value ? 'true' : 'false') + '"' + (pending ? ' disabled' : '') + '></button>';
   }
   if (c.type === 'button'){
-    return soon + '<button class="btn' + (c.danger ? ' btn--danger' : '') + '" data-key="' + c.key + '"' +
-           (c.soon ? ' disabled' : '') + '>' + c.label + '</button>';
+    /* data-cmd, NOT data-key. A button is not a setting, and pretending it was is exactly
+       how "Reset settings" ended up persisting a junk reset:true key and doing nothing. */
+    return badge + '<button class="btn' + (c.danger ? ' btn--danger' : '') +
+           '" data-cmd="' + c.cmd + '"' + (pending ? ' disabled' : '') + '>' + c.label + '</button>';
   }
-  return soon;
+  return badge;
 }
 
 var nav = document.getElementById('nav');
@@ -420,8 +418,8 @@ SECTIONS.forEach(function(s, i){
   var body = '<h1>' + s.title + '</h1><p class="lede">' + s.lede + '</p>';
   if (s.about){
     body += '<div class="group"><div class="row"><div class="about">' +
-      '<div><dt>Version</dt><dd>0.2.0 &middot; alpha build 2</dd></div>' +
-      '<div><dt>Phase</dt><dd>02 &mdash; Tabs and settings</dd></div>' +
+      '<div><dt>Version</dt><dd>__AV_VERSION__ &middot; __AV_CHANNEL__</dd></div>' +
+      '<div><dt>Phase</dt><dd>__AV_PHASE__</dd></div>' +
       '<div><dt>Engine</dt><dd>WebView2 (Chromium, via Microsoft Edge)</dd></div>' +
       '<div><dt>Interface</dt><dd>WinUI 3 &middot; Windows App SDK &middot; .NET 9</dd></div>' +
       '<div><dt>Identifies as</dt><dd><code id="ua"></code></dd></div>' +
@@ -440,6 +438,10 @@ SECTIONS.forEach(function(s, i){
 
 var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
+
+/* textContent, not innerHTML: a folder name is user data and can contain anything. */
+var dlPath = document.getElementById('dlpath');
+if (dlPath) dlPath.textContent = PATHS.downloads || '';
 
 nav.addEventListener('click', function(e){
   var b = e.target.closest('button[data-target]');
@@ -465,7 +467,7 @@ main.addEventListener('click', function(e){
   if (sw && !sw.disabled){
     var on = sw.getAttribute('aria-checked') !== 'true';
     sw.setAttribute('aria-checked', on ? 'true' : 'false');
-    send(sw.getAttribute('data-key'), on);
+    sendSetting(sw.getAttribute('data-key'), on);
     closeAllPopups(null);
     return;
   }
@@ -478,7 +480,7 @@ main.addEventListener('click', function(e){
     host.querySelector('.sel__btn span').textContent = opt.getAttribute('data-v');
     host.querySelector('.sel__pop').hidden = true;
     host.querySelector('.sel__btn').setAttribute('aria-expanded','false');
-    send(host.getAttribute('data-key'), opt.getAttribute('data-v'));
+    sendSetting(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     return;
   }
 
@@ -496,12 +498,40 @@ main.addEventListener('click', function(e){
   closeAllPopups(null);
 
   var btn = e.target.closest('.btn');
-  if (btn && !btn.disabled) { send(btn.getAttribute('data-key'), true); }
+  if (btn && !btn.disabled) { sendCommand(btn.getAttribute('data-cmd')); }
 });
 
 nav.addEventListener('click', function(){ closeAllPopups(null); });
 main.addEventListener('scroll', function(){ closeAllPopups(null); }, true);
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { closeAllPopups(null); } });
+
+/* Every keyed control has now rendered, so SEED holds this page's literal defaults for all
+   of them. Handing them up is what registers them with the store — after this, the host's
+   snapshot covers everything the page can draw, and a control cannot save a value it then
+   fails to read back. */
+post({type:'schema', values:SEED});
+
+/* Host to page, deliberately one-way and silent: it must NOT post anything back, or Ctrl+D
+   flipping the favourites bar on would ping-pong with the host forever. */
+window.__aviaryApply = function(key, value){
+  var k = (window.CSS && CSS.escape) ? CSS.escape(key) : key;
+
+  var sw = document.querySelector('.sw[data-key="' + k + '"]');
+  if (sw){ sw.setAttribute('aria-checked', value ? 'true' : 'false'); return; }
+
+  var sel = document.querySelector('.sel[data-key="' + k + '"]');
+  if (!sel) { return; }
+  sel.querySelectorAll('.sel__opt').forEach(function(o){
+    o.setAttribute('aria-selected', o.getAttribute('data-v') === String(value) ? 'true' : 'false');
+  });
+  sel.querySelector('.sel__btn span').textContent = String(value);
+};
+
+/* Opened from the app menu's "About Aviary", which used to land you on Get started. */
+if (window.__aviarySection){
+  var jump = nav.querySelector('button[data-target="' + window.__aviarySection + '"]');
+  if (jump) { jump.click(); }
+}
 </script>
 </body>
 </html>

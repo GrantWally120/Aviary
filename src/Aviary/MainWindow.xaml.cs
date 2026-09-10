@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -58,7 +59,7 @@ public sealed partial class MainWindow : Window
 
         RootGrid.Loaded += RootGrid_Loaded;
         RootGrid.SizeChanged += (_, _) => UpdateCaptionSpacer();
-        RootGrid.ActualThemeChanged += (_, _) => ApplyWebViewBackground();
+        RootGrid.ActualThemeChanged += (_, _) => OnEffectiveThemeChanged();
         Closed += MainWindow_Closed;
 
         AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control, (_, _) => OpenNewTab(null));
@@ -68,6 +69,65 @@ public sealed partial class MainWindow : Window
         AddAccelerator(VirtualKey.F, VirtualKeyModifiers.Control, (_, _) => OpenFindBar());
         AddAccelerator(VirtualKey.Escape, VirtualKeyModifiers.None, (_, _) => CloseFindBar());
         AddAccelerator(VirtualKey.D, VirtualKeyModifiers.Control, (_, _) => AddBookmark());
+
+        AddAccelerator(VirtualKey.Tab, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
+            (_, _) => CycleTab(-1));
+        AddAccelerator(VirtualKey.D, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
+            (_, _) => AddToReadingList());
+        AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
+            (_, _) => ToggleSidebar(null));
+        AddAccelerator(VirtualKey.H, VirtualKeyModifiers.Control, (_, _) => ShowHistory());
+        AddAccelerator(VirtualKey.R, VirtualKeyModifiers.Control, (_, _) => ReloadOrStop());
+        AddAccelerator(VirtualKey.R, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
+            (_, _) => ToggleReader());
+        AddAccelerator(VirtualKey.J, VirtualKeyModifiers.Control,
+            (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs()));
+
+        // Ctrl+1..8 select that tab; Ctrl+9 is the LAST one, which is what every browser
+        // on this platform does and what the muscle memory expects.
+        for (int i = 0; i < 8; i++)
+        {
+            int index = i;
+            AddAccelerator((VirtualKey)((int)VirtualKey.Number1 + i), VirtualKeyModifiers.Control,
+                (_, _) => SelectTabByIndex(index));
+        }
+
+        AddAccelerator(VirtualKey.Number9, VirtualKeyModifiers.Control,
+            (_, _) => SelectTabByIndex(_tabs.Count - 1));
+
+        AddAccelerator((VirtualKey)187, VirtualKeyModifiers.Control, (_, _) => Zoom(+1));   // '='
+        AddAccelerator((VirtualKey)189, VirtualKeyModifiers.Control, (_, _) => Zoom(-1));   // '-'
+        AddAccelerator(VirtualKey.Number0, VirtualKeyModifiers.Control, (_, _) => Zoom(0));
+    }
+
+    private void SelectTabByIndex(int index)
+    {
+        if (index >= 0 && index < _tabs.Count)
+        {
+            SelectTab(_tabs[index]);
+        }
+    }
+
+    /// <summary>Ctrl+Shift+D. Safari's own shortcut for the Reading List.</summary>
+    private void AddToReadingList()
+    {
+        if (_active is not { } tab || BrowserTab.HostOf(tab.Url).Length == 0)
+        {
+            return;
+        }
+
+        ReadingList.Add(tab.Title, tab.Url);
+
+        if (_sidebarVisible && _pane == SidebarPane.ReadingList)
+        {
+            RefreshSidebar();
+        }
+    }
+
+    private void ShowHistory()
+    {
+        ToggleSidebar(true);
+        ShowPane(SidebarPane.History);
     }
 
     private void AddAccelerator(VirtualKey key, VirtualKeyModifiers mods, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
@@ -141,12 +201,42 @@ public sealed partial class MainWindow : Window
         // Whatever look was last chosen is the one Aviary opens with. Classic only wins
         // on a fresh install, because that is the default AppSettings falls back to.
         AppSettings.Load();
-        RestorePreferences();
 
+        // Fully qualified on purpose: this file already has `using Windows.System;` for
+        // VirtualKey, so a bare DispatcherQueue resolves to Windows.System's and will not
+        // accept a Microsoft.UI.Dispatching handler.
+        Favicons.Initialise(DispatcherQueue);
+        Favicons.Updated += OnFaviconUpdated;
+
+        // Dragging the window to a monitor at a different scale invalidates every decoded
+        // bitmap — 16 logical pixels stops being 16 physical ones.
+        if (RootGrid.XamlRoot is not null)
+        {
+            RootGrid.XamlRoot.Changed += (_, _) =>
+            {
+                Favicons.InvalidateDecoded();
+                RebuildTabStrip();
+                RefreshBookmarksBar();
+            };
+        }
+
+        RestorePreferences();
+        InitialiseSidebar();
+
+        await RestorePinnedAsync();
         await OpenNewTabAsync(null);
     }
 
-    private void RestorePreferences()
+    /// <summary>An icon finished downloading or decoding. The strip's cells listen for
+    /// themselves; the favourites bar is rebuilt wholesale because it is small.</summary>
+    private void OnFaviconUpdated(string key) => RefreshBookmarksBar();
+
+    /// <param name="resubscribe">
+    /// False when re-applying after a settings reset — the Bookmarks.Changed handler is
+    /// already attached, and adding it a second time makes the favourites bar rebuild
+    /// twice for every change.
+    /// </param>
+    private void RestorePreferences(bool resubscribe = true)
     {
         TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
         _showFullUrl = AppSettings.GetBool("fullUrl");
@@ -169,7 +259,11 @@ public sealed partial class MainWindow : Window
 
         ApplyLook(AppSettings.Get("look"));
 
-        Bookmarks.Changed += RefreshBookmarksBar;
+        if (resubscribe)
+        {
+            Bookmarks.Changed += RefreshBookmarksBar;
+        }
+
         RefreshBookmarksBar();
     }
 
@@ -188,6 +282,10 @@ public sealed partial class MainWindow : Window
         if (!AppSettings.GetBool("bookmarksBar"))
         {
             AppSettings.Set("bookmarksBar", "true");
+
+            // …and if Settings is open in another tab, its switch has to follow, or it
+            // sits there reading "off" while the bar it controls is plainly visible.
+            PushToSettingsPage("bookmarksBar", true);
         }
 
         RefreshBookmarksBar();
@@ -199,22 +297,8 @@ public sealed partial class MainWindow : Window
 
         foreach (Bookmark bookmark in Bookmarks.Items)
         {
-            Border chip = new()
-            {
-                Width = 16,
-                Height = 16,
-                CornerRadius = new CornerRadius(4),
-                Background = new SolidColorBrush(ParseHex(bookmark.Accent)),
-                Child = new TextBlock
-                {
-                    Text = bookmark.Monogram,
-                    FontSize = 9,
-                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                }
-            };
+            FaviconView chip = new(16, RootGrid.Resources);
+            chip.SetSource(bookmark.Url, bookmark.Monogram, internalPage: false);
 
             StackPanel content = new() { Orientation = Orientation.Horizontal, Spacing = 6 };
             content.Children.Add(chip);
@@ -241,6 +325,7 @@ public sealed partial class MainWindow : Window
             {
                 e.Handled = true;
                 MenuFlyout menu = new();
+                Themed(menu);
                 MenuFlyoutItem remove = new() { Text = "Remove" };
                 remove.Click += (_, _) => { Bookmarks.Remove(captured); RefreshBookmarksBar(); };
                 menu.Items.Add(remove);
@@ -250,7 +335,12 @@ public sealed partial class MainWindow : Window
             BookmarksStrip.Children.Add(item);
         }
 
-        BookmarksBar.Visibility = AppSettings.GetBool("bookmarksBar") && Bookmarks.Items.Count > 0
+        // The bar follows its SWITCH, not its contents. Requiring at least one bookmark
+        // meant turning the toggle on with an empty list did visibly nothing, which reads
+        // as a broken switch rather than as an empty bar. Safari shows the empty strip.
+        bool on = AppSettings.GetBool("bookmarksBar");
+        BookmarksBar.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        BookmarksEmptyHint.Visibility = on && Bookmarks.Items.Count == 0
             ? Visibility.Visible
             : Visibility.Collapsed;
     }
@@ -284,7 +374,17 @@ public sealed partial class MainWindow : Window
 
     private async void OpenNewTab(string? url) => await OpenNewTabAsync(url);
 
-    private async Task OpenNewTabAsync(string? url)
+    /// <summary>
+    /// Creates a tab, wires it, puts it in the tree and starts its engine — and does NOT
+    /// navigate it.
+    ///
+    /// The three callers need three different things afterwards: a new tab loads the Start
+    /// Page or a URL, a settings tab loads Settings, and a tab opened for target="_blank"
+    /// loads nothing at all, because the engine navigates that one itself. Sharing the
+    /// wiring matters beyond tidiness: this is the list of event subscriptions, and a tab
+    /// created down one path that missed one would silently lose downloads or shortcuts.
+    /// </summary>
+    private async Task<BrowserTab?> CreateTabAsync(bool select)
     {
         BrowserTab tab = new();
         tab.Changed += OnTabChanged;
@@ -292,6 +392,8 @@ public sealed partial class MainWindow : Window
         tab.ShortcutPressed += OnShortcut;
         tab.DownloadStarted += OnDownloadStarted;
         tab.NavigationFailed += OnNavigationFailed;
+        tab.Navigated += OnTabNavigated;
+        tab.BlankTabRequested = OpenBlankTabAsync;
 
         _tabs.Add(tab);
 
@@ -299,7 +401,12 @@ public sealed partial class MainWindow : Window
         // shown later can come up rendering but not accepting the mouse; creating it in a
         // visible slot avoids that whole class of bug.
         ContentHost.Children.Add(tab.View);
-        SelectTab(tab);
+
+        if (select)
+        {
+            SelectTab(tab);
+        }
+
         RebuildTabStrip();
 
         try
@@ -309,15 +416,48 @@ public sealed partial class MainWindow : Window
         catch (Exception ex)
         {
             ShowError("Aviary can't start its browser engine", ex.Message);
-            return;
+            return null;
         }
 
         HideError();
         ApplyWebViewBackground();
+        HookContextMenu(tab);
+        return tab;
+    }
+
+    /// <summary>
+    /// A tab for the engine to hand a target="_blank" or window.open() page to. Selected
+    /// straight away, because that is what clicking a link that opens a tab does — and
+    /// deliberately not navigated here.
+    /// </summary>
+    private async Task<CoreWebView2?> OpenBlankTabAsync()
+    {
+        BrowserTab? tab = await CreateTabAsync(select: true);
+        if (tab is null)
+        {
+            return null;
+        }
+
+        UpdateChrome();
+        return tab.View.CoreWebView2;
+    }
+
+    private async Task OpenNewTabAsync(string? url)
+    {
+        BrowserTab? tab = await CreateTabAsync(select: true);
+        if (tab is null)
+        {
+            return;
+        }
 
         if (url is null)
         {
-            tab.NavigateToHtml(InternalPages.StartPage, "Start Page");
+            if (tab.View.CoreWebView2 is CoreWebView2 startCore)
+            {
+                startCore.WebMessageReceived += StartPage_WebMessageReceived;
+            }
+
+            tab.NavigateToHtml(BuildStartPageHtml(), "Start Page");
         }
         else
         {
@@ -328,36 +468,22 @@ public sealed partial class MainWindow : Window
         tab.View.Focus(FocusState.Programmatic);
     }
 
-    private void OpenSettingsTab()
+    /// <param name="section">
+    /// Which pane to land on. The app menu's "About Aviary" used to open Settings and
+    /// leave you looking at Get started, which is not what the menu item said.
+    /// </param>
+    private void OpenSettingsTab(string? section = null)
     {
-        _ = OpenSettingsTabAsync();
+        _ = OpenSettingsTabAsync(section);
     }
 
-    private async Task OpenSettingsTabAsync()
+    private async Task OpenSettingsTabAsync(string? section)
     {
-        BrowserTab tab = new();
-        tab.Changed += OnTabChanged;
-        tab.CloseRequested += t => CloseTab(t);
-        tab.ShortcutPressed += OnShortcut;
-        tab.DownloadStarted += OnDownloadStarted;
-        tab.NavigationFailed += OnNavigationFailed;
-        _tabs.Add(tab);
-        ContentHost.Children.Add(tab.View);
-        SelectTab(tab);
-        RebuildTabStrip();
-
-        try
+        BrowserTab? tab = await CreateTabAsync(select: true);
+        if (tab is null)
         {
-            await tab.InitialiseAsync();
-        }
-        catch (Exception ex)
-        {
-            ShowError("Aviary can't start its browser engine", ex.Message);
             return;
         }
-
-        HideError();
-        ApplyWebViewBackground();
 
         if (tab.View.CoreWebView2 is CoreWebView2 core)
         {
@@ -366,7 +492,7 @@ public sealed partial class MainWindow : Window
             core.WebMessageReceived += Settings_WebMessageReceived;
         }
 
-        tab.NavigateToHtml(BuildSettingsHtml(), "Settings");
+        tab.NavigateToHtml(BuildSettingsHtml(section), "Settings");
         UpdateChrome();
     }
 
@@ -374,30 +500,184 @@ public sealed partial class MainWindow : Window
     /// Settings is a static document, so the saved values are injected into it as a JSON
     /// blob just before it is navigated to. Without this the page would render its own
     /// hardcoded defaults and silently disagree with what the browser is actually doing.
+    ///
+    /// It used to inject a hand-written list of thirteen keys while the message handler
+    /// persisted every key the page could send — so nine controls wrote to disk and then
+    /// came back showing their default, which reads exactly like a broken switch. The list
+    /// is gone. <see cref="AppSettings.Snapshot"/> is everything the store knows, and the
+    /// page registers its own keys on load through the schema handshake, so there is no
+    /// second place to remember.
     /// </summary>
-    private static string BuildSettingsHtml()
+    private static string BuildSettingsHtml(string? section = null)
     {
-        string[] keys =
-        {
-            "look", "theme", "searchEngine", "homeButton", "fullUrl", "blockTrackers",
-            "memorySaver", "startup", "zoom", "dnt", "safariUa", "thirdPartyCookies", "bookmarksBar"
-        };
-
-        Dictionary<string, string> values = new();
-        foreach (string key in keys)
-        {
-            values[key] = AppSettings.Get(key);
-        }
-
-        string json = JsonSerializer.Serialize(values);
+        string values = JsonSerializer.Serialize(AppSettings.Snapshot());
+        string folder = AppSettings.Get("downloadDir") is { Length: > 0 } dir
+            ? dir
+            : KnownFolders.Downloads;
 
         return InternalPages.Settings
-            .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + json + ";")
-            .Replace("BLOCKCOUNT",
+            .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";")
+            .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json() + ";")
+            .Replace("/*__AVIARY_SECTION__*/", section is null
+                ? string.Empty
+                : "window.__aviarySection = " + JsonSerializer.Serialize(section) + ";")
+            .Replace("__AV_VERSION__", BuildInfo.Version)
+            .Replace("__AV_CHANNEL__", BuildInfo.Channel)
+            .Replace("__AV_PHASE__", BuildInfo.PhaseLabel)
+            // Serialised as JSON, never pasted into the page's markup. A Windows path is
+            // full of backslashes, and the settings row that shows it is built inside a
+            // JavaScript string literal — where C:\Users\... quietly becomes C:Users....
+            .Replace("/*__AVIARY_PATHS__*/",
+                "window.__aviaryPaths = " + JsonSerializer.Serialize(new { downloads = folder }) + ";")
+            .Replace("__AV_ICONCACHE__", DescribeIconCache())
+            .Replace("__AV_BLOCKCOUNT__",
                 TrackerBlocker.BlockedCount == 0
                     ? "Nothing blocked yet this session."
                     : TrackerBlocker.BlockedCount + " request" + (TrackerBlocker.BlockedCount == 1 ? "" : "s") +
                       " blocked so far this session.");
+    }
+
+    private static string DescribeIconCache()
+    {
+        (int count, long bytes) = Favicons.Stats();
+        if (count == 0)
+        {
+            return "No site icons stored yet.";
+        }
+
+        string size = bytes >= 1024 * 1024
+            ? (bytes / 1024d / 1024d).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " MB"
+            : Math.Max(1, bytes / 1024) + " KB";
+
+        return count + (count == 1 ? " site" : " sites") + " · " + size + ", kept on this machine only.";
+    }
+
+    /// <summary>
+    /// Safari's real Start Page, with everything it shows injected as one JSON blob.
+    ///
+    /// The theme block is generated from the LIVE dictionary rather than hardcoded in the
+    /// HTML, so this surface follows Classic/Liquid Glass and light/dark exactly as the
+    /// XAML does. An HTML page cannot read a XAML ResourceDictionary, and duplicating the
+    /// palette in CSS is how the two quietly drift apart.
+    /// </summary>
+    private string BuildStartPageHtml()
+    {
+        List<object> favourites = new();
+        HashSet<string> favouriteHosts = new(StringComparer.OrdinalIgnoreCase);
+
+        foreach (Bookmark bookmark in Bookmarks.Items)
+        {
+            string key = Favicons.KeyFor(bookmark.Url);
+            favouriteHosts.Add(BrowserTab.HostOf(bookmark.Url));
+            favourites.Add(new
+            {
+                url = bookmark.Url,
+                title = bookmark.Title,
+                key,
+                hasIcon = Favicons.HasAnyMaster(key),
+                mono = bookmark.Monogram,
+                hue = PublicSuffix.AccentIndex(BrowserTab.HostOf(bookmark.Url)),
+            });
+        }
+
+        // Never repeats a site already in Favourites - Safari's own rule, and without it
+        // the two rows are mostly the same eight sites twice over.
+        List<object> frequent = History.TopSites(10, favouriteHosts)
+            .Select(e => (object)new
+            {
+                url = e.Url,
+                title = string.IsNullOrWhiteSpace(e.Title) ? e.Host : e.Title,
+                key = e.IconKey,
+                hasIcon = Favicons.HasAnyMaster(e.IconKey),
+                mono = PublicSuffix.Monogram(e.Host),
+                hue = PublicSuffix.AccentIndex(e.Host),
+            })
+            .ToList();
+
+        List<object> reading = ReadingList.Items.Take(12)
+            .Select(r => (object)new
+            {
+                url = r.Url,
+                title = r.Title,
+                host = BrowserTab.HostOf(r.Url),
+                key = r.IconKey,
+                hasIcon = Favicons.HasAnyMaster(r.IconKey),
+                age = r.Age,
+                unread = r.Unread,
+            })
+            .ToList();
+
+        var payload = new
+        {
+            iconBase = Favicons.IconBase,
+            now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
+            sections = new
+            {
+                favourites = AppSettings.Get("startFavourites") != "false",
+                frequent = AppSettings.Get("startFrequent") != "false",
+                reading = AppSettings.Get("startReading") != "false",
+                privacy = AppSettings.Get("startPrivacy") != "false",
+            },
+            favourites,
+            frequent,
+            reading,
+            privacy = new
+            {
+                total = PrivacyReport.WeekTotal(),
+                days = PrivacyReport.LastWeek(),
+                top = PrivacyReport.TopTracker(),
+            },
+        };
+
+        return StartPage.Html
+            .Replace("/*__AVIARY_START__*/",
+                "window.__aviaryStart = " + JsonSerializer.Serialize(payload) + ";")
+            .Replace("/*__AVIARY_THEME__*/", BuildThemeCss());
+    }
+
+    /// <summary>
+    /// Bridges the XAML palette into CSS custom properties, read from whichever look is
+    /// merged right now so the page cannot disagree with the chrome around it.
+    /// </summary>
+    private string BuildThemeCss()
+    {
+        // Resolved against the theme Aviary is SHOWING. Application.Current.Resources
+        // resolves against Windows' theme instead, which rendered the whole Start Page dark
+        // inside light chrome whenever Aviary was pinned Light on a dark machine.
+        string Hex(string key, string fallback)
+        {
+            try
+            {
+                if (ThemeBrush(key) is SolidColorBrush brush && brush.Color.A > 0)
+                {
+                    Windows.UI.Color c = brush.Color;
+                    string a = (c.A / 255.0).ToString("0.###",
+                        System.Globalization.CultureInfo.InvariantCulture);
+                    return "rgba(" + c.R + "," + c.G + "," + c.B + "," + a + ")";
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return fallback;
+        }
+
+        return ":root{"
+             + "--bg:" + Hex("AvPageBrush", "#FFFFFF") + ";"
+             + "--ink:" + Hex("AvLabelBrush", "rgba(0,0,0,.85)") + ";"
+             + "--ink-2:" + Hex("AvLabelSecondaryBrush", "rgba(0,0,0,.5)") + ";"
+             + "--ink-3:" + Hex("AvLabelTertiaryBrush", "rgba(0,0,0,.32)") + ";"
+             + "--well:" + Hex("AvFieldBrush", "rgba(0,0,0,.045)") + ";"
+             + "--well-hover:" + Hex("AvHoverBrush", "rgba(0,0,0,.075)") + ";"
+             + "--line:" + Hex("AvHairlineBrush", "rgba(0,0,0,.1)") + ";"
+             + "--accent:" + Hex("AvAccentBrush", "#007AFF") + ";"
+             + "--card:" + Hex("AvChromeBrush", "rgba(255,255,255,.72)") + ";"
+             + "--rib:" + Hex("AvSidebarBorderBrush", "rgba(0,0,0,.07)") + ";"
+             + "--sky:" + Hex("AvSelectedBrush", "rgba(0,122,255,.05)") + ";"
+             + "--tile-radius:"
+             + (AppSettings.Get("look") == "Liquid Glass" ? "18px" : "14px") + ";"
+             + "}";
     }
 
     // ══ THE TWO LOOKS ══════════════════════════════════════════════════════
@@ -436,7 +716,7 @@ public sealed partial class MainWindow : Window
             RootGrid.RequestedTheme = restore;
 
             ApplyLookGeometry(glass);
-            ApplyWebViewBackground();
+            OnEffectiveThemeChanged();
         }
         catch (Exception)
         {
@@ -460,8 +740,16 @@ public sealed partial class MainWindow : Window
         TabStripRow.BorderThickness = new Thickness(0, 0, 0, glass ? 0 : 1);
 
         // The content sheet is inset and rounded under Liquid Glass, flush under Classic.
-        ContentHost.Margin = glass ? new Thickness(12, 8, 12, 12) : new Thickness(0);
+        // The content sheet's inset depends on whether the sidebar is beside it, so it is
+        // owned by ApplyContentInsets rather than set here.
+        ApplyContentInsets();
         ContentHost.CornerRadius = new CornerRadius(glass ? 12 : 0);
+
+        // Every live identity cell, for the same reason the rows above are re-applied:
+        // AvMonogramRadius is a StaticResource and will not re-resolve on a look swap.
+        FaviconView.ApplyLookGeometryToAll(glass);
+        ApplySidebarGeometry(glass);
+        RestampSegments();
     }
 
     private void SelectTab(BrowserTab tab)
@@ -515,6 +803,7 @@ public sealed partial class MainWindow : Window
         }
 
         _tabs.RemoveAt(index);
+        _pinned.Remove(tab);
         ContentHost.Children.Remove(tab.View);
         tab.Dispose();
 
@@ -548,6 +837,25 @@ public sealed partial class MainWindow : Window
             case "nexttab": CycleTab(1); break;
             case "find": OpenFindBar(); break;
             case "bookmark": AddBookmark(); break;
+            case "prevtab": CycleTab(-1); break;
+            case "readinglist": AddToReadingList(); break;
+            case "history": ShowHistory(); break;
+            case "sidebar": ToggleSidebar(null); break;
+            case "reload": ReloadOrStop(); break;
+            case "reader": ToggleReader(); break;
+            case "downloads": DownloadsButton_Click(DownloadsButton, new RoutedEventArgs()); break;
+            case "zoomin": Zoom(+1); break;
+            case "zoomout": Zoom(-1); break;
+            case "zoomreset": Zoom(0); break;
+            case "tablast": SelectTabByIndex(_tabs.Count - 1); break;
+            default:
+                if (action.StartsWith("tab", StringComparison.Ordinal)
+                    && int.TryParse(action.AsSpan(3), out int n))
+                {
+                    SelectTabByIndex(n - 1);
+                }
+
+                break;
         }
     }
 
@@ -627,6 +935,27 @@ public sealed partial class MainWindow : Window
 
     // ══ DOWNLOADS ══════════════════════════════════════════════════════════
 
+    /// <summary>
+    /// After every navigation: ask whether the page has an article, and honour a per-site
+    /// "always use Reader here" preference once we know one exists.
+    /// </summary>
+    private async void OnTabNavigated(BrowserTab tab)
+    {
+        _readerActive = false;
+        await ProbeReaderAsync(tab);
+
+        if (!ReferenceEquals(tab, _active) || !_readerAvailable)
+        {
+            return;
+        }
+
+        string host = BrowserTab.HostOf(tab.Url);
+        if (host.Length > 0 && SiteSettings.GetBool(host, "autoReader"))
+        {
+            ToggleReader();
+        }
+    }
+
     private void OnNavigationFailed(BrowserTab tab, CoreWebView2WebErrorStatus status)
     {
         if (!ReferenceEquals(tab, _active))
@@ -652,6 +981,7 @@ public sealed partial class MainWindow : Window
     private void DownloadsButton_Click(object sender, RoutedEventArgs e)
     {
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+        Themed(menu);
 
         if (Downloads.Items.Count == 0)
         {
@@ -692,11 +1022,10 @@ public sealed partial class MainWindow : Window
     private void OnTabChanged(BrowserTab tab)
     {
         if (_tabButtons.TryGetValue(tab, out ToggleButton? button)
-            && button.Content is Grid content
-            && content.Children.Count > 1
-            && content.Children[1] is TextBlock title)
+            && button.Tag is TabChrome chrome)
         {
-            title.Text = tab.Title;
+            chrome.Title.Text = tab.Title;
+            chrome.Icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
             ToolTipService.SetToolTip(button, tab.Title);
         }
 
@@ -713,20 +1042,31 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void RebuildTabStrip()
     {
+        // BOTH hosts, every time. A UIElement can have exactly one parent, so a button
+        // still living in the other host throws ArgumentException on Children.Add — and
+        // the message ("value does not fall within the expected range") says nothing.
         TabStrip.Children.Clear();
         TabStrip.ColumnDefinitions.Clear();
         _tabButtons.Clear();
 
+        if (UsingSidebarTabs && _sidebarVisible)
+        {
+            RefreshSidebar();
+            return;
+        }
+
         for (int i = 0; i < _tabs.Count; i++)
         {
-            TabStrip.ColumnDefinitions.Add(new ColumnDefinition
-            {
-                Width = new GridLength(1, GridUnitType.Star),
-                MinWidth = TabMinWidth
-            });
-
             BrowserTab tab = _tabs[i];
-            ToggleButton button = BuildTabButton(tab);
+            bool pinned = _pinned.Contains(tab);
+
+            // A pinned tab is a fixed narrow cell; the rest still divide what is left,
+            // which is what keeps the Safari silhouette rather than Chrome's fixed widths.
+            TabStrip.ColumnDefinitions.Add(pinned
+                ? new ColumnDefinition { Width = new GridLength(PinnedTabWidth) }
+                : new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = TabMinWidth });
+
+            ToggleButton button = pinned ? BuildPinnedTabButton(tab) : BuildTabButton(tab);
             Grid.SetColumn(button, i);
             TabStrip.Children.Add(button);
             _tabButtons[tab] = button;
@@ -734,41 +1074,66 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private ToggleButton BuildTabButton(BrowserTab tab)
+    /// <summary>
+    /// What a tab button's visuals are, held in its Tag.
+    ///
+    /// OnTabChanged used to reach in as content.Children[1] is TextBlock title. Inserting
+    /// any layer breaks that with NO exception — the title simply stops updating. Naming
+    /// the parts makes the reach-through impossible.
+    /// </summary>
+    private sealed class TabChrome
+    {
+        public required BrowserTab Tab { get; init; }
+        public required FaviconView Icon { get; init; }
+        public required TextBlock Title { get; init; }
+        public required Grid ClosePad { get; init; }
+    }
+
+    /// <param name="vertical">
+    /// True for a sidebar row: left-aligned title, 30px tall, and the vertical drag
+    /// handlers. The content graph is otherwise identical, which is the whole reason the
+    /// sidebar can reuse this rather than growing a second tab renderer to keep in step.
+    /// </param>
+    private ToggleButton BuildTabButton(BrowserTab tab, bool vertical = false)
     {
         // The favicon slot. Favicon and close occupy the SAME 16px cell and cross-fade
         // through each other on hover — Safari puts close at the tab's leading edge, in
         // the favicon's own box, and that swap is its most-copied micro-interaction.
-        Border chip = new()
+        FaviconView icon = new(16, RootGrid.Resources);
+        icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
+
+        // A Path's stroke is hit-testable only where the ink is, so a click landing between
+        // the arms of the X would fall through and SELECT the tab instead of closing it.
+        // The transparent background gives it a solid hit area — a null background is not
+        // hit-testable, Transparent is.
+        Microsoft.UI.Xaml.Shapes.Path closeGlyph = new()
+        {
+            Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+                typeof(Geometry), "M4.4,4.4 L11.6,11.6 M11.6,4.4 L4.4,11.6"),
+            Width = 16,
+            Height = 16,
+        };
+
+        if (RootGrid.Resources.TryGetValue("AvTabGlyphStyle", out object? glyphStyle)
+            && glyphStyle is Style gs)
+        {
+            closeGlyph.Style = gs;
+        }
+
+        Grid close = new()
         {
             Width = 16,
             Height = 16,
-            CornerRadius = new CornerRadius(4),
-            Background = new SolidColorBrush(ParseHex(tab.Accent)),
-            Child = new TextBlock
-            {
-                Text = tab.Monogram,
-                FontSize = 9,
-                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            }
-        };
-
-        // A text glyph rather than a Path so it inherits the tab's Foreground, which the
-        // template drives from the theme. No colour is assigned in code.
-        TextBlock close = new()
-        {
-            Text = "✕",
-            FontSize = 9,
             Opacity = 0,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
         };
+        close.Children.Add(closeGlyph);
 
         Grid slot = new() { Width = 16, Height = 16 };
-        slot.Children.Add(chip);
+        slot.Children.Add(icon);
+
+        // Topmost, and the icon below is IsHitTestVisible=false — an Opacity-0 element is
+        // still hit-testable in WinUI, so otherwise the icon would steal the press.
         slot.Children.Add(close);
 
         TextBlock title = new()
@@ -778,7 +1143,7 @@ public sealed partial class MainWindow : Window
             FontWeight = Microsoft.UI.Text.FontWeights.Medium,
             TextTrimming = TextTrimming.CharacterEllipsis,
             TextWrapping = TextWrapping.NoWrap,
-            TextAlignment = TextAlignment.Center,
+            TextAlignment = vertical ? TextAlignment.Left : TextAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
             Margin = new Thickness(8, 0, 0, 0)
         };
@@ -796,10 +1161,16 @@ public sealed partial class MainWindow : Window
             Style = (Style)RootGrid.Resources["AvTabButton"],
             Content = content
         };
+
+        if (vertical)
+        {
+            button.Height = 30;
+            button.CornerRadius = Res<CornerRadius>("AvSidebarRowRadius", new CornerRadius(6));
+        }
         ToolTipService.SetToolTip(button, tab.Title);
 
-        button.PointerEntered += (_, _) => { Fade(chip, 0, 150); Fade(close, 1, 150); };
-        button.PointerExited += (_, _) => { Fade(chip, 1, 120); Fade(close, 0, 120); };
+        button.PointerEntered += (_, _) => { FadeTo(icon, 0, 150); FadeTo(close, 1, 150); };
+        button.PointerExited += (_, _) => { FadeTo(icon, 1, 120); FadeTo(close, 0, 120); };
 
         button.Click += (_, _) =>
         {
@@ -818,17 +1189,24 @@ public sealed partial class MainWindow : Window
         // The buttons are MOVED between grid columns rather than the strip being rebuilt,
         // because rebuilding destroys the element holding the pointer capture and the drag
         // would die on its first swap.
-        button.Tag = tab;
-        button.AddHandler(UIElement.PointerPressedEvent,
-            new PointerEventHandler(Tab_PointerPressed), true);
-        button.AddHandler(UIElement.PointerMovedEvent,
-            new PointerEventHandler(Tab_PointerMoved), true);
-        button.AddHandler(UIElement.PointerReleasedEvent,
-            new PointerEventHandler(Tab_PointerReleased), true);
-        button.AddHandler(UIElement.PointerCaptureLostEvent,
-            new PointerEventHandler(Tab_PointerReleased), true);
+        button.Tag = new TabChrome { Tab = tab, Icon = icon, Title = title, ClosePad = close };
 
-        // Clicking the close glyph closes rather than selects.
+        PointerEventHandler pressed = vertical ? VTab_PointerPressed : Tab_PointerPressed;
+        PointerEventHandler moved = vertical ? VTab_PointerMoved : Tab_PointerMoved;
+        PointerEventHandler released = vertical ? VTab_PointerReleased : Tab_PointerReleased;
+
+        button.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(pressed), true);
+        button.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(moved), true);
+        button.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(released), true);
+        button.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler(released), true);
+
+        button.RightTapped += (_, e) =>
+        {
+            e.Handled = true;
+            ShowTabMenu(tab, button);
+        };
+
+        // Clicking the close pad closes rather than selects.
         close.PointerPressed += (_, e) =>
         {
             e.Handled = true;
@@ -840,11 +1218,12 @@ public sealed partial class MainWindow : Window
 
     private void Tab_PointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        if (sender is not ToggleButton button || button.Tag is not BrowserTab tab)
+        if (sender is not ToggleButton button || button.Tag is not TabChrome chrome)
         {
             return;
         }
 
+        BrowserTab tab = chrome.Tab;
         _dragTab = tab;
         _dragStartX = e.GetCurrentPoint(TabStrip).Position.X;
         _dragging = false;
@@ -854,11 +1233,13 @@ public sealed partial class MainWindow : Window
     private void Tab_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
         if (sender is not ToggleButton button
-            || button.Tag is not BrowserTab tab
-            || !ReferenceEquals(_dragTab, tab))
+            || button.Tag is not TabChrome chrome
+            || !ReferenceEquals(_dragTab, chrome.Tab))
         {
             return;
         }
+
+        BrowserTab tab = chrome.Tab;
 
         Microsoft.UI.Input.PointerPoint point = e.GetCurrentPoint(TabStrip);
         if (!point.Properties.IsLeftButtonPressed)
@@ -903,8 +1284,17 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        double slot = TabStrip.ActualWidth / _tabs.Count;
-        int target = Math.Clamp((int)(x / slot), 0, _tabs.Count - 1);
+        // Pinned cells are a fixed width, so a uniform slot would drift by exactly the
+        // difference on every pinned tab present.
+        int pinned = PinnedCount();
+        double pinnedWidth = pinned * PinnedTabWidth;
+        int loose = _tabs.Count - pinned;
+        double slot = loose > 0 ? Math.Max(1, (TabStrip.ActualWidth - pinnedWidth) / loose) : 1;
+
+        int target = _pinned.Contains(tab)
+            ? Math.Clamp((int)(x / Math.Max(1, PinnedTabWidth)), 0, Math.Max(0, pinned - 1))
+            : Math.Clamp(pinned + (int)((x - pinnedWidth) / slot), pinned, _tabs.Count - 1);
+
         int current = _tabs.IndexOf(tab);
 
         if (current < 0 || target == current)
@@ -924,8 +1314,23 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private static void Fade(UIElement element, double to, int milliseconds)
+    /// <summary>
+    /// One storyboard per element, stopped before it is reused.
+    ///
+    /// A WinUI Storyboard animating Opacity HOLDS its final value, and a later plain
+    /// assignment to Opacity is then silently ignored. The previous helper created a fresh,
+    /// unowned storyboard on every hover and never stopped the last one, so a fast
+    /// in-out-in left two of them fighting and an icon could stick at zero.
+    /// </summary>
+    private static readonly Dictionary<UIElement, Storyboard> Fades = new();
+
+    private static void FadeTo(UIElement element, double to, int milliseconds)
     {
+        if (Fades.TryGetValue(element, out Storyboard? running))
+        {
+            try { running.Stop(); } catch (Exception) { }
+        }
+
         DoubleAnimation animation = new()
         {
             To = to,
@@ -937,16 +1342,8 @@ public sealed partial class MainWindow : Window
 
         Storyboard storyboard = new();
         storyboard.Children.Add(animation);
+        Fades[element] = storyboard;
         storyboard.Begin();
-    }
-
-    private static Windows.UI.Color ParseHex(string hex)
-    {
-        hex = hex.TrimStart('#');
-        byte r = Convert.ToByte(hex.Substring(0, 2), 16);
-        byte g = Convert.ToByte(hex.Substring(2, 2), 16);
-        byte b = Convert.ToByte(hex.Substring(4, 2), 16);
-        return Windows.UI.Color.FromArgb(255, r, g, b);
     }
 
     // ══ CHROME ═════════════════════════════════════════════════════════════
@@ -958,6 +1355,11 @@ public sealed partial class MainWindow : Window
         BackButton.IsEnabled = tab?.CanGoBack ?? false;
         ForwardButton.IsEnabled = tab?.CanGoForward ?? false;
         ReloadButton.IsEnabled = tab?.IsReady ?? false;
+
+        bool loading = tab?.IsLoading ?? false;
+        ReloadGlyph.Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
+            typeof(Geometry), loading ? StopGeometry : ReloadGeometry);
+        ToolTipService.SetToolTip(ReloadButton, loading ? "Stop (Esc)" : "Reload (Ctrl+R)");
         LockGlyph.Visibility = (tab?.IsSecure ?? false) ? Visibility.Visible : Visibility.Collapsed;
 
         if (!_addressFocused)
@@ -974,7 +1376,9 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            if (Application.Current.Resources["AvPageBrush"] is SolidColorBrush brush)
+            // The shown theme's page colour, not Windows' — otherwise a pinned-Light window
+            // flashes dark on every navigation.
+            if (ThemeBrush("AvPageBrush") is SolidColorBrush brush)
             {
                 foreach (BrowserTab tab in _tabs)
                 {
@@ -1019,18 +1423,28 @@ public sealed partial class MainWindow : Window
     {
         _addressFocused = false;
         FieldFocus.Opacity = 0;
+        HideSuggestions();
         AddressBox.Select(0, 0);
         ShowIdleAddress();
     }
 
     private void AddressBox_KeyDown(object sender, KeyRoutedEventArgs e)
     {
+        // The suggestion list gets first refusal on Down, Up, Escape and — only when a row
+        // is actually highlighted — Enter.
+        if (HandleSuggestionKey(e.Key))
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (e.Key != VirtualKey.Enter)
         {
             return;
         }
 
         e.Handled = true;
+        HideSuggestions();
 
         if (Navigate(AddressBox.Text))
         {
@@ -1091,18 +1505,181 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void ReloadButton_Click(object sender, RoutedEventArgs e)
+    private void ReloadButton_Click(object sender, RoutedEventArgs e) => ReloadOrStop();
+
+    /// <summary>
+    /// One button, two jobs — which is what Safari's is.
+    ///
+    /// A reload glyph that stays a reload glyph while the page is loading gives you no way
+    /// to abandon a slow page except closing the tab.
+    /// </summary>
+    private void ReloadOrStop()
     {
-        if (_active is { IsReady: true } tab)
+        if (_active is not { IsReady: true } tab)
+        {
+            return;
+        }
+
+        if (tab.IsLoading)
+        {
+            tab.View.CoreWebView2?.Stop();
+        }
+        else
         {
             tab.View.Reload();
         }
     }
 
+    // The circular-arrow reload glyph, and the ✕ it becomes mid-load.
+    private const string ReloadGeometry = "M11.9,6.5 A4.4,4.4 0 1 1 10.5,3.3 M11.6,1.4 V4.6 H8.4";
+    private const string StopGeometry = "M3.8,3.8 L9.2,9.2 M9.2,3.8 L3.8,9.2";
+
+    private static readonly double[] ZoomLevels = { 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200 };
+
+    /// <summary>Ctrl+plus, Ctrl+minus, Ctrl+0. Direction 0 resets to 100%.</summary>
+    private void Zoom(int direction)
+    {
+        double current = 100;
+        string saved = AppSettings.Get("zoom").TrimEnd('%');
+        _ = double.TryParse(saved, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out current);
+
+        double next;
+        if (direction == 0)
+        {
+            next = 100;
+        }
+        else
+        {
+            int index = Array.FindIndex(ZoomLevels, z => Math.Abs(z - current) < 0.5);
+            if (index < 0)
+            {
+                index = Array.FindIndex(ZoomLevels, z => z >= current);
+                if (index < 0) { index = ZoomLevels.Length - 1; }
+            }
+
+            next = ZoomLevels[Math.Clamp(index + direction, 0, ZoomLevels.Length - 1)];
+        }
+
+        string text = next.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+        AppSettings.Set("zoom", text);
+        PushToSettingsPage("zoom", text);
+
+        foreach (BrowserTab t in _tabs)
+        {
+            t.ApplyZoom();
+        }
+    }
+
     private void HomeButton_Click(object sender, RoutedEventArgs e)
     {
-        _active?.NavigateToHtml(InternalPages.StartPage, "Start Page");
+        if (_active?.View.CoreWebView2 is CoreWebView2 core)
+        {
+            // -= first: Home can be pressed repeatedly, and a second subscription would
+            // act on every message twice.
+            core.WebMessageReceived -= StartPage_WebMessageReceived;
+            core.WebMessageReceived += StartPage_WebMessageReceived;
+        }
+
+        _active?.NavigateToHtml(BuildStartPageHtml(), "Start Page");
         UpdateChrome();
+    }
+
+    /// <summary>The Start Page's own messages: navigation, section toggles, tile menus.</summary>
+    private void StartPage_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        try
+        {
+            using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
+            JsonElement root = doc.RootElement;
+            string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+
+            switch (type)
+            {
+                case "navigate":
+                    if (root.TryGetProperty("url", out JsonElement u)
+                        && u.GetString() is { Length: > 0 } target)
+                    {
+                        _active?.Navigate(target);
+                        UpdateChrome();
+                    }
+
+                    break;
+
+                case "startSection":
+                {
+                    if (!root.TryGetProperty("key", out JsonElement k))
+                    {
+                        return;
+                    }
+
+                    string name = k.GetString() ?? string.Empty;
+                    if (name.Length == 0)
+                    {
+                        return;
+                    }
+
+                    bool on = root.TryGetProperty("value", out JsonElement v)
+                              && v.ValueKind == JsonValueKind.True;
+
+                    AppSettings.Set(
+                        "start" + char.ToUpperInvariant(name[0]) + name.Substring(1),
+                        on ? "true" : "false");
+                    break;
+                }
+
+                case "tileMenu":
+                {
+                    if (!root.TryGetProperty("url", out JsonElement mu)
+                        || mu.GetString() is not { Length: > 0 } tile)
+                    {
+                        return;
+                    }
+
+                    MenuFlyout menu = new();
+                    Themed(menu);
+                    MenuFlyoutItem open = new() { Text = "Open in New Tab" };
+                    open.Click += (_, _) => OpenNewTab(tile);
+                    menu.Items.Add(open);
+
+                    if (Bookmarks.Contains(tile))
+                    {
+                        menu.Items.Add(new MenuFlyoutSeparator());
+                        MenuFlyoutItem remove = new() { Text = "Remove from Favourites" };
+                        remove.Click += (_, _) =>
+                        {
+                            Bookmark? found = Bookmarks.Items.Find(
+                                b => string.Equals(b.Url, tile, StringComparison.OrdinalIgnoreCase));
+                            if (found is not null)
+                            {
+                                Bookmarks.Remove(found);
+                                RefreshStartPages();
+                            }
+                        };
+                        menu.Items.Add(remove);
+                    }
+
+                    menu.ShowAt(ContentHost);
+                    break;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // A malformed message from our own page is a bug to find in testing.
+        }
+    }
+
+    /// <summary>Re-renders any open Start Page after its data changed underneath it.</summary>
+    private void RefreshStartPages()
+    {
+        foreach (BrowserTab tab in _tabs)
+        {
+            if (tab.IsInternalPage && tab.Title == "Start Page")
+            {
+                tab.NavigateToHtml(BuildStartPageHtml(), "Start Page");
+            }
+        }
     }
 
     private void NewTabButton_Click(object sender, RoutedEventArgs e) => OpenNewTab(null);
@@ -1112,6 +1689,7 @@ public sealed partial class MainWindow : Window
     private void MenuButton_Click(object sender, RoutedEventArgs e)
     {
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
+        Themed(menu);
 
         MenuFlyoutItem newTab = new() { Text = "New Tab" };
         newTab.KeyboardAcceleratorTextOverride = "Ctrl+T";
@@ -1143,7 +1721,7 @@ public sealed partial class MainWindow : Window
 
         MenuFlyoutSubItem help = new() { Text = "Help" };
         MenuFlyoutItem about = new() { Text = "About Aviary" };
-        about.Click += (_, _) => OpenSettingsTab();
+        about.Click += (_, _) => OpenSettingsTab("about");
         help.Items.Add(about);
         menu.Items.Add(help);
 
@@ -1161,8 +1739,13 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Settings talks back as {type, key, value}. Anything not recognised is ignored
-    /// rather than trusted — the page is ours, but the handler should not assume it.
+    /// Settings talks back as {type, …}. Dispatch is on TYPE, not on whether a "key"
+    /// happens to be present — that was how a button ended up being persisted as if it
+    /// were a preference, writing a junk reset:true key that nothing ever read.
+    ///
+    /// Anything unrecognised is ignored rather than trusted. The page is ours, navigated
+    /// to by NavigateToString and never reachable from the network, but the handler should
+    /// not assume that.
     /// </summary>
     private void Settings_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
@@ -1170,24 +1753,74 @@ public sealed partial class MainWindow : Window
         {
             using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
             JsonElement root = doc.RootElement;
+            string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
 
-            if (!root.TryGetProperty("key", out JsonElement keyElement))
+            switch (type)
             {
-                return;
+                case "schema":
+                {
+                    // The page's own literal defaults for every keyed control it drew.
+                    // After this the store knows every key the page can render, which is
+                    // what makes "saves but comes back as the default" impossible.
+                    if (!root.TryGetProperty("values", out JsonElement seedElement))
+                    {
+                        return;
+                    }
+
+                    Dictionary<string, string> seed = new(StringComparer.OrdinalIgnoreCase);
+                    foreach (JsonProperty p in seedElement.EnumerateObject())
+                    {
+                        seed[p.Name] = AsString(p.Value);
+                    }
+
+                    AppSettings.SeedDefaults(seed);
+                    return;
+                }
+
+                case "setting":
+                {
+                    if (!root.TryGetProperty("key", out JsonElement k))
+                    {
+                        return;
+                    }
+
+                    string settingKey = k.GetString() ?? string.Empty;
+                    JsonElement settingValue = root.TryGetProperty("value", out JsonElement sv) ? sv : default;
+
+                    // Persist first, so a setting survives even if applying it throws.
+                    AppSettings.Set(settingKey, AsString(settingValue));
+                    ApplySetting(settingKey, settingValue);
+                    return;
+                }
+
+                case "command":
+                {
+                    string name = root.TryGetProperty("name", out JsonElement n) ? n.GetString() ?? "" : "";
+                    _ = RunSettingsCommandAsync(name, sender);
+                    return;
+                }
             }
+        }
+        catch (Exception)
+        {
+            // A malformed message from our own page is a bug to find in testing, not a
+            // reason to take the browser down.
+        }
 
-            string key = keyElement.GetString() ?? string.Empty;
-            JsonElement value = root.TryGetProperty("value", out JsonElement v) ? v : default;
+        static string AsString(JsonElement value) => value.ValueKind switch
+        {
+            JsonValueKind.True => "true",
+            JsonValueKind.False => "false",
+            JsonValueKind.String => value.GetString() ?? string.Empty,
+            _ => value.ToString()
+        };
+    }
 
-            // Persist first, so a setting survives even if applying it throws.
-            AppSettings.Set(key, value.ValueKind switch
-            {
-                JsonValueKind.True => "true",
-                JsonValueKind.False => "false",
-                JsonValueKind.String => value.GetString() ?? string.Empty,
-                _ => value.ToString()
-            });
-
+    /// <summary>Makes a saved setting take effect on the running browser.</summary>
+    private void ApplySetting(string key, JsonElement value)
+    {
+        try
+        {
             switch (key)
             {
                 case "look":
@@ -1239,6 +1872,31 @@ public sealed partial class MainWindow : Window
                         : Visibility.Collapsed;
                     break;
 
+                case "tabLayout":
+                    // Choosing Sidebar has to OPEN the sidebar, or the tabs vanish.
+                    if (value.GetString() == "Sidebar")
+                    {
+                        ToggleSidebar(true);
+                    }
+
+                    ApplyTabLayout();
+                    break;
+
+                case "zoom":
+                    foreach (BrowserTab zt in _tabs)
+                    {
+                        zt.ApplyZoom();
+                    }
+
+                    break;
+
+                case "siteIcons":
+                    // Turning it off has to be visible immediately, or it reads as inert.
+                    Favicons.InvalidateDecoded();
+                    RebuildTabStrip();
+                    RefreshBookmarksBar();
+                    break;
+
                 case "fullUrl":
                     _showFullUrl = value.ValueKind == JsonValueKind.True;
                     if (!_addressFocused)
@@ -1250,8 +1908,171 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception)
         {
-            // A malformed message from our own page is a bug to find in testing, not a
-            // reason to take the browser down.
+            // Applying a setting must never take the browser down; it is already saved.
+        }
+    }
+
+    // ══ SETTINGS COMMANDS ══════════════════════════════════════════════════
+    //
+    // A command is a thing the page ASKS the host to do. It is not a preference, has no
+    // value, and is never written to settings.json.
+
+    private async Task RunSettingsCommandAsync(string name, CoreWebView2 page)
+    {
+        try
+        {
+            switch (name)
+            {
+                case "reset":
+                {
+                    if (!await ConfirmAsync(
+                            "Reset all settings?",
+                            "Every preference on this page goes back to its default. Your history, "
+                          + "bookmarks and downloaded files are not touched.",
+                            "Reset"))
+                    {
+                        return;
+                    }
+
+                    AppSettings.Reset();
+                    RestorePreferences(resubscribe: false);
+
+                    foreach (BrowserTab t in _tabs)
+                    {
+                        t.ApplyColorScheme();
+                    }
+
+                    // Re-rendered through NavigateToHtml, never CoreWebView2.NavigateToString:
+                    // the latter skips _internalTitle and the base64 data: URI lands in the
+                    // window title again — bug 5 in the handoff, straight back.
+                    TabFor(page)?.NavigateToHtml(BuildSettingsHtml(), "Settings");
+                    break;
+                }
+
+                case "clearData":
+                {
+                    if (!await ConfirmAsync(
+                            "Clear browsing data?",
+                            "History, cookies, cached files and site data for this profile are "
+                          + "removed. Your bookmarks, reading list and downloaded files are not "
+                          + "touched.",
+                            "Clear"))
+                    {
+                        return;
+                    }
+
+                    History.Clear();
+                    PrivacyReport.Clear();
+                    SiteSettings.Clear();
+
+                    // The engine's own store — cookies, cache, local storage, service
+                    // workers. Without this, "cleared" would mean the list only.
+                    try
+                    {
+                        if (_active?.View.CoreWebView2?.Profile is { } profile)
+                        {
+                            await profile.ClearBrowsingDataAsync();
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // An older runtime may not expose it; the local stores are still gone.
+                    }
+
+                    RefreshSidebar();
+                    RefreshStartPages();
+                    TabFor(page)?.NavigateToHtml(BuildSettingsHtml("privacy"), "Settings");
+                    break;
+                }
+
+                case "clearFavicons":
+                {
+                    Favicons.ClearAll();
+                    RebuildTabStrip();
+                    RefreshBookmarksBar();
+
+                    // Re-rendered so the "N sites · M KB" line is not left claiming icons
+                    // that were just deleted.
+                    TabFor(page)?.NavigateToHtml(BuildSettingsHtml("privacy"), "Settings");
+                    break;
+                }
+            }
+        }
+        catch (Exception)
+        {
+            // A failed command leaves the browser exactly as it was.
+        }
+    }
+
+    private BrowserTab? TabFor(CoreWebView2 core) =>
+        _tabs.Find(t => ReferenceEquals(t.View.CoreWebView2, core));
+
+    /// <summary>
+    /// ContentDialog in WinUI 3 desktop throws a COMException without an explicit XamlRoot,
+    /// and throws again if a second one opens while the first is up.
+    /// </summary>
+    private bool _dialogOpen;
+
+    private async Task<bool> ConfirmAsync(string title, string body, string verb)
+    {
+        if (_dialogOpen)
+        {
+            return false;
+        }
+
+        _dialogOpen = true;
+        try
+        {
+            ContentDialog dialog = new()
+            {
+                XamlRoot = RootGrid.XamlRoot,
+                RequestedTheme = RootGrid.ActualTheme,
+                Title = title,
+                Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap },
+                PrimaryButtonText = "Cancel",
+                SecondaryButtonText = verb,
+                // The destructive verb is deliberately NOT the default button, so Enter
+                // cancels rather than wipes.
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            return await dialog.ShowAsync() == ContentDialogResult.Secondary;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+        finally
+        {
+            _dialogOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// Pushes a host-side change into an open Settings page. Deliberately one-way: the
+    /// page's handler sends nothing back, or Ctrl+D flipping the favourites bar on would
+    /// ping-pong between the two forever.
+    /// </summary>
+    private void PushToSettingsPage(string key, object value)
+    {
+        string payload = JsonSerializer.Serialize(key) + "," + JsonSerializer.Serialize(value);
+
+        foreach (BrowserTab tab in _tabs)
+        {
+            if (tab.View.CoreWebView2 is not CoreWebView2 core)
+            {
+                continue;
+            }
+
+            try
+            {
+                _ = core.ExecuteScriptAsync(
+                    "window.__aviaryApply && window.__aviaryApply(" + payload + ")");
+            }
+            catch (Exception)
+            {
+                // A tab that is mid-teardown simply does not get told.
+            }
         }
     }
 
@@ -1324,6 +2145,18 @@ public sealed partial class MainWindow : Window
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
+        Favicons.Updated -= OnFaviconUpdated;
+        Bookmarks.Changed -= RefreshBookmarksBar;
+
+        // Before the tabs go: the index write is debounced and the accumulated
+        // last-used timestamps are only in memory.
+        try { Favicons.FlushAsync().GetAwaiter().GetResult(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: favicon flush"); }
+
+        // Every debounced store gets a final synchronous write. A debounce that is still
+        // pending when the process ends is data that was never saved.
+        try { PrivacyReport.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: privacy report"); }
+        try { History.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: history"); }
+
         foreach (BrowserTab tab in _tabs)
         {
             tab.Dispose();

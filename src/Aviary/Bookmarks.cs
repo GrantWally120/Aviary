@@ -11,42 +11,17 @@ internal sealed class Bookmark
     public string Title { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
 
-    /// <summary>Stand-in for a favicon until Phase 4 fetches real ones.</summary>
-    [JsonIgnore]
-    public string Monogram
-    {
-        get
-        {
-            string host = BrowserTab.HostOf(Url);
-            return host.Length > 0 ? host.Substring(0, 1).ToUpperInvariant() : "•";
-        }
-    }
-
     /// <summary>
-    /// Colour derived from the host rather than assigned in order, so a given site keeps
-    /// the same colour across launches instead of shuffling when the list is reordered.
+    /// The letter shown when the site has no icon. Taken from the registrable domain, so
+    /// news.bbc.co.uk reads B rather than N.
     /// </summary>
     [JsonIgnore]
-    public string Accent
-    {
-        get
-        {
-            string host = BrowserTab.HostOf(Url);
-            int hash = 0;
-            foreach (char c in host)
-            {
-                hash = (hash * 31 + c) & 0x7FFFFFFF;
-            }
+    public string Monogram => PublicSuffix.Monogram(BrowserTab.HostOf(Url));
 
-            string[] palette =
-            {
-                "#0A84FF", "#FF9F0A", "#30D158", "#FF375F", "#BF5AF2",
-                "#64D2FF", "#FF6482", "#5E5CE6", "#66D4CF", "#FFD60A"
-            };
+    /// <summary>This bookmark's favicon cache key.</summary>
+    [JsonIgnore]
+    public string IconKey => Favicons.KeyFor(Url);
 
-            return palette[hash % palette.Length];
-        }
-    }
 }
 
 /// <summary>
