@@ -252,33 +252,29 @@ off by default.
 real (history, cookies, cache, site settings, and the engine's own store). The report stores
 counts per day, per tracker and per site, and deliberately never pairs a site with a tracker.
 
-### What was actually exercised in the running app on 7 Sep
+### What has actually been exercised in the running app
 
-**Driven and confirmed:** the app launches with no crash log; the sidebar opens, switches
-panes and renders Bookmarks; real favicons appear in tabs, the favourites bar and Start Page
-tiles, and survive a hard kill; the Start Page renders with its glasshouse, Favourites and
-Privacy Report chart; Reader extracts and re-sets a real article; the Aa menu shows the right
-enabled/disabled rows; the Smart Search Field returns a Top Hit and a search row; Settings
-persists all 38 keys through the schema handshake; the phase badges went live exactly when
-PhaseShipped was bumped; history persisted to disk; the version markers read 0.4.0 · alpha
-build 4 everywhere.
+**7 Sep:** launch with no crash log; sidebar opens, switches panes, renders Bookmarks; real
+favicons in tabs, favourites bar and Start Page tiles, surviving a hard kill; the Start Page;
+Reader on a real article; the Aa menu's enabled/disabled logic; Smart Search's Top Hit; all
+38 settings keys through the schema handshake; phase badges going live on cue; history on disk.
 
-**Built and compiling but NOT yet exercised by hand** — treat these as unproven:
-- Switching to Liquid Glass with the new sidebar, favicon cells and Start Page present. The
-  look was never swapped in the running app this session, and `ApplyLookGeometry` gained
-  three new callees (`FaviconView.ApplyLookGeometryToAll`, `ApplySidebarGeometry`,
-  `RestampSegments`).
-- Light/dark switching with those same new components.
-- Pinning a tab, and pinned tabs restoring on the next launch.
-- The page and tab context menus (nothing was right-clicked).
-- Tab drag-to-reorder AFTER the TabChrome refactor — the handoff has warned twice that this
-  dies silently, and all four pointer handlers were rewritten.
-- Vertical tab reordering in the sidebar.
-- The sidebar resize grip and its persistence.
-- The Privacy Report counting up from a genuinely tracker-heavy site.
-- Reading list add/remove, and Clear browsing data.
+**10 Sep (Phase 5 M0 — the settle-the-debt pass):** tab drag-to-reorder after the TabChrome
+refactor (works); live Liquid Glass swap with every new component present (works); light/dark
+swap (was broken — fixed, see bug 25); pinning (was broken — bug 26) and pin-restore after a
+cold relaunch; the tab and page context menus; the resize grip (bug 27); the reading list add
+and pane; the Privacy Report on a tracker-heavy site (bugs 28 and 29); Clear browsing data,
+confirmed on disk and in the engine's cookie store.
 
-Anything in that second list that turns out broken is a Phase 4 defect, not a Phase 5 task.
+**Still never exercised by hand:** vertical tab reordering in the sidebar, and removing a
+reading-list item. Treat both as unproven.
+
+**About Clear browsing data and cookies:** after clearing, the engine's cookie store kept two
+`.theverge.com` rows — because The Verge was still open in another tab and re-set them within
+seconds. The SQLite freelist showed the rest were genuinely deleted. That is how Safari and
+Chrome behave too; clearing does not close tabs. Do not "fix" it by reloading tabs after a
+clear, which re-creates the cookies immediately. The Phase 5 experiment "Forget everything
+when Aviary closes" is the real answer for wanting it all gone.
 
 Also: history with day grouping, reading list with unread state, pinned tabs restored at
 launch, our own page and tab context menus (Chromium's was Edge's, complete with Bing),
@@ -382,6 +378,29 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
 24. The injected `ShortcutScript` rejected Alt outright and ignored Shift, so `Ctrl+Shift+D`
     lowercased to `d` and fired plain bookmark. It now builds a modifier-qualified combo, and
     reads digits from `e.code` so a layout where the number row is punctuation still works.
+25. **Code-side brushes resolved against the WINDOWS theme, not the pinned one.**
+    `Application.Current.Resources[key]` picks a theme dictionary by the application's theme,
+    and Aviary pins its theme on `RootGrid`. Pinned Light on a dark machine: a dark Start Page
+    inside light chrome, white sidebar glyphs and headers on light grey, white caption buttons
+    on a light toolbar, dark menus. Invisible whenever the two themes match, so it never
+    showed until the theme was switched in the running app. Fixed by `MainWindow.Theme.cs`
+    (`ThemeBrush`, `ApplyCaptionColors`, `Themed`, `OnEffectiveThemeChanged`). **Never read a
+    brush from `Application.Current.Resources` in code; use `ThemeBrush`.**
+26. **Pinning threw on every attempt.** `TogglePinned` removed the tab from `_tabs`, then
+    called `PinnedCount()` — which counts pinned tabs *in* `_tabs` — so the count was 0 and
+    `Insert(-1)` threw. The throw landed after the removal, so the crash handler kept the app
+    alive with the tab on screen but gone from the list, and the + button then appeared dead.
+27. **The resize grip only grabbed a third of its gap under Liquid Glass**: 6px of grip beside
+    the content sheet's 12px inset. `ApplyContentInsets` gives the grip the whole gap while
+    the sidebar shows. It must NOT reach over the web page under Classic.
+28. **Privacy Report bars used % heights against a content-sized parent**, so every bar was
+    its 3px minimum whatever the data — invisible for as long as the count was zero.
+29. **The Privacy Report only saved every 100th block and never on exit**, so the "seven-day"
+    report reset on every launch. Saves are now debounced per block, and `MainWindow_Closed`
+    flushes both it and `History`.
+30. **`MenuFlyoutPresenterStyle` with a `RequestedTheme` setter does nothing** for flyout
+    theming in this WinUI build. It compiles and the menu still renders in the Windows theme.
+    Set `RequestedTheme` on the live popup element in `Opened` instead (`ThemeOpenPopups`).
 
 ---
 
