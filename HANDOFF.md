@@ -59,7 +59,7 @@ Phases **00–05 are ALPHA**; **06 and up are BETA**.
 | 02 | alpha | Tabs and settings | done 6 Sep 2026 |
 | 03 | alpha | Theming and features | done 6 Sep 2026 |
 | 04 | alpha | Safari features | done 7 Sep 2026 |
-| **05** | alpha | **Alpha Build 5 (pre-release)** | **NEXT** |
+| **05** | alpha | **Alpha Build 5 (pre-release)** | **IN PROGRESS — M0 done, M1 next** |
 | 06 | beta | Beta Build 1 — "Testing 1" | planned |
 | 07 | beta | Beta Build 2 — "Testing 2" | planned |
 
@@ -68,6 +68,13 @@ unmet hard requirement), Reader + the "Aa" menu, real favicons, history, reading
 the Smart Search Field, the Privacy Report, pinned tabs, our own context menus, page
 zoom, and reload-becomes-stop. Two planned items moved to Phase 05 rather than shipping
 half-built: the **download progress ring** and **tab groups**.
+
+**Phase 05 is planned in full in `PHASE5-PLAN.md`** (approved by Grant 10 Sep 2026) — nine
+milestones, M0 to M8. **M0 is done** (10 Sep): it exercised everything Phase 4 had only
+compiled and found six real bugs, now fixed (section 10, bugs 25–30). **M1 — the local
+diagnostics folder — is next.** Read the plan before starting; it records decisions Grant
+made that are not obvious from the code, notably that diagnostics deliberately collects
+everything including full URLs, and why secrets are still excluded.
 
 **Phase 05** — "Alpha Build 5", the last alpha and the widest. Carries an **Experimental
 menu inside Settings**: opt-in flags each named and explained in plain English. First one
@@ -423,7 +430,7 @@ agents' work before considering a re-run.
 
 ## 11. Suggested first message for the new chat
 
-> Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — it has the
-> full state. Phase 4 is done; start Phase 5 (Alpha Build 5). The download ring and tab
-> groups carried over from Phase 4 — section 12 says where the unspent spec for the
-> download ring is.
+> Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first, then
+> `Zoo/PHASE5-PLAN.md`. Phase 5 is in progress: M0 is done, start **M1 — the local
+> diagnostics folder `user.data.improvementcollection`**. Remember: verify by running the
+> real app, never read LocalAppData with Python, and ask before any NuGet package.
