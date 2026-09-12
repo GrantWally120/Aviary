@@ -48,7 +48,7 @@ An audit of the 7 Sep build found why "privacy that works" is not a slogan:
 Each milestone ends in a **published build verified by running it**. Diagnostics comes
 first so every later milestone is recorded — and every optimisation is measured by it.
 
-### M0 — Settle Phase 4's debt
+### M0 — Settle Phase 4's debt · **done 10 Sep 2026**
 Exercise everything HANDOFF §7 marks as never run, and fix what fails: Liquid Glass swap
 with the new sidebar/favicons/Start Page present; light/dark swap; **tab drag-to-reorder
 after the TabChrome refactor** (all four handlers rewritten; has died silently twice
@@ -56,7 +56,7 @@ before); vertical reorder; pin + pin-restore; both context menus; resize grip; P
 Report on a tracker-heavy site; reading list add/remove; Clear browsing data. Commit
 Phase 4, split by feature.
 
-### M1 — Diagnostics that gathers everything: `user.data.improvementcollection`
+### M1 — Diagnostics that gathers everything: `user.data.improvementcollection` · **done 11 Sep 2026** (HANDOFF §13)
 New `Diagnostics.cs`, folder `%LOCALAPPDATA%\Aviary\user.data.improvementcollection\`,
 created the moment the setting is switched on. **Everything below is gathered, all at
 once — one switch, no partial modes.**
