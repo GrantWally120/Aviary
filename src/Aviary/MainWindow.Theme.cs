@@ -103,15 +103,41 @@ public sealed partial class MainWindow
     /// Submenus open their own popups later, with no event of their own, so the items
     /// inside each submenu re-run the pass when they load.
     /// </summary>
-    private MenuFlyout Themed(MenuFlyout menu)
+    private MenuFlyout Themed(MenuFlyout menu, string name = "menu")
     {
         menu.Opened += (_, _) =>
         {
             ThemeOpenPopups();
             HookSubmenus(menu.Items);
+
+            // Every Aviary menu passes through here, which makes it the one place that can
+            // record, for diagnostics, that a menu opened and which item was chosen.
+            Diagnostics.Ui("menu-open", new { menu = name });
+            TrackMenuItems(menu.Items, name);
         };
 
         return menu;
+    }
+
+    /// <summary>Items already carrying a diagnostics click handler — never two on one item.</summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MenuFlyoutItemBase, string> TrackedItems = new();
+
+    private static void TrackMenuItems(IList<MenuFlyoutItemBase> items, string menu)
+    {
+        foreach (MenuFlyoutItemBase item in items)
+        {
+            if (item is MenuFlyoutSubItem sub)
+            {
+                TrackMenuItems(sub.Items, menu);
+                continue;
+            }
+
+            if (item is MenuFlyoutItem entry && !TrackedItems.TryGetValue(entry, out _))
+            {
+                TrackedItems.Add(entry, menu);
+                entry.Click += (_, _) => Diagnostics.Ui("menu", new { menu, item = entry.Text });
+            }
+        }
     }
 
     private void HookSubmenus(IList<MenuFlyoutItemBase> items)

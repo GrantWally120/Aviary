@@ -42,19 +42,36 @@ public sealed partial class MainWindow
 
             CoreWebView2ContextMenuTarget target = args.ContextMenuTarget;
             MenuFlyout menu = new();
-            Themed(menu);
+            Themed(menu, "page (right-click)");
 
-            string linkUri = SafeString(() => target.LinkUri);
-            string sourceUri = SafeString(() => target.SourceUri);
-            string selection = SafeString(() => target.SelectionText);
+            // Each property THROWS ("a method was called at an unexpected time") unless its Has…
+            // flag is set, so a plain right-click used to raise three exceptions and lean on the
+            // catch to survive them. Diagnostics showed it on its first run (M1).
+            // SourceUri is read only for an image, the one kind it is used for: on plain page
+            // text HasSourceUri has been seen to answer true and SourceUri to throw anyway.
             CoreWebView2ContextMenuTargetKind kind = target.Kind;
+            string linkUri = target.HasLinkUri ? SafeString(() => target.LinkUri) : string.Empty;
+            string sourceUri = kind == CoreWebView2ContextMenuTargetKind.Image && target.HasSourceUri
+                ? SafeString(() => target.SourceUri)
+                : string.Empty;
+            string selection = target.HasSelection ? SafeString(() => target.SelectionText) : string.Empty;
+
+            // What was right-clicked, not the selected text itself — that stays out unless it
+            // is actually searched for, when it becomes a search like any other.
+            Diagnostics.Ui("page-menu", new
+            {
+                target = kind.ToString(),
+                link = linkUri.Length > 0 ? linkUri : null,
+                image = kind == CoreWebView2ContextMenuTargetKind.Image ? sourceUri : null,
+                hasSelection = selection.Length > 0,
+            });
 
             // ── a link ──
             if (linkUri.Length > 0)
             {
                 Add(menu, "Open Link in New Tab", () => OpenNewTab(linkUri));
                 Add(menu, "Add Link to Reading List",
-                    () => ReadingList.Add(SafeString(() => target.LinkText), linkUri));
+                    () => ReadingList.Add(target.HasLinkText ? SafeString(() => target.LinkText) : string.Empty, linkUri));
                 Add(menu, "Copy Link", () => CopyText(linkUri));
                 menu.Items.Add(new MenuFlyoutSeparator());
             }
@@ -126,9 +143,10 @@ public sealed partial class MainWindow
                 Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft,
             });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A failed menu should not take the page down with it.
+            Diagnostics.Swallowed(ex, "page menu: build");
         }
     }
 
@@ -142,9 +160,13 @@ public sealed partial class MainWindow
     private static string SafeString(Func<string?> read)
     {
         try { return read() ?? string.Empty; }
-        catch (Exception) { return string.Empty; }
+        catch (Exception ex) { Diagnostics.Swallowed(ex, "page menu: read target"); return string.Empty; }
     }
 
+    /// <summary>
+    /// Diagnostics records THAT something was copied (the menu item), never what: clipboard
+    /// contents are on the never-collected list.
+    /// </summary>
     private static void CopyText(string text)
     {
         try
@@ -153,8 +175,9 @@ public sealed partial class MainWindow
             package.SetText(text);
             Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "page menu: copy to clipboard");
         }
     }
 
@@ -163,7 +186,7 @@ public sealed partial class MainWindow
     private void ShowTabMenu(BrowserTab tab, FrameworkElement anchor)
     {
         MenuFlyout menu = new();
-        Themed(menu);
+        Themed(menu, "tab");
 
         Add(menu, "New Tab", () => OpenNewTab(null));
         Add(menu, "Duplicate Tab", () => OpenNewTab(tab.Url.Length > 0 ? tab.Url : null));

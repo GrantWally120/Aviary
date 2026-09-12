@@ -29,6 +29,9 @@ internal sealed class BrowserTab
 
     public Microsoft.UI.Xaml.Controls.WebView2 View { get; }
 
+    /// <summary>A number for this tab that diagnostics records beside everything it logs.</summary>
+    public int Id { get; } = Diagnostics.NewTabId();
+
     public string Title { get; private set; } = "New Tab";
     public string Url { get; private set; } = string.Empty;
     public bool IsSecure { get; private set; }
@@ -94,6 +97,27 @@ internal sealed class BrowserTab
     /// </summary>
     private bool _navigationBecameDownload;
 
+    // ── diagnostics: the navigation in flight, and requests awaiting their response ──
+
+    private ulong _navId;
+    private long _navStart;
+    private bool _navUserInitiated;
+    private string _navKind = string.Empty;
+    private readonly List<string> _navChain = new();
+    private int _pageErrorsThisPage;
+    private string _lastTitleLogged = string.Empty;
+    private long _lastTitleAt;
+    private string? _diagScriptId;
+    private bool _diagnosticsWired;
+    private static int _firstPage;
+
+    /// <summary>
+    /// When each request left, keyed "METHOD url", so its response can be timed. UI thread
+    /// only (both events arrive there). Bounded: a page that fires requests which never answer
+    /// must not grow it forever.
+    /// </summary>
+    private readonly Dictionary<string, (long At, string Context, string? BlockedBy)> _inFlight = new(StringComparer.Ordinal);
+
     public BrowserTab()
     {
         View = new Microsoft.UI.Xaml.Controls.WebView2
@@ -116,6 +140,12 @@ internal sealed class BrowserTab
         if (View.CoreWebView2 is not CoreWebView2 core)
         {
             throw new InvalidOperationException("WebView2 initialised without a core.");
+        }
+
+        if (Diagnostics.EngineVersion.Length == 0)
+        {
+            try { Diagnostics.EngineVersion = environment.BrowserVersionString; }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: read engine version"); }
         }
 
         // Before the first navigation. Setting it later only affects subsequent ones.
@@ -151,7 +181,74 @@ internal sealed class BrowserTab
         core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnWebResourceRequested;
 
+        // Always on, whatever the diagnostics switch says: it is rare, it costs nothing until
+        // it fires, and a renderer that dies should at least be known about.
+        core.ProcessFailed += OnProcessFailed;
+
+        Diagnostics.EnabledChanged += OnDiagnosticsChanged;
+        if (Diagnostics.On)
+        {
+            await SetDiagnosticsAsync(true);
+        }
+
         IsReady = true;
+    }
+
+    private void OnDiagnosticsChanged(bool on) => _ = SetDiagnosticsAsync(on);
+
+    /// <summary>
+    /// Wires or unwires the parts of diagnostics that cost something per page: the response
+    /// listener (every response crosses into .NET while it is subscribed) and the page-error
+    /// script. Nothing here is attached while collection is off.
+    /// </summary>
+    private async System.Threading.Tasks.Task SetDiagnosticsAsync(bool on)
+    {
+        try
+        {
+            if (View.CoreWebView2 is not CoreWebView2 core || on == _diagnosticsWired)
+            {
+                return;
+            }
+
+            _diagnosticsWired = on;
+
+            if (on)
+            {
+                core.WebResourceResponseReceived += OnWebResourceResponseReceived;
+                string id = await core.AddScriptToExecuteOnDocumentCreatedAsync(PageErrorScript);
+
+                // Switched off again while that was in flight: take it straight back out.
+                if (!_diagnosticsWired)
+                {
+                    core.RemoveScriptToExecuteOnDocumentCreated(id);
+                    return;
+                }
+
+                _diagScriptId = id;
+
+                // The document already showing has not run it; arm it too, so switching on
+                // does not wait for the next navigation.
+                if (_internalTitle is null)
+                {
+                    _ = core.ExecuteScriptAsync(PageErrorScript);
+                }
+            }
+            else
+            {
+                core.WebResourceResponseReceived -= OnWebResourceResponseReceived;
+                if (_diagScriptId is not null)
+                {
+                    core.RemoveScriptToExecuteOnDocumentCreated(_diagScriptId);
+                    _diagScriptId = null;
+                }
+
+                _inFlight.Clear();
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: wire diagnostics");
+        }
     }
 
     /// <summary>
@@ -166,15 +263,28 @@ internal sealed class BrowserTab
             // Aviary's own pages ask for site icons over a synthetic origin. TryServe
             // answers EVERY request to that host, a bad one included — if it fell through,
             // Chromium would do a real DNS lookup for aviary.localhost.
+            string uri = args.Request.Uri;
+
             if (_environment is not null
-                && Favicons.TryServe(args.Request.Uri, _environment, out CoreWebView2WebResourceResponse? icon))
+                && Favicons.TryServe(uri, _environment, out CoreWebView2WebResourceResponse? icon))
             {
                 args.Response = icon;
                 return;
             }
 
-            if (!TrackerBlocker.ShouldBlock(args.Request.Uri) || _environment is null)
+            // Timed for diagnostics' blocker-cost figure. GetTimestamp is a few nanoseconds;
+            // FilterCost returns at once while collection is off.
+            long matchStart = System.Diagnostics.Stopwatch.GetTimestamp();
+            string? rule = TrackerBlocker.Match(uri);
+            Diagnostics.FilterCost(System.Diagnostics.Stopwatch.GetTimestamp() - matchStart);
+
+            if (rule is null || _environment is null)
             {
+                if (Diagnostics.RecordsBrowsing)
+                {
+                    NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, null);
+                }
+
                 return;
             }
 
@@ -183,18 +293,169 @@ internal sealed class BrowserTab
             // The session counter resets when you quit, so on its own it can never say
             // anything more interesting than "since you opened the app". The seven-day
             // store is what the Start Page's Privacy Report reads.
-            if (Uri.TryCreate(args.Request.Uri, UriKind.Absolute, out Uri? blocked))
+            if (Uri.TryCreate(uri, UriKind.Absolute, out Uri? blocked))
             {
                 PrivacyReport.Record(blocked.Host, HostOf(Url));
             }
 
             args.Response = _environment.CreateWebResourceResponse(null, 403, "Blocked by Aviary", string.Empty);
+
+            if (Diagnostics.RecordsBrowsing)
+            {
+                Diagnostics.Blocked(Id, uri, rule, args.ResourceContext.ToString(), Url);
+
+                // Its synthetic 403 still arrives as a response; the network line should say
+                // who answered it rather than look like the server refused.
+                NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, rule);
+            }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Let the request through rather than take the page down. A missed advert is
             // cheaper than a broken browser.
+            Diagnostics.Swallowed(ex, "tab: request filter");
         }
+    }
+
+    private void NoteRequestLeft(string method, string uri, CoreWebView2WebResourceContext context, string? blockedBy)
+    {
+        if (_inFlight.Count >= 4000)
+        {
+            // Requests that never answered (a long-poll, a page torn down mid-load). Forget
+            // them rather than let the map grow without bound.
+            _inFlight.Clear();
+        }
+
+        string key = method + " " + uri;
+        if (!_inFlight.ContainsKey(key))
+        {
+            _inFlight[key] = (System.Diagnostics.Stopwatch.GetTimestamp(), context.ToString(), blockedBy);
+        }
+    }
+
+    /// <summary>
+    /// Diagnostics category 3: every response, as it arrives. Only subscribed while
+    /// collecting. Reads the status and two headers — type and length — and nothing else:
+    /// never Set-Cookie, never the request's own headers.
+    /// </summary>
+    private void OnWebResourceResponseReceived(CoreWebView2 sender, CoreWebView2WebResourceResponseReceivedEventArgs args)
+    {
+        if (!Diagnostics.RecordsBrowsing)
+        {
+            return;
+        }
+
+        try
+        {
+            CoreWebView2WebResourceRequest request = args.Request;
+            CoreWebView2WebResourceResponseView response = args.Response;
+
+            string uri = request.Uri;
+
+            // Aviary's own pages and the icons it serves them from memory are not network
+            // traffic: nothing left the machine. Logging them made the Start Page look like a
+            // 25,000-character request on every new tab.
+            if (_internalTitle is not null
+                || uri.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                || uri.StartsWith("https://aviary.localhost/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string method = request.Method;
+            string key = method + " " + uri;
+
+            double? ms = null;
+            string context = string.Empty;
+            string? blockedBy = null;
+            if (_inFlight.Remove(key, out (long At, string Context, string? BlockedBy) left))
+            {
+                ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(left.At).TotalMilliseconds, 1);
+                context = left.Context;
+                blockedBy = left.BlockedBy;
+            }
+
+            string? type = null;
+            long? bytes = null;
+            CoreWebView2HttpResponseHeaders headers = response.Headers;
+
+            if (headers.Contains("Content-Type"))
+            {
+                string raw = headers.GetHeader("Content-Type");
+                int semicolon = raw.IndexOf(';');
+                type = (semicolon >= 0 ? raw.Substring(0, semicolon) : raw).Trim();
+            }
+
+            if (headers.Contains("Content-Length")
+                && long.TryParse(headers.GetHeader("Content-Length"), out long length))
+            {
+                bytes = length;
+            }
+
+            Diagnostics.Request(new NetRecord
+            {
+                Tab = Id,
+                Url = uri,
+                Method = method,
+                Context = context,
+                Status = response.StatusCode,
+                BlockedBy = blockedBy,
+                Type = type,
+                Bytes = bytes,
+                Ms = ms,
+                PageUrl = Url,
+            });
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: record response");
+        }
+    }
+
+    /// <summary>
+    /// Diagnostics category 9. A renderer, the GPU process or the engine itself died or hung.
+    /// Each property is read on its own: older runtimes lack some, and one missing field must
+    /// not lose the record.
+    /// </summary>
+    private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs args)
+    {
+        string Read(Func<object?> get)
+        {
+            try { return get()?.ToString() ?? string.Empty; }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: read engine-failure field"); return string.Empty; }
+        }
+
+        List<string> frames = new();
+        try
+        {
+            if (args.FrameInfosForFailedProcess is { } infos)
+            {
+                foreach (CoreWebView2FrameInfo frame in infos)
+                {
+                    frames.Add(frame.Source);
+                    if (frames.Count >= 10) { break; }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: read failed frames");
+        }
+
+        string kind = Read(() => args.ProcessFailedKind);
+        string reason = Read(() => args.Reason);
+
+        Diagnostics.Engine(new
+        {
+            tab = Id,
+            kind,
+            reason,
+            exitCode = Read(() => args.ExitCode),
+            description = Read(() => args.ProcessDescription),
+            module = Read(() => args.FailureSourceModulePath),
+            frames,
+            page = Url,
+        }, kind + " " + reason);
     }
 
     /// <summary>
@@ -207,11 +468,27 @@ internal sealed class BrowserTab
         {
             args.Handled = true;
             _navigationBecameDownload = true;
+
+            if (Diagnostics.On)
+            {
+                CoreWebView2DownloadOperation op = args.DownloadOperation;
+                Diagnostics.Download("start", new
+                {
+                    tab = Id,
+                    file = System.IO.Path.GetFileName(args.ResultFilePath ?? string.Empty),
+                    url = op.Uri,
+                    mime = op.MimeType,
+                    totalBytes = op.TotalBytesToReceive,
+                    page = Url,
+                });
+            }
+
             DownloadStarted?.Invoke(args.DownloadOperation);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Let the default UI take over rather than lose the download entirely.
+            Diagnostics.Swallowed(ex, "tab: download starting");
         }
     }
 
@@ -236,10 +513,11 @@ internal sealed class BrowserTab
                 _ => CoreWebView2PreferredColorScheme.Auto
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Older runtimes may not expose the profile; the page just keeps following
             // Windows, which is a cosmetic mismatch rather than a failure.
+            Diagnostics.Swallowed(ex, "tab: apply colour scheme");
         }
     }
 
@@ -262,9 +540,10 @@ internal sealed class BrowserTab
                 ? CoreWebView2MemoryUsageTargetLevel.Low
                 : CoreWebView2MemoryUsageTargetLevel.Normal;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Best effort by design — the API can decline.
+            Diagnostics.Swallowed(ex, "tab: memory target level");
         }
     }
 
@@ -326,14 +605,182 @@ internal sealed class BrowserTab
                     Favicons.OfferCandidates(IconKey, origin, candidates);
                     break;
                 }
+
+                case "diag":
+                    RecordPageError(root, args);
+                    break;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A malformed message from our own injected script is a bug to find in
             // testing, not a reason to take the browser down.
+            Diagnostics.Swallowed(ex, "tab: web message");
         }
     }
+
+    /// <summary>
+    /// Diagnostics category 8, from <see cref="PageErrorScript"/>.
+    ///
+    /// ANY page can post a message shaped like this one, so nothing in it is trusted: the page
+    /// address comes from the engine (args.Source), not from the message; every string is
+    /// length-capped; and a page gets a hundred reports per load before the rest are dropped,
+    /// so a page cannot flood the folder.
+    /// </summary>
+    private void RecordPageError(JsonElement root, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        if (!Diagnostics.RecordsBrowsing || _pageErrorsThisPage >= 100)
+        {
+            return;
+        }
+
+        _pageErrorsThisPage++;
+
+        string Text(string name, int max)
+        {
+            if (!root.TryGetProperty(name, out JsonElement v) || v.ValueKind != JsonValueKind.String)
+            {
+                return string.Empty;
+            }
+
+            string s = v.GetString() ?? string.Empty;
+            return s.Length > max ? s.Substring(0, max) : s;
+        }
+
+        int Number(string name) =>
+            root.TryGetProperty(name, out JsonElement v) && v.TryGetInt32(out int n) ? n : 0;
+
+        string kind = Text("kind", 16) switch
+        {
+            "resource" => "resource",
+            "promise" => "promise",
+            _ => "js",
+        };
+
+        string page;
+        try { page = args.Source; }
+        catch (Exception ex) { page = Url; Diagnostics.Swallowed(ex, "tab: page-error source"); }
+
+        string? url = NullIfEmpty(Text("url", 2000));
+
+        // A file that "failed" because Aviary's own blocker refused it is not the site being
+        // broken, and counting it as one made every ad-funded site look like the worst on the
+        // web. It is still recorded — which blocked files a page wanted is exactly how a site
+        // BROKEN by the blocker gets diagnosed — but labelled for what it is.
+        string? blockedBy = kind == "resource" && url is not null ? TrackerBlocker.Match(url) : null;
+
+        Diagnostics.PageError(kind, new
+        {
+            tab = Id,
+            page,
+            message = NullIfEmpty(Text("message", 1000)),
+            source = NullIfEmpty(Text("source", 1000)),
+            line = Number("line") is > 0 and var l ? l : (int?)null,
+            col = Number("col") is > 0 and var c ? c : (int?)null,
+            stack = NullIfEmpty(Text("stack", 3000)),
+            url,
+            tag = NullIfEmpty(Text("tag", 16)),
+            blockedBy,
+        });
+
+        static string? NullIfEmpty(string s) => s.Length == 0 ? null : s;
+    }
+
+    /// <summary>
+    /// Reports a page's script errors, rejected promises and failed files to Aviary. Only
+    /// injected while diagnostics is collecting.
+    ///
+    /// Before anything leaves the page, every value currently typed into the page's fields is
+    /// cut out of the message and the stack. A site that throws "invalid value: hunter2" would
+    /// otherwise carry what you typed straight into the log — and what you type into forms is
+    /// on the never-collected list.
+    ///
+    /// Main frame only: an embedded frame posts to its own frame object, not to the tab.
+    /// </summary>
+    private const string PageErrorScript = """
+(function(){
+  if (window.__aviaryDiag) { return; }
+  window.__aviaryDiag = 1;
+
+  var sent = 0;
+
+  function typed(){
+    var out = [];
+    try {
+      var els = document.querySelectorAll('input, textarea');
+      for (var i = 0; i < els.length && i < 400; i++) {
+        var el = els[i];
+        var t = (el.type || '').toLowerCase();
+        if (t === 'checkbox' || t === 'radio' || t === 'submit' || t === 'button' ||
+            t === 'reset' || t === 'image' || t === 'file' || t === 'range' || t === 'color') { continue; }
+        var v = el.value;
+        if (v && v.length >= 3) { out.push(v); }
+      }
+    } catch (e) {}
+    out.sort(function(a, b){ return b.length - a.length; });
+    return out;
+  }
+
+  function clean(s, vals){
+    if (s == null) { return ''; }
+    s = String(s).slice(0, 3000);
+    for (var i = 0; i < vals.length; i++) {
+      if (s.indexOf(vals[i]) >= 0) { s = s.split(vals[i]).join('•••'); }
+    }
+    return s;
+  }
+
+  function post(o){
+    if (sent >= 60) { return; }
+    sent++;
+    o.type = 'diag';
+    try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch (e) {}
+  }
+
+  window.addEventListener('error', function(e){
+    var t = e.target;
+    if (t && t !== window && t.tagName) {
+      post({ kind:'resource', tag:String(t.tagName).toLowerCase(),
+             url:String(t.currentSrc || t.src || t.href || '').slice(0, 2000) });
+      return;
+    }
+    var vals = typed();
+    post({ kind:'js', message:clean(e.message, vals), source:String(e.filename || '').slice(0, 2000),
+           line:e.lineno | 0, col:e.colno | 0, stack:clean(e.error && e.error.stack, vals) });
+  }, true);
+
+  window.addEventListener('unhandledrejection', function(e){
+    var vals = typed();
+    var r = e.reason;
+    var message = r && typeof r === 'object' ? (r.message || String(r)) : String(r);
+    post({ kind:'promise', message:clean(message, vals), stack:clean(r && r.stack, vals) });
+  });
+})();
+""";
+
+    /// <summary>
+    /// The page's own account of how its load went, read once after it completes, while
+    /// collecting. The referrer is only knowable from inside the page.
+    /// </summary>
+    private const string NavigationTimingScript = """
+(function(){
+  try {
+    var r = { referrer: document.referrer || '' };
+    var n = performance.getEntriesByType('navigation')[0];
+    if (n) {
+      r.ttfbMs = Math.round(n.responseStart);
+      r.domReadyMs = Math.round(n.domContentLoadedEventEnd);
+      r.loadMs = Math.round(n.loadEventEnd);
+      r.dnsMs = Math.round(n.domainLookupEnd - n.domainLookupStart);
+      r.connectMs = Math.round(n.connectEnd - n.connectStart);
+      r.transferBytes = n.transferSize | 0;
+      r.protocol = n.nextHopProtocol || '';
+    }
+    r.resources = performance.getEntriesByType('resource').length;
+    return JSON.stringify(r);
+  } catch (e) { return '{}'; }
+})()
+""";
 
     /// <summary>
     /// Browser shortcuts, caught inside the page and posted up.
@@ -429,9 +876,10 @@ internal sealed class BrowserTab
             _ = core.ExecuteScriptAsync(
                 "try{document.documentElement.style.zoom='" + factor + "';}catch(e){}");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A zoom that will not apply is cosmetic; the page still renders.
+            Diagnostics.Swallowed(ex, "tab: apply zoom");
         }
     }
 
@@ -460,15 +908,41 @@ internal sealed class BrowserTab
             Title = displayTitle;
             _internalTitle = displayTitle;
             Monogram = displayTitle.Length > 0 ? displayTitle.Substring(0, 1).ToUpperInvariant() : "•";
+            Diagnostics.TabUrl(Id, InternalAddress);
+            Diagnostics.TabTitle(Id, displayTitle);
             View.CoreWebView2.NavigateToString(html);
             Changed?.Invoke(this);
         }
     }
 
-    private void OnSourceChanged(CoreWebView2 sender, object args)
+    /// <summary>
+    /// What diagnostics calls one of Aviary's own pages. Their real address is a data: URI
+    /// holding the whole page, which is neither readable nor small.
+    /// </summary>
+    private string InternalAddress =>
+        "aviary:" + (_internalTitle ?? string.Empty).ToLowerInvariant().Replace(' ', '-');
+
+    private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs args)
     {
         Url = sender.Source;
         IsSecure = Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+        if (_internalTitle is null)
+        {
+            Diagnostics.TabUrl(Id, Url);
+
+            // A single-page app changing route without loading a new document. Navigation
+            // lines only cover new documents, so without this YouTube or Gmail would look like
+            // one page visited for an hour.
+            bool sameDocument;
+            try { sameDocument = !args.IsNewDocument; }
+            catch (Exception ex) { sameDocument = false; Diagnostics.Swallowed(ex, "tab: IsNewDocument (older runtime?)"); }
+
+            if (sameDocument && Diagnostics.RecordsBrowsing)
+            {
+                Diagnostics.Browse("same-document", Url, new { tab = Id, url = Url });
+            }
+        }
 
         string previous = IconKey;
         IconKey = Favicons.KeyFor(Url);
@@ -543,10 +1017,14 @@ internal sealed class BrowserTab
 
             Favicons.Offer(key, bytes, core.Source, IconRank.Engine);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // GetFaviconAsync arrived in WebView2 102. Below that it throws; latch it off
             // once rather than throwing on every page load for the rest of the session.
+            //
+            // Recorded, because a latch that trips on a CURRENT runtime means every tab
+            // silently lost its engine-decoded icon for the rest of the session.
+            Diagnostics.Swallowed(ex, "tab: engine favicon (API now latched off)");
             Favicons.MarkEngineApiUnavailable();
         }
     }
@@ -616,12 +1094,67 @@ internal sealed class BrowserTab
         Monogram = PublicSuffix.Monogram(HostOf(Url));
         History.UpdateTitle(Url, Title);
 
+        Diagnostics.TabTitle(Id, Title);
+        LogTitle();
+
         Changed?.Invoke(this);
+    }
+
+    /// <summary>
+    /// A page's title usually arrives after its navigation has been logged. Logged once per
+    /// change — and a page that retitles itself constantly ("(3) Inbox", "(4) Inbox") gets
+    /// one line every few seconds at most.
+    /// </summary>
+    private void LogTitle()
+    {
+        if (!Diagnostics.RecordsBrowsing || string.Equals(Title, _lastTitleLogged, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        long now = Environment.TickCount64;
+        if (now - _lastTitleAt < 5000 && _lastTitleLogged.Length > 0)
+        {
+            return;
+        }
+
+        _lastTitleLogged = Title;
+        _lastTitleAt = now;
+        Diagnostics.Browse("title", Title, new { tab = Id, url = Url, title = Title });
     }
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
         IsLoading = true;
+
+        try
+        {
+            // A redirect arrives as another NavigationStarting with the SAME id, so the chain
+            // is built up here and written once, when the navigation completes.
+            ulong id = args.NavigationId;
+            if (id != _navId || !args.IsRedirected)
+            {
+                _navId = id;
+                _navStart = System.Diagnostics.Stopwatch.GetTimestamp();
+                _navChain.Clear();
+                _navUserInitiated = args.IsUserInitiated;
+                _pageErrorsThisPage = 0;
+                _lastTitleLogged = string.Empty;
+
+                try { _navKind = args.NavigationKind.ToString(); }
+                catch (Exception ex) { _navKind = string.Empty; Diagnostics.Swallowed(ex, "tab: NavigationKind (older runtime?)"); }
+            }
+
+            if (Diagnostics.RecordsBrowsing && _navChain.Count < 20)
+            {
+                _navChain.Add(args.Uri);
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: navigation starting");
+        }
+
         Changed?.Invoke(this);
     }
 
@@ -630,6 +1163,16 @@ internal sealed class BrowserTab
         IsLoading = false;
         ApplyZoom();
         Changed?.Invoke(this);
+
+        if (Interlocked.Exchange(ref _firstPage, 1) == 0)
+        {
+            Diagnostics.Mark("first-page-loaded");
+        }
+
+        if (Diagnostics.RecordsBrowsing)
+        {
+            _ = LogNavigationAsync(sender, args);
+        }
 
         // Once per successful navigation. The title is usually still the old one here, so
         // OnDocumentTitleChanged corrects it WITHOUT counting a second visit.
@@ -645,9 +1188,140 @@ internal sealed class BrowserTab
             return;
         }
 
-        if (!args.IsSuccess && args.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled)
+        // A SERVER that answered with 404 or 500 sent a page of its own — "not found", a
+        // search box, a way back — and WebView2 still reports that as a failed navigation with
+        // status Unknown. Covering it with Aviary's "This page didn't load" panel hid the site's
+        // own page behind a vaguer message. Found by diagnostics in M1 (the error-page-shown
+        // event fired on a 404). Aviary's panel is for when nothing answered at all.
+        if (!args.IsSuccess
+            && args.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled
+            && !ServerAnswered(args))
         {
             NavigationFailed?.Invoke(this, args.WebErrorStatus);
+        }
+    }
+
+    private static bool ServerAnswered(CoreWebView2NavigationCompletedEventArgs args)
+    {
+        try
+        {
+            return args.WebErrorStatus == CoreWebView2WebErrorStatus.Unknown && args.HttpStatusCode > 0;
+        }
+        catch (Exception ex)
+        {
+            // HttpStatusCode is newer than the rest of these arguments.
+            Diagnostics.Swallowed(ex, "tab: HttpStatusCode for error page");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Diagnostics categories 1 and 13: where this navigation went and how it went. Everything
+    /// that can change is read BEFORE the first await — another navigation may begin while the
+    /// page's timing is being fetched.
+    /// </summary>
+    private async Task LogNavigationAsync(CoreWebView2 core, CoreWebView2NavigationCompletedEventArgs args)
+    {
+        try
+        {
+            bool success = args.IsSuccess;
+            bool download = _navigationBecameDownload;
+            bool internalPage = _internalTitle is not null;
+
+            int? httpStatus = null;
+            try { httpStatus = args.HttpStatusCode is > 0 and var code ? code : null; }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: HttpStatusCode (older runtime?)"); }
+
+            // "Unknown" is what the engine calls a server's own error page; say what it was.
+            string result = download ? "became a download"
+                          : success ? "ok"
+                          : args.WebErrorStatus == CoreWebView2WebErrorStatus.Unknown && httpStatus is > 0
+                              ? "HTTP " + httpStatus
+                              : args.WebErrorStatus.ToString();
+
+            double ms = _navStart == 0
+                ? 0
+                : Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(_navStart).TotalMilliseconds, 1);
+
+            string url = internalPage ? InternalAddress : core.Source;
+            List<string>? redirects = _navChain.Count > 1 ? new List<string>(_navChain) : null;
+            bool userInitiated = _navUserInitiated;
+            string kind = _navKind;
+
+            JsonElement? timing = null;
+            if (success && !internalPage && !download)
+            {
+                try
+                {
+                    // A page too busy to answer within three seconds still gets its line.
+                    Task<string> script = core.ExecuteScriptAsync(NavigationTimingScript).AsTask();
+                    if (await Task.WhenAny(script, Task.Delay(3000)) == script)
+                    {
+                        string? inner = JsonSerializer.Deserialize<string>(await script);
+                        if (!string.IsNullOrEmpty(inner))
+                        {
+                            using JsonDocument doc = JsonDocument.Parse(inner);
+                            timing = doc.RootElement.Clone();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Usually the page moved on before it could answer. The navigation line is
+                    // still written below, just without the page's own timings.
+                    Diagnostics.Swallowed(ex, "tab: read page timing");
+                }
+            }
+
+            string title = internalPage ? (_internalTitle ?? string.Empty) : core.DocumentTitle;
+
+            string? Str(string name) =>
+                timing is { } t && t.TryGetProperty(name, out JsonElement v) && v.ValueKind == JsonValueKind.String
+                    ? v.GetString()
+                    : null;
+
+            long? Num(string name) =>
+                timing is { } t && t.TryGetProperty(name, out JsonElement v) && v.TryGetInt64(out long n)
+                    ? n
+                    : null;
+
+            Diagnostics.Browse("navigation", url, new
+            {
+                tab = Id,
+                url,
+                title,
+                result,
+                httpStatus,
+                ms,
+                redirects,
+                referrer = Str("referrer") is { Length: > 0 } r ? r : null,
+                userInitiated,
+                kind = kind.Length > 0 ? kind : null,
+            });
+
+            if (!internalPage && success)
+            {
+                string site = NetRecord.SiteOf(url);
+                Diagnostics.TrackSlow("navigation", ms, site);
+                Diagnostics.Perf("navigation", new
+                {
+                    tab = Id,
+                    site,
+                    ms,
+                    ttfbMs = Num("ttfbMs"),
+                    domReadyMs = Num("domReadyMs"),
+                    loadMs = Num("loadMs"),
+                    dnsMs = Num("dnsMs"),
+                    connectMs = Num("connectMs"),
+                    transferBytes = Num("transferBytes"),
+                    resources = Num("resources"),
+                    protocol = Str("protocol"),
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: log navigation");
         }
     }
 
@@ -702,10 +1376,11 @@ internal sealed class BrowserTab
                 args.NewWindow = blank;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Losing the new window is survivable; an unhandled exception on an async void
             // handler is not — it comes back as a process-level crash.
+            Diagnostics.Swallowed(ex, "tab: open new window");
         }
         finally
         {
@@ -754,15 +1429,24 @@ internal sealed class BrowserTab
                 core.WebMessageReceived -= OnWebMessageReceived;
                 core.WebResourceRequested -= OnWebResourceRequested;
                 core.DownloadStarting -= OnDownloadStarting;
+                core.ProcessFailed -= OnProcessFailed;
+                core.WebResourceResponseReceived -= OnWebResourceResponseReceived;
             }
 
             Favicons.Unpin(IconKey);
             View.Close();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Already gone.
+            Diagnostics.Swallowed(ex, "tab: dispose");
         }
+
+        // A static event holds its listeners: without this every closed tab would be kept
+        // alive by the diagnostics switch for the rest of the session.
+        Diagnostics.EnabledChanged -= OnDiagnosticsChanged;
+        Diagnostics.TabClosed(Id);
+        _inFlight.Clear();
 
         Changed = null;
         CloseRequested = null;

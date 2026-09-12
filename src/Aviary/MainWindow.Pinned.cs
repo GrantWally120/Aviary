@@ -63,6 +63,9 @@ public sealed partial class MainWindow
 
         _tabs.Insert(Math.Clamp(pinnedAhead, 0, _tabs.Count), tab);
 
+        Diagnostics.TabPinned(tab.Id, pinning);
+        Diagnostics.Feature(pinning ? "tab-pin" : "tab-unpin", new { tab = tab.Id, url = tab.Url, from, to = _tabs.IndexOf(tab) });
+
         SavePinned();
         RebuildTabStrip();
     }
@@ -80,8 +83,9 @@ public sealed partial class MainWindow
 
             AppSettings.Set("pinnedTabs", JsonSerializer.Serialize(urls));
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "pinned tabs: save");
         }
     }
 
@@ -100,8 +104,9 @@ public sealed partial class MainWindow
 
             urls = JsonSerializer.Deserialize<List<string>>(raw) ?? new List<string>();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "pinned tabs: read saved list");
             return;
         }
 
@@ -112,13 +117,14 @@ public sealed partial class MainWindow
                 continue;
             }
 
-            BrowserTab? tab = await CreateTabAsync(select: false);
+            BrowserTab? tab = await CreateTabAsync(select: false, reason: "pinned tab restored");
             if (tab is null)
             {
                 return;
             }
 
             _pinned.Add(tab);
+            Diagnostics.TabPinned(tab.Id, true);
             tab.Navigate(url);
         }
 

@@ -133,8 +133,9 @@ internal static class FindInPage
 
             return await core.ExecuteScriptAsync(expression);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "find in page: run script");
             return "0";
         }
     }

@@ -95,9 +95,10 @@ internal static class ReadingList
                                  ?? new List<ReadingItem>();
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     _items = new List<ReadingItem>();
+                    Diagnostics.Swallowed(ex, "reading list: load readinglist.json");
                 }
 
                 return _items;
@@ -145,16 +146,19 @@ internal static class ReadingList
             }
         }
 
+        Diagnostics.Feature("reading-list-add", new { url, title });
         Save();
     }
 
     public static void Remove(string url)
     {
+        int removed;
         lock (Gate)
         {
-            Items.RemoveAll(i => string.Equals(i.Url, url, StringComparison.OrdinalIgnoreCase));
+            removed = Items.RemoveAll(i => string.Equals(i.Url, url, StringComparison.OrdinalIgnoreCase));
         }
 
+        Diagnostics.Feature("reading-list-remove", new { url, removed });
         Save();
     }
 
@@ -173,6 +177,7 @@ internal static class ReadingList
             item.Unread = !read;
         }
 
+        Diagnostics.Feature(read ? "reading-list-mark-read" : "reading-list-mark-unread", new { url });
         Save();
     }
 
@@ -194,8 +199,9 @@ internal static class ReadingList
             File.WriteAllText(temp, json);
             File.Move(temp, FilePath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "reading list: save readinglist.json");
         }
 
         Changed?.Invoke();

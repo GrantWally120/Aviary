@@ -68,9 +68,10 @@ internal static class PrivacyReport
                         _model = JsonSerializer.Deserialize<Model>(File.ReadAllText(FilePath)) ?? new Model();
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     _model = new Model();
+                    Diagnostics.Swallowed(ex, "privacy report: load privacy.json");
                 }
 
                 Prune(_model);
@@ -244,8 +245,9 @@ internal static class PrivacyReport
             File.WriteAllText(temp, json);
             File.Move(temp, FilePath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "privacy report: save privacy.json");
         }
     }
 }

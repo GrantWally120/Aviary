@@ -32,9 +32,10 @@ internal sealed class SidebarGrip : Grid
         {
             ProtectedCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeWestEast);
         }
-        catch (System.Exception)
+        catch (System.Exception ex)
         {
             // An unavailable cursor shape costs the hover affordance, not the drag.
+            Diagnostics.Swallowed(ex, "sidebar grip: resize cursor");
         }
     }
 }

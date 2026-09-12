@@ -71,9 +71,10 @@ internal static class AppSettings
                 _values["reduceMotion"] =
                     new Windows.UI.ViewManagement.UISettings().AnimationsEnabled ? "false" : "true";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _values["reduceMotion"] = "false";
+                Diagnostics.Swallowed(ex, "settings: read Windows animation setting");
             }
 
             try
@@ -100,10 +101,11 @@ internal static class AppSettings
                 // no handler on the other end. Drop it on sight; it is not a preference.
                 _values.Remove("reset");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // A corrupt settings file should cost you your preferences, not your
                 // browser. Defaults are already in place; carry on.
+                Diagnostics.Swallowed(ex, "settings: load settings.json");
             }
         }
     }
@@ -165,6 +167,8 @@ internal static class AppSettings
     {
         Load();
 
+        Diagnostics.Ui("settings-reset");
+
         lock (Gate)
         {
             _values = new Dictionary<string, string>(Defaults, StringComparer.OrdinalIgnoreCase);
@@ -190,11 +194,16 @@ internal static class AppSettings
     public static void Set(string key, string value)
     {
         Load();
+        string? previous;
         lock (Gate)
         {
+            previous = _values.TryGetValue(key, out string? old) ? old : null;
             _values[key] = value;
         }
 
+        // Every change, old to new — diagnostics category 6. Recorded before the write so a
+        // save that throws is still seen as having been attempted.
+        Diagnostics.Setting(key, previous, value);
         Save();
     }
 
@@ -202,8 +211,19 @@ internal static class AppSettings
     /// Written on every change rather than at shutdown. The file is tiny, and a browser
     /// that loses your preferences because it crashed is a browser that feels unreliable.
     /// </summary>
+    private static long _saveSequence;
+
+    /// <summary>
+    /// Bumped at the start of every save. The diagnostics round-trip check only compares a
+    /// save that is still the newest; otherwise a quick second save (Ctrl+= held down) would
+    /// make the first one look like it read back wrong.
+    /// </summary>
+    public static long SaveSequence => System.Threading.Interlocked.Read(ref _saveSequence);
+
     private static void Save()
     {
+        long sequence = System.Threading.Interlocked.Increment(ref _saveSequence);
+
         try
         {
             Directory.CreateDirectory(Folder);
@@ -221,10 +241,15 @@ internal static class AppSettings
             string temp = FilePath + ".tmp";
             File.WriteAllText(temp, json);
             File.Move(temp, FilePath, overwrite: true);
+
+            // Read back and compared on the diagnostics writer, off this thread: a key that
+            // does not survive the round trip is the "saves but reverts" bug, caught live.
+            Diagnostics.SettingsSaved(snapshot, FilePath, sequence);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Losing a preference is survivable. Taking the browser down over it is not.
+            Diagnostics.Swallowed(ex, "settings: save settings.json");
         }
     }
 }

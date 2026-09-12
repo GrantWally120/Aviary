@@ -46,9 +46,10 @@ internal static class KnownFolders
                     _downloads = Marshal.PtrToStringUni(buffer);
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // Fall through to the profile-relative guess.
+                Diagnostics.Swallowed(ex, "known folders: Downloads");
             }
             finally
             {

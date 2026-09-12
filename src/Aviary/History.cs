@@ -85,10 +85,11 @@ internal static class History
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     // A corrupt history file costs you history, not your browser.
                     _items = new Dictionary<string, HistoryEntry>(StringComparer.OrdinalIgnoreCase);
+                    Diagnostics.Swallowed(ex, "history: load history.json");
                 }
 
                 return _items;
@@ -291,6 +292,7 @@ internal static class History
     public static void Remove(string url)
     {
         lock (Gate) { Items.Remove(url); }
+        Diagnostics.Ui("history-remove", new { url });
         ScheduleSave();
         Changed?.Invoke();
     }
@@ -370,9 +372,10 @@ internal static class History
             File.WriteAllText(temp, json);
             File.Move(temp, FilePath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Losing history is survivable; taking the browser down is not.
+            Diagnostics.Swallowed(ex, "history: save history.json");
         }
     }
 }

@@ -161,6 +161,29 @@ internal static class InternalPages
   }
   .btn:hover{background:var(--fill-hover);}
   .btn--danger{color:#FF453A;border-color:rgba(255,69,58,.34);}
+  .btns{display:flex;gap:8px;flex:0 0 auto;}
+  /* A row's expandable detail — "What Aviary collects". */
+  .more{margin-top:8px;}
+  .more summary{
+    display:inline-flex;align-items:center;gap:7px;cursor:default;list-style:none;
+    color:var(--accent);font-size:12.5px;font-weight:500;
+  }
+  .more summary::-webkit-details-marker{display:none;}
+  .more summary::before{
+    content:"";width:5px;height:5px;margin-top:-2px;
+    border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;
+    transform:rotate(-45deg);transition:transform 160ms cubic-bezier(.32,.72,0,1);
+  }
+  .more[open] summary::before{transform:rotate(45deg);margin-top:-4px;}
+  .more__body{margin-top:10px;font-size:12.5px;line-height:1.55;color:var(--ink-2);
+    -webkit-user-select:text;user-select:text;}
+  .more__body ol{margin:0 0 6px;padding-left:22px;display:grid;gap:6px;}
+  .more__body ul{margin:4px 0 8px;padding-left:18px;display:grid;gap:3px;}
+  /* `.row__t b` makes a row's TITLE a block; bold words inside a description or the list
+     must stay in their sentence. */
+  .row__t span b,.more__body b{display:inline;color:var(--ink);font-weight:600;font-size:inherit;}
+  .more__body p{margin:8px 0 0;}
+  .more__h{font-weight:600;color:var(--ink);margin-top:12px !important;}
   .soon{
     font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:4px 7px;flex:0 0 auto;
@@ -196,9 +219,12 @@ internal static class InternalPages
 /*__AVIARY_SETTINGS__*/
 /*__AVIARY_BUILD__*/
 /*__AVIARY_PATHS__*/
+/*__AVIARY_DIAG__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
+var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
+var RENDERED = {};
 var BUILD = (typeof window.__aviaryBuild === 'object' && window.__aviaryBuild) ||
             {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0};
 /* Rows are gated on the last SHIPPED phase, not the one in progress — see BuildInfo. */
@@ -217,7 +243,9 @@ function saved(key, fallback){
   if (v === 'false') { return false; }
   return v;
 }
-function post(o){ try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
+/* Every message carries this page's secret (injected with the settings), which the host
+   checks — its handler outlives this page if the tab is navigated to a website. */
+function post(o){ try { o.token = window.__aviaryToken || ''; window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
 function sendSetting(k, v){ post({type:'setting', key:k, value:v}); }
 function sendCommand(n){ post({type:'command', name:n}); }
 var ICON = {
@@ -286,7 +314,13 @@ var SECTIONS = [
       {t:'Block third-party cookies', d:'Cookies set by sites other than the one you are visiting.', ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
       {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
       {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear\u2026'}},
-      {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}}
+      {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}},
+      /* Diagnostics \u2014 PHASE5-PLAN.md M1. Deliberately at the BOTTOM of Privacy and deliberately
+         blunt: it records every address, title and search, and the row has to say so in those
+         words. Live, not phase-gated: it works now, and every later milestone is measured by it. */
+      {t:'Allow data collection for improvements', d:'Records everything Aviary does \u2014 every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash \u2014 into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
+      {t:'What Aviary collects', d:'One switch, all or nothing. While it is on, all sixteen of these are recorded; passwords, what you type into websites, cookies, login tokens, card numbers and your clipboard never are.', more:'diag', ctl:{type:'none'}},
+      {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
     ]},
 
   { id:'search', icon:'search', name:'Search engine', title:'Search engine',
@@ -372,6 +406,10 @@ function control(row){
                   : String(c.value);
     }
     c.value = saved(c.key, c.value);
+
+    /* …and what the control is about to DRAW, for diagnostics' round-trip check: a switch
+       shows its truthiness, a dropdown shows its text. */
+    RENDERED[c.key] = (c.type === 'toggle') ? (c.value ? 'true' : 'false') : String(c.value);
   }
 
   if (c.type === 'select'){
@@ -397,8 +435,21 @@ function control(row){
     return badge + '<button class="btn' + (c.danger ? ' btn--danger' : '') +
            '" data-cmd="' + c.cmd + '"' + (pending ? ' disabled' : '') + '>' + c.label + '</button>';
   }
+  if (c.type === 'buttons'){
+    return badge + '<div class="btns">' + c.items.map(function(b){
+      return '<button class="btn' + (b.danger ? ' btn--danger' : '') + '" data-cmd="' + b.cmd + '"' +
+             (pending ? ' disabled' : '') + '>' + b.label + '</button>';
+    }).join('') + '</div>';
+  }
   return badge;
 }
+
+/* A row's expandable detail. The body is filled by script from injected data, never pasted
+   into this markup — see the diagnostics list below. */
+var MORE = {
+  diag: '<details class="more"><summary>Show all sixteen, and what is never collected</summary>' +
+        '<div class="more__body" id="diaglist"></div></details>'
+};
 
 var nav = document.getElementById('nav');
 var main = document.getElementById('main');
@@ -429,7 +480,8 @@ SECTIONS.forEach(function(s, i){
   } else {
     body += '<div class="group">' + s.rows.map(function(r){
       return '<div class="row"><div class="row__t"><b>' + r.t + '</b>' +
-             (r.d ? '<span>' + r.d + '</span>' : '') + '</div>' + control(r) + '</div>';
+             (r.d ? '<span>' + r.d + '</span>' : '') + (r.more ? (MORE[r.more] || '') : '') +
+             '</div>' + control(r) + '</div>';
     }).join('') + '</div>';
   }
   pane.innerHTML = body;
@@ -442,6 +494,53 @@ if (uaEl) uaEl.textContent = navigator.userAgent;
 /* textContent, not innerHTML: a folder name is user data and can contain anything. */
 var dlPath = document.getElementById('dlpath');
 if (dlPath) dlPath.textContent = PATHS.downloads || '';
+
+/* The collection row: its live status and folder, and the full list of what is collected —
+   built from the same C# list as manifest.json and summary.md, so the three cannot drift. */
+function diagStatus(d){
+  var s = document.getElementById('diagstatus');
+  if (s) s.textContent = (d && d.status) || '';
+  var p = document.getElementById('diagpath');
+  if (p) p.textContent = (d && d.folder) || '';
+}
+diagStatus(DIAG);
+
+/* Host to page, one-way: the switch has moved itself; the words under it follow. */
+window.__aviaryDiagStatus = function(d){ if (d) { DIAG = d; } diagStatus(DIAG); };
+
+var diagList = document.getElementById('diaglist');
+if (diagList && DIAG.categories){
+  var ol = document.createElement('ol');
+  DIAG.categories.forEach(function(c){
+    var li = document.createElement('li');
+    var b = document.createElement('b');
+    b.textContent = c.name;
+    li.appendChild(b);
+    li.appendChild(document.createTextNode(' — ' + c.plain));
+    ol.appendChild(li);
+  });
+  diagList.appendChild(ol);
+
+  var never = document.createElement('p');
+  never.className = 'more__h';
+  never.textContent = 'Never collected';
+  diagList.appendChild(never);
+
+  var ul = document.createElement('ul');
+  (DIAG.never || []).forEach(function(n){
+    var li = document.createElement('li');
+    li.textContent = n;
+    ul.appendChild(li);
+  });
+  diagList.appendChild(ul);
+
+  [DIAG.masking, DIAG.stays].forEach(function(t){
+    if (!t) { return; }
+    var p = document.createElement('p');
+    p.textContent = t;
+    diagList.appendChild(p);
+  });
+}
 
 nav.addEventListener('click', function(e){
   var b = e.target.closest('button[data-target]');
@@ -510,6 +609,9 @@ document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { clos
    snapshot covers everything the page can draw, and a control cannot save a value it then
    fails to read back. */
 post({type:'schema', values:SEED});
+
+/* After the schema, so the store has registered every key before the host compares. */
+post({type:'rendered', values:RENDERED});
 
 /* Host to page, deliberately one-way and silent: it must NOT post anything back, or Ctrl+D
    flipping the favourites bar on would ping-pong with the host forever. */

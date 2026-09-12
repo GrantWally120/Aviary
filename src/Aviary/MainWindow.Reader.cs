@@ -81,10 +81,20 @@ public sealed partial class MainWindow
             using JsonDocument doc = JsonDocument.Parse(inner);
             _readerAvailable = doc.RootElement.TryGetProperty("readable", out JsonElement r)
                                && r.ValueKind == JsonValueKind.True;
+
+            // Category 14: Reader's verdict on every page — the data M7 needs to tell whether
+            // the extraction is too strict or too eager.
+            Diagnostics.Feature("reader-verdict", new
+            {
+                url = tab.Url,
+                readable = _readerAvailable,
+                words = doc.RootElement.TryGetProperty("words", out JsonElement w) && w.TryGetInt32(out int n) ? n : (int?)null,
+            });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A page that will not answer simply does not offer Reader.
+            Diagnostics.Swallowed(ex, "reader: probe page");
         }
 
         if (ReferenceEquals(tab, _active))
@@ -127,9 +137,17 @@ public sealed partial class MainWindow
                     "window.__aviaryReader && window.__aviaryReader.enter(" + ReaderOptions() + ")");
                 _readerActive = true;
             }
+
+            Diagnostics.Feature(_readerActive ? "reader-on" : "reader-off", new
+            {
+                url = _active?.Url,
+                font = ReaderFont,
+                background = ReaderTheme,
+            });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "reader: toggle");
         }
 
         UpdatePageButton();
@@ -147,8 +165,9 @@ public sealed partial class MainWindow
             await core.ExecuteScriptAsync(
                 "window.__aviaryReader && window.__aviaryReader.restyle(" + ReaderOptions() + ")");
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "reader: restyle");
         }
     }
 
@@ -159,7 +178,7 @@ public sealed partial class MainWindow
     private void ShowPageMenu()
     {
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
-        Themed(menu);
+        Themed(menu, "page settings (Aa)");
 
         // ── zoom row ──
         MenuFlyoutItem zoomOut = new() { Text = "Zoom Out" };
@@ -251,6 +270,7 @@ public sealed partial class MainWindow
             {
                 bool now = !SiteSettings.GetBool(host, "autoReader");
                 SiteSettings.Set(host, "autoReader", now ? "true" : "false");
+                Diagnostics.Feature("reader-automatic", new { site = host, on = now });
                 if (now && _readerAvailable && !_readerActive)
                 {
                     ToggleReader();
@@ -308,9 +328,10 @@ internal static class SiteSettings
                                   ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     _values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    Diagnostics.Swallowed(ex, "site settings: load sites.json");
                 }
 
                 return _values;
@@ -365,8 +386,9 @@ internal static class SiteSettings
             System.IO.File.WriteAllText(temp, json);
             System.IO.File.Move(temp, FilePath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "site settings: save sites.json");
         }
     }
 }

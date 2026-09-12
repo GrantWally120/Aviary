@@ -43,6 +43,7 @@ public sealed partial class MainWindow : Window
 
     public MainWindow()
     {
+        Diagnostics.Mark("window-constructing");
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
@@ -133,7 +134,19 @@ public sealed partial class MainWindow : Window
     private void AddAccelerator(VirtualKey key, VirtualKeyModifiers mods, TypedEventHandler<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> handler)
     {
         KeyboardAccelerator a = new() { Key = key, Modifiers = mods };
-        a.Invoked += (s, e) => { e.Handled = true; handler(s, e); };
+
+        // "Ctrl+Shift+D", for diagnostics. Built once here rather than on every press.
+        string combo = (mods.HasFlag(VirtualKeyModifiers.Control) ? "Ctrl+" : "")
+                     + (mods.HasFlag(VirtualKeyModifiers.Shift) ? "Shift+" : "")
+                     + (mods.HasFlag(VirtualKeyModifiers.Menu) ? "Alt+" : "")
+                     + key;
+
+        a.Invoked += (s, e) =>
+        {
+            e.Handled = true;
+            Diagnostics.Ui("shortcut", new { keys = combo, from = "window" });
+            handler(s, e);
+        };
         RootGrid.KeyboardAccelerators.Add(a);
     }
 
@@ -144,8 +157,9 @@ public sealed partial class MainWindow : Window
             Microsoft.UI.WindowId id = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hWnd);
             return AppWindow.GetFromWindowId(id);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "window: get AppWindow");
             return null;
         }
     }
@@ -157,8 +171,9 @@ public sealed partial class MainWindow : Window
             uint dpi = GetDpiForWindow(hWnd);
             return dpi == 0 ? 1.0 : dpi / 96.0;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "window: get DPI");
             return 1.0;
         }
     }
@@ -186,17 +201,23 @@ public sealed partial class MainWindow : Window
             // top-left corner, where the Back button sits.
             _appWindow.TitleBar.IconShowOptions = IconShowOptions.HideIconAndSystemMenu;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Older Windows 10 builds fall back to the system title bar.
+            Diagnostics.Swallowed(ex, "window: configure title bar");
         }
     }
 
     private async void RootGrid_Loaded(object sender, RoutedEventArgs e)
     {
         RootGrid.Loaded -= RootGrid_Loaded;
+        Diagnostics.Mark("window-loaded");
         UpdateCaptionSpacer();
         WebViewEnvironment.EnsureUserDataFolder();
+
+        // The watchdog and the minute sample need the UI thread; session.json needs a
+        // description of the window. Both come from here.
+        Diagnostics.AttachUi(DispatcherQueue, DescribeWindow);
 
         // Whatever look was last chosen is the one Aviary opens with. Classic only wins
         // on a fresh install, because that is the default AppSettings falls back to.
@@ -222,9 +243,90 @@ public sealed partial class MainWindow : Window
 
         RestorePreferences();
         InitialiseSidebar();
+        Diagnostics.Mark("chrome-ready");
 
         await RestorePinnedAsync();
+        Diagnostics.Mark("pinned-tabs-restored");
         await OpenNewTabAsync(null);
+        Diagnostics.Mark("first-tab-created");
+
+        ArmCrashTest();
+    }
+
+    /// <summary>
+    /// Proves the crash recorder works — PHASE5-PLAN.md says "genuinely works" is a test, and a
+    /// crash cannot be tested without causing one.
+    ///
+    /// Reachable ONLY through an environment variable on Aviary's own process, which nothing
+    /// inside the browser — no page, setting, menu or message — can set:
+    ///   AVIARY_CRASH_TEST=ui     a failure on the UI thread; Aviary survives it (as it did the
+    ///                            M0 pin bug) and crashes/ gets a report.
+    ///   AVIARY_CRASH_TEST=fatal  a failure on a background thread, which ends the process;
+    ///                            the report must still be written first.
+    /// </summary>
+    private void ArmCrashTest()
+    {
+        string? mode = Environment.GetEnvironmentVariable("AVIARY_CRASH_TEST");
+        if (mode is not ("ui" or "fatal"))
+        {
+            return;
+        }
+
+        // A DispatcherTimer's Tick is an ordinary framework-raised handler, the same path a
+        // menu click takes — which is how the real M0 crash arrived.
+        DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(4) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+
+            if (mode == "fatal")
+            {
+                new System.Threading.Thread(() =>
+                    throw new InvalidOperationException("AVIARY_CRASH_TEST=fatal: a deliberate background-thread failure."))
+                { IsBackground = true }.Start();
+                return;
+            }
+
+            throw new InvalidOperationException("AVIARY_CRASH_TEST=ui: a deliberate UI-thread failure.");
+        };
+        timer.Start();
+    }
+
+    /// <summary>
+    /// The window, for diagnostics' session.json. Read on the UI thread by the minute sample;
+    /// the result is plain values, so the writer can serialise it from any thread.
+    /// </summary>
+    private object? DescribeWindow()
+    {
+        string state = string.Empty;
+        int width = 0, height = 0, x = 0, y = 0;
+
+        if (_appWindow is not null)
+        {
+            width = _appWindow.Size.Width;
+            height = _appWindow.Size.Height;
+            x = _appWindow.Position.X;
+            y = _appWindow.Position.Y;
+            state = _appWindow.Presenter is OverlappedPresenter presenter ? presenter.State.ToString() : string.Empty;
+        }
+
+        return new
+        {
+            widthPx = width,
+            heightPx = height,
+            x,
+            y,
+            state,
+            scale = RootGrid.XamlRoot?.RasterizationScale ?? 1.0,
+            tabs = _tabs.Count,
+            pinnedTabs = _pinned.Count,
+            activeTab = _active is null ? -1 : _tabs.IndexOf(_active),
+            look = AppSettings.Get("look"),
+            theme = AppSettings.Get("theme"),
+            shownTheme = RootGrid.ActualTheme.ToString(),
+            tabLayout = AppSettings.Get("tabLayout"),
+            sidebar = _sidebarVisible ? _pane.ToString() : "hidden",
+        };
     }
 
     /// <summary>An icon finished downloading or decoding. The strip's cells listen for
@@ -238,6 +340,9 @@ public sealed partial class MainWindow : Window
     /// </param>
     private void RestorePreferences(bool resubscribe = true)
     {
+        // After "Reset settings" this is what switches collection back off — its default.
+        Diagnostics.SetEnabled(AppSettings.GetBool(Diagnostics.SettingKey));
+
         TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
         _showFullUrl = AppSettings.GetBool("fullUrl");
         HomeButton.Visibility = AppSettings.GetBool("homeButton") ? Visibility.Visible : Visibility.Collapsed;
@@ -325,7 +430,7 @@ public sealed partial class MainWindow : Window
             {
                 e.Handled = true;
                 MenuFlyout menu = new();
-                Themed(menu);
+                Themed(menu, "favourites bar");
                 MenuFlyoutItem remove = new() { Text = "Remove" };
                 remove.Click += (_, _) => { Bookmarks.Remove(captured); RefreshBookmarksBar(); };
                 menu.Items.Add(remove);
@@ -364,9 +469,10 @@ public sealed partial class MainWindow : Window
             double width = _appWindow.TitleBar.RightInset / scale;
             CaptionSpacer.Width = width < 100 ? CaptionSpacerFallback : width;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             CaptionSpacer.Width = CaptionSpacerFallback;
+            Diagnostics.Swallowed(ex, "window: caption spacer");
         }
     }
 
@@ -384,8 +490,9 @@ public sealed partial class MainWindow : Window
     /// wiring matters beyond tidiness: this is the list of event subscriptions, and a tab
     /// created down one path that missed one would silently lose downloads or shortcuts.
     /// </summary>
-    private async Task<BrowserTab?> CreateTabAsync(bool select)
+    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab")
     {
+        long created = System.Diagnostics.Stopwatch.GetTimestamp();
         BrowserTab tab = new();
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
@@ -415,9 +522,18 @@ public sealed partial class MainWindow : Window
         }
         catch (Exception ex)
         {
+            // Category 11: a WebView that did not start. The user sees the message below;
+            // diagnostics keeps the exception that explains it.
+            Diagnostics.Anomaly("webview-start", ex.GetType().Name + " — " + ex.Message,
+                new { reason, hresult = "0x" + ex.HResult.ToString("X8"), stack = ex.StackTrace });
             ShowError("Aviary can't start its browser engine", ex.Message);
             return null;
         }
+
+        double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(created).TotalMilliseconds, 1);
+        Diagnostics.Perf("tab-create", new { tab = tab.Id, reason, ms, tabs = _tabs.Count });
+        Diagnostics.TrackSlow("tab-create", ms, reason);
+        Diagnostics.Ui("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
 
         HideError();
         ApplyWebViewBackground();
@@ -432,7 +548,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async Task<CoreWebView2?> OpenBlankTabAsync()
     {
-        BrowserTab? tab = await CreateTabAsync(select: true);
+        BrowserTab? tab = await CreateTabAsync(select: true, reason: "link opened a new tab");
         if (tab is null)
         {
             return null;
@@ -444,7 +560,7 @@ public sealed partial class MainWindow : Window
 
     private async Task OpenNewTabAsync(string? url)
     {
-        BrowserTab? tab = await CreateTabAsync(select: true);
+        BrowserTab? tab = await CreateTabAsync(select: true, reason: url is null ? "new tab" : "open in new tab");
         if (tab is null)
         {
             return;
@@ -479,7 +595,7 @@ public sealed partial class MainWindow : Window
 
     private async Task OpenSettingsTabAsync(string? section)
     {
-        BrowserTab? tab = await CreateTabAsync(select: true);
+        BrowserTab? tab = await CreateTabAsync(select: true, reason: "settings");
         if (tab is null)
         {
             return;
@@ -516,7 +632,8 @@ public sealed partial class MainWindow : Window
             : KnownFolders.Downloads;
 
         return InternalPages.Settings
-            .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";")
+            .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
+                   + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";")
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json() + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
                 ? string.Empty
@@ -529,6 +646,11 @@ public sealed partial class MainWindow : Window
             // JavaScript string literal — where C:\Users\... quietly becomes C:Users....
             .Replace("/*__AVIARY_PATHS__*/",
                 "window.__aviaryPaths = " + JsonSerializer.Serialize(new { downloads = folder }) + ";")
+            // The collection row's status, its folder, and the 16 categories — from the same
+            // list manifest.json and summary.md are written from, so the three cannot drift.
+            // JSON for the same reason as the paths above: the folder is full of backslashes.
+            .Replace("/*__AVIARY_DIAG__*/",
+                "window.__aviaryDiag = " + JsonSerializer.Serialize(Diagnostics.DescribeForSettings()) + ";")
             .Replace("__AV_ICONCACHE__", DescribeIconCache())
             .Replace("__AV_BLOCKCOUNT__",
                 TrackerBlocker.BlockedCount == 0
@@ -561,6 +683,18 @@ public sealed partial class MainWindow : Window
     /// palette in CSS is how the two quietly drift apart.
     /// </summary>
     private string BuildStartPageHtml()
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        string html = BuildStartPageHtmlCore();
+
+        // A baseline for M7, which lists Start Page build cost as something to optimise.
+        double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2);
+        Diagnostics.Perf("start-page-build", new { ms, bytes = html.Length });
+        Diagnostics.TrackSlow("start-page-build", ms, html.Length + " characters");
+        return html;
+    }
+
+    private string BuildStartPageHtmlCore()
     {
         List<object> favourites = new();
         HashSet<string> favouriteHosts = new(StringComparer.OrdinalIgnoreCase);
@@ -609,6 +743,7 @@ public sealed partial class MainWindow : Window
 
         var payload = new
         {
+            token = PageToken,
             iconBase = Favicons.IconBase,
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
             sections = new
@@ -656,8 +791,9 @@ public sealed partial class MainWindow : Window
                     return "rgba(" + c.R + "," + c.G + "," + c.B + "," + a + ")";
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Diagnostics.Swallowed(ex, "start page: theme colour " + key);
             }
 
             return fallback;
@@ -694,6 +830,8 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void ApplyLook(string look)
     {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+
         try
         {
             bool glass = look.Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
@@ -717,10 +855,15 @@ public sealed partial class MainWindow : Window
 
             ApplyLookGeometry(glass);
             OnEffectiveThemeChanged();
+
+            double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1);
+            Diagnostics.Perf("look-swap", new { look, ms, tabs = _tabs.Count });
+            Diagnostics.TrackSlow("look-swap", ms, look);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A failed look swap should leave the browser usable in whatever it is wearing.
+            Diagnostics.Swallowed(ex, "window: apply look " + look);
         }
     }
 
@@ -771,7 +914,13 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        if (!ReferenceEquals(_active, tab))
+        {
+            Diagnostics.Ui("tab-switch", new { tab = tab.Id, index = _tabs.IndexOf(tab), tabs = _tabs.Count });
+        }
+
         _active = tab;
+        Diagnostics.TabActive(tab.Id);
 
         // Gentle memory saving: only the tab you are looking at keeps normal priority.
         foreach (BrowserTab other in _tabs)
@@ -794,6 +943,8 @@ public sealed partial class MainWindow : Window
         {
             return;
         }
+
+        Diagnostics.Ui("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
 
         // Closing the last tab closes the window, the way every browser behaves.
         if (_tabs.Count == 1)
@@ -829,6 +980,8 @@ public sealed partial class MainWindow : Window
     /// <summary>Shortcuts forwarded up from a page that had keyboard focus.</summary>
     private void OnShortcut(string action)
     {
+        Diagnostics.Ui("shortcut", new { action, from = "page" });
+
         switch (action)
         {
             case "newtab": OpenNewTab(null); break;
@@ -863,6 +1016,7 @@ public sealed partial class MainWindow : Window
 
     private void OpenFindBar()
     {
+        Diagnostics.Ui("find-open");
         FindBar.Visibility = Visibility.Visible;
         FindBox.Focus(FocusState.Programmatic);
         FindBox.SelectAll();
@@ -879,6 +1033,10 @@ public sealed partial class MainWindow : Window
         {
             return;
         }
+
+        // The term is logged when Find closes (and on every step), not per keystroke: what was
+        // looked for, and whether it was there, is the useful part.
+        Diagnostics.Ui("find-close", new { term = FindBox.Text, matches = _findMatches });
 
         FindBar.Visibility = Visibility.Collapsed;
         FindCount.Text = string.Empty;
@@ -906,6 +1064,7 @@ public sealed partial class MainWindow : Window
 
         int index = await FindInPage.StepAsync(_active, direction);
         FindCount.Text = index + " of " + _findMatches;
+        Diagnostics.Ui("find-step", new { term = FindBox.Text, direction, index, matches = _findMatches });
     }
 
     private void FindBox_TextChanged(object sender, TextChangedEventArgs e) => _ = RunFindAsync(FindBox.Text);
@@ -981,7 +1140,7 @@ public sealed partial class MainWindow : Window
     private void DownloadsButton_Click(object sender, RoutedEventArgs e)
     {
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
-        Themed(menu);
+        Themed(menu, "downloads");
 
         if (Downloads.Items.Count == 0)
         {
@@ -1225,10 +1384,14 @@ public sealed partial class MainWindow : Window
 
         BrowserTab tab = chrome.Tab;
         _dragTab = tab;
+        _dragFrom = _tabs.IndexOf(tab);
         _dragStartX = e.GetCurrentPoint(TabStrip).Position.X;
         _dragging = false;
         button.CapturePointer(e.Pointer);
     }
+
+    /// <summary>Where a dragged tab started, so diagnostics can record from → to.</summary>
+    private int _dragFrom = -1;
 
     private void Tab_PointerMoved(object sender, PointerRoutedEventArgs e)
     {
@@ -1268,11 +1431,18 @@ public sealed partial class MainWindow : Window
             button.Opacity = 1;
         }
 
+        BrowserTab? dragged = _dragTab;
         _dragTab = null;
 
         if (_dragging)
         {
             _dragging = false;
+
+            if (dragged is not null)
+            {
+                Diagnostics.Ui("tab-reorder", new { tab = dragged.Id, from = _dragFrom, to = _tabs.IndexOf(dragged), strip = "top" });
+            }
+
             RebuildTabStrip();
         }
     }
@@ -1328,7 +1498,7 @@ public sealed partial class MainWindow : Window
     {
         if (Fades.TryGetValue(element, out Storyboard? running))
         {
-            try { running.Stop(); } catch (Exception) { }
+            try { running.Stop(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "window: stop fade"); }
         }
 
         DoubleAnimation animation = new()
@@ -1386,9 +1556,10 @@ public sealed partial class MainWindow : Window
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A white flash on navigation is survivable; a crash is not.
+            Diagnostics.Swallowed(ex, "window: WebView background colour");
         }
     }
 
@@ -1466,6 +1637,7 @@ public sealed partial class MainWindow : Window
         }
 
         string target;
+        bool search = false;
 
         if (Uri.TryCreate(text, UriKind.Absolute, out Uri? absolute)
             && (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps))
@@ -1482,6 +1654,24 @@ public sealed partial class MainWindow : Window
         else
         {
             target = _searchPrefix + Uri.EscapeDataString(text);
+            search = true;
+        }
+
+        // Category 2. Only what was submitted — never the keystrokes on the way there.
+        if (search)
+        {
+            Diagnostics.Browse("search", "search: " + text, new
+            {
+                tab = tab.Id,
+                query = text,
+                engine = AppSettings.Get("searchEngine"),
+                target,
+                via = "address bar",
+            });
+        }
+        else
+        {
+            Diagnostics.Browse("typed", text, new { tab = tab.Id, typed = text, target });
         }
 
         HideError();
@@ -1491,6 +1681,7 @@ public sealed partial class MainWindow : Window
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
+        Diagnostics.Ui("back");
         if (_active is { CanGoBack: true } tab)
         {
             tab.View.GoBack();
@@ -1499,6 +1690,7 @@ public sealed partial class MainWindow : Window
 
     private void ForwardButton_Click(object sender, RoutedEventArgs e)
     {
+        Diagnostics.Ui("forward");
         if (_active is { CanGoForward: true } tab)
         {
             tab.View.GoForward();
@@ -1522,10 +1714,12 @@ public sealed partial class MainWindow : Window
 
         if (tab.IsLoading)
         {
+            Diagnostics.Ui("stop", new { tab = tab.Id });
             tab.View.CoreWebView2?.Stop();
         }
         else
         {
+            Diagnostics.Ui("reload", new { tab = tab.Id });
             tab.View.Reload();
         }
     }
@@ -1562,6 +1756,7 @@ public sealed partial class MainWindow : Window
         }
 
         string text = next.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+        Diagnostics.Ui("zoom", new { from = current, to = next });
         AppSettings.Set("zoom", text);
         PushToSettingsPage("zoom", text);
 
@@ -1573,6 +1768,7 @@ public sealed partial class MainWindow : Window
 
     private void HomeButton_Click(object sender, RoutedEventArgs e)
     {
+        Diagnostics.Ui("home");
         if (_active?.View.CoreWebView2 is CoreWebView2 core)
         {
             // -= first: Home can be pressed repeatedly, and a second subscription would
@@ -1585,6 +1781,39 @@ public sealed partial class MainWindow : Window
         UpdateChrome();
     }
 
+    /// <summary>
+    /// A per-launch secret that Aviary writes into its own pages (Settings and the Start Page)
+    /// and that every message from them carries back.
+    ///
+    /// The Settings and Start Page handlers stay attached to their tab's engine for the life of
+    /// the tab, so once the tab moves on to a website, that website's postMessage calls arrive
+    /// at them too. Until M1's review, any site loaded in a tab that had shown Settings could
+    /// post {type:'setting'} and change any preference — switch the blocker off, plant pinned
+    /// tabs, switch diagnostics collection on — and every new tab carried the Start Page
+    /// handler. A website cannot learn this token: Aviary's pages have an opaque origin, so no
+    /// site's script can read them. (The first attempt checked for a data: source and broke
+    /// Settings outright — NavigateToString documents report about:blank, which a hostile page
+    /// can also end up as. Found by running it.)
+    /// </summary>
+    internal static readonly string PageToken =
+        Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+
+    private static bool FromAviaryPage(JsonElement root) =>
+        root.TryGetProperty("token", out JsonElement token)
+        && token.ValueKind == JsonValueKind.String
+        && string.Equals(token.GetString(), PageToken, StringComparison.Ordinal);
+
+    /// <summary>A website posted one of an internal page's own message types. Refused, and recorded.</summary>
+    private static void RefuseMessage(string handler, string type, CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        string source;
+        try { source = args.Source; }
+        catch (Exception) { source = string.Empty; }
+
+        Diagnostics.Anomaly("untrusted-message", "a website posted a " + handler + " message (" + type + ")",
+            new { handler, type, source });
+    }
+
     /// <summary>The Start Page's own messages: navigation, section toggles, tile menus.</summary>
     private void StartPage_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
@@ -1593,6 +1822,19 @@ public sealed partial class MainWindow : Window
             using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+            bool trusted = FromAviaryPage(root);
+
+            // Every page's own injected scripts (shortcuts, icons, page errors) post on this
+            // same event; only the Start Page's own types are refused, and only those recorded.
+            if (!trusted)
+            {
+                if (type is "navigate" or "startSection" or "tileMenu")
+                {
+                    RefuseMessage("Start Page", type, args);
+                }
+
+                return;
+            }
 
             switch (type)
             {
@@ -1600,6 +1842,7 @@ public sealed partial class MainWindow : Window
                     if (root.TryGetProperty("url", out JsonElement u)
                         && u.GetString() is { Length: > 0 } target)
                     {
+                        Diagnostics.Feature("start-page-open", new { url = target });
                         _active?.Navigate(target);
                         UpdateChrome();
                     }
@@ -1637,7 +1880,7 @@ public sealed partial class MainWindow : Window
                     }
 
                     MenuFlyout menu = new();
-                    Themed(menu);
+                    Themed(menu, "start page tile");
                     MenuFlyoutItem open = new() { Text = "Open in New Tab" };
                     open.Click += (_, _) => OpenNewTab(tile);
                     menu.Items.Add(open);
@@ -1664,9 +1907,10 @@ public sealed partial class MainWindow : Window
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A malformed message from our own page is a bug to find in testing.
+            Diagnostics.Swallowed(ex, "start page: message");
         }
     }
 
@@ -1682,14 +1926,18 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private void NewTabButton_Click(object sender, RoutedEventArgs e) => OpenNewTab(null);
+    private void NewTabButton_Click(object sender, RoutedEventArgs e)
+    {
+        Diagnostics.Ui("new-tab-button");
+        OpenNewTab(null);
+    }
 
     // ══ THE APP MENU ═══════════════════════════════════════════════════════
 
     private void MenuButton_Click(object sender, RoutedEventArgs e)
     {
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
-        Themed(menu);
+        Themed(menu, "app");
 
         MenuFlyoutItem newTab = new() { Text = "New Tab" };
         newTab.KeyboardAcceleratorTextOverride = "Ctrl+T";
@@ -1743,9 +1991,9 @@ public sealed partial class MainWindow : Window
     /// happens to be present — that was how a button ended up being persisted as if it
     /// were a preference, writing a junk reset:true key that nothing ever read.
     ///
-    /// Anything unrecognised is ignored rather than trusted. The page is ours, navigated
-    /// to by NavigateToString and never reachable from the network, but the handler should
-    /// not assume that.
+    /// Anything unrecognised is ignored rather than trusted — and so is anything, recognised
+    /// or not, that did not come from the Settings page itself (see <see cref="FromAviaryPage"/>:
+    /// the handler outlives the page when the tab is navigated to a website).
     /// </summary>
     private void Settings_WebMessageReceived(CoreWebView2 sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
@@ -1754,6 +2002,17 @@ public sealed partial class MainWindow : Window
             using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
+            bool trusted = FromAviaryPage(root);
+
+            if (!trusted)
+            {
+                if (type is "setting" or "command" or "schema" or "rendered")
+                {
+                    RefuseMessage("Settings", type, args);
+                }
+
+                return;
+            }
 
             switch (type)
             {
@@ -1777,6 +2036,25 @@ public sealed partial class MainWindow : Window
                     return;
                 }
 
+                case "rendered":
+                {
+                    // What each control actually DREW, for the round-trip check. Only read
+                    // while collecting; the page sends it regardless because it cannot know.
+                    if (!Diagnostics.On || !root.TryGetProperty("values", out JsonElement drawn))
+                    {
+                        return;
+                    }
+
+                    Dictionary<string, string> rendered = new(StringComparer.OrdinalIgnoreCase);
+                    foreach (JsonProperty p in drawn.EnumerateObject())
+                    {
+                        rendered[p.Name] = AsString(p.Value);
+                    }
+
+                    Diagnostics.SettingsRendered(rendered);
+                    return;
+                }
+
                 case "setting":
                 {
                     if (!root.TryGetProperty("key", out JsonElement k))
@@ -1796,15 +2074,17 @@ public sealed partial class MainWindow : Window
                 case "command":
                 {
                     string name = root.TryGetProperty("name", out JsonElement n) ? n.GetString() ?? "" : "";
+                    Diagnostics.Ui("settings-command", new { command = name });
                     _ = RunSettingsCommandAsync(name, sender);
                     return;
                 }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A malformed message from our own page is a bug to find in testing, not a
             // reason to take the browser down.
+            Diagnostics.Swallowed(ex, "settings page: message");
         }
 
         static string AsString(JsonElement value) => value.ValueKind switch
@@ -1829,6 +2109,12 @@ public sealed partial class MainWindow : Window
 
                 case "blockTrackers":
                     TrackerBlocker.Enabled = value.ValueKind == JsonValueKind.True;
+                    Diagnostics.Shields(TrackerBlocker.Enabled ? "blocking-on" : "blocking-off", new { scope = "everywhere" });
+                    break;
+
+                case Diagnostics.SettingKey:
+                    Diagnostics.SetEnabled(value.ValueKind == JsonValueKind.True);
+                    _ = PushDiagnosticsStatusAsync();
                     break;
 
                 case "bookmarksBar":
@@ -1906,9 +2192,40 @@ public sealed partial class MainWindow : Window
                     break;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Applying a setting must never take the browser down; it is already saved.
+            Diagnostics.Swallowed(ex, "settings: apply " + key);
+        }
+    }
+
+    /// <summary>
+    /// Refreshes the "Collected data" line in any open Settings page. The switch has already
+    /// moved by itself; the words under it have to follow or they describe the past.
+    /// </summary>
+    private async Task PushDiagnosticsStatusAsync()
+    {
+        // The folder is created on the writer thread; wait for it (off this thread) so the
+        // line says "3 KB in 5 files" rather than "starting".
+        await Task.Run(() => Diagnostics.Flush(2000));
+
+        string payload = JsonSerializer.Serialize(Diagnostics.DescribeForSettings());
+
+        foreach (BrowserTab tab in _tabs)
+        {
+            if (tab.View.CoreWebView2 is not CoreWebView2 core || tab.Title != "Settings" || !tab.IsInternalPage)
+            {
+                continue;
+            }
+
+            try
+            {
+                _ = core.ExecuteScriptAsync("window.__aviaryDiagStatus && window.__aviaryDiagStatus(" + payload + ")");
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.Swallowed(ex, "settings: push collection status");
+            }
         }
     }
 
@@ -1951,15 +2268,38 @@ public sealed partial class MainWindow : Window
 
                 case "clearData":
                 {
-                    if (!await ConfirmAsync(
+                    // Diagnostics keeps its own copy of every address visited, so clearing
+                    // history while leaving that would clear the list and keep the trail.
+                    // Offered, not forced: it is also the record of what went wrong.
+                    string? alsoOffer = null;
+                    if (Diagnostics.HasData)
+                    {
+                        (int _, long bytes) = Diagnostics.Stats();
+                        alsoOffer = "Also delete the improvement data Aviary has collected ("
+                                  + Math.Max(1, bytes / 1024) + " KB)";
+                    }
+
+                    (bool clear, bool alsoDiagnostics) = await ConfirmWithOptionAsync(
                             "Clear browsing data?",
                             "History, cookies, cached files and site data for this profile are "
                           + "removed. Your bookmarks, reading list and downloaded files are not "
                           + "touched.",
-                            "Clear"))
+                            "Clear",
+                            alsoOffer);
+
+                    if (!clear)
                     {
                         return;
                     }
+
+                    if (alsoDiagnostics)
+                    {
+                        await Task.Run(Diagnostics.DeleteAll);
+                    }
+
+                    // After the delete, so that if collection is on, the fresh folder's first
+                    // line says what just happened to the old one.
+                    Diagnostics.Ui("clear-browsing-data", new { alsoDiagnostics });
 
                     History.Clear();
                     PrivacyReport.Clear();
@@ -1974,9 +2314,10 @@ public sealed partial class MainWindow : Window
                             await profile.ClearBrowsingDataAsync();
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         // An older runtime may not expose it; the local stores are still gone.
+                        Diagnostics.Swallowed(ex, "clear browsing data: engine store");
                     }
 
                     RefreshSidebar();
@@ -1996,11 +2337,52 @@ public sealed partial class MainWindow : Window
                     TabFor(page)?.NavigateToHtml(BuildSettingsHtml("privacy"), "Settings");
                     break;
                 }
+
+                case "diagOpen":
+                {
+                    if (Diagnostics.HasData)
+                    {
+                        Diagnostics.OpenFolder();
+                    }
+                    else
+                    {
+                        // Never a button that silently does nothing.
+                        await InformAsync("Nothing collected yet",
+                            "The folder is created the moment \"Allow data collection for improvements\" is "
+                          + "switched on, and fills as you use Aviary.");
+                    }
+
+                    break;
+                }
+
+                case "diagDelete":
+                {
+                    if (!Diagnostics.HasData)
+                    {
+                        await InformAsync("Nothing to delete", "Aviary has not collected anything.");
+                        break;
+                    }
+
+                    if (!await ConfirmAsync(
+                            "Delete the collected data?",
+                            "Everything in the improvement data folder is deleted — every recorded address, "
+                          + "search, error and crash report. "
+                          + (Diagnostics.On ? "Collection stays on and starts again from nothing." : ""),
+                            "Delete"))
+                    {
+                        return;
+                    }
+
+                    await Task.Run(Diagnostics.DeleteAll);
+                    await PushDiagnosticsStatusAsync();
+                    break;
+                }
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A failed command leaves the browser exactly as it was.
+            Diagnostics.Swallowed(ex, "settings: command " + name);
         }
     }
 
@@ -2038,9 +2420,92 @@ public sealed partial class MainWindow : Window
 
             return await dialog.ShowAsync() == ContentDialogResult.Secondary;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "dialog: confirm");
             return false;
+        }
+        finally
+        {
+            _dialogOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// <see cref="ConfirmAsync"/> with an optional, unticked checkbox under the message. With
+    /// no <paramref name="option"/> it is exactly the plain confirmation.
+    /// </summary>
+    private async Task<(bool Confirmed, bool Option)> ConfirmWithOptionAsync(string title, string body, string verb, string? option)
+    {
+        if (option is null)
+        {
+            return (await ConfirmAsync(title, body, verb), false);
+        }
+
+        if (_dialogOpen)
+        {
+            return (false, false);
+        }
+
+        _dialogOpen = true;
+        try
+        {
+            CheckBox box = new() { Content = option, IsChecked = false, Margin = new Thickness(0, 14, 0, 0) };
+            StackPanel content = new();
+            content.Children.Add(new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap });
+            content.Children.Add(box);
+
+            ContentDialog dialog = new()
+            {
+                XamlRoot = RootGrid.XamlRoot,
+                RequestedTheme = RootGrid.ActualTheme,
+                Title = title,
+                Content = content,
+                PrimaryButtonText = "Cancel",
+                SecondaryButtonText = verb,
+                DefaultButton = ContentDialogButton.Primary
+            };
+
+            bool confirmed = await dialog.ShowAsync() == ContentDialogResult.Secondary;
+            return (confirmed, confirmed && box.IsChecked == true);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "dialog: confirm with option");
+            return (false, false);
+        }
+        finally
+        {
+            _dialogOpen = false;
+        }
+    }
+
+    /// <summary>A one-button message, for a command that has nothing to act on.</summary>
+    private async Task InformAsync(string title, string body)
+    {
+        if (_dialogOpen)
+        {
+            return;
+        }
+
+        _dialogOpen = true;
+        try
+        {
+            ContentDialog dialog = new()
+            {
+                XamlRoot = RootGrid.XamlRoot,
+                RequestedTheme = RootGrid.ActualTheme,
+                Title = title,
+                Content = new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap },
+                CloseButtonText = "OK",
+                DefaultButton = ContentDialogButton.Close
+            };
+
+            await dialog.ShowAsync();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "dialog: inform");
         }
         finally
         {
@@ -2069,9 +2534,10 @@ public sealed partial class MainWindow : Window
                 _ = core.ExecuteScriptAsync(
                     "window.__aviaryApply && window.__aviaryApply(" + payload + ")");
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // A tab that is mid-teardown simply does not get told.
+                Diagnostics.Swallowed(ex, "settings: push value to page");
             }
         }
     }
@@ -2101,6 +2567,9 @@ public sealed partial class MainWindow : Window
 
     private void ShowError(string title, string detail)
     {
+        // What the person actually SAW — the navigation line records the raw status.
+        Diagnostics.Ui("error-page-shown", new { title, detail, url = _active?.Url });
+
         ErrorTitle.Text = title;
         ErrorDetail.Text = detail;
         ErrorPanel.Visibility = Visibility.Visible;
@@ -2164,5 +2633,9 @@ public sealed partial class MainWindow : Window
 
         _tabs.Clear();
         _tabButtons.Clear();
+
+        // Last: the final summary.md and a session.json that says this session ended
+        // cleanly. Bounded, so a stuck disk cannot hold the window open.
+        Diagnostics.Shutdown();
     }
 }

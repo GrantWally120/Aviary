@@ -18,8 +18,47 @@ internal sealed class DownloadItem
         _operation = operation;
         FilePath = operation.ResultFilePath ?? string.Empty;
 
-        operation.StateChanged += (_, _) => Changed?.Invoke(this);
+        operation.StateChanged += (_, _) =>
+        {
+            RecordOutcome();
+            Changed?.Invoke(this);
+        };
         operation.BytesReceivedChanged += (_, _) => Changed?.Invoke(this);
+    }
+
+    private bool _outcomeRecorded;
+
+    /// <summary>Diagnostics category 15: how the download ended — once, when it does.</summary>
+    private void RecordOutcome()
+    {
+        if (_outcomeRecorded || !Diagnostics.On)
+        {
+            return;
+        }
+
+        try
+        {
+            CoreWebView2DownloadState state = _operation.State;
+            if (state == CoreWebView2DownloadState.InProgress)
+            {
+                return;
+            }
+
+            _outcomeRecorded = true;
+            Diagnostics.Download("end", new
+            {
+                file = FileName,
+                url = _operation.Uri,
+                result = state.ToString(),
+                reason = state == CoreWebView2DownloadState.Interrupted ? _operation.InterruptReason.ToString() : null,
+                bytes = _operation.BytesReceived,
+                totalBytes = _operation.TotalBytesToReceive,
+            });
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "download: record outcome");
+        }
     }
 
     public event Action<DownloadItem>? Changed;
@@ -33,7 +72,7 @@ internal sealed class DownloadItem
         get
         {
             try { return _operation.State == CoreWebView2DownloadState.Completed; }
-            catch (Exception) { return false; }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "download: read state"); return false; }
         }
     }
 
@@ -42,7 +81,7 @@ internal sealed class DownloadItem
         get
         {
             try { return _operation.State == CoreWebView2DownloadState.Interrupted; }
-            catch (Exception) { return false; }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "download: read state"); return false; }
         }
     }
 
@@ -74,8 +113,9 @@ internal sealed class DownloadItem
 
                 return Describe(received) + " so far";
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Diagnostics.Swallowed(ex, "download: describe status");
                 return "Download";
             }
         }
@@ -84,7 +124,7 @@ internal sealed class DownloadItem
     public void Cancel()
     {
         try { _operation.Cancel(); }
-        catch (Exception) { }
+        catch (Exception ex) { Diagnostics.Swallowed(ex, "download: cancel"); }
     }
 
     private static string Describe(long bytes)
@@ -137,9 +177,10 @@ internal static class Downloads
                 UseShellExecute = true
             });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Explorer refusing to open is not worth taking the browser down for.
+            Diagnostics.Swallowed(ex, "download: reveal in Explorer");
         }
     }
 }

@@ -244,8 +244,9 @@ public sealed partial class MainWindow
             _suggestPopup.HorizontalOffset = origin.X;
             _suggestPopup.VerticalOffset = origin.Y + AddressField.ActualHeight + 6;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "smart search: position list");
         }
     }
 
@@ -286,11 +287,27 @@ public sealed partial class MainWindow
             return;
         }
 
-        string url = _suggestions[index].Url;
+        Suggestion chosen = _suggestions[index];
+        string url = chosen.Url;
         HideSuggestions();
 
         if (_active is { IsReady: true } tab)
         {
+            // Category 2: which suggestion was picked, and what had been typed to get it.
+            Diagnostics.Browse(chosen.IsSearch ? "search" : "suggestion", url, new
+            {
+                tab = tab.Id,
+                typed = AddressBox.Text,
+                picked = index,
+                of = _suggestions.Count,
+                kind = chosen.IsSearch ? "search" : chosen.IsBookmark ? "favourite" : "history",
+                topHit = index == 0,
+                query = chosen.IsSearch ? chosen.Title : null,
+                engine = chosen.IsSearch ? AppSettings.Get("searchEngine") : null,
+                target = url,
+                via = "suggestion list",
+            });
+
             HideError();
             tab.Navigate(url);
             tab.View.Focus(FocusState.Programmatic);

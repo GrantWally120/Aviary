@@ -40,10 +40,11 @@ internal static class WebViewEnvironment
         {
             Directory.CreateDirectory(UserDataFolder);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // If LocalAppData is unwritable the machine has bigger problems, and the
             // environment call below will surface its own error with a real message.
+            Diagnostics.Swallowed(ex, "engine: create user data folder");
         }
     }
 

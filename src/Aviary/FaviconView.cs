@@ -132,9 +132,10 @@ internal sealed class FaviconView : Grid
                 element.Style = s;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A missing style leaves the element unpainted rather than crashing the tab.
+            Diagnostics.Swallowed(ex, "favicon view: apply style " + key);
         }
     }
 
@@ -233,7 +234,7 @@ internal sealed class FaviconView : Grid
     {
         if (Fades.TryGetValue(element, out Storyboard? existing))
         {
-            try { existing.Stop(); } catch (Exception) { }
+            try { existing.Stop(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "favicon view: stop fade"); }
         }
     }
 

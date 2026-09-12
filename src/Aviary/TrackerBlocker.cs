@@ -74,22 +74,29 @@ internal static class TrackerBlocker
     /// allowed through — failing open is right here, since a false positive means a
     /// broken page and a false negative just means one advert.
     /// </summary>
-    public static bool ShouldBlock(string url)
+    public static bool ShouldBlock(string url) => Match(url) is not null;
+
+    /// <summary>
+    /// The rule that blocks this request — the listed domain it fell under — or null. The
+    /// rule is what diagnostics records beside each blocked address, so a site broken by the
+    /// blocker can be traced to the one entry responsible.
+    /// </summary>
+    public static string? Match(string url)
     {
         if (!Enabled || string.IsNullOrEmpty(url))
         {
-            return false;
+            return null;
         }
 
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri))
         {
-            return false;
+            return null;
         }
 
         string host = uri.Host;
         if (host.Length == 0)
         {
-            return false;
+            return null;
         }
 
         // Walk the labels: "stats.g.doubleclick.net" tests itself, then
@@ -97,16 +104,17 @@ internal static class TrackerBlocker
         int index = 0;
         while (index >= 0 && index < host.Length)
         {
-            if (Blocked.Contains(host.Substring(index)))
+            string suffix = host.Substring(index);
+            if (Blocked.Contains(suffix))
             {
-                return true;
+                return suffix;
             }
 
             int dot = host.IndexOf('.', index);
             index = dot < 0 ? -1 : dot + 1;
         }
 
-        return false;
+        return null;
     }
 
     public static void CountBlocked() => BlockedCount++;

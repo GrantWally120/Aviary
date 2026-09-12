@@ -139,8 +139,9 @@ public sealed partial class MainWindow
                 return typed;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "resources: read " + key);
         }
 
         return fallback;
@@ -230,6 +231,11 @@ public sealed partial class MainWindow
 
     private void ShowPane(SidebarPane pane)
     {
+        if (pane != _pane)
+        {
+            Diagnostics.Feature("sidebar-pane", new { pane = pane.ToString() });
+        }
+
         _pane = pane;
         AppSettings.Set("sidebarPane", pane switch
         {
@@ -253,6 +259,7 @@ public sealed partial class MainWindow
         }
 
         _sidebarVisible = target;
+        Diagnostics.Feature(target ? "sidebar-show" : "sidebar-hide", new { pane = _pane.ToString(), tabsInSidebar = UsingSidebarTabs });
         AppSettings.Set("sidebarVisible", target ? "true" : "false");
 
         // Aviary must never reach a state where the tabs are unreachable. Safari can leave
@@ -410,6 +417,7 @@ public sealed partial class MainWindow
         SidebarGripBar.ReleasePointerCapture(e.Pointer);
         SidebarGripBar.Background = ThemeBrush("AvSidebarGripBrush");
         SetSidebarWidth(SidebarRoot.ActualWidth, persist: true);
+        Diagnostics.Ui("sidebar-resize", new { from = Math.Round(_gripStartWidth), to = _sidebarWidth });
     }
 
     // ══ THE PANES ══════════════════════════════════════════════════════════
@@ -486,12 +494,17 @@ public sealed partial class MainWindow
         {
             Bookmark captured = bookmark;
             Button row = SidebarRow(bookmark.Url, bookmark.Title, bookmark.Monogram, null, false);
-            row.Click += (_, _) => { _active?.Navigate(captured.Url); UpdateChrome(); };
+            row.Click += (_, _) =>
+            {
+                Diagnostics.Feature("sidebar-open", new { pane = "Bookmarks", url = captured.Url });
+                _active?.Navigate(captured.Url);
+                UpdateChrome();
+            };
             row.RightTapped += (_, e) =>
             {
                 e.Handled = true;
                 MenuFlyout menu = new();
-                Themed(menu);
+                Themed(menu, "sidebar bookmark");
                 MenuFlyoutItem open = new() { Text = "Open in New Tab" };
                 open.Click += (_, _) => OpenNewTab(captured.Url);
                 MenuFlyoutItem remove = new() { Text = "Remove" };
@@ -545,6 +558,7 @@ public sealed partial class MainWindow
             Button row = SidebarRow(item.Url, item.Title, null, item.Age, item.Unread);
             row.Click += (_, _) =>
             {
+                Diagnostics.Feature("sidebar-open", new { pane = "Reading List", url = captured.Url, unread = captured.Unread });
                 ReadingList.MarkRead(captured.Url);
                 _active?.Navigate(captured.Url);
                 UpdateChrome();
@@ -553,7 +567,7 @@ public sealed partial class MainWindow
             {
                 e.Handled = true;
                 MenuFlyout menu = new();
-                Themed(menu);
+                Themed(menu, "sidebar reading list");
                 MenuFlyoutItem mark = new() { Text = captured.Unread ? "Mark as Read" : "Mark as Unread" };
                 mark.Click += (_, _) => { ReadingList.MarkRead(captured.Url, captured.Unread); RefreshSidebar(); };
                 MenuFlyoutItem remove = new() { Text = "Remove" };
@@ -599,12 +613,17 @@ public sealed partial class MainWindow
             HistoryEntry captured = entry;
             Button row = SidebarRow(entry.Url, entry.Title, null,
                 entry.LastVisitUtc.ToLocalTime().ToString("HH:mm"), false);
-            row.Click += (_, _) => { _active?.Navigate(captured.Url); UpdateChrome(); };
+            row.Click += (_, _) =>
+            {
+                Diagnostics.Feature("sidebar-open", new { pane = "History", url = captured.Url });
+                _active?.Navigate(captured.Url);
+                UpdateChrome();
+            };
             row.RightTapped += (_, e) =>
             {
                 e.Handled = true;
                 MenuFlyout menu = new();
-                Themed(menu);
+                Themed(menu, "sidebar history");
                 MenuFlyoutItem open = new() { Text = "Open in New Tab" };
                 open.Click += (_, _) => OpenNewTab(captured.Url);
                 MenuFlyoutItem forget = new() { Text = "Remove from History" };
@@ -716,6 +735,7 @@ public sealed partial class MainWindow
         }
 
         _vDragTab = chrome.Tab;
+        _vDragFrom = _tabs.IndexOf(chrome.Tab);
         _vDragStartY = e.GetCurrentPoint(SidebarBody).Position.Y;
         _vDragging = false;
         button.CapturePointer(e.Pointer);
@@ -755,14 +775,23 @@ public sealed partial class MainWindow
             button.Opacity = 1;
         }
 
+        BrowserTab? dragged = _vDragTab;
         _vDragTab = null;
 
         if (_vDragging)
         {
             _vDragging = false;
+
+            if (dragged is not null)
+            {
+                Diagnostics.Ui("tab-reorder", new { tab = dragged.Id, from = _vDragFrom, to = _tabs.IndexOf(dragged), strip = "sidebar" });
+            }
+
             RebuildTabStrip();
         }
     }
+
+    private int _vDragFrom = -1;
 
     private void ReorderVertically(BrowserTab tab, double y)
     {

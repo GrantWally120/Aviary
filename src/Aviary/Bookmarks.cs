@@ -64,10 +64,11 @@ internal static class Bookmarks
                                  ?? new List<Bookmark>();
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     // A corrupt bookmarks file costs you your bookmarks, not your browser.
                     _items = new List<Bookmark>();
+                    Diagnostics.Swallowed(ex, "bookmarks: load bookmarks.json");
                 }
 
                 return _items;
@@ -91,12 +92,14 @@ internal static class Bookmarks
             Url = url
         });
 
+        Diagnostics.Ui("bookmark-add", new { url, title });
         Save();
     }
 
     public static void Remove(Bookmark bookmark)
     {
         Items.Remove(bookmark);
+        Diagnostics.Ui("bookmark-remove", new { url = bookmark.Url });
         Save();
     }
 
@@ -114,9 +117,10 @@ internal static class Bookmarks
             File.WriteAllText(temp, json);
             File.Move(temp, FilePath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Losing a bookmark is survivable; taking the browser down is not.
+            Diagnostics.Swallowed(ex, "bookmarks: save bookmarks.json");
         }
 
         Changed?.Invoke();

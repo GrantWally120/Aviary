@@ -420,9 +420,18 @@ internal static class Favicons
             }
         }
 
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        int status = 0;
+        long? length = null;
+        string? type = null;
+
         try
         {
             using HttpResponseMessage response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            status = (int)response.StatusCode;
+            length = response.Content.Headers.ContentLength;
+            type = response.Content.Headers.ContentType?.MediaType;
+
             if (!response.IsSuccessStatusCode)
             {
                 return;
@@ -434,15 +443,37 @@ internal static class Favicons
             }
 
             byte[] bytes = await response.Content.ReadAsByteArrayAsync();
+            length = bytes.Length;
             Offer(key, bytes, url, rank);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // An icon that will not download is not an error worth surfacing.
+            // An icon that will not download is not worth interrupting anyone over — but it
+            // is exactly what diagnostics' "site icons that will not load" is for.
+            Diagnostics.Anomaly("favicon-fetch", key + ": " + ex.GetType().Name + " — " + ex.Message, new { url, rank = rank.ToString() });
         }
         finally
         {
             lock (Gate) { InFlight.Remove(guard); }
+
+            // Aviary's own request, not a page's — still one of "every request the browser
+            // makes". Tab 0 is Aviary itself.
+            if (Diagnostics.RecordsBrowsing)
+            {
+                Diagnostics.Request(new NetRecord
+                {
+                    Tab = 0,
+                    Url = url,
+                    Method = "GET",
+                    Context = "Favicon",
+                    Status = status,
+                    Type = type,
+                    Bytes = length,
+                    Ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1),
+                    Initiator = "aviary:site-icon",
+                    PageUrl = "https://" + key + "/",
+                });
+            }
         }
     }
 
@@ -545,8 +576,10 @@ internal static class Favicons
             _ = bitmap.SetSourceAsync(new MemoryStream(master.Bytes).AsRandomAccessStream());
             return bitmap;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Anomaly("favicon-decode", ex.GetType().Name + " — " + ex.Message,
+                new { source = master.Source, svg = master.IsSvg, bytes = master.Bytes.Length });
             return null;
         }
     }
@@ -568,7 +601,7 @@ internal static class Favicons
         ui.TryEnqueue(() =>
         {
             try { Updated?.Invoke(key); }
-            catch (Exception) { /* a listener's failure is not the store's problem */ }
+            catch (Exception ex) { Diagnostics.Swallowed(ex, "favicons: Updated listener"); /* a listener's failure is not the store's problem */ }
         });
     }
 
@@ -636,9 +669,10 @@ internal static class Favicons
                 RaiseUpdated(row.Key);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // A corrupt cache costs you icons for one session, not your browser.
+            Diagnostics.Swallowed(ex, "favicons: load index.json");
         }
         finally
         {
@@ -669,8 +703,9 @@ internal static class Favicons
 
             return new Master { Bytes = bytes, Rank = rank, IsSvg = svg, File = file };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "favicons: read cached icon");
             return null;
         }
     }
@@ -696,9 +731,10 @@ internal static class Favicons
             WriteMaster(small);
             WriteMaster(large);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // The in-memory copy still works for this session.
+            Diagnostics.Swallowed(ex, "favicons: write icon to disk");
         }
     }
 
@@ -716,8 +752,9 @@ internal static class Favicons
             File.WriteAllBytes(temp, m.Bytes);
             File.Move(temp, path, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "favicons: write master");
         }
     }
 
@@ -768,8 +805,9 @@ internal static class Favicons
             File.WriteAllText(temp, json);
             File.Move(temp, IndexPath, overwrite: true);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "favicons: save index.json");
         }
     }
 
@@ -811,7 +849,7 @@ internal static class Favicons
             return;
         }
 
-        try { File.Delete(Path.Combine(Folder, m.File)); } catch (Exception) { }
+        try { File.Delete(Path.Combine(Folder, m.File)); } catch (Exception ex) { Diagnostics.Swallowed(ex, "favicons: delete evicted icon"); }
     }
 
     public static (int count, long bytes) Stats()
@@ -846,8 +884,9 @@ internal static class Favicons
                 Directory.Delete(Folder, recursive: true);
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "favicons: clear cache folder");
         }
 
         RaiseUpdated(string.Empty);
@@ -924,10 +963,12 @@ internal static class Favicons
                 "Content-Type: " + mime + "\r\nCache-Control: no-store");
             return true;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Diagnostics.Swallowed(ex, "favicons: serve icon to internal page");
+
             try { response = env.CreateWebResourceResponse(null, 404, "Not Found", string.Empty); }
-            catch (Exception) { response = null; }
+            catch (Exception inner) { response = null; Diagnostics.Swallowed(inner, "favicons: 404 for internal page"); }
 
             return true;
         }

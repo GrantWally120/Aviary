@@ -204,7 +204,9 @@ var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {}
 var ICONS = D.iconBase || '';
 var SHOW = D.sections || {favourites:true, frequent:true, reading:true, privacy:true};
 
-function post(o){ try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
+/* Every message carries this page's secret, which the host checks: the host's handler stays
+   attached after the tab moves on to a website, and only Aviary's own page knows the token. */
+function post(o){ try { o.token = D.token || ''; window.chrome.webview.postMessage(JSON.stringify(o)); } catch(e){} }
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g,
   function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
