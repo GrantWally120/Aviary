@@ -284,8 +284,9 @@ cold relaunch; the tab and page context menus; the resize grip (bug 27); the rea
 and pane; the Privacy Report on a tracker-heavy site (bugs 28 and 29); Clear browsing data,
 confirmed on disk and in the engine's cookie store.
 
-**11 Sep (Phase 5 M1 — diagnostics):** every one of the 16 categories produced by real
-browsing in the published exe; switching on from Settings (folder + manifest + session appear
+**11 Sep (Phase 5 M1 — diagnostics):** 14 of the 16 categories produced by real browsing in
+the published exe — not 7 (experiments: nothing to record until M6's flags exist) and not 15
+(downloads: written, never exercised — see below); switching on from Settings (folder + manifest + session appear
 at once) and launching with it already on; switching off (files byte-identical after browsing
 and a full minute); a UI-thread crash (report written, Aviary survived) and a fatal
 background-thread crash (report written before the process died, then an unclean-exit record
