@@ -566,6 +566,7 @@ public sealed partial class MainWindow : Window
         tab.Navigated += OnTabNavigated;
         tab.FullScreenChanged += OnTabFullScreenChanged;
         tab.HttpsFallback += OnHttpsFallback;
+        WireShields(tab);
         tab.BlankTabRequested = OpenBlankTabAsync;
 
         _tabs.Add(tab);
@@ -624,7 +625,8 @@ public sealed partial class MainWindow : Window
         return tab.View.CoreWebView2;
     }
 
-    private async Task OpenNewTabAsync(string? url)
+    /// <param name="focus">For a Start Page: a section to open it scrolled to (see BuildStartPageHtml).</param>
+    private async Task OpenNewTabAsync(string? url, string? focus = null)
     {
         BrowserTab? tab = await CreateTabAsync(select: true, reason: url is null ? "new tab" : "open in new tab");
         if (tab is null)
@@ -639,7 +641,7 @@ public sealed partial class MainWindow : Window
                 startCore.WebMessageReceived += StartPage_WebMessageReceived;
             }
 
-            tab.NavigateToHtml(BuildStartPageHtml(), "Start Page");
+            tab.NavigateToHtml(BuildStartPageHtml(focus), "Start Page");
         }
         else
         {
@@ -717,6 +719,9 @@ public sealed partial class MainWindow : Window
             // JSON for the same reason as the paths above: the folder is full of backslashes.
             .Replace("/*__AVIARY_DIAG__*/",
                 "window.__aviaryDiag = " + JsonSerializer.Serialize(Diagnostics.DescribeForSettings()) + ";")
+            // The filter lists' versions and counts, and the last check (Shields, M3).
+            .Replace("/*__AVIARY_LISTS__*/",
+                "window.__aviaryLists = " + JsonSerializer.Serialize(FilterLists.Describe()) + ";")
             .Replace("__AV_ICONCACHE__", DescribeIconCache())
             .Replace("__AV_BLOCKCOUNT__",
                 TrackerBlocker.BlockedCount == 0
@@ -748,10 +753,14 @@ public sealed partial class MainWindow : Window
     /// XAML does. An HTML page cannot read a XAML ResourceDictionary, and duplicating the
     /// palette in CSS is how the two quietly drift apart.
     /// </summary>
-    private string BuildStartPageHtml()
+    /// <param name="focus">
+    /// A section to show and scroll to on this one page, whatever Customise says — the Shields
+    /// popover's "Privacy Report" lands on the report even when its card is switched off.
+    /// </param>
+    private string BuildStartPageHtml(string? focus = null)
     {
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
-        string html = BuildStartPageHtmlCore();
+        string html = BuildStartPageHtmlCore(focus);
 
         // A baseline for M7, which lists Start Page build cost as something to optimise.
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2);
@@ -760,7 +769,7 @@ public sealed partial class MainWindow : Window
         return html;
     }
 
-    private string BuildStartPageHtmlCore()
+    private string BuildStartPageHtmlCore(string? focus)
     {
         List<object> favourites = new();
         HashSet<string> favouriteHosts = new(StringComparer.OrdinalIgnoreCase);
@@ -845,6 +854,7 @@ public sealed partial class MainWindow : Window
             frequent,
             reading,
             privacy = BuildPrivacyPayload(),
+            focus,
         };
 
         return StartPage.Html
@@ -1645,6 +1655,7 @@ public sealed partial class MainWindow : Window
             typeof(Geometry), loading ? StopGeometry : ReloadGeometry);
         ToolTipService.SetToolTip(ReloadButton, loading ? "Stop (Esc)" : "Reload (Ctrl+R)");
         LockGlyph.Visibility = (tab?.IsSecure ?? false) ? Visibility.Visible : Visibility.Collapsed;
+        UpdateShieldsButton();
 
         if (!_addressFocused)
         {
@@ -2269,6 +2280,24 @@ public sealed partial class MainWindow : Window
                 case "blockTrackers":
                     TrackerBlocker.Enabled = value.ValueKind == JsonValueKind.True;
                     Diagnostics.Shields(TrackerBlocker.Enabled ? "blocking-on" : "blocking-off", new { scope = "everywhere" });
+
+                    // Element hiding follows the switch too: every tab's page script goes (or
+                    // comes back) for the pages it loads next.
+                    Shields.Refresh();
+                    UpdateShieldsButton();
+                    break;
+
+                case "blockMode":
+                    Diagnostics.Shields("mode", new { mode = value.GetString() });
+                    UpdateShieldsButton();
+                    break;
+
+                case "listAds":
+                case "listTrackers":
+                    // A list on or off: the engine is rebuilt from the lists that are on, off this
+                    // thread, and reaches every tab by itself (FilterLists.EngineChanged).
+                    Diagnostics.Shields("list", new { list = key == "listAds" ? "EasyList" : "EasyPrivacy", on = value.ValueKind == JsonValueKind.True });
+                    _ = ReloadListsAsync();
                     break;
 
                 case Diagnostics.SettingKey:
@@ -2493,6 +2522,9 @@ public sealed partial class MainWindow : Window
                     PrivacyReport.Clear();
                     SiteSettings.Clear();
 
+                    // Site settings include Shields: every site is back to Shields up.
+                    Shields.Refresh();
+
                     // The engine's own store — cookies, cache, local storage, service
                     // workers. Without this, "cleared" would mean the list only.
                     try
@@ -2524,6 +2556,31 @@ public sealed partial class MainWindow : Window
 
                 case "siteDataRemove":
                     await RemoveSiteDataAsync(page, arg ?? string.Empty);
+                    break;
+
+                // ── Shields (M3) ──
+                case "listsUpdate":
+                {
+                    // A new engine reaches every tab by itself (FilterLists.EngineChanged); the
+                    // page only needs to hear how it went.
+                    await PushListsAsync(page, updating: true);
+                    await FilterLists.UpdateAsync("manual");
+                    await PushListsAsync(page, updating: false);
+                    break;
+                }
+
+                case "shieldsSites":
+                    await PushShieldsSitesAsync(page);
+                    break;
+
+                case "shieldsSiteUp":
+                    if (!string.IsNullOrWhiteSpace(arg))
+                    {
+                        Shields.Set(arg, down: false, isPrivate: _private);
+                        AfterShieldsChange();
+                    }
+
+                    await PushShieldsSitesAsync(page);
                     break;
 
                 case "clearPasswords":
@@ -2835,6 +2892,15 @@ public sealed partial class MainWindow : Window
 
     private void ErrorBack_Click(object sender, RoutedEventArgs e)
     {
+        // Strict's warning: the stopped navigation never left the page that was showing, so
+        // going back is simply putting that page on screen again.
+        if (_blockedSiteUrl is not null)
+        {
+            DiagUi("site-blocked-back");
+            HideError();
+            return;
+        }
+
         DiagUi("https-fallback-back");
         BrowserTab? tab = _active;
         HideError();
@@ -2846,6 +2912,14 @@ public sealed partial class MainWindow : Window
 
     private void ErrorContinue_Click(object sender, RoutedEventArgs e)
     {
+        if (_blockedSiteUrl is { } blocked && _active is { } blockedTab)
+        {
+            DiagUi("site-blocked-open-anyway");
+            HideError();
+            blockedTab.OpenBlockedSite(blocked);
+            return;
+        }
+
         if (_fallbackUrl is not { } url || _active is not { } tab)
         {
             return;
@@ -2878,6 +2952,8 @@ public sealed partial class MainWindow : Window
         ErrorPanel.Visibility = Visibility.Collapsed;
         ErrorActions.Visibility = Visibility.Collapsed;
         _fallbackUrl = null;
+        _blockedSiteUrl = null;
+        ErrorContinueButton.Content = "Continue to Site";
 
         if (_active is not null)
         {

@@ -9,3 +9,8 @@
 *.yml     text eol=lf
 *.md      text
 *.html    text
+
+# The filter lists ship byte-for-byte as easylist.to publishes them (LF endings): never
+# normalised, so the copy in git is the unmodified file its licence note says it is.
+src/Aviary/Filters/*.txt -text
+src/Aviary/Filters/README.txt text

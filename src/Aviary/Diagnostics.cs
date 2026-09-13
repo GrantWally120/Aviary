@@ -1016,8 +1016,8 @@ internal static partial class Diagnostics
         Enqueue(LogFile.Network, "request", null, record);
     }
 
-    /// <summary>4 — one request the blocker stopped.</summary>
-    public static void Blocked(int tab, string url, string rule, string context, string page)
+    /// <summary>4 — one request the blocker stopped, the rule that stopped it, and the list that rule came from.</summary>
+    public static void Blocked(int tab, string url, string rule, string context, string page, string? list = null)
     {
         if (!RecordsBrowsing)
         {
@@ -1026,7 +1026,7 @@ internal static partial class Diagnostics
 
         Interlocked.Increment(ref _blocked);
         RuleCounts.AddOrUpdate(rule, 1, (_, n) => n + 1);
-        Enqueue(LogFile.Blocking, "blocked", null, new { tab, url, rule, context, page });
+        Enqueue(LogFile.Blocking, "blocked", null, new { tab, url, rule, list, context, page });
     }
 
     /// <summary>4 — a change to what the blocker does.</summary>

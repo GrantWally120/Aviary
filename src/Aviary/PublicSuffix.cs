@@ -51,6 +51,18 @@ internal static class PublicSuffix
         "onrender.com", "readthedocs.io", "neocities.org", "itch.io",
     };
 
+    private static readonly HashSet<string>.AlternateLookup<ReadOnlySpan<char>> MultiLabelBySpan =
+        MultiLabel.GetAlternateLookup<ReadOnlySpan<char>>();
+
+    /// <summary>
+    /// True for a two-label public suffix ("co.uk", "github.io"). Span-based for the ad blocker,
+    /// which asks once per request on the UI thread and must not allocate to do it.
+    /// </summary>
+    public static bool IsMultiLabel(ReadOnlySpan<char> lastTwoLabels) => MultiLabelBySpan.Contains(lastTwoLabels);
+
+    /// <summary>The two-label suffixes, for the ad blocker's page script ("amazon.*" rules).</summary>
+    public static IEnumerable<string> MultiLabelSuffixes => MultiLabel;
+
     /// <summary>
     /// The registrable domain: "docs.google.com" becomes "google.com",
     /// "grant.github.io" stays "grant.github.io", "bbc.co.uk" stays "bbc.co.uk".

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The ad blocker's engine, tested on its own (M3, 13 Sep 2026): compiles Aviary's own
+       FilterEngine*.cs and PublicSuffix.cs, so what passes here is the code that ships.
+       Run:  dotnet run -c Release   (from this folder). See HANDOFF section 17. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aviary</RootNamespace>
+    <Optimize>true</Optimize>
+    <NoWarn>CS8618;CS0414</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\..\src\Aviary\FilterEngine.cs" Link="Engine\FilterEngine.cs" />
+    <Compile Include="..\..\..\src\Aviary\FilterEngine.Cosmetic.cs" Link="Engine\FilterEngine.Cosmetic.cs" />
+    <Compile Include="..\..\..\src\Aviary\PublicSuffix.cs" Link="Engine\PublicSuffix.cs" />
+  </ItemGroup>
+</Project>

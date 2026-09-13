@@ -34,5 +34,8 @@ forward slashes in PublishDir: a trailing `\"` swallows the rest of the argument
 | `si-race.ps1`, `si-race2.ps1` | Bug 51's shutdown race, both orderings (close-then-launch, launch-then-close) over a sweep of delays. Every trial: never two Aviarys on one profile, no unclean-exit, no lost launch. |
 | `wipe-probe.js <origin>…` | Bug 52: plants cookies for seven sites, calls Storage.clearDataForOrigin on each origin given, reports what it took. `TYPES=…` to pass storage kinds. Run against a scratch instance only. |
 | `edit.js` | Scripted source edits that respect each file's line endings (the tree mixes CRLF and LF). |
+| `m3site.js` | M3's ad-blocker site on port 8771. Launch with `-ExtraArgs '--host-resolver-rules="MAP * 127.0.0.1:8771, EXCLUDE localhost"'` and `{"httpsOnly":"false"}` so every host lands here: news.test loads real ad and tracker addresses (answered locally), plus pages for a site's own rule, an exception, `$generichide`, `$document` and a plain-host site. `/hits` lists what got through — a blocked request is one that is NOT there. `/lists/` serves the lists re-dated for "Update now" (`AVIARY_TEST_FILTER_BASE=http://127.0.0.1:8771/lists/`). HANDOFF §5 has the gotchas (HSTS-preloaded hosts, ports). |
+| `uia.ps1 -ProcessId n (-Name text \| -Id xName) [-Action Invoke\|Toggle\|Dump\|Help] [-Window Private]` | Presses XAML controls through UI Automation — no mouse, no keyboard, no focus change, so it is safe while Grant is at the PC. Flyouts are searched too. |
+| `filters/` | The ad blocker's engine harness: `dotnet run -c Release` in that folder. Compiles the shipping `FilterEngine*.cs`; 101 checks plus real-list build time, skip report and a 200,000-request cost run. |
 
-Output (`pub/`, `profiles/`, `shots/`, `pid.txt`, `lastinput.txt`) is ignored by git.
+Output (`pub/`, `profiles/`, `shots/`, `pid.txt`, `lastinput.txt`, `filters/bin`, `filters/obj`) is ignored by git.

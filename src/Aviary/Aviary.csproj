@@ -92,4 +92,11 @@
     <Warning Text="Library\files is missing, so the Collection will list exhibits it cannot open. Run tools\library\sync.ps1 first (it copies Grant's projects in from Documents)." />
   </Target>
 
+  <!-- The ad blocker's filter lists (FilterLists.cs, M3): EasyList and EasyPrivacy exactly as
+       easylist.to publishes them, with their licence note. Data beside Aviary.exe, never
+       compiled in and never edited — None for the same reason as the Library above. -->
+  <ItemGroup>
+    <None Update="Filters\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

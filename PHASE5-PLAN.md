@@ -158,7 +158,26 @@ cannot run — **Wally2TTD 2.4.1 & 2.4.2** (one page for both, as asked), the Wa
 WallyCore1, TinyCalc. Entry: app menu, a Start Page row, the address. Also: a description under
 every milestone in Updates (and M2.5 itself), and the diagnostics cap raised to **500 MB**.
 
-### M3 — The ad blocker: filter engine + selective control
+### M3 — The ad blocker: filter engine + selective control · **done 13 Sep 2026** (HANDOFF §17)
+Built as planned, with these outcomes and differences — each decided on evidence:
+- **Lists:** Grant approved EasyList + EasyPrivacy only (13 Sep). The optional cookie-banner and
+  social lists were NOT added; each needs his yes. So the "per-category switches" are **Ads**
+  (EasyList) and **Trackers** (EasyPrivacy).
+- **Standard / Strict follow Brave:** Standard stops what other sites load into a page and never a
+  site's own requests (any list, Aviary's included); Strict applies everything and warns before
+  opening a site the lists mark as ad/tracker-only, with **Open Anyway**.
+- **Index:** plain `||host^` rules (89,000) in a host table; the rest filed by their RAREST
+  whole-word token rather than the longest. Regex rules, `$popup`, `$csp`, `$redirect`, scriptlets
+  and procedural hiding are skipped and counted — shown in Settings.
+- **No compiled index on disk:** building from text takes 70–110 ms on a background thread at
+  launch, inside the first page's wait; a cache is left for M7 to justify with numbers.
+- **Cosmetic:** one page script in every document, nested frames included, adopting one
+  stylesheet; measured first (~2 ms per page, no recalc cost). Blocked frames and images also
+  collapse, and blocked frames get a 204 so they no longer cost a renderer process.
+- **Match cost:** ~1.6 µs a request in the harness, ~9 µs in the app (budget: well under 1 ms).
+- **The weekly refresh is off by default**; "Update now" is the user-initiated path.
+
+The original M3 plan:
 New `FilterEngine.cs` (parser + token index) and `Shields.cs` (per-site state).
 `TrackerBlocker` stays as the fast pre-filter.
 - Network rules that carry most of the benefit: `||domain^`, `|` anchors, substrings,

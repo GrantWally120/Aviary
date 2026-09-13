@@ -474,7 +474,45 @@
                           StrokeLineJoin="Round"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 </Button>
-                <Border Width="16" />
+                <Border Width="10" />
+
+                <!-- Shields (Phase 5 M3) — where Safari keeps its Privacy Report button. The count
+                     is what was blocked on this page; a slash means Shields are down for this
+                     site. Existing tokens only: a new key would have to go into all six
+                     dictionaries (the theme contract, HANDOFF §6). -->
+                <Button x:Name="ShieldsButton" Style="{StaticResource AvToolButton}"
+                        AutomationProperties.Name="Shields"
+                        Click="ShieldsButton_Click" ToolTipService.ToolTip="Shields">
+                    <Grid>
+                        <Path x:Name="ShieldGlyph" Width="17" Height="17"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Data="M8.5,1.9 L3.3,4 V8 C3.3,11.1 5.4,13.8 8.5,14.8 C11.6,13.8 13.7,11.1 13.7,8 V4 Z"
+                              Stroke="{ThemeResource AvIconBrush}"
+                              StrokeThickness="1.5"
+                              StrokeLineJoin="Round" />
+                        <Path x:Name="ShieldSlash" Width="17" Height="17"
+                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                              Visibility="Collapsed"
+                              Data="M2.6,14.4 L14.4,2.6"
+                              Stroke="{ThemeResource AvIconBrush}"
+                              StrokeThickness="1.5"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        <Border x:Name="ShieldCount"
+                                Visibility="Collapsed"
+                                HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Margin="0,0,-5,-3"
+                                Padding="2,0,2,0"
+                                MinWidth="11"
+                                CornerRadius="4"
+                                Background="{ThemeResource AvChromeBrush}">
+                            <TextBlock x:Name="ShieldCountText"
+                                       FontSize="9" FontWeight="Bold"
+                                       HorizontalAlignment="Center"
+                                       Foreground="{ThemeResource AvAccentBrush}" />
+                        </Border>
+                    </Grid>
+                </Button>
+                <Border Width="12" />
 
                 <!-- Only in a private window: say so, where the eye already is. -->
                 <Border x:Name="PrivateBadge"

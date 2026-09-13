@@ -277,6 +277,9 @@ internal sealed partial class BrowserTab
             CoreWebView2WebResourceRequestSourceKinds.All);
         core.WebResourceRequested += OnWebResourceRequested;
 
+        // The ad blocker's element hiding, and its reaction to list and Shields changes (M3).
+        AttachShields();
+
         // A page asking for full screen (a video's full-screen button) takes the WINDOW full
         // screen, as every browser does; otherwise the video only fills the area under the
         // toolbar.
@@ -373,53 +376,93 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            // Timed for diagnostics' blocker-cost figure. GetTimestamp is a few nanoseconds;
-            // FilterCost returns at once while collection is off.
-            long matchStart = System.Diagnostics.Stopwatch.GetTimestamp();
-            string? rule = TrackerBlocker.Match(uri);
-            Diagnostics.FilterCost(System.Diagnostics.Stopwatch.GetTimestamp() - matchStart);
-
-            if (rule is null || _environment is null)
+            // The first moments after launch, while the filter lists are still being read (well
+            // under a second): hold a website's request until they are, rather than wave its
+            // first ads through. Never longer than two seconds.
+            if (FilterLists.Engine is null && !FilterLists.Loading.IsCompleted && Shields.Enabled && _internalTitle is null)
             {
-                // The privacy work on requests that DO go out (BrowserTab.Privacy.cs).
-                CleanOutgoingRequest(args);
-                TrimReferrer(args.Request, uri);
-
-                if (Records)
-                {
-                    NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, null);
-                }
-
+                Deferral deferral = args.GetDeferral();
+                _ = DecideWhenListsLoadAsync(args, uri, deferral);
                 return;
             }
 
-            TrackerBlocker.CountBlocked();
-
-            // The session counter resets when you quit, so on its own it can never say
-            // anything more interesting than "since you opened the app". The seven-day
-            // store is what the Start Page's Privacy Report reads.
-            // Never for a private tab: the report keeps which sites contacted trackers.
-            if (!IsPrivate && Uri.TryCreate(uri, UriKind.Absolute, out Uri? blocked))
-            {
-                PrivacyReport.Record(blocked.Host, HostOf(Url), args.ResourceContext);
-            }
-
-            args.Response = _environment.CreateWebResourceResponse(null, 403, "Blocked by Aviary", string.Empty);
-
-            if (Records)
-            {
-                Diagnostics.Blocked(Id, uri, rule, args.ResourceContext.ToString(), Url);
-
-                // Its synthetic 403 still arrives as a response; the network line should say
-                // who answered it rather than look like the server refused.
-                NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, rule);
-            }
+            Decide(args, uri);
         }
         catch (Exception ex)
         {
             // Let the request through rather than take the page down. A missed advert is
             // cheaper than a broken browser.
             Diagnostics.Swallowed(ex, "tab: request filter");
+        }
+    }
+
+    private async Task DecideWhenListsLoadAsync(CoreWebView2WebResourceRequestedEventArgs args, string uri, Deferral deferral)
+    {
+        try
+        {
+            await Task.WhenAny(FilterLists.Loading, Task.Delay(2000));
+            Decide(args, uri);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: request filter, after waiting for the lists");
+        }
+        finally
+        {
+            deferral.Complete();
+        }
+    }
+
+    private void Decide(CoreWebView2WebResourceRequestedEventArgs args, string uri)
+    {
+        // Timed for diagnostics' blocker-cost figure. GetTimestamp is a few nanoseconds;
+        // FilterCost returns at once while collection is off.
+        long matchStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        (string Rule, string List)? verdict = ShieldsVerdict(uri, args.ResourceContext);
+        Diagnostics.FilterCost(System.Diagnostics.Stopwatch.GetTimestamp() - matchStart);
+
+        if (verdict is not { } stop || _environment is null)
+        {
+            // The privacy work on requests that DO go out (BrowserTab.Privacy.cs).
+            CleanOutgoingRequest(args);
+            TrimReferrer(args.Request, uri);
+
+            if (Records)
+            {
+                NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, null);
+            }
+
+            return;
+        }
+
+        TrackerBlocker.CountBlocked();
+        CountBlockedOnPage(uri, stop.Rule);
+        QueueCollapse(uri, args.ResourceContext);
+
+        // The session counter resets when you quit, so on its own it can never say
+        // anything more interesting than "since you opened the app". The seven-day
+        // store is what the Start Page's Privacy Report reads.
+        // Never for a private tab: the report keeps which sites contacted trackers.
+        if (!IsPrivate && Uri.TryCreate(uri, UriKind.Absolute, out Uri? blocked))
+        {
+            PrivacyReport.Record(blocked.Host, HostOf(Url), args.ResourceContext);
+        }
+
+        // A blocked FRAME gets 204 No Content, which Chromium never commits: the frame stays the
+        // empty document it started as, inside the page's own process. A 403 was an error page
+        // that Chromium loaded — and for a cross-site ad frame that meant a whole renderer
+        // process of its own, ~4 MB apiece (seen in M1's minute samples; fixed in M3).
+        args.Response = args.ResourceContext == CoreWebView2WebResourceContext.Document
+            ? _environment.CreateWebResourceResponse(null, 204, "Blocked by Aviary", string.Empty)
+            : _environment.CreateWebResourceResponse(null, 403, "Blocked by Aviary", string.Empty);
+
+        if (Records)
+        {
+            Diagnostics.Blocked(Id, uri, stop.Rule, args.ResourceContext.ToString(), Url, stop.List);
+
+            // Its synthetic 403 still arrives as a response; the network line should say
+            // who answered it rather than look like the server refused.
+            NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, stop.Rule);
         }
     }
 
@@ -797,7 +840,7 @@ internal sealed partial class BrowserTab
         // broken, and counting it as one made every ad-funded site look like the worst on the
         // web. It is still recorded — which blocked files a page wanted is exactly how a site
         // BROKEN by the blocker gets diagnosed — but labelled for what it is.
-        string? blockedBy = kind == "resource" && url is not null ? TrackerBlocker.Match(url) : null;
+        string? blockedBy = kind == "resource" && url is not null ? BlockedRuleFor(url) : null;
 
         Diagnostics.PageError(kind, new
         {
@@ -1071,6 +1114,7 @@ internal sealed partial class BrowserTab
     {
         Url = sender.Source;
         IsSecure = Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+        UpdateFilterPage(Url);
 
         if (_internalTitle is null)
         {
@@ -1292,6 +1336,13 @@ internal sealed partial class BrowserTab
             return;
         }
 
+        // The page's context for the ad blocker — and, in Strict, the warning in place of a site
+        // the lists stop as a whole (BrowserTab.Shields.cs).
+        if (ShieldsOnNavigationStarting(args))
+        {
+            return;
+        }
+
         IsLoading = true;
 
         // A web page is loading, so this tab is no longer showing one of Aviary's own pages.
@@ -1350,6 +1401,15 @@ internal sealed partial class BrowserTab
     {
         IsLoading = false;
         ApplyZoom();
+
+        // A navigation that never committed (cancelled, a download, a failure) leaves the page
+        // that was already showing — and that is the page its requests belong to.
+        if (!args.IsSuccess)
+        {
+            _mainDocument = DocumentKey(Url);
+            UpdateFilterPage(Url);
+        }
+
         Changed?.Invoke(this);
 
         if (Interlocked.Exchange(ref _firstPage, 1) == 0)
@@ -1714,6 +1774,7 @@ internal sealed partial class BrowserTab
         // A static event holds its listeners: without this every closed tab would be kept
         // alive by the diagnostics switch for the rest of the session.
         Diagnostics.EnabledChanged -= OnDiagnosticsChanged;
+        DetachShields();
         Diagnostics.TabClosed(Id);
         _inFlight.Clear();
 

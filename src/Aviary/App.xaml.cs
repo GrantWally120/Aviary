@@ -37,6 +37,10 @@ public partial class App : Application
 
         WebViewEnvironment.EnsureUserDataFolder();
 
+        // The ad blocker's lists are read on a background thread while the window builds, so
+        // they are ready before the first website asks for anything (FilterLists.cs, M3).
+        FilterLists.Start();
+
         InitializeComponent();
     }
 

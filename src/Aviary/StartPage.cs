@@ -256,6 +256,9 @@ internal static class StartPage
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
 var ICONS = D.iconBase || '';
 var SHOW = D.sections || {favourites:true, menagerie:true, frequent:true, reading:true, privacy:true};
+/* Opened to show one section (the Shields popover's "Privacy Report"): shown on this page even
+   if Customise hides it — the saved choice is untouched — and scrolled to below. */
+if (D.focus && (D.focus in SHOW)) { SHOW[D.focus] = true; }
 
 /* Every message carries this page's secret, which the host checks: the host's handler stays
    attached after the tab moves on to a website, and only Aviary's own page knows the token. */
@@ -556,6 +559,10 @@ document.addEventListener('contextmenu', function(e){
 
 buildCust();
 render();
+if (D.focus) {
+  var focused = document.querySelector('[data-sec="' + D.focus + '"]');
+  if (focused) { focused.scrollIntoView({block:'center'}); }
+}
 </script>
 </body>
 </html>

@@ -312,12 +312,15 @@ internal static class InternalPages
 /*__AVIARY_BUILD__*/
 /*__AVIARY_PATHS__*/
 /*__AVIARY_DIAG__*/
+/*__AVIARY_LISTS__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
 /* What the running engine STARTED with, for the switches that only apply at launch. */
 var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
+/* The ad blocker's filter lists: versions, dates, counts, the last check (Shields, M3). */
+var LISTS = (typeof window.__aviaryLists === 'object' && window.__aviaryLists) || {};
 var RENDERED = {};
 var BUILD = (typeof window.__aviaryBuild === 'object' && window.__aviaryBuild) ||
             {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0, names:{}, codes:{}};
@@ -353,7 +356,8 @@ var ICON = {
   start:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8.6 8 3.4l5.5 5.2M4 7.6V13h8V7.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   look:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.2v11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
   content:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2.2 6.2h11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
-  privacy:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8 3.2 3.8v3.9c0 3 2 5.6 4.8 6.4 2.8-.8 4.8-3.4 4.8-6.4V3.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  privacy:'<svg viewBox="0 0 16 16" fill="none"><rect x="3.4" y="7" width="9.2" height="6.6" rx="1.6" stroke="currentColor" stroke-width="1.4"/><path d="M5.4 7V5.2a2.6 2.6 0 0 1 5.2 0V7" stroke="currentColor" stroke-width="1.4"/></svg>',
+  shields:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8 3.2 3.8v3.9c0 3 2 5.6 4.8 6.4 2.8-.8 4.8-3.4 4.8-6.4V3.8Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="m5.9 8.1 1.5 1.5 2.8-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   search:'<svg viewBox="0 0 16 16" fill="none"><circle cx="7.2" cy="7.2" r="4.4" stroke="currentColor" stroke-width="1.4"/><path d="m10.6 10.6 2.8 2.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
   ext:'<svg viewBox="0 0 16 16" fill="none"><path d="M6 2.6h4v2a1.4 1.4 0 0 0 2.8 0h.6v10.2H2.6V4.6h.6a1.4 1.4 0 0 0 2.8 0Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
   autofill:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="4" width="11.6" height="8" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 8h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
@@ -435,7 +439,7 @@ var UPDATES = [
     ]},
   { phase:5, name:'Privacy that works',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
-    short:'Grant’s own projects now live inside Aviary: the Collection runs every Wally2TTD, Jurassic Empire and the rest with no internet — on top of privacy switches that really do what they say.',
+    short:'Shields, a real ad blocker you control site by site, joins privacy switches that really do what they say — and Grant’s own projects now live inside Aviary, in the Collection.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
        "middle update"), so labels are written, not counted. `d` says what it is in plain words. */
     milestones:[
@@ -447,7 +451,7 @@ var UPDATES = [
        d:'Each privacy setting genuinely does what it says — cookies, tracking, HTTPS, the private window — tested with the switch on and off.'},
       {n:'M2.5', t:'The Collection', when:'13 Sep',
        d:'The middle update: Grant’s own projects — the whole Wally series and the rest — brought inside Aviary to run offline, with landing pages for the ones a browser can’t run, and room for 500 MB of diagnostics.'},
-      {n:'M3', t:'An ad blocker you control site by site',
+      {n:'M3', t:'An ad blocker you control site by site', when:'13 Sep',
        d:'A real filter-list blocker built on EasyList and EasyPrivacy, with a shield for every site so you decide where it steps back.'},
       {n:'M4', t:'Brave Search and more safe search engines',
        d:'Brave Search, Mojeek, Qwant and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
@@ -461,6 +465,14 @@ var UPDATES = [
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
+      {h:'Shields — the ad blocker', items:[
+        '<b>A real ad blocker.</b> EasyList and EasyPrivacy — the lists behind most ad blockers — stop ads and trackers before they load, so they never learn you were there',
+        'The <b>shield in the toolbar</b> shows how many were stopped on the page you are on, and where from, and switches Shields off for a site that doesn’t work with them',
+        '<b>Standard or Strict.</b> Standard stops what other companies load into a page. Strict also stops what a site runs itself, and warns you before opening a site that exists only to serve ads or track people',
+        'The empty spaces ads leave are hidden too — inside frames as well',
+        '“Update now” fetches the newest lists; a weekly refresh can do it for you, off until you switch it on',
+        'A new <b>Shields</b> page in Settings, with every site you’ve switched Shields off for'
+      ]},
       {h:'The Collection', items:[
         '<b>The Collection</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
         '<b>Wally2TTD 2.4.2 and Jurassic Empire</b>, both built in Godot, now play right in a tab',
@@ -498,6 +510,8 @@ var UPDATES = [
         'Blocking now reaches trackers inside frames from other sites'
       ]},
       {h:'Fixes', items:[
+        'Visiting an ad or tracking company’s own website showed a blank page instead of the site',
+        'Two site icons arriving at the same moment could leave the older one saved',
         'Pinning Aviary to light or dark left parts of it, and its menus, in the other theme’s colours',
         'Pinning a tab failed every time',
         'The Privacy Report’s chart never grew, and the report started again every launch',
@@ -568,10 +582,23 @@ var SECTIONS = [
       {t:'Reader background', d:'White, Sepia, Grey or Black — independent of the browser’s own theme, exactly as Safari keeps it.', ctl:{type:'select', key:'readerTheme', opts:['White','Sepia','Grey','Black'], value:'White'}}
     ]},
 
-  { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
-    lede:'What Aviary keeps, and what it tells sites about you. Every switch on this page does what it says — nothing here is for show.',
+  /* Phase 5 M3 — the ad blocker (FilterEngine.cs, FilterLists.cs, Shields.cs). Brave calls it
+     Shields; so does Aviary. Every row here is live. */
+  { id:'shields', icon:'shields', name:'Shields', title:'Shields',
+    lede:'Aviary’s ad and tracker blocker. It stops ads and trackers before they load — so they never learn you were there — and hides the empty spaces they leave behind. The shield in the toolbar shows what it stopped on the page you are on, and turns it off for a site that doesn’t work with it.',
     rows:[
       {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
+      {t:'How much to block', d:'<b>Standard</b> stops ads and trackers that come from other companies — the ones that follow you from site to site — and leaves what a site serves itself alone. <b>Strict</b> also stops the ones a site runs itself, and warns you before opening a site the lists say exists only to serve ads or track people. Strict can break parts of some sites.', ctl:{type:'select', key:'blockMode', opts:['Standard','Strict'], value:'Standard'}},
+      {t:'Ads', d:'EasyList: stops ad servers, and hides the boxes ads sit in.', ctl:{type:'toggle', key:'listAds', value:true}},
+      {t:'Trackers', d:'EasyPrivacy: stops analytics, tracking pixels and the scripts that follow you from site to site.', ctl:{type:'toggle', key:'listTrackers', value:true}},
+      {t:'Filter lists', d:'<span id="listsline"></span>', more:'lists', ctl:{type:'button', cmd:'listsUpdate', label:'Update now'}},
+      {t:'Keep the lists up to date', d:'Once a week, Aviary downloads the newest EasyList and EasyPrivacy from easylist.to. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now.', ctl:{type:'toggle', key:'listsAutoUpdate', value:false}},
+      {t:'Sites with Shields down', d:'Sites where you switched Shields off from the toolbar. Nothing on their pages is blocked or hidden.', more:'shieldsites', ctl:{type:'button', cmd:'shieldsSites', label:'Show'}}
+    ]},
+
+  { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
+    lede:'What Aviary keeps, and what it tells sites about you. Every switch on this page does what it says — nothing here is for show. Blocking ads and trackers has its own page: Shields.',
+    rows:[
       /* Phase 5 M2 — privacy that actually works. The three rows marked restart:true are
          switches in the browser engine itself, read once when Aviary starts; the page shows a
          note when the saved value differs from what the running engine started with. */
@@ -840,7 +867,12 @@ var MORE = {
         '<div class="more__body" id="diaglist"></div></details>',
   /* Filled by the host when "Show" is pressed — site names are website-controlled, so every
      one goes in through textContent. */
-  sitedata: '<div class="sitedata" id="sitedata" hidden></div>'
+  sitedata: '<div class="sitedata" id="sitedata" hidden></div>',
+  /* Shields: the lists and whose they are (filled from LISTS below), and the sites with
+     Shields down (filled by the host on "Show", through textContent). */
+  lists: '<details class="more"><summary>What the lists are, and whose they are</summary>' +
+         '<div class="more__body" id="listsbox"></div></details>',
+  shieldsites: '<div class="sitedata" id="shieldsites" hidden></div>'
 };
 
 var nav = document.getElementById('nav');
@@ -951,6 +983,85 @@ diagStatus(DIAG);
 /* Host to page, one-way: the switch has moved itself; the words under it follow. */
 window.__aviaryDiagStatus = function(d){ if (d) { DIAG = d; } diagStatus(DIAG); };
 
+/* ── Shields: the lists' line, their detail, and the sites with Shields down ── */
+function num(n){ return (n | 0).toLocaleString('en-US'); }
+function listsLine(d){
+  var el = document.getElementById('listsline');
+  var btn = document.querySelector('.btn[data-cmd="listsUpdate"]');
+  if (btn) { btn.disabled = !!(d && d.updating); btn.textContent = (d && d.updating) ? 'Checking…' : 'Update now'; }
+  if (!el) { return; }
+  if (!d || !d.lists) { el.textContent = ''; return; }
+  if (d.updating) { el.textContent = 'Checking easylist.to for newer lists…'; return; }
+  var checked = d.checkedAt ? 'Last checked ' + d.checkedAt + (d.result ? ' — ' + d.result : '') : 'Never checked for newer ones.';
+  var off = d.lists.filter(function(l){ return l.on === false; }).length;
+  if (off === d.lists.length) {
+    el.textContent = 'Both lists are switched off, so only Aviary’s own short list of trackers is blocking, and nothing is hidden. ' + checked;
+    return;
+  }
+  var have = d.lists.map(function(l){ return l.name + (l.on === false ? ' (switched off)' : l.modified ? ' of ' + l.modified : ' (missing)'); }).join(' and ');
+  el.textContent = (d.ready ? 'Using ' : 'Loading ') + have + '. ' + checked;
+}
+function listsBox(d){
+  var box = document.getElementById('listsbox');
+  if (!box || !d || !d.lists) { return; }
+  box.textContent = '';
+  var ul = document.createElement('ul');
+  d.lists.forEach(function(l){
+    var li = document.createElement('li');
+    var b = document.createElement('b');
+    b.textContent = l.name;
+    li.appendChild(b);
+    var about = (l.on === false ? [l.source] : [l.version ? 'Version ' + l.version : '', l.source, l.lines ? num(l.lines) + ' lines' : ''])
+      .filter(function(s){ return s; }).join(', ');
+    li.appendChild(document.createTextNode(' — ' + (l.what === 'Ads' ? 'ads' : 'trackers') + '. ' +
+      about.charAt(0).toUpperCase() + about.slice(1) + '.'));
+    ul.appendChild(li);
+  });
+  box.appendChild(ul);
+  if (d.ready) {
+    var counts = document.createElement('p');
+    counts.textContent = 'Aviary reads ' + num(d.network) + ' blocking rules and ' + num(d.cosmetic) +
+      ' rules that hide what ads leave behind. ' + num(d.skipped) + ' more are kinds it does not use — ' +
+      'mostly rules for pop-up windows, and rules that run scripts on pages, which Aviary never does.';
+    box.appendChild(counts);
+  }
+  var credit = document.createElement('p');
+  credit.textContent = 'EasyList and EasyPrivacy are made by the EasyList authors (easylist.to) and used exactly ' +
+    'as they publish them, under the Creative Commons Attribution-ShareAlike 3.0 licence (they are also ' +
+    'available under the GNU GPL 3). Aviary adds a short list of its own, kept separately.';
+  box.appendChild(credit);
+}
+listsLine(LISTS);
+listsBox(LISTS);
+window.__aviaryListsStatus = function(d){ if (d) { LISTS = d; } listsLine(LISTS); listsBox(LISTS); };
+
+window.__aviaryShieldsSites = function(list){
+  var box = document.getElementById('shieldsites');
+  if (!box) { return; }
+  box.hidden = false;
+  box.textContent = '';
+  if (!list || !list.length){
+    var none = document.createElement('div');
+    none.className = 'sd__empty';
+    none.textContent = 'Shields are up on every site.';
+    box.appendChild(none);
+    return;
+  }
+  list.forEach(function(site){
+    var row = document.createElement('div');
+    row.className = 'sd';
+    var name = document.createElement('b');
+    name.textContent = site;
+    var what = document.createElement('i');
+    what.textContent = 'Nothing blocked or hidden';
+    var up = document.createElement('button');
+    up.textContent = 'Turn Shields On';
+    up.setAttribute('data-shields-site', site);
+    row.appendChild(name); row.appendChild(what); row.appendChild(up);
+    box.appendChild(row);
+  });
+};
+
 var diagList = document.getElementById('diaglist');
 if (diagList && DIAG.categories){
   var ol = document.createElement('ol');
@@ -1015,6 +1126,13 @@ main.addEventListener('click', function(e){
   if (go){
     closeAllPopups(null);
     if (!go.disabled) { showPane(go.getAttribute('data-goto')); }
+    return;
+  }
+
+  var shieldsBtn = e.target.closest('button[data-shields-site]');
+  if (shieldsBtn){
+    shieldsBtn.disabled = true;
+    post({type:'command', name:'shieldsSiteUp', arg: shieldsBtn.getAttribute('data-shields-site')});
     return;
   }
 

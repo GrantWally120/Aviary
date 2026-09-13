@@ -361,6 +361,37 @@ internal static class SiteSettings
         Save();
     }
 
+    public static void Remove(string host, string key)
+    {
+        lock (Gate)
+        {
+            Values.Remove(Compose(host, key));
+        }
+
+        Save();
+    }
+
+    /// <summary>Every site (registrable domain) holding this key with this value, sorted.</summary>
+    public static List<string> SitesWith(string key, string value = "true")
+    {
+        string suffix = "|" + key;
+        lock (Gate)
+        {
+            List<string> sites = new();
+            foreach (KeyValuePair<string, string> pair in Values)
+            {
+                if (pair.Key.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(pair.Value, value, StringComparison.OrdinalIgnoreCase))
+                {
+                    sites.Add(pair.Key.Substring(0, pair.Key.Length - suffix.Length));
+                }
+            }
+
+            sites.Sort(StringComparer.OrdinalIgnoreCase);
+            return sites;
+        }
+    }
+
     public static void Clear()
     {
         lock (Gate) { Values.Clear(); }

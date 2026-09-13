@@ -55,6 +55,11 @@ internal static class AppSettings
         ["downloadDir"] = "",
         ["warnExecutables"] = "true",
         ["siteIcons"] = "true",
+        // Phase 5 M3 — the ad blocker. Read by code before Settings has ever been opened.
+        ["blockMode"] = "Standard",
+        ["listAds"] = "true",
+        ["listTrackers"] = "true",
+        ["listsAutoUpdate"] = "false",
     };
 
     public static void Load()

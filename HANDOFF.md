@@ -12,7 +12,14 @@ M2 is committed (`6f44c59`, then `f30f182` for Updates). **Then M2.5, Grant's "m
 Aviary and running offline at `https://collection.aviary/`, both Godot games playable in a tab,
 four new landing pages, a description under every milestone, and a 500 MB diagnostics cap —
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
-they are rebuilt). **M2.5 itself is uncommitted** — Grant OK'd committing M2 only; ask first.
+they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
+(`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
+
+**Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
+lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
+with a per-site switch, Standard/Strict, per-list switches, "Update now". Tested against real
+rules offline and on real sites. **M3 is committed** (13 Sep, with Grant's OK) and published to
+`publish/Aviary`, hash-identical to the tested build. Keep asking before each milestone's commit.
 
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
@@ -81,7 +88,7 @@ app say is the build name — `BuildInfo.NameOf` / `CodeOf` (section 15).
 | 02 | Alpha Build 2 · AB2 | Tabs and settings | done 6 Sep 2026 |
 | 03 | Alpha Build 3 · AB3 | Theming and features | done 6 Sep 2026 |
 | 04 | Alpha Build 4 · AB4 | Safari features | done 7 Sep 2026 |
-| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5 done (4 of 10); M3 next** |
+| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3 done (5 of 10); M4 next** |
 | 06 | Beta Build 1 · BB1 | "Testing 1" | planned |
 | 07 | Beta Build 2 · BB2 | "Testing 2" | planned |
 
@@ -108,7 +115,9 @@ diagnostics showed a second Aviary running on his profile at the same time (51 �
 one per profile), and the website-data Remove could wipe EVERY site (52 — found in testing,
 never shipped). M2 closed with Grant's last ask — the **Updates** section in Settings and the
 build names (section 15). **M2.5 — the Collection — followed the same day** (section 16): Grant's
-projects inside Aviary, offline. **Next: M3**, the filter-list ad blocker. Read the plan before continuing; it
+projects inside Aviary, offline. **M3 — Shields, the ad blocker — is done** (13 Sep, section 17);
+its real-app run found five more bugs (56–60), all fixed before it shipped. **Next: M4**, Brave
+Search and more safe search engines. Read the plan before continuing; it
 records decisions Grant made that are not obvious from the code, notably that diagnostics
 deliberately collects everything including full URLs, and why secrets are still excluded.
 
@@ -224,6 +233,30 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 > - **The Collection's own tools live in `tools/library/`** (section 16): `sync.ps1` (copies Grant's
 >   projects in), `export-godot-web.ps1` (the 2.4.2 web build), `thumbs.js` (placard photos via
 >   the test instance). It has its own `package.json` for the same reason as tools/test.
+> - **M3's kit (13 Sep)** — the ad blocker tested against REAL EasyList rules, offline:
+>   - `launch-m2.ps1 -ExtraArgs '--host-resolver-rules="MAP * 127.0.0.1:8771, EXCLUDE localhost"'`
+>     sends EVERY host name and port to `m3site.js` (port 8771), so a page can load "ads" from
+>     pagead2.googlesyndication.com and friends, answered locally. Map to `127.0.0.1:8771`, not
+>     `127.0.0.1` with ports in the URLs: `||facebook.com/tr?` can never match
+>     `facebook.com:8771/tr?`. Hosts on Chromium's HSTS preload list (gmail.com, facebook.com,
+>     google-analytics.com) are forced to https and never reach the plain-http server — pick
+>     other hosts for anything that must load. Seed `{"httpsOnly":"false"}`. `wpad/wpad.dat` in
+>     the hits is Windows proxy discovery, not the page.
+>   - `m3site.js` pages: news.test (third-party ads, a first-party ad image, generic hiding, a
+>     same-site and a cross-site frame, a page that replaces `document.adoptedStyleSheets`),
+>     yahoo.com (a site's own rule), techymedies.com (an exception), aetv.com (`$generichide`),
+>     alpine-vpn.com (`$document`), ad.doubleclick.net (plain host). `/hits` = every request the
+>     server saw — **a blocked request is one that is NOT there**. `/lists/` serves the shipped
+>     lists re-dated a day later for "Update now": set `AVIARY_TEST_FILTER_BASE=http://127.0.0.1:8771/lists/`
+>     in the environment before launching (an IP: the update runs in .NET, outside Chromium's mapping).
+>   - `uia.ps1` presses XAML controls through **UI Automation** — Invoke / Toggle / Dump by name or
+>     AutomationId (x:Name), `-Window Private` for the private window. **No mouse, no keyboard,
+>     no focus change**: safe while Grant is at the PC. Flyouts are their own top-level windows
+>     and are searched too. This is how the Shields popover, its switch and the warning panel's
+>     buttons were tested.
+>   - **Closing a test instance that has a private window open:** CloseMainWindow closes ONE
+>     window, so the process lives on and keeps the DevTools port; the next launch then has no
+>     DevTools ("fetch failed"). Close until the process exits.
 
 **Launch and screenshot:**
 ```powershell
@@ -271,7 +304,14 @@ Zoo/
     WebViewEnvironment.cs     THE shared CoreWebView2Environment
     AppSettings.cs            settings.json, flat string map
     Bookmarks.cs              bookmarks.json
-    TrackerBlocker.cs         ~120-domain ad/tracker blocklist
+    TrackerBlocker.cs         Aviary's own ~120-domain tracker list, checked before the filter lists
+    FilterEngine.cs           the ad blocker's rule engine: parser, host table, token index (section 17)
+    FilterEngine.Cosmetic.cs  element hiding compiled into one page script
+    FilterLists.cs            which list copies load, background build, "Update now", weekly refresh
+    Shields.cs                blocking on/off, Standard/Strict, per-site Shields, the cached page script
+    BrowserTab.Shields.cs     one tab's side: page context, verdicts, counts, Strict's warning, collapse
+    MainWindow.Shields.cs     the toolbar shield, its popover, Settings → Shields commands
+    Filters\                  easylist.txt, easyprivacy.txt (byte-for-byte, -text in git), README.txt
     FindInPage.cs             find engine (injected JS) + host helpers
     DownloadItem.cs           download model + session list
     InternalPages.cs          Start Page and Settings, as HTML strings
@@ -457,8 +497,27 @@ showing M2.5 and all ten descriptions; the icon fetcher reading the Collection's
 disk (Frequently Visited showed its dome). The final `publish/Aviary` is hash-identical to the
 tested build — Aviary.dll, Aviary.exe and the whole 144-file Library tree.
 
+**13 Sep — M3, Shields (section 17), in the published test copy on scratch profiles:** the engine
+first, in a scratch console harness compiled from the same source files against the real lists
+(101 checks: every syntax it claims, plus 16 real-world URLs — adsbygoogle, analytics.js, gpt.js,
+fbevents, gtm, hotjar, taboola blocked; jQuery, jsDelivr, Google Fonts, Wikipedia, GitHub and
+YouTube's own files not). Then the app, offline against `m3site.js` with real rules: every
+third-party ad and tracker stopped before it left (absent from `/hits`), a first-party ad image
+allowed in Standard and stopped in Strict, generic/site/exception/`$generichide` hiding (in
+same-site and cross-site frames, and after the page replaced `document.adoptedStyleSheets`),
+blocked frames and images collapsed, Strict's warning for `$document` and plain-host sites with
+**Open Anyway** (UI Automation), the popover's per-site switch both ways (UIA), Settings →
+Shields site list's **Turn Shields On**, **Update now** against the local list copy (fetched,
+saved, engine rebuilt, "Already up to date" on the second press), Ads/Trackers switches in every
+combination, the private window (its Shields choice never written anywhere), the Privacy Report
+link, Updates (5 of 10). Then the live web: CNN with Shields up blocked 43 in 12 s and showed no
+ad boxes; with Shields down it made 466 requests in 14 s against 171 and showed a full-width
+banner above its header; Rappler loaded normally (8 blocked); DuckDuckGo results untouched.
+Screenshots in `tools/test/shots/m3-*.png`.
+
 **Still never exercised by hand:** vertical tab reordering in the sidebar, and removing a
-reading-list item. Treat both as unproven.
+reading-list item. Treat both as unproven. From M3: the weekly refresh (it is the same
+`UpdateAsync` as "Update now", gated by a date — never waited a week for).
 
 **About Clear browsing data and cookies:** after clearing, the engine's cookie store kept two
 `.theverge.com` rows — because The Verge was still open in another tab and re-set them within
@@ -522,9 +581,30 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
 - **A crashed tab shows Chromium's own "This page is having a problem" page** (seen in M1
   by killing a renderer). Same class of tell as bug 9; Aviary should draw its own, with Reload.
   Diagnostics records the failure either way. Candidate for M7 polish.
-- **Blocked ad iframes still cost a renderer process each** (M1's minute sample showed
-  pubmatic and indexww frames, 4 MB apiece): the 403 Aviary answers with is loaded in its own
-  process. Worth addressing in M3 — e.g. answer blocked subdocuments with an empty 204.
+- ~~Blocked ad iframes cost a renderer process each~~ — **fixed in M3**: a blocked frame is
+  answered with 204 No Content, which Chromium never commits, so the frame stays an in-page
+  `about:blank` (verified: it no longer appears as a DevTools target). Other blocked kinds keep 403.
+- **Shields (M3, section 17) — known limits:** regular-expression rules (31), `$popup` (2,935),
+  `$csp`, `$redirect`, `$rewrite`, scriptlets and procedural/`#?#` hiding (~330) are not applied
+  — counted and shown in Settings, never guessed at. A blocked frame nested inside ANOTHER site's
+  frame is not collapsed (the page's own script cannot reach it). `$domain=` and third-party are
+  judged against the tab's top page, not the frame's own document. Cookie-banner and social-widget
+  lists were not added — Grant approved EasyList and EasyPrivacy only; each extra list needs his yes.
+  Strict's warning is shown only for the tab on screen (as the HTTPS fallback is): a background
+  tab's stopped navigation leaves it where it was, silently.
+- **Shields — for M7 to measure:** the element-hiding script is ~786 KB and is registered in every
+  tab (each renderer keeps a copy); the blocker costs ~9 µs a request in the app against ~1.6 µs in
+  the harness (the URL is lowercased twice and TrackerBlocker parses a Uri first); the lists build
+  in 70–110 ms at launch with no disk cache (the plan asked for one — not built, because the build
+  is already under the first page's wait; M7 decides with numbers).
+- **Unstyled pages are dark-on-dark in the dark theme** (seen testing M3 with plain test pages):
+  `ApplyWebViewBackground` gives every WebView the theme's page colour as its default background,
+  so a page that paints no background of its own shows black text on dark grey. Chrome and Safari
+  show such pages on white unless the page opts into dark. Pre-existing (M0's fix for a
+  light-window flash); needs a decision, not just a colour change — M7 polish.
+- **Clear browsing data also resets every site's Shields choice** — they live in `sites.json` with
+  the other per-site settings, which Clear has always emptied. Safe direction (blocking comes
+  back), but worth saying in that dialog.
 - Diagnostics records request addresses exactly as sent, so a website that puts what you
   type into ITS OWN addresses (live-search boxes do) is recorded like any other request;
   only secret parameters, path tokens and card numbers are cut from them. Consistent with the
@@ -768,6 +848,29 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     and Clear browsing data's folder delete), and the entry is read inside the lock so the last
     write always lands the newest icon. **Anything that writes the favicon folder takes DiskGate
     first, and never while holding Gate.**
+56. **Visiting a tracker company's own website showed a blank page.** TrackerBlocker was checked
+    for EVERY request, the page's own document included, so typing hotjar.com (or following an ad
+    click through doubleclick.net) got Aviary's empty 403 in place of the site. Since M3 the page
+    itself is never stopped by a request rule (`ShieldsVerdict` returns for `ReqType.Document`);
+    only Strict stops a whole site, and it does it at NavigationStarting with a warning and **Open
+    Anyway**. In Standard, a site's OWN requests are never blocked by any list, Aviary's included.
+57. **The page's own request was judged as a frame** (found in M3's first real-app run, never
+    shipped). Chromium upgrades a typed `http://` address to `https://` INSIDE the navigation, so
+    the document request arrives with a different scheme from the address NavigationStarting saw;
+    compared as strings, the page looked like a frame, and a listed site got a blank 403 even in
+    Standard. `BrowserTab.DocumentKey` compares addresses without scheme or fragment. **Never compare
+    a request to the navigation's address with the scheme in.**
+58. **Blocking `$document` rules were all skipped** (595 of them — found by the harness, never
+    shipped): only the EXCEPTION form of `$document` was parsed, so the blocking form fell through
+    to "unknown option". Both are read now; the synthetic list in the harness covers each.
+59. **"Open Anyway" opened a site whose own files were still blocked** (M3 first run, never
+    shipped): in Strict, the site's favicon and scripts matched the very rule that stopped the page.
+    A page opened anyway now gets Standard for its own site — its files load, other sites' trackers
+    on it are still stopped.
+60. **A blocked frame left an empty bordered box** (M3 first run): hiding rules cover most ad
+    containers but not all. Blocked frames and images are now hidden in the page itself
+    (`QueueCollapse` — batched, one script per burst, addresses JSON-escaped), and blocked frames get
+    a 204 so they never cost a process (§8).
 
 ---
 
@@ -792,9 +895,10 @@ agents' work before considering a re-run.
 
 > Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — section 5's
 > container box before anything else — then `Zoo/PHASE5-PLAN.md`. Alpha Build 5 (phase 5) is in
-> progress: M0, M1, M2 and M2.5 (the Collection) are done (sections 13–16); M0–M2 are committed,
-> **M2.5 is NOT committed yet — ask Grant before committing it** (git status shows it). Start
-> M3, the filter-list ad blocker — downloading EasyList/EasyPrivacy needs Grant's yes first. Read
+> progress: M0, M1, M2, M2.5 (the Collection) and M3 (Shields, the ad blocker) are done
+> (sections 13–17), all committed — **ask Grant before committing each new milestone**. Start M4
+> (Brave Search and more safe engines). Any new
+> filter list, like any download, needs Grant's yes first. Read
 > Grant's diagnostics folder first as section 13 describes. Test only on a scratch profile with
 > the section 5 kit; verify by running the real app; ask before any NuGet package. When a
 > milestone ships, bump `BuildInfo.MilestonesDone` and date it in Updates (section 15). Before
@@ -1015,3 +1119,88 @@ for its PIN, the evolution page is still a chat widget with plain colours. Those
 their cards, not fixes.
 
 **Diagnostics cap** is `Diagnostics.CapMB = 500`; the two sentences that state it are built from it.
+
+## 17. Shields — the ad blocker, Alpha Build 5 M3 (13 Sep 2026)
+
+Grant's M3 answers (13 Sep): download **EasyList + EasyPrivacy only** (not the cookie-banner or
+social lists — those need their own yes), commit M2.5 first, rename it the Collection. The plan's
+M3: a real filter engine, element hiding, lists bundled unmodified with attribution, Standard /
+Strict, per-category switches, a per-site shield with the page's count and the Privacy Report,
+user-started updates plus an optional weekly one, match cost measured.
+
+**The pieces.**
+- `FilterEngine.cs` — reads ABP/EasyList syntax: `||host^`, `|` anchors, `*`, `^`, substrings,
+  `@@`, `$third-party`/`$first-party`, every request type (negated too), `$domain=` with `~` and
+  `name.*`, `$important`, `$match-case`, `$document` (blocking and exception), `$elemhide`,
+  `$generichide`. **Anything else is skipped and counted, never guessed** (regex rules, `$popup`,
+  `$csp`, `$redirect`, `$rewrite`, scriptlets, `#?#`, procedural selectors — `Stats.SkippedBy`, with
+  three example lines per reason). Matching: 89,000 plain `||host^` rules sit in a HashSet walked
+  by host label (span lookups, no allocation); host rules with options in a second table; every
+  other rule is filed under its RAREST whole-word token (counted across all rules, common URL
+  words penalised), so a request looks up each word of its own URL. Exceptions only after a hit;
+  `$important` first. Immutable once built. Build ~70–110 ms, ~21 MB managed.
+- `FilterEngine.Cosmetic.cs` — `##`/`#@#` compiled into ONE page script (~786 KB) run at the start
+  of every document, nested frames included. It works out its own document's host and top page
+  (`location.ancestorOrigins`), skips Aviary's own hosts, local addresses and Shields-down sites,
+  applies page exceptions (compiled to regexes), looks up the site's own rules by indexOf over one
+  string (never parsed whole), removes `#@#` exceptions, and adopts one stylesheet (200 selectors
+  per rule; a rule that fails is retried selector by selector). A setter on the document keeps the
+  sheet adopted if the page replaces the whole list. **Measured before it was designed:** the
+  13,635 generic selectors cost ~1.5–3 ms to parse per page and nothing measurable on style recalc
+  (12,000 elements) — 96% are one class or id. **Selectors are data from the network:** braces,
+  comments, at-rules, HTML comment tokens and anything unbalanced are refused at compile time.
+- `FilterLists.cs` — two copies per list: shipped (`<exe>\Filters\`, byte-for-byte, `-text` in
+  git, `README.txt` with the attribution) and updated (`<profile>\filters\`); the one whose own
+  "Last modified" is newer loads. Built on a background thread at launch (`App()` starts it);
+  a request that arrives first waits (a WebView2 deferral, at most 2 s). **Update now** fetches
+  both with no cookies, refuses anything that is not the list it claims (header, title, size, no
+  NULs), keeps only genuinely newer copies, rebuilds, and records the check in `filters\state.json`.
+  The weekly refresh (`listsAutoUpdate`, **off by default**) is the same call on a 6-hourly timer
+  gated by a week. `AVIARY_TEST_FILTER_BASE` redirects it for tests only.
+- `Shields.cs` — the master switch is still `blockTrackers` (`TrackerBlocker.Enabled`); `blockMode`
+  Standard/Strict; per-site `shieldsDown` in `SiteSettings` (registrable domain, like every
+  per-site choice), and in a private window a session-only set that is never written anywhere,
+  diagnostics included. It caches the page script (normal and private variants) and rebuilds it
+  when the engine or any Shields choice changes; `Shields.Refresh()` tells every tab in every window.
+- `BrowserTab.Shields.cs` — the page context (host, site, `$document` exception) updated at
+  NavigationStarting, SourceChanged and a failed navigation; the verdict per request; per-page
+  count and hosts; the page script registration (a swap is awaited before the Shields switch
+  reloads); Strict's whole-site check; collapsing blocked frames and images; 204 for blocked frames.
+- `MainWindow.Shields.cs` + `MainWindow.xaml` — the toolbar shield (after Forward, where Safari keeps
+  its Privacy Report button): the page's count at its corner, a slash when Shields are down or
+  blocking is off, `AutomationProperties.Name="Shields"`. Its popover: the site and its switch, the
+  count and each blocked host, the mode in one line, the 7-day total, **Privacy Report** (a Start
+  Page opened scrolled to the report — `BuildStartPageHtml(focus)`, shown even if Customise hides
+  it) and **Shields Settings**. Strict's warning reuses the error panel: Go Back / **Open Anyway**.
+
+**The rules of blocking** (what the Settings words promise — keep them true):
+1. The page itself is never stopped by a request rule (bug 56). Strict stops a whole site only at
+   NavigationStarting, for a `$document` rule or a plain `||host^` rule (uBlock Origin's "strict
+   blocking"), with the warning; Open Anyway lasts for that tab until it leaves the host.
+2. **Standard** never blocks a request to the page's own site — no list, Aviary's included.
+   **Strict** applies everything.
+3. Aviary's own list (TrackerBlocker) is checked before the engine; it has no switch of its own
+   beyond the master one. **Ads** (`listAds` → EasyList) and **Trackers** (`listTrackers` →
+   EasyPrivacy) rebuild the engine from what is on; both off = Aviary's list only, nothing hidden.
+4. Aviary's own hosts (the Collection, aviary.localhost) and internal pages are never filtered.
+
+**Settings → Shields** (a new pane, above Privacy — Privacy's icon became a padlock so there are not
+two shields): Block ads and trackers · How much to block · Ads · Trackers · Filter lists (versions,
+last check, **Update now**, and "What the lists are, and whose they are" — counts, skipped kinds,
+the CC BY-SA credit) · Keep the lists up to date · Sites with Shields down (Show → Turn Shields On).
+All live; no row is badged.
+
+**Diagnostics.** `blocking.jsonl` lines carry the rule AND the list (`"list":"EasyPrivacy"`);
+Shields changes (`site-down`, `mode`, `list`, `lists-checked`, `page-opened-anyway`) are `shields`
+lines; `perf.jsonl` gets a `filter-engine` line per build (ms, counts, skipped by reason) and the
+minute sample's `blocker` figures (in the app: ~9 µs average, 36 µs worst steady; 253 µs worst in
+the first minute).
+
+**Tests.** `tools/test/filters/` is a console project that compiles the shipping
+`FilterEngine*.cs` + `PublicSuffix.cs` (`dotnet run -c Release` there): 101 checks, the real lists'
+build time and skip report, and a 200,000-request cost run (~1.6–1.8 µs average). **Run it after
+any engine change or list update; add a synthetic line for any new syntax.** The app side is §5's
+M3 kit and §7's M3 paragraph.
+
+**Updates.** M3 dated 13 Sep, `MilestonesDone = 5`, "Shields — the ad blocker" notes, two Fixes,
+and AB5's what's-new line mentions Shields.
