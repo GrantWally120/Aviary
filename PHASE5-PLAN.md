@@ -131,7 +131,9 @@ no Restart button until session restore exists. Finished 13 Sep with **Website d
 cookies and storage, Remove per site) and, from Grant's own diagnostics, **one Aviary per
 profile** (a second launch hands itself to the running one — HANDOFF bug 51). Testing Remove
 found that the engine clears EVERY site for an origin it cannot parse (bug 52, fixed before it
-shipped).
+shipped). Closed, at Grant's ask, with an **Updates** section in Settings and the build names:
+phases 1–5 are Alpha Build 1–5, phases 6–7 Beta Build 1–2, and this build calls itself **Alpha
+Build 5 (AB5)**, a pre-release (HANDOFF §15). Committed 13 Sep (`6f44c59` + the Updates commit).
 - **Fix the three lying toggles.** `safariUa` genuinely switches the per-tab UA.
   `thirdPartyCookies` blocks cookies on third-party requests in `OnWebResourceRequested`.
   **`dnt` becomes Global Privacy Control** (`Sec-GPC: 1` + `navigator.globalPrivacyControl`)
@@ -268,8 +270,9 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
 ### M8 — Beta preparation
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
   repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
-- App icon. `BuildInfo` → 0.5.0 / alpha build 5 / `PhaseShipped = 5`. Landing page and
-  HANDOFF updated.
+- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 9` (0.5.0 and the name
+  "Alpha Build 5" already arrived on 13 Sep — until M8 they are labelled pre-release). Updates'
+  AB5 entry finished, landing page and HANDOFF updated.
 
 ## Critical files
 

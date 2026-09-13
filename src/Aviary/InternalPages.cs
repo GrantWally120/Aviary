@@ -215,6 +215,80 @@ internal static class InternalPages
     margin-top:3px;max-width:44ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
     direction:rtl;text-align:left;
   }
+
+  /* ── Updates ──────────────────────────────────────────────────────────────
+     The build you are on, its milestones, what it brought, what is coming and every build
+     before it. Orange and green only here: pre-release and latest. */
+  :root{--warn:#B25000;--ok:#248A3D;}
+  @media (prefers-color-scheme: dark){ :root{--warn:#FF9F0A;--ok:#30D158;} }
+  .chip{
+    font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--ink-2);border:1px solid var(--line);border-radius:5px;padding:4px 7px;white-space:nowrap;flex:0 0 auto;
+  }
+  .chip--code{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 45%,transparent);}
+  .chip--pre{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);}
+  .chip--ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent);}
+  .hero{padding:22px 22px 8px;position:relative;overflow:hidden;}
+  /* The dome, faint, behind the build name — the Settings mark at hero size. Sized so its
+     base line ends above the milestone bar, never across it. */
+  .hero__mark{position:absolute;right:-14px;top:-36px;width:168px;height:168px;opacity:.07;pointer-events:none;}
+  .hero__kicker{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);}
+  .hero__title{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin-top:8px;}
+  .hero__title h2{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.024em;}
+  .hero__name{margin-top:4px;font-size:15px;font-weight:500;}
+  .hero__meta{margin-top:5px;font-size:12.5px;color:var(--ink-2);-webkit-user-select:text;user-select:text;}
+  .bar{display:grid;gap:4px;margin-top:20px;}
+  .bar i{height:6px;border-radius:99px;background:var(--fill-hover);}
+  .bar i.done{background:var(--accent);}
+  .bar i.next{background:color-mix(in srgb,var(--accent) 32%,transparent);}
+  .bar__label{display:flex;justify-content:space-between;gap:16px;margin-top:9px;font-size:12px;color:var(--ink-2);}
+  .bar__label b{color:var(--ink);font-weight:600;}
+  .ms{margin:14px 0 0;padding:0;list-style:none;border-top:1px solid var(--line-soft);}
+  .ms li{display:grid;grid-template-columns:22px 30px minmax(0,1fr) auto;align-items:center;gap:4px;padding:9px 0;font-size:13px;}
+  .ms li + li{border-top:1px solid var(--line-soft);}
+  .ms__dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink-3);display:grid;place-items:center;}
+  .ms__dot svg{width:8px;height:8px;opacity:0;}
+  .ms li.done .ms__dot{background:var(--accent);border-color:var(--accent);}
+  .ms li.done .ms__dot svg{opacity:1;}
+  .ms li.next .ms__dot{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 2.5px var(--panel);}
+  .ms__n{font:600 11px/1 ui-monospace,Consolas,monospace;color:var(--ink-2);}
+  .ms li.todo .ms__t{color:var(--ink-2);}
+  .ms__w{font-size:12px;color:var(--ink-2);white-space:nowrap;}
+  .ms li.next .ms__w{color:var(--accent);font-weight:600;}
+  h2.upd-h{font-size:13px;font-weight:600;color:var(--ink-2);margin:28px 2px 10px;letter-spacing:-.004em;}
+  .notes{padding:2px 22px 20px;}
+  .notes h3{margin:16px 0 8px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);}
+  .notes h3.warn{color:var(--warn);}
+  .notes ul{margin:0;padding:0;list-style:none;display:grid;gap:7px;}
+  .notes li{position:relative;padding-left:15px;font-size:13.5px;line-height:1.5;-webkit-user-select:text;user-select:text;}
+  .notes li::before{content:"";position:absolute;left:1px;top:.62em;width:5px;height:5px;border-radius:50%;background:var(--ink-3);}
+  .notes li b{font-weight:600;}
+  .notes kbd{
+    font:500 11.5px/1 ui-monospace,Consolas,monospace;color:var(--ink);white-space:nowrap;
+    padding:2px 5px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--fill);
+  }
+  .bld{margin-bottom:10px;}
+  .bld__head{display:flex;align-items:center;gap:14px;padding:13px 18px;border-radius:12px;list-style:none;cursor:default;}
+  .bld > summary::-webkit-details-marker{display:none;}
+  .bld > summary:hover{background:var(--fill);}
+  .bld[open] > summary{border-radius:12px 12px 0 0;}
+  .bld__tile{
+    width:42px;height:42px;border-radius:10px;flex:0 0 auto;display:grid;place-items:center;
+    font:650 12px/1 ui-monospace,Consolas,monospace;color:var(--accent);background:var(--sel);
+  }
+  .bld--todo .bld__tile{background:transparent;border:1.5px dashed var(--line);color:var(--ink-2);}
+  .bld__t{flex:1;min-width:0;}
+  .bld__t b{display:block;font-size:14px;font-weight:600;}
+  .bld__t span{display:block;font-size:12.5px;color:var(--ink-2);margin-top:1px;}
+  .bld__when{font-size:12px;color:var(--ink-2);white-space:nowrap;}
+  .bld__chev{width:10px;height:7px;opacity:.5;flex:0 0 auto;transition:transform 160ms cubic-bezier(.32,.72,0,1);}
+  .bld[open] .bld__chev{transform:rotate(180deg);}
+  .bld__body{padding:0 18px 16px 74px;}
+  .bld__body > p{margin:0;font-size:13.5px;-webkit-user-select:text;user-select:text;}
+  .bld__body .notes{padding:0;}
+  .bits{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .bits span{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--fill);color:var(--ink-2);}
+  .upd-foot{margin:22px 2px 0;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -243,9 +317,16 @@ var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) |
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
 var RENDERED = {};
 var BUILD = (typeof window.__aviaryBuild === 'object' && window.__aviaryBuild) ||
-            {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0};
+            {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0, names:{}, codes:{}};
 /* Rows are gated on the last SHIPPED phase, not the one in progress — see BuildInfo. */
 var PHASE = BUILD.phaseShipped | 0;
+/* Phases ARE builds: 1–5 are Alpha Build 1–5, 6 and 7 Beta Build 1 and 2. The names come
+   from BuildInfo, so this page never re-derives the numbering. */
+function nameOf(p){ return (BUILD.names && BUILD.names[p]) || ('Build ' + p); }
+function codeOf(p){ return (BUILD.codes && BUILD.codes[p]) || String(p); }
+function esc(s){
+  return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
+}
 
 /* Every keyed control's LITERAL default, collected as the page renders and posted up once
    at the end. The host writes back only the keys it has never seen, which is what makes a
@@ -278,18 +359,154 @@ var ICON = {
   access:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="5.4" r="1" fill="currentColor"/><path d="M5.4 7.6h5.2M8 7.6v4M6.2 13l1.8-2.4L9.8 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   system:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   reset:'<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 2.4v3.2H9.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  updates:'<svg viewBox="0 0 16 16" fill="none"><path d="M7.2 2.4c.5 3 2 4.5 5 5-3 .5-4.5 2-5 5-.5-3-2-4.5-5-5 3-.5 4.5-2 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.6 1.8v2.6M11.3 3.1h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
 
-/* Phase 5's Experimental menu is one more entry in this array.
+/* ══ UPDATES — every build, oldest first ════════════════════════════════════
+   What each build brought, in plain words. The STATE of a build — shipped, the one you are
+   on, planned — is never written here: it comes from the injected BUILD, the same way the
+   row badges do, so this page cannot go on calling a finished build "in progress". Only
+   history is written by hand, and history does not go stale.
 
-   A row that is not ready yet carries `phase:N` — the number of the phase it arrives in.
+   Add a build's notes when it ships; bump BuildInfo.MilestonesDone when a milestone does. */
+var UPDATES = [
+  { phase:1, name:'The shell', when:'6 Sep 2026',
+    summary:'A window that launches and browses — the frame everything since is built inside.',
+    notes:[
+      {h:'Window', items:[
+        'Windows 11’s Mica backdrop and rounded corners, with an extended title bar and the real Windows caption buttons',
+        'Back, forward, reload and home, and an address bar'
+      ]},
+      {h:'Browsing', items:[
+        'Browses the real web on Microsoft’s WebView2 engine',
+        'Introduces itself as Safari from the very first page, so sites serve their Safari versions'
+      ]}
+    ]},
+  { phase:2, name:'Tabs and settings', when:'6 Sep 2026',
+    summary:'Tabs the way Safari draws them, and a Settings page for every later feature to live in.',
+    notes:[
+      {h:'Tabs', items:[
+        'Tabs share the whole width of the strip, as Safari’s do',
+        'A tab’s icon turns into its close button when you point at it',
+        'Every tab keeps its own history, without each one starting its own copy of the browser',
+        'New tab, close tab, address bar and next tab: <kbd>Ctrl+T</kbd> <kbd>Ctrl+W</kbd> <kbd>Ctrl+L</kbd> <kbd>Ctrl+Tab</kbd>'
+      ]},
+      {h:'Settings', items:[
+        'An app menu, and Settings in thirteen sections — every row either works or says which build it arrives in'
+      ]}
+    ]},
+  { phase:3, name:'Theming and features', when:'6 Sep 2026',
+    summary:'Both Safari looks, switching while you browse, and the first quarter of the features.',
+    notes:[
+      {h:'Looks', items:[
+        '<b>Classic</b> (Safari 15 to 18) and <b>Liquid Glass</b> (Safari 26), switched live — Aviary opens with whichever you left it on',
+        'Light and dark follow Windows, and both looks have a high-contrast palette',
+        'Liquid Glass is see-through enough to let Windows’ Mica show',
+        'Aviary’s own dropdowns — the Windows ones drew white boxes in dark mode'
+      ]},
+      {h:'Features', items:[
+        'Ad and tracker blocking',
+        'Find in page, downloads and a favourites bar',
+        'Drag tabs to put them in a different order',
+        'Memory saver for tabs in the background'
+      ]}
+    ]},
+  { phase:4, name:'Safari features', when:'7 Sep 2026',
+    summary:'The build that turned a window into a browser.',
+    notes:[
+      {h:'New', items:[
+        '<b>The Start Page</b>: Favourites, Frequently Visited, your Reading List and a Privacy Report, with a Customise button',
+        '<b>The sidebar</b>: tabs, bookmarks, Reading List and history in one panel — and tabs down the side if you like',
+        '<b>Reader</b>, from the “Aa” button in the address field, with nine fonts and four backgrounds',
+        'Every site’s real icon, everywhere, kept on disk',
+        'The Smart Search Field: suggestions from your own history and favourites as you type',
+        'History, the Reading List and pinned tabs',
+        'Aviary’s own right-click menus, page zoom, and a reload button that becomes stop while a page loads',
+        'Clear browsing data',
+        'Shortcuts for tabs by number, history, downloads, adding to the Reading List, the sidebar and Reader: <kbd>Ctrl+1</kbd>–<kbd>9</kbd> <kbd>Ctrl+H</kbd> <kbd>Ctrl+J</kbd> <kbd>Ctrl+Shift+D</kbd> <kbd>Ctrl+Shift+L</kbd> <kbd>Ctrl+Shift+R</kbd>'
+      ]},
+      {h:'Moved to Alpha Build 5', items:[
+        'The download progress ring and tab groups, rather than shipping either half-built'
+      ]}
+    ]},
+  { phase:5, name:'Privacy that works',
+    summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
+    short:'Every privacy switch now really does what it says — third-party cookies blocked, Global Privacy Control, tracking taken off links, HTTPS first — plus a private window, a list of what each site has stored, and this Updates page.',
+    milestones:[
+      {t:'Loose ends from Alpha Build 4', when:'10 Sep'},
+      {t:'The diagnostics folder', when:'11 Sep'},
+      {t:'Every privacy switch made real', when:'13 Sep'},
+      {t:'An ad blocker you control site by site'},
+      {t:'Brave Search and more safe search engines'},
+      {t:'The download progress ring and tab groups'},
+      {t:'The Experimental menu, in plain English'},
+      {t:'Faster and smoother — and measured'},
+      {t:'Getting ready for Beta Build 1'}
+    ],
+    notes:[
+      {h:'Privacy', items:[
+        '<b>Third-party cookies are really blocked</b> — the way ads follow you from one site to the next',
+        '<b>Global Privacy Control</b> asks every site not to sell or share your data, replacing Do Not Track',
+        '<b>Tracking is taken off links</b> — fbclid, gclid, utm_ tags and more — before the next site sees it',
+        '<b>HTTPS first</b>, with a clear way through when a site has no secure version',
+        'Sites learn which site you came from, never the page you were reading',
+        'Your address on your home network is hidden from video-calling features',
+        'The Safari identity now holds up: the extra Chromium details page scripts could read are gone',
+        'The Privacy Report counts the last seven days or all time, with bandwidth and time saved'
+      ]},
+      {h:'Browsing', items:[
+        'A <b>private window</b> that forgets everything when you close it — <kbd>Ctrl+Shift+N</kbd>',
+        'Saved passwords, and suggestions for forms as their own switch, off until you want them',
+        '<b>Website data</b>: see what each site has stored, and remove any one of them',
+        'Full screen with <kbd>F11</kbd>, and videos that fill the whole screen'
+      ]},
+      {h:'Aviary', items:[
+        '<b>Updates</b> — this page: the build you are on, what every build brought, and what is coming',
+        'Builds have names: Alpha Build 1 to 5, then Beta Build 1 and 2',
+        '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
+        'Only one Aviary runs at a time — opening it again brings the one already open to the front',
+        '“Allow data collection for improvements” keeps a record of what Aviary does in a folder on this computer, so problems can be found. It never leaves the computer and never holds passwords, form contents, cookies or card numbers'
+      ]},
+      {h:'Safety fixes', items:[
+        'A website could change Aviary’s settings — closed',
+        'A page could pretend to press Aviary’s keyboard shortcuts — closed',
+        'Blocking now reaches trackers inside frames from other sites'
+      ]},
+      {h:'Fixes', items:[
+        'Pinning Aviary to light or dark left parts of it, and its menus, in the other theme’s colours',
+        'Pinning a tab failed every time',
+        'The Privacy Report’s chart never grew, and the report started again every launch',
+        'A site’s own “page not found” page was hidden behind Aviary’s error panel',
+        'Every download was followed by a false “page didn’t load” panel',
+        'Google’s site icon never loaded',
+        'A padlock showed beside a secure connection that had failed'
+      ]},
+      {h:'Known issue', warn:true, items:[
+        'Minimising Aviary in the first half-second after it opens can close it. Give it a moment before minimising.'
+      ]}
+    ]},
+  { phase:6, name:'Testing 1',
+    summary:'Alpha Build 5 again, made properly: everything alpha built, finished and installable — the first build meant to be lived in rather than looked at.',
+    bits:['All of alpha, finished','More polish','The features alpha left out','Session restore','Crash reporting','An installer, and updates','Daily-driver testing']},
+  { phase:7, name:'Testing 2',
+    summary:'The second round of living in it. What goes in is decided by using Beta Build 1 for a while, not by guessing now — smoother, quicker, quieter.',
+    bits:['Planned when we get there','New features and ideas','Smoothed','Optimised']}
+];
+var CURRENT = UPDATES.filter(function(u){ return u.phase === (BUILD.phaseNumber | 0); })[0];
+var PROLOGUE = 'Before Alpha Build 1 there was the interface study, on 4 September 2026: both Safari looks ' +
+  'against both tab layouts, in light and dark, drawn in a Windows 11 frame before any of Aviary was written.';
+
+/* The Experimental menu (Alpha Build 5, M6) is one more entry in this array.
+
+   A row that is not ready yet carries `phase:N` — the number of the build it arrives in.
    The badge text and the disabled state are BOTH derived from comparing that number
-   against the injected build's phase, so nobody writes "Phase 3" by hand and no badge can
-   outlive the phase it names. Something deliberately never coming carries `never:'…'`. */
+   against the injected build, so nobody writes a build name by hand and no badge can
+   outlive the build it names: "Later in AB5" while Alpha Build 5 is a pre-release, "Beta
+   Build 1" beyond it. Something deliberately never coming carries `never:'…'`. */
 var SECTIONS = [
   { id:'start', icon:'start', name:'Get started', title:'Get started',
-    lede:'Aviary is a Safari-inspired browser for Windows 11, built one phase at a time. This is __AV_CHANNEL__.',
+    lede:'Aviary is a Safari-inspired browser for Windows 11, built one release at a time. You are on <span style="white-space:nowrap">__AV_CHANNEL__</span>.',
     rows:[
       {t:'On startup', d:'What Aviary opens with when you launch it.', phase:6, ctl:{type:'select', key:'startup', opts:['Start Page','Continue where you left off','A specific page'], value:'Start Page'}},
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
@@ -298,7 +515,9 @@ var SECTIONS = [
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
       {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
       {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},
-      {t:'What works today', d:'Tabs you can drag to reorder, both Safari looks switching live, ad and tracker blocking, find in page, downloads, and a favourites bar. Arriving this phase: the real Start Page, Reader, the sidebar, history and real favicons.', ctl:{type:'none'}}
+      /* Was "What works today", hand-written in Alpha Build 3 and still promising Alpha Build
+         4's features two builds later. Now it is the current build's own line from UPDATES. */
+      {t: CURRENT ? 'What’s new in ' + nameOf(CURRENT.phase) : 'What’s new', d: CURRENT ? CURRENT.short : '', ctl:{type:'goto', target:'updates', label:'See updates'}}
     ]},
 
   { id:'look', icon:'look', name:'Appearance', title:'Appearance',
@@ -415,6 +634,12 @@ var SECTIONS = [
       {t:'Restore defaults', d:'Your history, cookies and downloads are not touched.', ctl:{type:'button', cmd:'reset', label:'Reset settings', danger:true}}
     ]},
 
+  { id:'updates', icon:'updates', name:'Updates', title:'Updates', updates:true,
+    lede:'The build you are on, what every build brought, and what is coming. All of it is part of Aviary itself — this page never goes online to check for anything.',
+    rows:[
+      {t:'Automatic updates', d:'For now, each new build replaces the copy of Aviary on your desktop. Updates arrive with the installer.', phase:6, ctl:{type:'none'}}
+    ]},
+
   { id:'about', icon:'about', name:'About Aviary', title:'About Aviary', about:true,
     lede:'A Safari-inspired browser for Windows 11.', rows:[] }
 ];
@@ -422,10 +647,12 @@ var SECTIONS = [
 function control(row){
   var c = row.ctl || {type:'none'};
 
-  /* ONE number decides both the badge and whether the control is live. */
+  /* ONE number decides both the badge and whether the control is live. A row due in the
+     build you are already on says "Later in AB5" — "Alpha Build 5" on a switch you cannot
+     use, in Alpha Build 5, would read as broken. */
   var pending = row.never ? row.never
               : (row.phase && row.phase > PHASE)
-                  ? ('Phase ' + (row.phase < 10 ? '0' : '') + row.phase)
+                  ? (row.phase === (BUILD.phaseNumber | 0) ? 'Later in ' + codeOf(row.phase) : nameOf(row.phase))
                   : null;
   var badge = pending ? '<span class="soon">' + pending + '</span>' : '';
 
@@ -472,7 +699,112 @@ function control(row){
              (pending ? ' disabled' : '') + '>' + b.label + '</button>';
     }).join('') + '</div>';
   }
+  if (c.type === 'goto'){
+    /* Moves to another pane of this page. NOT a command — nothing goes to the host, and the
+       click handler takes it before the .btn branch that would post one. */
+    return badge + '<button class="btn" data-goto="' + c.target + '"' +
+           (pending ? ' disabled' : '') + '>' + c.label + '</button>';
+  }
   return badge;
+}
+
+function rowHtml(r){
+  var key = r.ctl && r.ctl.key;
+  var note = (r.restart && key)
+    ? '<span class="note" data-restart="' + key + '" hidden>Restart Aviary to apply this change.</span>'
+    : '';
+  return '<div class="row"><div class="row__t"><b>' + r.t + '</b>' +
+         (r.d ? '<span>' + r.d + '</span>' : '') + note + (r.more ? (MORE[r.more] || '') : '') +
+         '</div>' + control(r) + '</div>';
+}
+
+/* ── The Updates pane ─────────────────────────────────────────────────────── */
+var DOME = '<svg class="hero__mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<path d="M3 20V12.6A9 9 0 0 1 21 12.6V20" stroke="var(--accent)" stroke-width="1.1" stroke-linecap="round"/>' +
+  '<path d="M12 3.6V20M7.6 5.1V20M16.4 5.1V20M3 14.4h18" stroke="var(--accent)" stroke-width=".6" stroke-linecap="round"/>' +
+  '<path d="M2.2 20h19.6" stroke="var(--accent)" stroke-width="1.1" stroke-linecap="round"/></svg>';
+var TICK = '<svg viewBox="0 0 8 8" fill="none"><path d="M1.5 4.2 3.2 5.9 6.5 2.3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+var CHEV = '<svg class="bld__chev" viewBox="0 0 10 7" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" ' +
+  'stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+function notesHtml(notes){
+  return (notes || []).map(function(n){
+    return '<h3' + (n.warn ? ' class="warn"' : '') + '>' + n.h + '</h3><ul>' +
+           n.items.map(function(i){ return '<li>' + i + '</li>'; }).join('') + '</ul>';
+  }).join('');
+}
+
+function buildHead(u, tag){
+  return '<span class="bld__tile">' + esc(codeOf(u.phase)) + '</span>' +
+         '<span class="bld__t"><b>' + esc(nameOf(u.phase)) + '</b><span>' + u.name + '</span></span>' + tag;
+}
+
+function renderUpdates(s){
+  var now = BUILD.phaseNumber | 0;
+  var h = '';
+
+  if (CURRENT){
+    var ms = CURRENT.milestones || [];
+    var done = Math.max(0, Math.min(BUILD.milestonesDone | 0, ms.length));
+    var meta = ['Version ' + esc(BUILD.version)];
+    if (BUILD.builtOn) { meta.push('Built ' + esc(BUILD.builtOn)); }
+    if (BUILD.engine) { meta.push('Engine ' + esc(BUILD.engine)); }
+
+    h += '<div class="group hero">' + DOME +
+      '<div class="hero__kicker">You’re on</div>' +
+      '<div class="hero__title"><h2>' + esc(nameOf(now)) + '</h2>' +
+        '<span class="chip chip--code">' + esc(codeOf(now)) + '</span>' +
+        (BUILD.preRelease ? '<span class="chip chip--pre">Pre-release</span>' : '<span class="chip chip--ok">Latest</span>') +
+      '</div>' +
+      '<div class="hero__name">' + CURRENT.name + '</div>' +
+      '<div class="hero__meta">' + meta.join(' &middot; ') + '</div>';
+
+    if (BUILD.preRelease && ms.length){
+      h += '<div class="bar" style="grid-template-columns:repeat(' + ms.length + ',1fr)">' +
+        ms.map(function(m, i){ return '<i class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
+        '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> milestones done</span>' +
+        (done < ms.length ? '<span>Next: ' + ms[done].t + '</span>' : '') + '</div>' +
+        '<ol class="ms">' + ms.map(function(m, i){
+          var st = i < done ? 'done' : (i === done ? 'next' : 'todo');
+          return '<li class="' + st + '"><span class="ms__dot">' + TICK + '</span>' +
+                 '<span class="ms__n">M' + i + '</span><span class="ms__t">' + m.t + '</span>' +
+                 '<span class="ms__w">' + (st === 'done' ? (m.when || '') : (st === 'next' ? 'Next' : '')) + '</span></li>';
+        }).join('') + '</ol>';
+    } else {
+      h += '<div style="height:14px"></div>';
+    }
+    h += '</div>';
+  }
+
+  /* The pane's own rows go through the same renderer as every other pane's, so a gated row
+     here is badged exactly like one anywhere else. */
+  if (s.rows.length) { h += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
+
+  if (CURRENT && CURRENT.notes){
+    h += '<h2 class="upd-h">What’s new in ' + esc(nameOf(now)) + (BUILD.preRelease ? ' so far' : '') + '</h2>' +
+         '<div class="group notes">' + notesHtml(CURRENT.notes) + '</div>';
+  }
+
+  var next = UPDATES.filter(function(u){ return u.phase > now; });
+  if (next.length){
+    h += '<h2 class="upd-h">Coming next</h2>' + next.map(function(u){
+      return '<div class="group bld bld--todo"><div class="bld__head">' + buildHead(u, '<span class="chip">Planned</span>') + '</div>' +
+             '<div class="bld__body"><p>' + u.summary + '</p>' +
+             (u.bits ? '<div class="bits">' + u.bits.map(function(b){ return '<span>' + b + '</span>'; }).join('') + '</div>' : '') +
+             '</div></div>';
+    }).join('');
+  }
+
+  var past = UPDATES.filter(function(u){ return u.phase < now; }).reverse();
+  if (past.length){
+    h += '<h2 class="upd-h">Earlier builds</h2>' + past.map(function(u){
+      return '<details class="group bld"><summary class="bld__head">' +
+             buildHead(u, '<span class="bld__when">' + (u.when || '') + '</span>' + CHEV) + '</summary>' +
+             '<div class="bld__body"><p>' + u.summary + '</p><div class="notes">' + notesHtml(u.notes) + '</div></div></details>';
+    }).join('');
+  }
+
+  return h + '<p class="lede upd-foot">' + PROLOGUE + '</p>';
 }
 
 /* A row's expandable detail. The body is filled by script from injected data, never pasted
@@ -489,7 +821,7 @@ var nav = document.getElementById('nav');
 var main = document.getElementById('main');
 
 SECTIONS.forEach(function(s, i){
-  if (s.id === 'autofill' || s.id === 'about') nav.appendChild(document.createElement('hr'));
+  if (s.id === 'autofill' || s.id === 'updates') nav.appendChild(document.createElement('hr'));
   var b = document.createElement('button');
   b.innerHTML = ICON[s.icon] + '<span>' + s.name + '</span>';
   b.setAttribute('data-target', s.id);
@@ -502,25 +834,21 @@ SECTIONS.forEach(function(s, i){
 
   var body = '<h1>' + s.title + '</h1><p class="lede">' + s.lede + '</p>';
   if (s.about){
+    /* Filled from BUILD by textContent below — the engine string comes from WebView2. */
     body += '<div class="group"><div class="row"><div class="about">' +
-      '<div><dt>Version</dt><dd>__AV_VERSION__ &middot; __AV_CHANNEL__</dd></div>' +
-      '<div><dt>Phase</dt><dd>__AV_PHASE__</dd></div>' +
-      '<div><dt>Engine</dt><dd>WebView2 (Chromium, via Microsoft Edge)</dd></div>' +
+      '<div><dt>Version</dt><dd id="ab-version"></dd></div>' +
+      '<div><dt>Release</dt><dd id="ab-release"></dd></div>' +
+      '<div><dt>Engine</dt><dd id="ab-engine"></dd></div>' +
+      '<div><dt>Built</dt><dd id="ab-built"></dd></div>' +
       '<div><dt>Interface</dt><dd>WinUI 3 &middot; Windows App SDK &middot; .NET 9</dd></div>' +
       '<div><dt>Identifies as</dt><dd><code id="ua"></code></dd></div>' +
       '</div></div></div>' +
       '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
+  } else if (s.updates){
+    body += renderUpdates(s);
   } else {
-    body += '<div class="group">' + s.rows.map(function(r){
-      var key = r.ctl && r.ctl.key;
-      var note = (r.restart && key)
-        ? '<span class="note" data-restart="' + key + '" hidden>Restart Aviary to apply this change.</span>'
-        : '';
-      return '<div class="row"><div class="row__t"><b>' + r.t + '</b>' +
-             (r.d ? '<span>' + r.d + '</span>' : '') + note + (r.more ? (MORE[r.more] || '') : '') +
-             '</div>' + control(r) + '</div>';
-    }).join('') + '</div>';
+    body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>';
   }
   pane.innerHTML = body;
   main.appendChild(pane);
@@ -574,6 +902,12 @@ Object.keys(LAUNCH).forEach(function(k){ restartNote(k, saved(k, LAUNCH[k]) === 
 var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
 
+function fillText(id, text){ var el = document.getElementById(id); if (el) { el.textContent = text; } }
+fillText('ab-version', BUILD.version + ' · ' + nameOf(BUILD.phaseNumber) + ' (' + codeOf(BUILD.phaseNumber) + ')');
+fillText('ab-release', BUILD.preRelease ? 'Pre-release · ' + (BUILD.progress || '') : 'Released');
+fillText('ab-engine', 'WebView2 ' + (BUILD.engine ? BUILD.engine + ' ' : '') + '(Chromium, via Microsoft Edge)');
+fillText('ab-built', BUILD.builtOn || '—');
+
 /* textContent, not innerHTML: a folder name is user data and can contain anything. */
 var dlPath = document.getElementById('dlpath');
 if (dlPath) dlPath.textContent = PATHS.downloads || '';
@@ -625,15 +959,20 @@ if (diagList && DIAG.categories){
   });
 }
 
-nav.addEventListener('click', function(e){
-  var b = e.target.closest('button[data-target]');
-  if (!b) return;
+function showPane(id){
+  var b = nav.querySelector('button[data-target="' + id + '"]');
+  var pane = document.getElementById('pane-' + id);
+  if (!b || !pane) { return; }
   nav.querySelectorAll('button[data-target]').forEach(function(x){ x.removeAttribute('aria-current'); });
   b.setAttribute('aria-current','true');
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
-  var pane = document.getElementById('pane-' + b.getAttribute('data-target'));
-  if (pane) pane.classList.add('on');
+  pane.classList.add('on');
   main.scrollTop = 0;
+}
+
+nav.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-target]');
+  if (b) { showPane(b.getAttribute('data-target')); }
 });
 
 function closeAllPopups(except){
@@ -645,6 +984,14 @@ function closeAllPopups(except){
 }
 
 main.addEventListener('click', function(e){
+  /* First: a goto button also wears .btn, and the .btn branch at the bottom posts a command. */
+  var go = e.target.closest('button[data-goto]');
+  if (go){
+    closeAllPopups(null);
+    if (!go.disabled) { showPane(go.getAttribute('data-goto')); }
+    return;
+  }
+
   var siteBtn = e.target.closest('button[data-site]');
   if (siteBtn){
     siteBtn.disabled = true;
@@ -721,10 +1068,7 @@ window.__aviaryApply = function(key, value){
 };
 
 /* Opened from the app menu's "About Aviary", which used to land you on Get started. */
-if (window.__aviarySection){
-  var jump = nav.querySelector('button[data-target="' + window.__aviarySection + '"]');
-  if (jump) { jump.click(); }
-}
+if (window.__aviarySection){ showPane(window.__aviarySection); }
 </script>
 </body>
 </html>

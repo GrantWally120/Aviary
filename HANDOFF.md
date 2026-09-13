@@ -4,7 +4,10 @@ Everything a new session needs to pick this up. Written 6 September 2026 at the 
 Phase 3; updated 7 September 2026 at the end of Phase 4, 11 September 2026 at the end of
 Phase 5 milestone M1 (the diagnostics folder — section 13), 12 September 2026 for M2
 (privacy that actually works — section 14), and 13 September 2026 when M2 finished: the
-website-data panel, one Aviary per profile (bug 51) and the checks M2 had left unrun.
+website-data panel, one Aviary per profile (bug 51) and the checks M2 had left unrun — then,
+the same day, Grant's closing ask: **an Updates section in Settings and every build renamed**
+(Alpha Build 1–5, Beta Build 1–2; the app now calls itself Alpha Build 5, "AB5") — section 15.
+M2 is committed (`6f44c59`, then the Updates commit on top).
 
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
@@ -45,7 +48,9 @@ Real WebKit · extensions · account sync · bundled Widevine · mobile · macOS
 
 - **Never leave him at a terminal.** Anything he runs is a double-click or a download.
 - **Update `Aviary.html` at the end of every phase.** The whole roadmap is a single
-  `PHASES` array near the bottom of its `<script>` — edit that array, nothing else.
+  `PHASES` array near the bottom of its `<script>` — edit that array, nothing else. (The 13 Sep
+  build rename also had to touch the TRACKS badges, the hero pill and two sentences — wording
+  only, no redesign.)
 - **Do NOT publish these as Artifacts.** He said so explicitly on 2026-09-06; keep them as
   plain local HTML. Two stale artifacts exist from before that instruction — ignore them.
 - **Trust his reported symptom over your own tests.** This has already bitten once: he
@@ -58,18 +63,22 @@ Real WebKit · extensions · account sync · bundled Widevine · mobile · macOS
 
 ## 3. Phase plan
 
-Phases **00–05 are ALPHA**; **06 and up are BETA**.
+Phases **00–05 are ALPHA**; **06 and up are BETA**. **Since 13 Sep 2026 every phase is named
+as a build** (Grant): phase N for 1–5 is **Alpha Build N** ("ABN"), phase 6 is **Beta Build 1**
+("BB1"), phase 7 **Beta Build 2**. Phase 00 was a mockup, not a build. The numbers stay
+underneath (the plan, this file and every settings row's `phase:N` use them); what Grant and the
+app say is the build name — `BuildInfo.NameOf` / `CodeOf` (section 15).
 
-| Phase | Track | Name | State |
+| Phase | Build | Name | State |
 |-------|-------|------|-------|
-| 00 | alpha | Interface study | done 4 Sep 2026 |
-| 01 | alpha | The shell | done 6 Sep 2026 |
-| 02 | alpha | Tabs and settings | done 6 Sep 2026 |
-| 03 | alpha | Theming and features | done 6 Sep 2026 |
-| 04 | alpha | Safari features | done 7 Sep 2026 |
-| **05** | alpha | **Alpha Build 5 (pre-release)** | **IN PROGRESS — M0, M1, M2 done; M3 next** |
-| 06 | beta | Beta Build 1 — "Testing 1" | planned |
-| 07 | beta | Beta Build 2 — "Testing 2" | planned |
+| 00 | — | Interface study (mockup) | done 4 Sep 2026 |
+| 01 | Alpha Build 1 · AB1 | The shell | done 6 Sep 2026 |
+| 02 | Alpha Build 2 · AB2 | Tabs and settings | done 6 Sep 2026 |
+| 03 | Alpha Build 3 · AB3 | Theming and features | done 6 Sep 2026 |
+| 04 | Alpha Build 4 · AB4 | Safari features | done 7 Sep 2026 |
+| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2 done and committed; M3 next** |
+| 06 | Beta Build 1 · BB1 | "Testing 1" | planned |
+| 07 | Beta Build 2 · BB2 | "Testing 2" | planned |
 
 **Phase 04 shipped 7 Sep 2026.** The Start Page, the sidebar (requirement 4 — the last
 unmet hard requirement), Reader + the "Aa" menu, real favicons, history, reading list,
@@ -92,7 +101,8 @@ private window, saved passwords, an all-time Privacy Report with bandwidth and t
 found fourteen more bugs (39–52; 50 is still open). Two came from the end of M2: Grant's own
 diagnostics showed a second Aviary running on his profile at the same time (51 — Aviary is now
 one per profile), and the website-data Remove could wipe EVERY site (52 — found in testing,
-never shipped). **Next: M3**, the filter-list ad blocker. Read the plan before continuing; it
+never shipped). M2 closed with Grant's last ask — the **Updates** section in Settings and the
+build names (section 15). **Next: M3**, the filter-list ad blocker. Read the plan before continuing; it
 records decisions Grant made that are not obvious from the code, notably that diagnostics
 deliberately collects everything including full URLs, and why secrets are still excluded.
 
@@ -191,6 +201,14 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 > - Publish test builds to the scratchpad (`-p:PublishDir=…scratchpad/pub/`), NEVER over
 >   `publish/Aviary` while Grant's copy is running from it. Forward slashes in PublishDir from
 >   PowerShell — a trailing `\"` swallows the rest of the arguments.
+> - `tools/test/package.json` exists only to stop Node walking up to
+>   `C:\Users\user\Documents\package.json` — an old Wally2TTD file with its opening `{` missing,
+>   which kills every `node` script under Documents with ERR_INVALID_PACKAGE_CONFIG. Leave
+>   Grant's file alone.
+> - `node cdp.js shot <tab> <out.png> [WxH] [light|dark]` (13 Sep) — a page at a set size and
+>   colour scheme, without moving or fronting the window. It undoes its size override in the SAME
+>   DevTools session: in WebView2 152 an override outlives the session that set it and a later
+>   session cannot clear it — a tab stayed boxed at 1180×860 until the instance closed.
 
 **Launch and screenshot:**
 ```powershell
@@ -398,6 +416,15 @@ frame addresses while it was open, back once it closed, the private page's marke
 file. A typed search in a private window (guarded keystrokes into its address bar): reached
 DuckDuckGo, and the query is in no file of the profile — not history, not diagnostics, not the
 engine's folder.
+
+**13 Sep — the Updates section (section 15), in the published exe on a scratch profile:** every
+line of the pane read back over DevTools (build name, AB5, pre-release, 3 of 9 milestones with M3
+"Next", the engine version, the build time, both betas planned, AB4–AB1 in order); badges now
+"Later in AB5" ×11, "Beta Build 1" ×2; "See updates" on Get started switches panes and posts
+NOTHING to the host (postMessage hooked and empty); an earlier build expands; About shows
+0.5.0 · Alpha Build 5 (AB5). The one route DevTools cannot reach — **app menu → Help → What's
+New in Aviary** — was driven with guarded real clicks (Grant idle 17 min) and opened a Settings
+tab straight onto Updates. Screenshots in dark and light, and at 860 px wide.
 
 **Still never exercised by hand:** vertical tab reordering in the sidebar, and removing a
 reading-list item. Treat both as unproven.
@@ -677,6 +704,10 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     for domain names, and clearDataForOrigin never gets "cookies" (they are deleted one by one
     through the cookie manager), so even a bad origin could not reach cookies. **Never hand
     clearDataForOrigin an origin that has not been through ClearableOrigin.**
+53. **Get started's "What works today" row went stale two builds running** — hand-written in
+    Alpha Build 3, it was still promising AB4's Start Page, Reader and sidebar "this phase" in AB5.
+    Bug 15's lesson one row over. It is now "What's new in <build>", its text the current build's
+    `short` line from UPDATES (section 15). **Never hand-write what's-new text into a settings row.**
 
 ---
 
@@ -700,10 +731,12 @@ agents' work before considering a re-run.
 ## 11. Suggested first message for the new chat
 
 > Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — section 5's
-> container box before anything else — then `Zoo/PHASE5-PLAN.md`. Phase 5 is in progress: M0,
-> M1 and M2 are done (sections 13 and 14). Start M3, the filter-list ad blocker. Read Grant's
+> container box before anything else — then `Zoo/PHASE5-PLAN.md`. Alpha Build 5 (phase 5) is in
+> progress: M0, M1 and M2 are done and committed (sections 13, 14 and 15). Start M3, the
+> filter-list ad blocker — downloading EasyList/EasyPrivacy needs Grant's yes first. Read Grant's
 > diagnostics folder first as section 13 describes. Test only on a scratch profile with the
-> section 5 kit; verify by running the real app; ask before any NuGet package.
+> section 5 kit; verify by running the real app; ask before any NuGet package. When a milestone
+> ships, bump `BuildInfo.MilestonesDone` and date it in Updates (section 15).
 
 ## 13. Diagnostics — `user.data.improvementcollection` (Phase 5 M1)
 
@@ -798,3 +831,49 @@ creation, and restarting closes unpinned tabs until session restore (Phase 6) ex
 
 **M2 finished 13 Sep 2026.** Its last items — the website-data panel, the typed private search
 and the private minute-sample re-run — are in section 7. **Next: M3.**
+
+## 15. Updates, and the build names (13 Sep 2026 — closing M2)
+
+Grant's ask as M2 closed: *"add an updates menu on the settings and all previous are called Alpha
+Build 1 until current and Beta are Beta Build 1 and 2 … and also mention current version AB5."*
+
+**What the app says now.** Version **0.5.0 · Alpha Build 5 (AB5)**, a **pre-release**, "3 of 9
+milestones done" — in About, the Get started lede, the Updates pane, diagnostics' `session.json`
+and `summary.md` (`channel` = "Alpha Build 5 (pre-release)"). The version moved to 0.5.0 now,
+not at M8: it is the build being made, labelled pre-release until it ships.
+
+**BuildInfo.cs is still the only source.** `Version`, `PhaseNumber` (5, the build being made),
+`PhaseName` ("Privacy that works" — each build has a headline, like a named update),
+`PhaseShipped` (4 — still what gates rows), `MilestonesDone` (3) / `Milestones` (9),
+`NameOf(phase)` / `CodeOf(phase)` ("Alpha Build 5" / "AB5"; 6 → "Beta Build 1" / "BB1"),
+`Channel`, `Progress`, and `BuiltOn` (Aviary.dll's write time — read lazily, not in a static
+initialiser, because a failure reports through Diagnostics, which reads BuildInfo as it starts).
+`Json(engine)` hands the page all of it plus a names/codes table for phases 1–7, so the page
+never re-derives the numbering. The engine version comes from `Diagnostics.EngineVersion`, set
+when the first tab starts — always before Settings builds.
+
+**Badges.** A row due in the build you are ON reads **"Later in AB5"** (an "Alpha Build 5" badge
+on a dead switch, in Alpha Build 5, reads as broken); a row due later reads **"Beta Build 1"**.
+`PhaseShipped` still decides live vs badged — raising `PhaseNumber` alone un-badges nothing.
+
+**The Updates pane** (Settings → Updates, just above About; also **app menu → Help → What's New
+in Aviary**, which opens Settings on it; also "See updates" on Get started, a `goto` control —
+a pane switch in the page, never a host command). Top to bottom: the build you are on (name,
+AB5 and Pre-release chips, headline, version · built · engine, a nine-segment milestone bar,
+M0–M8 with dates and "Next"); an "Automatic updates" row badged Beta Build 1 (honestly gated —
+updates come with the installer); "What's new in Alpha Build 5 so far" by category, ending in
+**Known issue** (bug 50); "Coming next" (BB1, BB2); "Earlier builds" (AB4 → AB1, collapsed); the
+interface study as a footnote. It never goes online and says so.
+
+**Where the words live:** the `UPDATES` array at the top of the Settings script in
+`InternalPages.cs` — one entry per build (phase, name, when, summary, `short` for Get started,
+`milestones` for the current build, `notes` by category, `bits` for planned builds). **Only
+history is hand-written; STATE never is** — shipped / current / planned all come from BUILD.
+
+**Keeping it true — do these, every time:**
+- A milestone ships → `MilestonesDone++` in BuildInfo, and a `when` on that milestone in
+  UPDATES; add its user-facing changes to AB5's `notes` (plain words — Grant reads this page).
+- AB5 ships (M8) → `PhaseShipped = 5`: every phase:5 row goes live together and the hero's chip
+  becomes "Latest". Then for Beta Build 1: `PhaseNumber = 6`, a new `PhaseName`, `Version`,
+  `MilestonesDone = 0`, and a `milestones` list on the phase-6 entry.
+- `Aviary.html` shows the same names (PHASES titles; `code` feeds the hero pill) — keep in step.

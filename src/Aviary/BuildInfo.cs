@@ -11,54 +11,137 @@ namespace Aviary;
 /// shipped and all four stayed where they were, so the app spent a whole phase describing
 /// itself as the previous one.
 ///
-/// Nothing anywhere else may hardcode a version, a channel or a phase number. Internal
-/// pages receive these as substitution markers; the phase BADGES are derived by comparing
-/// a row's numeric phase against <see cref="PhaseNumber"/>, so a badge cannot outlive the
-/// phase it names.
+/// Nothing anywhere else may hardcode a version, a build name or a phase number. Internal
+/// pages receive these as substitution markers and the injected JSON; the row BADGES are
+/// derived by comparing a row's numeric phase against <see cref="PhaseShipped"/>, so a badge
+/// cannot outlive the build it names.
+///
+/// <para><b>Phases ARE builds</b> (Grant, 13 Sep 2026). Phases 1–5 are Alpha Build 1 to 5,
+/// phase 6 is Beta Build 1 and phase 7 Beta Build 2. Phase 0 was the interface study — a
+/// mockup, not a build. The numbering stays underneath because the plan, the handoff and
+/// every row's <c>phase:N</c> use it; what people see is the build name, from
+/// <see cref="NameOf"/>.</para>
 /// </summary>
 internal static class BuildInfo
 {
-    public const string Version = "0.4.0";
+    public const string Version = "0.5.0";
 
-    /// <summary>"alpha" through Phase 05; "beta" from Phase 06.</summary>
-    public const string Track = "alpha";
+    /// <summary>The phase — the build — currently being made. About and Updates report it.</summary>
+    public const int PhaseNumber = 5;
 
-    /// <summary>Which build of that track. Bumped with the phase, not with every compile.</summary>
-    public const int Build = 4;
-
-    /// <summary>The phase currently being built. This is what About reports.</summary>
-    public const int PhaseNumber = 4;
-
-    public const string PhaseName = "Safari features";
+    /// <summary>This build's headline. Each build has one, the way a named update does.</summary>
+    public const string PhaseName = "Privacy that works";
 
     /// <summary>
     /// The last phase actually FINISHED, which is what gates the settings rows.
     ///
-    /// It is deliberately not <see cref="PhaseNumber"/>. Gating on the phase in progress
-    /// would un-badge every row the current phase is going to deliver the moment that
-    /// phase opened — so a row would claim to work for the whole time it was being built.
-    /// Rows carry the phase they arrive in and stay badged until that phase is done; when
-    /// this number is bumped, they all go live together, by which point they all work.
+    /// It is deliberately not <see cref="PhaseNumber"/>. Gating on the build in progress
+    /// would un-badge every row that build is going to deliver the moment it opened — so a
+    /// row would claim to work for the whole time it was being built. Rows carry the phase
+    /// they arrive in and stay badged until that build is done; when this number is bumped,
+    /// they all go live together, by which point they all work.
     /// </summary>
     public const int PhaseShipped = 4;
 
-    /// <summary>"alpha build 4".</summary>
-    public static string Channel => Track + " build " + Build;
+    /// <summary>
+    /// How many of this build's milestones are finished (PHASE5-PLAN.md: M0 to M8, so nine).
+    /// Bump it when a milestone ships; Updates ticks them off from this one number.
+    /// </summary>
+    public const int MilestonesDone = 3;
 
-    /// <summary>"04 — Safari features".</summary>
+    public const int Milestones = 9;
+
+    /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
+    private const int LastAlphaPhase = 5;
+
+    /// <summary>"alpha" up to Alpha Build 5; "beta" from Beta Build 1.</summary>
+    public static string Track => PhaseNumber <= LastAlphaPhase ? "alpha" : "beta";
+
+    /// <summary>Which build of that track: 5 for Alpha Build 5, 1 for Beta Build 1.</summary>
+    public static int Build => PhaseNumber <= LastAlphaPhase ? PhaseNumber : PhaseNumber - LastAlphaPhase;
+
+    /// <summary>True while the build in progress has not shipped — every build until its last milestone.</summary>
+    public static bool PreRelease => PhaseShipped < PhaseNumber;
+
+    /// <summary>"Alpha Build 5" for phase 5, "Beta Build 1" for phase 6.</summary>
+    public static string NameOf(int phase) =>
+        phase <= LastAlphaPhase ? "Alpha Build " + phase : "Beta Build " + (phase - LastAlphaPhase);
+
+    /// <summary>"AB5" for phase 5, "BB1" for phase 6 — Grant's own shorthand.</summary>
+    public static string CodeOf(int phase) =>
+        phase <= LastAlphaPhase ? "AB" + phase : "BB" + (phase - LastAlphaPhase);
+
+    /// <summary>"Alpha Build 5".</summary>
+    public static string BuildName => NameOf(PhaseNumber);
+
+    /// <summary>"AB5".</summary>
+    public static string BuildCode => CodeOf(PhaseNumber);
+
+    /// <summary>"Alpha Build 5 (pre-release)" — what the app calls itself everywhere.</summary>
+    public static string Channel => BuildName + (PreRelease ? " (pre-release)" : "");
+
+    /// <summary>"05 — Privacy that works".</summary>
     public static string PhaseLabel =>
         (PhaseNumber < 10 ? "0" : "") + PhaseNumber + " — " + PhaseName;
 
-    /// <summary>The blob injected into every internal page at the build marker.</summary>
-    public static string Json() => JsonSerializer.Serialize(new
+    /// <summary>"3 of 9 milestones done" while a pre-release; empty once the build ships.</summary>
+    public static string Progress =>
+        PreRelease ? MilestonesDone + " of " + Milestones + " milestones done" : string.Empty;
+
+    /// <summary>
+    /// When this copy was compiled — the write time of Aviary.dll, which a publish copies
+    /// unchanged. Local time to the minute, which is all Updates shows. Empty if unreadable.
+    /// Read on first use, not in a static initialiser: a failure reports through Diagnostics,
+    /// which itself reads this class while it starts.
+    /// </summary>
+    public static string BuiltOn => _builtOn ??= ReadBuiltOn();
+
+    private static string? _builtOn;
+
+    private static string ReadBuiltOn()
+    {
+        try
+        {
+            string path = typeof(BuildInfo).Assembly.Location;
+            if (path.Length == 0 || !File.Exists(path))
+            {
+                return string.Empty;
+            }
+
+            return File.GetLastWriteTime(path)
+                .ToString("d MMM yyyy, HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "build: read compile time");
+            return string.Empty;
+        }
+    }
+
+    /// <summary>
+    /// The blob injected into every internal page at the build marker. <paramref name="engine"/>
+    /// is the running WebView2's version, known only once a tab has started.
+    /// </summary>
+    public static string Json(string engine = "") => JsonSerializer.Serialize(new
     {
         version = Version,
         track = Track,
         build = Build,
         channel = Channel,
+        buildName = BuildName,
+        buildCode = BuildCode,
+        preRelease = PreRelease,
         phaseNumber = PhaseNumber,
         phaseShipped = PhaseShipped,
         phaseName = PhaseName,
         phaseLabel = PhaseLabel,
+        milestonesDone = MilestonesDone,
+        milestones = Milestones,
+        progress = Progress,
+        builtOn = BuiltOn,
+        engine,
+        // Every build's name and code, so the page never re-derives the numbering.
+        names = Enumerable.Range(1, 7).ToDictionary(p => p.ToString(), NameOf),
+        codes = Enumerable.Range(1, 7).ToDictionary(p => p.ToString(), CodeOf),
     });
 }

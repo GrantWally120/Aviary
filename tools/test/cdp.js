@@ -8,6 +8,7 @@
 //   node cdp.js nav   <match> <url>                     -> Page.navigate (NOT Aviary's address bar)
 //   node cdp.js click <match> "<css selector>"          -> a TRUSTED click (Input.dispatchMouseEvent) at the element's centre
 //   node cdp.js wait  <match> "<js condition>" [ms]     -> polls until truthy
+//   node cdp.js shot  <match> <out.png> [WxH] [light|dark] -> screenshot at WxH, no window touched
 //
 // <match> is a substring of the target's url or title, or "#<n>" for the n-th page target.
 const PORT = process.env.CDP_PORT || 9222;
@@ -103,6 +104,25 @@ async function evaluate(s, expression) {
         await s.send('Input.dispatchKeyEvent', { type, modifiers: mods, key, code, windowsVirtualKeyCode: vk, nativeVirtualKeyCode: vk });
       }
       console.log('pressed ' + arg);
+    } else if (cmd === 'shot') {
+      // node cdp.js shot <match> <out.png> [WxH] [light|dark] — the page alone, rendered at WxH
+      // (default 1180x860) through device-metrics emulation: no window is moved or fronted.
+      const [w, h] = (extra || '1180x860').split('x').map(Number);
+      const scheme = process.argv[6];
+      // The override is undone IN THIS SESSION before it closes: in WebView2 152 a size override
+      // outlives the session that set it, and a later session's clear does not reach it — the
+      // tab stays boxed at WxH until Aviary restarts (seen 13 Sep).
+      await s.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false });
+      if (scheme) await s.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] });
+      try {
+        await new Promise(r => setTimeout(r, 350));
+        const shot = await s.send('Page.captureScreenshot', { format: 'png' });
+        require('fs').writeFileSync(arg, Buffer.from(shot.data, 'base64'));
+        console.log('saved ' + arg + ' (' + w + 'x' + h + (scheme ? ', ' + scheme : '') + ')');
+      } finally {
+        await s.send('Emulation.clearDeviceMetricsOverride');
+        await s.send('Emulation.setEmulatedMedia', { features: [] });
+      }
     } else if (cmd === 'wait') {
       const until = Date.now() + (parseInt(extra, 10) || 8000);
       let v;

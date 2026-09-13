@@ -701,13 +701,12 @@ public sealed partial class MainWindow : Window
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";")
-            .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json() + ";")
+            // The engine version is known by now: this page is loading in a tab that has started.
+            .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
                 ? string.Empty
                 : "window.__aviarySection = " + JsonSerializer.Serialize(section) + ";")
-            .Replace("__AV_VERSION__", BuildInfo.Version)
             .Replace("__AV_CHANNEL__", BuildInfo.Channel)
-            .Replace("__AV_PHASE__", BuildInfo.PhaseLabel)
             // Serialised as JSON, never pasted into the page's markup. A Windows path is
             // full of backslashes, and the settings row that shows it is built inside a
             // JavaScript string literal — where C:\Users\... quietly becomes C:Users....
@@ -2088,6 +2087,9 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(new MenuFlyoutSeparator());
 
         MenuFlyoutSubItem help = new() { Text = "Help" };
+        MenuFlyoutItem whatsNew = new() { Text = "What’s New in Aviary" };
+        whatsNew.Click += (_, _) => OpenSettingsTab("updates");
+        help.Items.Add(whatsNew);
         MenuFlyoutItem about = new() { Text = "About Aviary" };
         about.Click += (_, _) => OpenSettingsTab("about");
         help.Items.Add(about);

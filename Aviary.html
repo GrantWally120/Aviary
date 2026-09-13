@@ -380,7 +380,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
     </a>
     <nav>
       <a href="#looks" data-hide>Two looks</a>
-      <a href="#phases">Phases</a>
+      <a href="#phases">Builds</a>
       <a href="#built" data-hide>Built on</a>
       <a href="#get">Get it</a>
     </nav>
@@ -400,7 +400,7 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
           rendering engine. The window is Windows. Everything inside it is Safari.
         </p>
         <div class="hero__meta">
-          <span class="pill"><i></i><span id="statusPill">Phase 1 · Shell</span></span>
+          <span class="pill"><i></i><span id="statusPill">Alpha Build 5 (AB5)</span></span>
           <span class="pill">C# · WinUI 3 · WebView2</span>
           <span class="pill">No engine to bundle</span>
         </div>
@@ -492,17 +492,17 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
     <div class="wrap">
       <div class="sec-h">
         <h2>How it gets built</h2>
-        <p>One phase at a time, with a sign-off between each — and two tracks. Alpha builds the thing;
+        <p>One build at a time, with a sign-off between each — and two tracks. Alpha builds the thing;
            beta is where it becomes something you actually use.</p>
       </div>
       <div id="phaseList"></div>
       <div style="margin-top:34px">
         <div class="eyebrow" style="margin-bottom:12px">How the features arrive</div>
         <p style="margin:0 0 26px;color:var(--ink-2);font-size:14.5px;max-width:66ch;line-height:1.65">
-          Not all at once. A quarter of the feature set lands in <b style="color:var(--ink)">Phase 03</b>,
-          another quarter in <b style="color:var(--ink)">Phase 04</b>, and the remaining half in
-          <b style="color:var(--ink)">Phase 05</b> — the pre-release, where it has to actually be good,
-          because Phase 06 is Beta Build 1 and people start living in it.
+          Not all at once. A quarter of the feature set lands in <b style="color:var(--ink)">Alpha Build 3</b>,
+          another quarter in <b style="color:var(--ink)">Alpha Build 4</b>, and the remaining half in
+          <b style="color:var(--ink)">Alpha Build 5</b> — the pre-release, where it has to actually be good,
+          because next comes Beta Build 1 and people start living in it.
         </p>
         <div class="eyebrow" style="margin-bottom:12px">Deliberately not in version one</div>
         <div class="scope">
@@ -609,18 +609,19 @@ footer{border-top:1px solid var(--line);padding:34px 0 60px;color:var(--ink-3);f
    Set state to "done" | "active" | "todo". Add a `when` when it ships and a
    `link` when there is something to look at. Everything else follows.
    ════════════════════════════════════════════════════════════════════════ */
-/* Two tracks. Everything up to and including 04 is alpha — building the thing.
-   05 and beyond are beta — the thing exists, and now it gets lived in. */
+/* Two tracks, and every build is named for its track (Grant, 13 Sep 2026): Alpha Build 1 to 5
+   build the thing; Beta Build 1 and 2 are where it gets lived in. 00 was the interface study —
+   a mockup, not a build. `code` is Grant's shorthand, shown in the status pill. */
 const TRACKS={
   alpha:{
     name:"Alpha",
-    badge:"Phases 00 – 05",
-    note:"Building it. Each phase adds one layer and has to work before the next one starts. "+
+    badge:"Alpha Builds 1 – 5",
+    note:"Building it. Each build adds one layer and has to work before the next one starts. "+
          "Nothing in alpha is meant to be used as your actual browser yet."
   },
   beta:{
     name:"Beta",
-    badge:"Phase 06 and up",
+    badge:"Beta Builds 1 – 2",
     note:"It exists, it is compiled, and it keeps your real data. Two rounds of it — Testing 1 is "+
          "the alpha made properly, Testing 2 is whatever Testing 1 turns out to have taught us. "+
          "This is where the browser has to earn being the one you open."
@@ -637,7 +638,7 @@ const PHASES=[
     bits:["4 combinations","Light + dark","Live toolbar tinting","Real caption glyphs"]
   },
   {
-    n:"01", track:"alpha", title:"The shell", state:"done", when:"6 Sep 2026",
+    n:"01", code:"AB1", track:"alpha", title:"Alpha Build 1", sub:"The shell", state:"done", when:"6 Sep 2026",
     desc:"A window that launches and browses. Mica, an extended title bar with genuine Windows "+
          "caption buttons, one WebView2, an address bar, and back / forward / reload / home. "+
          "Safari's user agent from the first navigation. Built, launched and verified browsing "+
@@ -645,18 +646,18 @@ const PHASES=[
     bits:["Mica + rounded corners","Extended title bar","One WebView2","Safari user agent","GitHub Actions build"]
   },
   {
-    n:"02", track:"alpha", title:"Tabs and settings", state:"done", when:"6 Sep 2026",
+    n:"02", code:"AB2", track:"alpha", title:"Alpha Build 2", sub:"Tabs and settings", state:"done", when:"6 Sep 2026",
     desc:"Tabs that divide the strip the way Safari's do, with the favicon cross-fading into a "+
          "close button under the cursor. One WebView2 per tab over a single shared environment, "+
          "so every tab keeps its own history without spawning its own browser process. Behind "+
          "them: an app menu, and a settings surface of thirteen sections — four of them already "+
-         "driving the app for real, the rest labelled with the phase they arrive in.",
+         "driving the app for real, the rest labelled with the build they arrive in.",
     bits:["Multiple tabs","Shared environment","Favicon → close","Ctrl+T · W · L · Tab","App menu","13 settings sections"]
   },
   {
-    n:"03", track:"alpha", title:"Theming and features", state:"done", when:"6 Sep 2026",
+    n:"03", code:"AB3", track:"alpha", title:"Alpha Build 3", sub:"Theming and features", state:"done", when:"6 Sep 2026",
     desc:"Both Safari looks, switchable while the browser is running. Every colour, radius, blur and "+
-         "spacing value lives in a token; zero hardcoded colours in any control. It is also the phase "+
+         "spacing value lives in a token; zero hardcoded colours in any control. It is also the build "+
          "where Mica finally becomes visible, because Liquid Glass is translucent enough to let the "+
          "desktop through where Classic's solid plane covers it. Alongside the theming, the first "+
          "quarter of the feature set lands — and every control drawn by Windows rather than by us "+
@@ -665,23 +666,24 @@ const PHASES=[
     bits:["Two looks, live switch","Remembers your look","Mica shows through","Own dropdowns","Ad + tracker blocking","Memory saver","Find in page","Downloads","Favourites bar","Drag to reorder"]
   },
   {
-    n:"04", track:"alpha", title:"Safari features", state:"done", when:"7 Sep 2026",
-    desc:"The phase that turns a window into a browser. Safari's real Start Page — favourites, "+
+    n:"04", code:"AB4", track:"alpha", title:"Alpha Build 4", sub:"Safari features", state:"done", when:"7 Sep 2026",
+    desc:"The build that turns a window into a browser. Safari's real Start Page — favourites, "+
          "frequently visited, a privacy report, and a customise popover in the corner — replaces the "+
          "placeholder. Reader mode strips an article back to its text, opened from the “Aa” menu that "+
-         "has been sitting inert inside the address field since Phase 01. The sidebar finally arrives, "+
+         "has been sitting inert inside the address field since Alpha Build 1. The sidebar finally arrives, "+
          "and it is one surface doing two jobs the way Apple's is: vertical tabs live in the same panel "+
          "as bookmarks, reading list and history, switched by a segmented control across the top. Real "+
          "favicons replace the coloured monograms everywhere they appear. And the address bar becomes a "+
          "Smart Search Field that answers as you type — out of your own history first, and off the "+
-         "network only if you ask it to. Two things planned for this phase moved to Alpha Build 5 "+
+         "network only if you ask it to. Two things planned for this build moved to Alpha Build 5 "+
          "rather than shipping half-built: the download progress ring, and tab groups.",
     bits:["Start Page","Vertical tab sidebar","Reader mode","The “Aa” menu","Real favicons",
           "Smart Search Field","History","Reading list","Privacy Report","Pinned tabs",
           "Our own context menus","Reload becomes stop","Page zoom","Clear browsing data"]
   },
   {
-    n:"05", track:"alpha", title:"Alpha Build 5", state:"active", when:"in progress",
+    n:"05", code:"AB5", track:"alpha", title:"Alpha Build 5", sub:"Privacy that works · pre-release",
+    state:"active", when:"in progress",
     desc:"The last alpha, and the widest one — Brave-inspired, and built around privacy that "+
          "actually works. First came a local diagnostics folder (done 11 Sep): switch it on and "+
          "Aviary records what it does, on this computer only, so problems can be found and every "+
@@ -691,16 +693,17 @@ const PHASES=[
          "out, less said about where you came from, a Safari identity that holds up, a private "+
          "window that forgets, saved passwords, F11 full screen and a Privacy Report that counts "+
          "bandwidth and time saved — each one tested with its switch on and off — and a list of "+
-         "what each website has stored, with a way to remove it (13 Sep). Still to come: a "+
-         "proper ad blocker you control site by site, Brave Search, the downloads ring and tab "+
-         "groups, and an Experimental menu written in plain English where nothing can make you "+
-         "less safe.",
+         "what each website has stored, with a way to remove it — and an Updates page in Settings "+
+         "that names every build and ticks off this one's milestones as they land (13 Sep). Still "+
+         "to come: a proper ad blocker you control site by site, Brave Search, the downloads ring "+
+         "and tab groups, and an Experimental menu written in plain English where nothing can make "+
+         "you less safe.",
     bits:["Diagnostics folder ✓","Privacy that works ✓","Private window ✓","Full screen ✓",
-          "Ad blocker + Shields","Brave Search","Downloads ring","Tab groups","Experimental menu",
-          "Measured optimisation"]
+          "Updates page ✓","Ad blocker + Shields","Brave Search","Downloads ring","Tab groups",
+          "Experimental menu","Measured optimisation"]
   },
   {
-    n:"06", track:"beta", title:"Beta Build 1", sub:"Testing 1", state:"todo",
+    n:"01", code:"BB1", track:"beta", title:"Beta Build 1", sub:"Testing 1", state:"todo",
     desc:"Alpha Build 5 again, but made properly. Same browser, finished: everything the alpha track "+
          "built compiled into one installable app, polished until it stops reading as a build, with "+
          "the handful of features alpha left on the table finally in. It keeps your real history, "+
@@ -710,7 +713,7 @@ const PHASES=[
           "Session restore","Crash reporting","Installer + updates","Daily-driver testing"]
   },
   {
-    n:"07", track:"beta", title:"Beta Build 2", sub:"Testing 2", state:"todo",
+    n:"02", code:"BB2", track:"beta", title:"Beta Build 2", sub:"Testing 2", state:"todo",
     desc:"The second round of living in it. What goes in here gets decided when we get here — and "+
          "that is the point: the list will be written by using Beta Build 1 for a while, not by "+
          "guessing at it now. What is already certain is the direction. Smoother, quicker, quieter, "+
@@ -757,10 +760,10 @@ document.getElementById("phaseList").innerHTML=PHASES.map(p=>{
   '</article>';
 }).join("");
 
-/* the hero pill always reflects whichever phase is active */
+/* the hero pill always reflects whichever build is active: "Alpha Build 5 (AB5) · pre-release" */
 const active=PHASES.find(p=>p.state==="active")||PHASES[PHASES.length-1];
 document.getElementById("statusPill").textContent=
-  TRACKS[active.track].name+" · Phase "+parseInt(active.n,10)+" · "+active.title;
+  active.title+(active.code?" ("+active.code+")":"")+(active.state==="active"?" · pre-release":"");
 
 /* theme: follow the system, but let the reader override — the same courtesy
    the browser itself extends. */
