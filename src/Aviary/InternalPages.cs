@@ -184,6 +184,21 @@ internal static class InternalPages
   .row__t span b,.more__body b{display:inline;color:var(--ink);font-weight:600;font-size:inherit;}
   .more__body p{margin:8px 0 0;}
   .more__h{font-weight:600;color:var(--ink);margin-top:12px !important;}
+  /* "Restart Aviary to apply" under an engine switch whose saved value is not yet the one
+     the running engine started with. */
+  .note{display:block;margin-top:6px;font-size:12px;font-weight:600;color:#FF9500 !important;}
+  /* Website data: one line per site, its sizes, and Remove. */
+  .sitedata{margin-top:12px;display:grid;gap:2px;max-height:340px;overflow-y:auto;}
+  .sitedata[hidden]{display:none;}
+  .sd{display:flex;align-items:center;gap:12px;padding:7px 10px;border-radius:7px;background:var(--fill);}
+  .sd b{flex:1;min-width:0;font-weight:500;font-size:13px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;}
+  .sd i{font-style:normal;font-size:12px;color:var(--ink-2);white-space:nowrap;}
+  .sd button{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:500 12px/1 inherit;
+    padding:6px 10px;border-radius:6px;cursor:default;}
+  .sd button:hover{background:var(--fill-hover);}
+  .sd button[disabled]{opacity:.45;}
+  .sd__empty{font-size:12.5px;color:var(--ink-2);padding:4px 0;}
+  .note[hidden]{display:none;}
   .soon{
     font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;
     color:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:4px 7px;flex:0 0 auto;
@@ -222,6 +237,8 @@ internal static class InternalPages
 /*__AVIARY_DIAG__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
+/* What the running engine STARTED with, for the switches that only apply at launch. */
+var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
 var RENDERED = {};
@@ -292,7 +309,8 @@ var SECTIONS = [
       {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
       {t:'Show site icons', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
       {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
-      {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}}
+      {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}},
+      {t:'Full screen', d:'Press F11 to hide everything but the page, and F11 again to come back. A video you put in full screen fills the whole screen too, and Esc brings it back.', ctl:{type:'none'}}
     ]},
 
   { id:'content', icon:'content', name:'Content', title:'Content',
@@ -307,12 +325,22 @@ var SECTIONS = [
     ]},
 
   { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
-    lede:'What Aviary keeps, and what it tells sites about you.',
+    lede:'What Aviary keeps, and what it tells sites about you. Every switch on this page does what it says — nothing here is for show.',
     rows:[
-      {t:'Send a Do Not Track request', d:'Politely asked; widely ignored. Costs nothing.', ctl:{type:'toggle', key:'dnt', value:true}},
-      {t:'Identify as Safari', d:'Aviary sends Safari\u2019s user agent so sites serve their Safari code paths. The engine underneath is still Chromium, so a determined site can tell.', ctl:{type:'toggle', key:'safariUa', value:true}},
-      {t:'Block third-party cookies', d:'Cookies set by sites other than the one you are visiting.', ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
       {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
+      /* Phase 5 M2 — privacy that actually works. The three rows marked restart:true are
+         switches in the browser engine itself, read once when Aviary starts; the page shows a
+         note when the saved value differs from what the running engine started with. */
+      {t:'Block third-party cookies', d:'Refuses cookies from sites other than the one you are on — the way ads follow you from one site to the next. Sign-in buttons from other sites may ask you to sign in again.', restart:true, ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
+      {t:'Ask sites not to sell or share my data', d:'Sends Global Privacy Control with every request and tells every page’s scripts too. It replaced Do Not Track, and in some places the law requires sites to honour it.', restart:true, ctl:{type:'toggle', key:'gpc', value:true}},
+      {t:'Remove tracking from links', d:'Takes click identifiers such as fbclid and gclid, and utm_ campaign tags, off any link that takes you to a different site — before that site ever sees them. “Copy Link” removes them too.', ctl:{type:'toggle', key:'stripTracking', value:true}},
+      {t:'Always use a secure connection', d:'Asks every site for HTTPS first. If a site has no secure version, Aviary says so and you can choose to continue — a choice it then remembers for that site. Your own computer and local network are left alone.', ctl:{type:'toggle', key:'httpsOnly', value:true}},
+      {t:'Send less about where you came from', d:'When a page links to or loads something from another site, that site learns only which site you came from — never the page you were reading.', ctl:{type:'toggle', key:'trimReferrer', value:true}},
+      {t:'Hide my local network address', d:'Stops websites reading your computer’s address on your home or office network through video-calling features. Video calls still work.', restart:true, ctl:{type:'toggle', key:'webrtcProtect', value:true}},
+      {t:'Identify as Safari', d:'Sends Safari’s user agent so sites serve their Safari code paths, and hides the extra details a Chromium browser would hand to page scripts. The engine underneath is still Chromium, so a determined site can tell. Applies to pages you load from now on.', ctl:{type:'toggle', key:'safariUa', value:true}},
+      {t:'Privacy Report shows', d:'What the Start Page’s Privacy Report counts: the last seven days, or everything since Aviary started counting. Bandwidth and time saved are estimates — each blocked request is counted at a typical size for its kind and 50 ms of loading.', ctl:{type:'select', key:'privacyRange', opts:['Last 7 days','All time'], value:'Last 7 days'}},
+      {t:'Private window', d:'A window that forgets: pages, searches, cookies and site data from it are gone when you close it, and nothing about it is recorded. Ctrl+Shift+N opens one.', ctl:{type:'button', cmd:'privateWindow', label:'Open'}},
+      {t:'Website data', d:'Cookies and storage each site you have visited has kept in this profile, with a way to remove any one site\u2019s.', more:'sitedata', ctl:{type:'button', cmd:'siteData', label:'Show'}},
       {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear\u2026'}},
       {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}},
       /* Diagnostics \u2014 PHASE5-PLAN.md M1. Deliberately at the BOTTOM of Privacy and deliberately
@@ -339,7 +367,10 @@ var SECTIONS = [
   { id:'autofill', icon:'autofill', name:'Autofill and passwords', title:'Autofill and passwords',
     lede:'Saved details for forms and sign-ins.',
     rows:[
-      {t:'Offer to save passwords', d:'Aviary stores nothing yet — this is here so the shape is right.', phase:5, ctl:{type:'toggle', key:'savePasswords', value:false}},
+      {t:'Offer to save passwords', d:'When you sign in to a site, Aviary offers to remember the password and fills it in next time. Passwords stay in this profile on this computer, encrypted with your Windows account, and a private window never saves one.', ctl:{type:'toggle', key:'savePasswords', value:false}},
+      {t:'Saved passwords', d:'Delete every password Aviary has saved. Sites will ask you to sign in again.', ctl:{type:'button', cmd:'clearPasswords', label:'Remove\u2026', danger:true}},
+      {t:'Suggest what you have typed before', d:'Remembers what you type into forms \u2014 names, addresses, search boxes \u2014 and offers it again next time. Kept in this profile on this computer. Off by default.', ctl:{type:'toggle', key:'formAutofill', value:false}},
+      {t:'Saved form entries', d:'Forget everything the switch above has remembered.', ctl:{type:'button', cmd:'clearFormData', label:'Clear'}},
       {t:'Addresses and payment', d:'Card and address autofill.', never:'After beta', ctl:{type:'none'}}
     ]},
 
@@ -448,7 +479,10 @@ function control(row){
    into this markup — see the diagnostics list below. */
 var MORE = {
   diag: '<details class="more"><summary>Show all sixteen, and what is never collected</summary>' +
-        '<div class="more__body" id="diaglist"></div></details>'
+        '<div class="more__body" id="diaglist"></div></details>',
+  /* Filled by the host when "Show" is pressed — site names are website-controlled, so every
+     one goes in through textContent. */
+  sitedata: '<div class="sitedata" id="sitedata" hidden></div>'
 };
 
 var nav = document.getElementById('nav');
@@ -479,14 +513,63 @@ SECTIONS.forEach(function(s, i){
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
   } else {
     body += '<div class="group">' + s.rows.map(function(r){
+      var key = r.ctl && r.ctl.key;
+      var note = (r.restart && key)
+        ? '<span class="note" data-restart="' + key + '" hidden>Restart Aviary to apply this change.</span>'
+        : '';
       return '<div class="row"><div class="row__t"><b>' + r.t + '</b>' +
-             (r.d ? '<span>' + r.d + '</span>' : '') + (r.more ? (MORE[r.more] || '') : '') +
+             (r.d ? '<span>' + r.d + '</span>' : '') + note + (r.more ? (MORE[r.more] || '') : '') +
              '</div>' + control(r) + '</div>';
     }).join('') + '</div>';
   }
   pane.innerHTML = body;
   main.appendChild(pane);
 });
+
+/* Website data, from the host: [{site, cookies, bytes}]. */
+function sizeText(b){
+  if (b <= 0) { return ''; }
+  var u = ['B','KB','MB','GB'], i = 0;
+  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
+  return (i === 0 ? String(Math.round(b)) : b.toFixed(1)) + ' ' + u[i];
+}
+window.__aviarySiteData = function(list){
+  var box = document.getElementById('sitedata');
+  if (!box) { return; }
+  box.hidden = false;
+  box.textContent = '';
+  if (!list || !list.length){
+    var none = document.createElement('div');
+    none.className = 'sd__empty';
+    none.textContent = 'No site has kept anything in this profile.';
+    box.appendChild(none);
+    return;
+  }
+  list.forEach(function(s){
+    var row = document.createElement('div');
+    row.className = 'sd';
+    var name = document.createElement('b');
+    name.textContent = s.site;
+    var what = document.createElement('i');
+    var parts = [];
+    if (s.cookies) { parts.push(s.cookies + (s.cookies === 1 ? ' cookie' : ' cookies')); }
+    if (s.bytes) { parts.push(sizeText(s.bytes) + ' stored'); }
+    what.textContent = parts.join(' \u00b7 ');
+    var remove = document.createElement('button');
+    remove.textContent = 'Remove';
+    remove.setAttribute('data-site', s.site);
+    row.appendChild(name); row.appendChild(what); row.appendChild(remove);
+    box.appendChild(row);
+  });
+};
+
+/* Shows the restart note while a launch-time switch differs from what the engine started with. */
+function restartNote(key, on){
+  var n = document.querySelector('.note[data-restart="' + key + '"]');
+  if (!n || !(key in LAUNCH)) { return; }
+  n.hidden = (LAUNCH[key] === on);
+}
+Object.keys(LAUNCH).forEach(function(k){ restartNote(k, saved(k, LAUNCH[k]) === true); });
 
 var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
@@ -562,11 +645,19 @@ function closeAllPopups(except){
 }
 
 main.addEventListener('click', function(e){
+  var siteBtn = e.target.closest('button[data-site]');
+  if (siteBtn){
+    siteBtn.disabled = true;
+    post({type:'command', name:'siteDataRemove', arg: siteBtn.getAttribute('data-site')});
+    return;
+  }
+
   var sw = e.target.closest('.sw');
   if (sw && !sw.disabled){
     var on = sw.getAttribute('aria-checked') !== 'true';
     sw.setAttribute('aria-checked', on ? 'true' : 'false');
     sendSetting(sw.getAttribute('data-key'), on);
+    restartNote(sw.getAttribute('data-key'), on);
     closeAllPopups(null);
     return;
   }

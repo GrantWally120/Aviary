@@ -43,3 +43,10 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
+
+# Test kit output (tools/test/README.md)
+tools/test/pub/
+tools/test/profiles/
+tools/test/shots/
+tools/test/pid.txt
+tools/test/lastinput.txt

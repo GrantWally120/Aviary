@@ -1,0 +1,37 @@
+# Aviary test kit
+
+How Aviary gets tested in the real app without touching Grant's profile or fighting him for the
+mouse. Built during Phase 5 M2 (12 Sep 2026); HANDOFF §5 explains why each piece exists. Read
+the **container** box there first: every tool here runs inside the Claude app's MSIX container,
+where `%LOCALAPPDATA%` is virtualized, so tests must use a scratch profile.
+
+## Build a test copy
+
+```
+dotnet publish src/Aviary/Aviary.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 ^
+  -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None ^
+  -p:PublishSingleFile=false -p:PublishTrimmed=false -p:PublishReadyToRun=false ^
+  "-p:PublishDir=C:/Users/user/Documents/Claude CoWork Enclosed/Zoo/tools/test/pub/"
+```
+
+Never publish over `publish/Aviary` while Grant's copy is running from it. From PowerShell use
+forward slashes in PublishDir: a trailing `\"` swallows the rest of the arguments.
+
+## The pieces
+
+| File | What it does |
+|---|---|
+| `launch-m2.ps1 -Profile name [-Fresh] [-SettingsJson '{…}']` | Launches `pub/Aviary.exe` with `AVIARY_PROFILE_DIR=profiles/<name>` and `AVIARY_TEST_BROWSER_ARGS=--remote-debugging-port=9222`. Seed `{"improvementCollection":"true"}` to read its diagnostics. |
+| `cdp.js` | DevTools driver: `list`, `eval <tab> "<js>"`, `nav <tab> <url>`, `click <tab> "<css>"` (trusted), `type <tab> "<css>" "<text>"` (trusted), `key <tab> "ctrl+shift+KeyN"` (trusted, reaches Aviary's shortcut script), `wait`. `<tab>` = target-id prefix, url/title substring, or `#n`. DevTools navigations skip Aviary's address bar — test that path with one guarded keystroke. |
+| `m2site.js` | Two sites on loopback, port 8766: A = 127.0.0.1, B = 127.0.0.2 (different hosts, so cross-site). /echo, /3pc-top, /ref-top, /params, /form, /webrtc, /trackers, /tracker-frame-top, /login, /fullscreen, /favicon-proto, /download, /spoof-shortcut, and /hits (every request with its Referer, Cookie, Sec-GPC, Sec-CH-UA). |
+| `testsite.js` | M1's secrets site (port 8765): planted passwords, tokens, cookies, card numbers — grep the diagnostics folder for them afterwards; the answer must be zero. |
+| `guard.ps1` | Exit 3 if someone else touched the keyboard or mouse in the last 15 s. Run before ANY GUI input. |
+| `front-and-shoot.ps1`, `click.ps1`, `type.ps1`, `type-hwnd.ps1` | Foreground-guarded input and capture (they refuse to send anything unless the right window is in front). |
+| `peek.ps1`, `rect.ps1` | Capture / measure the window WITHOUT bringing it forward (PrintWindow). |
+| `min-window.ps1` | Bug 50's repro: minimise N ms after the window appears, report alive/dead. |
+| `si-test.ps1 [-MinimiseFirst] [-CloseFirst]` | Bug 51: launch again on the profile a test instance has open. The new process must end itself (~150 ms) and the running window come to the front, restored. |
+| `si-race.ps1`, `si-race2.ps1` | Bug 51's shutdown race, both orderings (close-then-launch, launch-then-close) over a sweep of delays. Every trial: never two Aviarys on one profile, no unclean-exit, no lost launch. |
+| `wipe-probe.js <origin>…` | Bug 52: plants cookies for seven sites, calls Storage.clearDataForOrigin on each origin given, reports what it took. `TYPES=…` to pass storage kinds. Run against a scratch instance only. |
+| `edit.js` | Scripted source edits that respect each file's line endings (the tree mixes CRLF and LF). |
+
+Output (`pub/`, `profiles/`, `shots/`, `pid.txt`, `lastinput.txt`) is ignored by git.

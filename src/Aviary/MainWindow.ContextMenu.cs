@@ -58,7 +58,7 @@ public sealed partial class MainWindow
 
             // What was right-clicked, not the selected text itself — that stays out unless it
             // is actually searched for, when it becomes a search like any other.
-            Diagnostics.Ui("page-menu", new
+            DiagUi("page-menu", new
             {
                 target = kind.ToString(),
                 link = linkUri.Length > 0 ? linkUri : null,
@@ -71,8 +71,13 @@ public sealed partial class MainWindow
             {
                 Add(menu, "Open Link in New Tab", () => OpenNewTab(linkUri));
                 Add(menu, "Add Link to Reading List",
-                    () => ReadingList.Add(target.HasLinkText ? SafeString(() => target.LinkText) : string.Empty, linkUri));
-                Add(menu, "Copy Link", () => CopyText(linkUri));
+                    () => ReadingList.Add(target.HasLinkText ? SafeString(() => target.LinkText) : string.Empty, linkUri, record: !_private));
+                // Safari's "Copy Link" drops tracking parameters too (Link Tracking
+                // Protection): what you paste somewhere else should not carry your click ID.
+                Add(menu, "Copy Link", () => CopyText(
+                    AppSettings.GetBool("stripTracking") && LinkCleaner.TryClean(linkUri, out string clean, out _)
+                        ? clean
+                        : linkUri));
                 menu.Items.Add(new MenuFlyoutSeparator());
             }
 
@@ -192,12 +197,12 @@ public sealed partial class MainWindow
         Add(menu, "Duplicate Tab", () => OpenNewTab(tab.Url.Length > 0 ? tab.Url : null));
         menu.Items.Add(new MenuFlyoutSeparator());
 
-        ToggleMenuFlyoutItem pin = new() { Text = "Pin Tab", IsChecked = _pinned.Contains(tab) };
+        ToggleMenuFlyoutItem pin = new() { Text = "Pin Tab", IsChecked = _pinned.Contains(tab), IsEnabled = !_private };
         pin.Click += (_, _) => TogglePinned(tab);
         menu.Items.Add(pin);
 
         Add(menu, "Add to Reading List",
-            () => ReadingList.Add(tab.Title, tab.Url), BrowserTab.HostOf(tab.Url).Length > 0);
+            () => ReadingList.Add(tab.Title, tab.Url, record: !_private), BrowserTab.HostOf(tab.Url).Length > 0);
 
         menu.Items.Add(new MenuFlyoutSeparator());
         Add(menu, "Close Tab", () => CloseTab(tab));

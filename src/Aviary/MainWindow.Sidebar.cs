@@ -233,7 +233,7 @@ public sealed partial class MainWindow
     {
         if (pane != _pane)
         {
-            Diagnostics.Feature("sidebar-pane", new { pane = pane.ToString() });
+            DiagFeature("sidebar-pane", new { pane = pane.ToString() });
         }
 
         _pane = pane;
@@ -253,13 +253,19 @@ public sealed partial class MainWindow
     private void ToggleSidebar(bool? show, bool animate = true)
     {
         bool target = show ?? !_sidebarVisible;
+
+        // Asking for the sidebar is asking for the chrome back.
+        if (target && _fullScreen)
+        {
+            SetFullScreen(false, byPage: _fullScreenByPage);
+        }
         if (target == _sidebarVisible && SidebarRoot.Visibility == (target ? Visibility.Visible : Visibility.Collapsed))
         {
             return;
         }
 
         _sidebarVisible = target;
-        Diagnostics.Feature(target ? "sidebar-show" : "sidebar-hide", new { pane = _pane.ToString(), tabsInSidebar = UsingSidebarTabs });
+        DiagFeature(target ? "sidebar-show" : "sidebar-hide", new { pane = _pane.ToString(), tabsInSidebar = UsingSidebarTabs });
         AppSettings.Set("sidebarVisible", target ? "true" : "false");
 
         // Aviary must never reach a state where the tabs are unreachable. Safari can leave
@@ -336,7 +342,7 @@ public sealed partial class MainWindow
     private void ApplyTabLayout()
     {
         bool vertical = UsingSidebarTabs && _sidebarVisible;
-        TabStripRow.Visibility = vertical ? Visibility.Collapsed : Visibility.Visible;
+        TabStripRow.Visibility = vertical || _fullScreen ? Visibility.Collapsed : Visibility.Visible;
         RebuildTabStrip();
     }
 
@@ -374,7 +380,7 @@ public sealed partial class MainWindow
         bool beside = SidebarGripBar.Visibility == Visibility.Visible;
 
         SidebarGripBar.Width = glass ? 18 : 6;
-        ContentHost.Margin = glass
+        ContentHost.Margin = _fullScreen ? new Thickness(0) : glass
             ? new Thickness(beside ? 0 : 12, 8, 12, 12)
             : new Thickness(0);
     }
@@ -417,7 +423,7 @@ public sealed partial class MainWindow
         SidebarGripBar.ReleasePointerCapture(e.Pointer);
         SidebarGripBar.Background = ThemeBrush("AvSidebarGripBrush");
         SetSidebarWidth(SidebarRoot.ActualWidth, persist: true);
-        Diagnostics.Ui("sidebar-resize", new { from = Math.Round(_gripStartWidth), to = _sidebarWidth });
+        DiagUi("sidebar-resize", new { from = Math.Round(_gripStartWidth), to = _sidebarWidth });
     }
 
     // ══ THE PANES ══════════════════════════════════════════════════════════
@@ -496,7 +502,7 @@ public sealed partial class MainWindow
             Button row = SidebarRow(bookmark.Url, bookmark.Title, bookmark.Monogram, null, false);
             row.Click += (_, _) =>
             {
-                Diagnostics.Feature("sidebar-open", new { pane = "Bookmarks", url = captured.Url });
+                DiagFeature("sidebar-open", new { pane = "Bookmarks", url = captured.Url });
                 _active?.Navigate(captured.Url);
                 UpdateChrome();
             };
@@ -558,7 +564,7 @@ public sealed partial class MainWindow
             Button row = SidebarRow(item.Url, item.Title, null, item.Age, item.Unread);
             row.Click += (_, _) =>
             {
-                Diagnostics.Feature("sidebar-open", new { pane = "Reading List", url = captured.Url, unread = captured.Unread });
+                DiagFeature("sidebar-open", new { pane = "Reading List", url = captured.Url, unread = captured.Unread });
                 ReadingList.MarkRead(captured.Url);
                 _active?.Navigate(captured.Url);
                 UpdateChrome();
@@ -615,7 +621,7 @@ public sealed partial class MainWindow
                 entry.LastVisitUtc.ToLocalTime().ToString("HH:mm"), false);
             row.Click += (_, _) =>
             {
-                Diagnostics.Feature("sidebar-open", new { pane = "History", url = captured.Url });
+                DiagFeature("sidebar-open", new { pane = "History", url = captured.Url });
                 _active?.Navigate(captured.Url);
                 UpdateChrome();
             };
@@ -784,7 +790,7 @@ public sealed partial class MainWindow
 
             if (dragged is not null)
             {
-                Diagnostics.Ui("tab-reorder", new { tab = dragged.Id, from = _vDragFrom, to = _tabs.IndexOf(dragged), strip = "sidebar" });
+                DiagUi("tab-reorder", new { tab = dragged.Id, from = _vDragFrom, to = _tabs.IndexOf(dragged), strip = "sidebar" });
             }
 
             RebuildTabStrip();

@@ -70,9 +70,7 @@ internal static class ReadingList
 
     public static event Action? Changed;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary", "readinglist.json");
+    private static string FilePath => AppPaths.Of("readinglist.json");
 
     public static List<ReadingItem> Items
     {
@@ -114,7 +112,7 @@ internal static class ReadingList
     public static bool Contains(string url) =>
         Items.Exists(i => string.Equals(i.Url, url, StringComparison.OrdinalIgnoreCase));
 
-    public static void Add(string title, string url)
+    public static void Add(string title, string url, bool record = true)
     {
         if (string.IsNullOrWhiteSpace(url) || Favicons.KeyFor(url).Length == 0)
         {
@@ -146,7 +144,7 @@ internal static class ReadingList
             }
         }
 
-        Diagnostics.Feature("reading-list-add", new { url, title });
+        if (record) { Diagnostics.Feature("reading-list-add", new { url, title }); }
         Save();
     }
 

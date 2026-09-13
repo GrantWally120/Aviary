@@ -142,6 +142,15 @@
                 </Setter>
             </Style>
 
+            <!-- The error panel's actions. The favourites-bar button's own template (no
+                 Fluent accent, our hover and press fills), sized up for a page-sized panel. -->
+            <Style x:Key="AvPanelButton" TargetType="Button" BasedOn="{StaticResource AvBookmarkButton}">
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="14,0" />
+                <Setter Property="FontSize" Value="13" />
+                <Setter Property="Background" Value="{ThemeResource AvFieldBrush}" />
+            </Style>
+
             <Style x:Key="AvTabButton" TargetType="ToggleButton">
                 <Setter Property="Background" Value="Transparent" />
                 <Setter Property="Foreground" Value="{ThemeResource AvLabelSecondaryBrush}" />
@@ -466,6 +475,31 @@
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 </Button>
                 <Border Width="16" />
+
+                <!-- Only in a private window: say so, where the eye already is. -->
+                <Border x:Name="PrivateBadge"
+                        Visibility="Collapsed"
+                        VerticalAlignment="Center"
+                        Height="24"
+                        Padding="8,0,10,0"
+                        Margin="0,0,12,0"
+                        CornerRadius="7"
+                        Background="{ThemeResource AvFieldBrush}"
+                        BorderBrush="{ThemeResource AvFieldBorderBrush}"
+                        BorderThickness="1"
+                        ToolTipService.ToolTip="Private window: nothing you do here is remembered after you close it.">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Path Width="15" Height="15"
+                              Data="M1.8,7.5 C3.6,4.6 5.6,3.4 7.5,3.4 C9.4,3.4 11.4,4.6 13.2,7.5 C11.4,10.4 9.4,11.6 7.5,11.6 C5.6,11.6 3.6,10.4 1.8,7.5 Z M2.4,12.9 L12.6,2.1"
+                              Stroke="{ThemeResource AvIconBrush}"
+                              StrokeThickness="1.3"
+                              StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                        <TextBlock Text="Private" FontSize="12" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{ThemeResource AvLabelBrush}" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
 
             <!-- ══ THE ADDRESS FIELD ══
@@ -829,9 +863,46 @@
                            TextWrapping="Wrap"
                            TextAlignment="Center"
                            Foreground="{ThemeResource AvLabelSecondaryBrush}" />
+
+                <!-- Only for the HTTPS-Only fallback: Go Back (the safe choice, first) and
+                     Continue to Site (remembered for that site). -->
+                <StackPanel x:Name="ErrorActions"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            Spacing="8"
+                            Margin="0,10,0,0"
+                            Visibility="Collapsed">
+                    <Button x:Name="ErrorBackButton" Style="{StaticResource AvPanelButton}"
+                            Content="Go Back" Click="ErrorBack_Click" />
+                    <Button x:Name="ErrorContinueButton" Style="{StaticResource AvPanelButton}"
+                            Content="Continue to Site" Click="ErrorContinue_Click" />
+                </StackPanel>
             </StackPanel>
             </Grid>
         </Grid>
+
+        <!-- "Press F11 to exit full screen" — shown for a few seconds on entering full
+             screen, over everything, never taking a click. Existing tokens only: the theme
+             contract says a new key would have to be added to all six dictionaries. -->
+        <Border x:Name="FullScreenHint"
+                Grid.Row="0" Grid.RowSpan="5"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top"
+                Margin="0,18,0,0"
+                Padding="16,9,16,9"
+                CornerRadius="10"
+                Opacity="0"
+                Visibility="Collapsed"
+                IsHitTestVisible="False"
+                Background="{ThemeResource AvChromeBrush}"
+                BorderBrush="{ThemeResource AvHairlineBrush}"
+                BorderThickness="1">
+            <TextBlock x:Name="FullScreenHintText"
+                       Text="Press F11 to exit full screen"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Foreground="{ThemeResource AvLabelBrush}" />
+        </Border>
 
     </Grid>
 </Window>

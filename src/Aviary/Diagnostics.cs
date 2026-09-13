@@ -55,9 +55,7 @@ internal static partial class Diagnostics
     /// </summary>
     private const int ChannelCapacity = 20_000;
 
-    public static string Folder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary", "user.data.improvementcollection");
+    public static string Folder { get; } = AppPaths.Of("user.data.improvementcollection");
 
     private static string CrashFolder => Path.Combine(Folder, "crashes");
     private static string ArchiveFolder => Path.Combine(Folder, "archive");
@@ -1321,6 +1319,9 @@ internal static partial class Diagnostics
         public string Url = string.Empty;
         public string Title = string.Empty;
         public bool Pinned;
+
+        /// <summary>A private window's tab: its address and title are never held here at all.</summary>
+        public bool Private;
     }
 
     private static readonly ConcurrentDictionary<int, TabInfo> Tabs = new();
@@ -1334,9 +1335,29 @@ internal static partial class Diagnostics
         return id;
     }
 
-    public static void TabUrl(int id, string url)
+    /// <summary>
+    /// Marks a tab as belonging to a private window. From then on crash reports list it as
+    /// "(private tab)" and nothing about where it is ever reaches this table.
+    /// </summary>
+    public static void TabIsPrivate(int id)
     {
         if (Tabs.TryGetValue(id, out TabInfo? tab))
+        {
+            tab.Private = true;
+            tab.Url = string.Empty;
+            tab.Title = string.Empty;
+        }
+    }
+
+    /// <summary>True for a private window's tab — the check URL-bearing records make.</summary>
+    public static bool IsPrivateTab(int id) => Tabs.TryGetValue(id, out TabInfo? tab) && tab.Private;
+
+    /// <summary>True while any private tab is open.</summary>
+    public static bool AnyPrivateTab => Tabs.Values.Any(t => t.Private);
+
+    public static void TabUrl(int id, string url)
+    {
+        if (Tabs.TryGetValue(id, out TabInfo? tab) && !tab.Private)
         {
             tab.Url = url;
         }
@@ -1344,7 +1365,7 @@ internal static partial class Diagnostics
 
     public static void TabTitle(int id, string title)
     {
-        if (Tabs.TryGetValue(id, out TabInfo? tab))
+        if (Tabs.TryGetValue(id, out TabInfo? tab) && !tab.Private)
         {
             tab.Title = title;
         }
@@ -1367,8 +1388,8 @@ internal static partial class Diagnostics
             .Select(p => (object)new
             {
                 id = p.Key,
-                url = p.Value.Url,
-                title = p.Value.Title,
+                url = p.Value.Private ? "(private tab)" : p.Value.Url,
+                title = p.Value.Private ? "(private tab)" : p.Value.Title,
                 pinned = p.Value.Pinned,
                 active = p.Key == _activeTab,
             })

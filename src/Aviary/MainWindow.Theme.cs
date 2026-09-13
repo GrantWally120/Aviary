@@ -112,7 +112,7 @@ public sealed partial class MainWindow
 
             // Every Aviary menu passes through here, which makes it the one place that can
             // record, for diagnostics, that a menu opened and which item was chosen.
-            Diagnostics.Ui("menu-open", new { menu = name });
+            DiagUi("menu-open", new { menu = name });
             TrackMenuItems(menu.Items, name);
         };
 
@@ -122,7 +122,7 @@ public sealed partial class MainWindow
     /// <summary>Items already carrying a diagnostics click handler — never two on one item.</summary>
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<MenuFlyoutItemBase, string> TrackedItems = new();
 
-    private static void TrackMenuItems(IList<MenuFlyoutItemBase> items, string menu)
+    private void TrackMenuItems(IList<MenuFlyoutItemBase> items, string menu)
     {
         foreach (MenuFlyoutItemBase item in items)
         {
@@ -135,7 +135,7 @@ public sealed partial class MainWindow
             if (item is MenuFlyoutItem entry && !TrackedItems.TryGetValue(entry, out _))
             {
                 TrackedItems.Add(entry, menu);
-                entry.Click += (_, _) => Diagnostics.Ui("menu", new { menu, item = entry.Text });
+                entry.Click += (_, _) => DiagUi("menu", new { menu, item = entry.Text });
             }
         }
     }

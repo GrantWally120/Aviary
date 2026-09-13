@@ -21,8 +21,7 @@ internal static class AppSettings
     private static Dictionary<string, string> _values = new(StringComparer.OrdinalIgnoreCase);
     private static bool _loaded;
 
-    private static string Folder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Aviary");
+    private static string Folder => AppPaths.Root;
 
     private static string FilePath => Path.Combine(Folder, "settings.json");
 
@@ -42,9 +41,16 @@ internal static class AppSettings
         ["memorySaver"] = "true",
         ["startup"] = "Start Page",
         ["zoom"] = "100%",
-        ["dnt"] = "true",
+        // Phase 5 M2 — privacy that actually works. Every one of these is live and real.
+        ["gpc"] = "true",
         ["safariUa"] = "true",
         ["thirdPartyCookies"] = "true",
+        ["webrtcProtect"] = "true",
+        ["stripTracking"] = "true",
+        ["httpsOnly"] = "true",
+        ["trimReferrer"] = "true",
+        ["privacyRange"] = "Last 7 days",
+        ["formAutofill"] = "false",
         ["downloadHistory"] = "After one day",
         ["downloadDir"] = "",
         ["warnExecutables"] = "true",
@@ -100,6 +106,14 @@ internal static class AppSettings
                 // by the Reset button, which posted itself as if it were a setting and had
                 // no handler on the other end. Drop it on sight; it is not a preference.
                 _values.Remove("reset");
+
+                // M2: "Send a Do Not Track request" became Global Privacy Control. DNT is dead,
+                // and a rare DNT header is itself a fingerprinting bit — besides which the old
+                // switch never sent anything. Whatever was chosen for it carries over once.
+                if (_values.Remove("dnt", out string? dnt) && !doc.RootElement.TryGetProperty("gpc", out _))
+                {
+                    _values["gpc"] = dnt;
+                }
             }
             catch (Exception ex)
             {

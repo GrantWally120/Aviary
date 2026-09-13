@@ -131,7 +131,38 @@ internal static class StartPage
   .chart span{font-size:10.5px;color:var(--ink-3);}
   .privacy[hidden]{display:none;}
 
+  /* The report's head: its sentence, and the 7 days / All time switch on the right. */
+  .privacy__head{display:flex;align-items:flex-start;gap:16px;}
+  .privacy__head .privacy__line{flex:1;min-width:0;}
+  .range{display:inline-flex;flex:0 0 auto;padding:2px;border-radius:8px;background:var(--well);}
+  .range button{
+    border:0;background:transparent;color:var(--ink-2);font:500 12px/1 inherit;cursor:default;
+    padding:6px 10px;border-radius:6px;transition:background-color 140ms,color 140ms;
+  }
+  .range button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);}
+
+  /* Brave's three figures, in the Start Page's own system hues: blocked in orange,
+     bandwidth in indigo, time in the label ink. */
+  .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px;
+    padding-top:14px;border-top:1px solid var(--line);}
+  .stat b{display:block;font-size:24px;font-weight:600;letter-spacing:-.02em;line-height:1.15;
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .stat b small{font-size:13px;font-weight:600;margin-left:3px;letter-spacing:0;}
+  .stat span{display:block;font-size:12px;color:var(--ink-2);margin-top:3px;}
+  .stat--blocked b{color:#FF9500;}
+  .stat--bw b{color:#5856D6;}
+  @media (prefers-color-scheme:dark){ .stat--bw b{color:#8E8CF0;} }
+  .privacy__note{font-size:11px;color:var(--ink-3);margin-top:10px;}
+  .chart__label{font-size:10.5px;color:var(--ink-3);margin-top:14px;}
+
   .empty{color:var(--ink-3);font-size:13px;padding:2px 0 6px;}
+
+  /* A private window's Start Page opens with what private browsing does and does not do. */
+  .private{border:1px solid var(--line);border-radius:14px;background:var(--card);
+    padding:16px 20px;margin:0 0 30px;display:flex;gap:14px;align-items:flex-start;}
+  .private svg{flex:0 0 auto;width:22px;height:22px;margin-top:2px;}
+  .private b{display:block;font-size:14.5px;font-weight:600;margin-bottom:3px;}
+  .private span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.55;}
 
   /* Customise, bottom-right. */
   .cust{position:fixed;right:22px;bottom:22px;z-index:3;}
@@ -274,12 +305,22 @@ function section(id, heading, body){
 function render(){
   var out = '';
 
+  if (D.isPrivate){
+    out += '<div class="private"><svg viewBox="0 0 22 22" fill="none" aria-hidden="true">' +
+      '<path d="M2.5 11c2.3-3.8 5.2-5.6 8.5-5.6s6.2 1.8 8.5 5.6c-2.3 3.8-5.2 5.6-8.5 5.6S4.8 14.8 2.5 11Z" stroke="var(--ink-2)" stroke-width="1.5" stroke-linejoin="round"/>' +
+      '<path d="M4 18.5 18 3.5" stroke="var(--ink-2)" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+      '<div><b>Private Browsing</b><span>Aviary won’t remember the pages you visit, your searches or what you type ' +
+      'after you close this window, and sites can’t read the cookies from your normal window. ' +
+      'Files you download and bookmarks you add are kept. Websites, your network and your internet ' +
+      'provider can still see what you do.</span></div></div>';
+  }
+
   var favs = D.favourites || [];
   out += section('favourites', 'Favourites',
     favs.length ? '<div class="grid">' + favs.map(tile).join('') + '</div>'
                 : '<p class="empty">Press Ctrl+D on a page to keep it here.</p>');
 
-  var freq = D.frequent || [];
+  var freq = D.isPrivate ? [] : (D.frequent || []);
   if (freq.length){
     out += section('frequent', 'Frequently Visited', '<div class="grid">' + freq.map(tile).join('') + '</div>');
   }
@@ -300,17 +341,62 @@ function render(){
   }
 
   var p = D.privacy || {total:0, days:[], top:''};
+  if (D.isPrivate) { SHOW.privacy = false; }
+  var all = p.range === 'all';
+  var blocked = all ? (p.blocked || 0) : (p.total || 0);
+  var lead = !all ? 'In the last seven days, Aviary has prevented '
+           : p.since ? 'Since ' + esc(longDate(p.since)) + ', Aviary has prevented '
+           : 'Aviary has prevented ';
   out += section('privacy', 'Privacy Report',
     '<div class="privacy">' +
-      '<div class="privacy__line">In the last seven days, Aviary has prevented ' +
-        '<b id="pcount">0</b> ' + (p.total === 1 ? 'tracker' : 'trackers') + ' from profiling you.</div>' +
+      '<div class="privacy__head">' +
+        '<div class="privacy__line">' + lead +
+          '<b id="pcount">0</b> ' + (blocked === 1 ? 'tracker' : 'trackers') + ' from profiling you.</div>' +
+        '<div class="range" role="group" aria-label="Report range">' +
+          '<button data-range="week" aria-pressed="' + (all ? 'false' : 'true') + '">7 days</button>' +
+          '<button data-range="all" aria-pressed="' + (all ? 'true' : 'false') + '">All time</button>' +
+        '</div>' +
+      '</div>' +
       (p.top ? '<div class="privacy__sub">Most often: ' + esc(p.top) + '</div>' : '') +
+      '<div class="stats">' +
+        '<div class="stat stat--blocked"><b id="sblocked">0</b><span>Trackers &amp; ads blocked</span></div>' +
+        '<div class="stat stat--bw"><b>' + sizeHtml(p.bytes || 0) + '</b><span>Bandwidth saved</span></div>' +
+        '<div class="stat stat--time"><b>' + timeHtml(p.seconds || 0) + '</b><span>Time saved</span></div>' +
+      '</div>' +
+      (all ? '<div class="chart__label">Last 7 days</div>' : '') +
       '<div class="chart" id="chart"></div>' +
+      '<div class="privacy__note">Bandwidth and time are estimates: a request that was never made has no real size.</div>' +
     '</div>');
 
   document.getElementById('panes').innerHTML = out;
   drawChart(p);
-  countUp(p.total || 0);
+  countUp('pcount', blocked);
+  countUp('sblocked', blocked);
+}
+
+/* "670.8 MB" — one decimal, the unit smaller beside it, as Brave sets it. */
+function sizeHtml(bytes){
+  var units = ['B','KB','MB','GB','TB'], v = bytes, u = 0;
+  while (v >= 1024 && u < units.length - 1){ v /= 1024; u++; }
+  var n = u === 0 ? String(Math.round(v)) : v.toFixed(1);
+  return esc(n) + '<small>' + units[u] + '</small>';
+}
+
+/* "2.1 Hours". Seconds under a minute, minutes under an hour, days past two of them. */
+function timeHtml(seconds){
+  var s = Math.max(0, seconds || 0);
+  /* One decimal under ten seconds: four blocks are 0.2 s, not "0 Seconds". */
+  if (s < 10) { var t = s === 0 ? '0' : s.toFixed(1); return esc(t) + '<small>' + (t === '1.0' ? 'Second' : 'Seconds') + '</small>'; }
+  if (s < 60) { return esc(String(Math.round(s))) + '<small>Seconds</small>'; }
+  if (s < 3600) { return esc((s / 60).toFixed(1)) + '<small>Minutes</small>'; }
+  if (s < 172800) { return esc((s / 3600).toFixed(1)) + '<small>Hours</small>'; }
+  return esc((s / 86400).toFixed(1)) + '<small>Days</small>';
+}
+
+function longDate(iso){
+  var d = new Date(iso + 'T00:00:00');
+  if (isNaN(d.getTime())) { return iso; }
+  return new Intl.DateTimeFormat(undefined, {day:'numeric', month:'long', year:'numeric'}).format(d);
 }
 
 function drawChart(p){
@@ -339,19 +425,30 @@ function drawChart(p){
   }).join('');
 }
 
-/* Integer steps, so it never shows a fraction of a tracker. */
-function countUp(target){
-  var el = document.getElementById('pcount');
+/* Integer steps, so it never shows a fraction of a tracker; thousands grouped, "149,871". */
+function countUp(id, target){
+  var el = document.getElementById(id);
   if (!el) { return; }
+  var fmt = new Intl.NumberFormat();
   if (target <= 0){ el.textContent = '0'; return; }
   var start = performance.now(), dur = 520;
   function frame(t){
     var k = Math.min(1, (t - start) / dur);
-    el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+    el.textContent = fmt.format(Math.round(target * (1 - Math.pow(1 - k, 3))));
     if (k < 1) { requestAnimationFrame(frame); }
   }
   requestAnimationFrame(frame);
 }
+
+/* The 7 days / All time switch: the same setting as the row in Settings → Privacy. */
+document.addEventListener('click', function(e){
+  var b = e.target.closest('.range button[data-range]');
+  if (!b) { return; }
+  e.stopPropagation();
+  var range = b.getAttribute('data-range');
+  if ((D.privacy || {}).range === range) { return; }
+  post({type:'privacyRange', value:range});
+}, true);
 
 /* ── customise ─────────────────────────────────────────────────────────── */
 var LABELS = {favourites:'Favourites', frequent:'Frequently Visited',

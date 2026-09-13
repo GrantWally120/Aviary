@@ -16,7 +16,7 @@ namespace Aviary;
 /// that sample genuinely worth copying — an object per tab owning exactly one WebView plus
 /// its registrations, held in a keyed collection with a separate "active" pointer.
 /// </summary>
-internal sealed class BrowserTab
+internal sealed partial class BrowserTab
 {
     /// <summary>
     /// Safari 18 on macOS. Per-tab on purpose: CoreWebView2Settings.UserAgent is a
@@ -83,6 +83,43 @@ internal sealed class BrowserTab
     /// <summary>Raised after a navigation SUCCEEDS, once the document is there to inspect.</summary>
     public event Action<BrowserTab>? Navigated;
 
+    /// <summary>
+    /// Raised when an HTTPS-Only upgrade failed: the site did not answer securely. Carries the
+    /// original http:// address, which the fallback panel offers to continue to.
+    /// </summary>
+    public event Action<BrowserTab, string>? HttpsFallback;
+
+    /// <summary>Raised when the page enters or leaves element full screen (a video's button).</summary>
+    public event Action<BrowserTab, bool>? FullScreenChanged;
+
+    /// <summary>
+    /// A per-launch secret baked into the injected shortcut script and required on every
+    /// shortcut message.
+    ///
+    /// Bug 38's follow-up: the Settings and Start Page messages were locked down in M1, but a
+    /// {type:'shortcut'} message was still accepted from ANY page, so a website could close
+    /// your tab, open tabs, or flip the sidebar just by posting one. The page cannot learn
+    /// the token — it lives only in the injected script's closure, which runs before any page
+    /// script and captures postMessage and JSON.stringify before a page can replace them —
+    /// and synthetic key events are refused by isTrusted. Separate from the internal pages'
+    /// PageToken on purpose: this one is present in every website's process, so it must not
+    /// also be the key to Settings.
+    /// </summary>
+    internal static readonly string ShortcutToken =
+        Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
+
+    private void OnContainsFullScreenElementChanged(CoreWebView2 sender, object args)
+    {
+        try
+        {
+            FullScreenChanged?.Invoke(this, sender.ContainsFullScreenElement);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: full-screen element changed");
+        }
+    }
+
     /// <summary>Set for Aviary's own pages, whose titles we own rather than read.</summary>
     private string? _internalTitle;
 
@@ -90,12 +127,24 @@ internal sealed class BrowserTab
     private CoreWebView2Environment? _environment;
 
     /// <summary>
+    /// When this tab last started a download (a Stopwatch timestamp).
+    ///
     /// A navigation that turns into a download reports itself as ABORTED, because from the
-    /// engine's point of view the page load really was cancelled. Without this flag every
-    /// successful download would be followed by an error page saying the connection was
-    /// cut short.
+    /// engine's point of view the page load really was cancelled — so without this every
+    /// successful download would be followed by an error panel saying the connection was cut
+    /// short. It used to be a flag set in DownloadStarting and read in NavigationCompleted,
+    /// which only worked while DownloadStarting arrived FIRST. Runtime 152 raises
+    /// NavigationCompleted 7 ms before it (bug 39, found in M2's download check): the panel
+    /// covered the page after every download, and the flag, never consumed, then swallowed
+    /// the next genuine failure. A timestamp compared against the navigation's own start,
+    /// with a short grace period for the late event, works in either order.
     /// </summary>
-    private bool _navigationBecameDownload;
+    private long _downloadStartedAt;
+
+    /// <summary>How long an aborted navigation waits to see whether it became a download.</summary>
+    private const int DownloadGraceMs = 400;
+
+    private bool DownloadStartedSince(long navStart) => navStart != 0 && _downloadStartedAt >= navStart;
 
     // ── diagnostics: the navigation in flight, and requests awaiting their response ──
 
@@ -118,8 +167,26 @@ internal sealed class BrowserTab
     /// </summary>
     private readonly Dictionary<string, (long At, string Context, string? BlockedBy)> _inFlight = new(StringComparer.Ordinal);
 
-    public BrowserTab()
+    /// <summary>
+    /// A tab in a private window. Its engine runs on an InPrivate (off-the-record) profile —
+    /// cookies, cache and site storage held in memory and discarded when the last private
+    /// tab closes — and nothing about it is written anywhere by Aviary: not history, not the
+    /// favicon cache, not the Privacy Report, not diagnostics.
+    /// </summary>
+    public bool IsPrivate { get; }
+
+    /// <summary>Diagnostics' browsing categories, for THIS tab: on, and never for a private one.</summary>
+    private bool Records => Diagnostics.RecordsBrowsing && !IsPrivate;
+
+    public BrowserTab(bool isPrivate = false)
     {
+        IsPrivate = isPrivate;
+        if (isPrivate)
+        {
+            // So a crash report lists it as a private tab, never with its address or title.
+            Diagnostics.TabIsPrivate(Id);
+        }
+
         View = new Microsoft.UI.Xaml.Controls.WebView2
         {
             Visibility = Visibility.Collapsed
@@ -135,7 +202,20 @@ internal sealed class BrowserTab
 
         CoreWebView2Environment environment = await WebViewEnvironment.GetAsync();
         _environment = environment;
-        await View.EnsureCoreWebView2Async(environment);
+
+        if (IsPrivate)
+        {
+            // The same shared environment (one browser process for everything), but an
+            // off-the-record profile: WebView2 derives it from the regular profile and keeps
+            // its network state in memory. Regular and InPrivate WebViews may run side by side.
+            CoreWebView2ControllerOptions options = environment.CreateCoreWebView2ControllerOptions();
+            options.IsInPrivateModeEnabled = true;
+            await View.EnsureCoreWebView2Async(environment, options);
+        }
+        else
+        {
+            await View.EnsureCoreWebView2Async(environment);
+        }
 
         if (View.CoreWebView2 is not CoreWebView2 core)
         {
@@ -149,7 +229,9 @@ internal sealed class BrowserTab
         }
 
         // Before the first navigation. Setting it later only affects subsequent ones.
-        core.Settings.UserAgent = SafariUserAgent;
+        _defaultUserAgent = core.Settings.UserAgent;
+        await ApplyUserAgentAsync();
+        await ApplyReferrerScriptAsync();
         core.Settings.IsStatusBarEnabled = false;
 
         core.SourceChanged += OnSourceChanged;
@@ -166,8 +248,10 @@ internal sealed class BrowserTab
         core.Settings.AreBrowserAcceleratorKeysEnabled = false;
 
         // Injected into EVERY document, including ones we did not write, so Ctrl+T keeps
-        // working while the caret is inside a text box on somebody else's website.
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(ShortcutScript);
+        // working while the caret is inside a text box on somebody else's website. Carries the
+        // per-launch shortcut token (see ShortcutToken).
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(
+            ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken));
         await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);
         await core.AddScriptToExecuteOnDocumentCreatedAsync(IconHarvestScript);
         await core.AddScriptToExecuteOnDocumentCreatedAsync(Reader.Script);
@@ -175,18 +259,31 @@ internal sealed class BrowserTab
         core.DownloadStarting += OnDownloadStarting;
 
         ApplyColorScheme();
+        ApplyAutofill();
         ApplyZoom();
 
-        // Every request passes through us before it leaves the machine.
-        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+        // Every request passes through us before it leaves the machine — from EVERY source.
+        //
+        // The two-argument overload used until M2 is deprecated and, in Microsoft's own words,
+        // "fires only for the main frame and its same-origin iframes". An ad is almost always
+        // a cross-origin iframe, so everything an ad frame loaded — its scripts, its pixels,
+        // the next tracker in the chain — went straight past the blocker unseen. All source
+        // kinds also covers dedicated, shared and service workers.
+        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All,
+            CoreWebView2WebResourceRequestSourceKinds.All);
         core.WebResourceRequested += OnWebResourceRequested;
+
+        // A page asking for full screen (a video's full-screen button) takes the WINDOW full
+        // screen, as every browser does; otherwise the video only fills the area under the
+        // toolbar.
+        core.ContainsFullScreenElementChanged += OnContainsFullScreenElementChanged;
 
         // Always on, whatever the diagnostics switch says: it is rare, it costs nothing until
         // it fires, and a renderer that dies should at least be known about.
         core.ProcessFailed += OnProcessFailed;
 
         Diagnostics.EnabledChanged += OnDiagnosticsChanged;
-        if (Diagnostics.On)
+        if (Records)
         {
             await SetDiagnosticsAsync(true);
         }
@@ -280,7 +377,11 @@ internal sealed class BrowserTab
 
             if (rule is null || _environment is null)
             {
-                if (Diagnostics.RecordsBrowsing)
+                // The privacy work on requests that DO go out (BrowserTab.Privacy.cs).
+                CleanOutgoingRequest(args);
+                TrimReferrer(args.Request, uri);
+
+                if (Records)
                 {
                     NoteRequestLeft(args.Request.Method, uri, args.ResourceContext, null);
                 }
@@ -293,14 +394,15 @@ internal sealed class BrowserTab
             // The session counter resets when you quit, so on its own it can never say
             // anything more interesting than "since you opened the app". The seven-day
             // store is what the Start Page's Privacy Report reads.
-            if (Uri.TryCreate(uri, UriKind.Absolute, out Uri? blocked))
+            // Never for a private tab: the report keeps which sites contacted trackers.
+            if (!IsPrivate && Uri.TryCreate(uri, UriKind.Absolute, out Uri? blocked))
             {
-                PrivacyReport.Record(blocked.Host, HostOf(Url));
+                PrivacyReport.Record(blocked.Host, HostOf(Url), args.ResourceContext);
             }
 
             args.Response = _environment.CreateWebResourceResponse(null, 403, "Blocked by Aviary", string.Empty);
 
-            if (Diagnostics.RecordsBrowsing)
+            if (Records)
             {
                 Diagnostics.Blocked(Id, uri, rule, args.ResourceContext.ToString(), Url);
 
@@ -340,7 +442,7 @@ internal sealed class BrowserTab
     /// </summary>
     private void OnWebResourceResponseReceived(CoreWebView2 sender, CoreWebView2WebResourceResponseReceivedEventArgs args)
     {
-        if (!Diagnostics.RecordsBrowsing)
+        if (!Records)
         {
             return;
         }
@@ -442,6 +544,12 @@ internal sealed class BrowserTab
             Diagnostics.Swallowed(ex, "tab: read failed frames");
         }
 
+        // A private tab's engine failure is still worth knowing about — without where it was.
+        if (IsPrivate)
+        {
+            frames.Clear();
+        }
+
         string kind = Read(() => args.ProcessFailedKind);
         string reason = Read(() => args.Reason);
 
@@ -454,7 +562,7 @@ internal sealed class BrowserTab
             description = Read(() => args.ProcessDescription),
             module = Read(() => args.FailureSourceModulePath),
             frames,
-            page = Url,
+            page = IsPrivate ? "(private tab)" : Url,
         }, kind + " " + reason);
     }
 
@@ -467,9 +575,9 @@ internal sealed class BrowserTab
         try
         {
             args.Handled = true;
-            _navigationBecameDownload = true;
+            _downloadStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
 
-            if (Diagnostics.On)
+            if (Records)
             {
                 CoreWebView2DownloadOperation op = args.DownloadOperation;
                 Diagnostics.Download("start", new
@@ -570,6 +678,21 @@ internal sealed class BrowserTab
             switch (typeElement.GetString())
             {
                 case "shortcut":
+                    if (!root.TryGetProperty("token", out JsonElement token)
+                        || token.ValueKind != JsonValueKind.String
+                        || !string.Equals(token.GetString(), ShortcutToken, StringComparison.Ordinal))
+                    {
+                        // A page posting a shortcut of its own. Refused, and recorded — the page
+                        // address only if this is not a private tab.
+                        string source;
+                        try { source = args.Source; }
+                        catch (Exception ex) { source = string.Empty; Diagnostics.Swallowed(ex, "tab: shortcut message source"); }
+
+                        Diagnostics.Anomaly("untrusted-message", "a website posted a shortcut message",
+                            new { handler = "shortcuts", type = "shortcut", source = IsPrivate ? null : source });
+                        break;
+                    }
+
                     if (root.TryGetProperty("action", out JsonElement action)
                         && action.GetString() is { Length: > 0 } name)
                     {
@@ -602,7 +725,10 @@ internal sealed class BrowserTab
                         });
                     }
 
-                    Favicons.OfferCandidates(IconKey, origin, candidates);
+                    if (!IsPrivate)
+                    {
+                        Favicons.OfferCandidates(IconKey, origin, candidates);
+                    }
                     break;
                 }
 
@@ -629,7 +755,7 @@ internal sealed class BrowserTab
     /// </summary>
     private void RecordPageError(JsonElement root, CoreWebView2WebMessageReceivedEventArgs args)
     {
-        if (!Diagnostics.RecordsBrowsing || _pageErrorsThisPage >= 100)
+        if (!Records || _pageErrorsThisPage >= 100)
         {
             return;
         }
@@ -798,7 +924,16 @@ internal sealed class BrowserTab
   if (window.__aviaryKeys) { return; }
   window.__aviaryKeys = 1;
 
+  /* Captured NOW, before any page script exists: a page that later replaces postMessage or
+     JSON.stringify must never see the token go past. */
+  var wv = window.chrome && window.chrome.webview;
+  if (!wv) { return; }
+  var send = wv.postMessage.bind(wv);
+  var stringify = JSON.stringify;
+  var TOKEN = '__AVIARY_KEYTOKEN__';
+
   var MAP = {
+    'f11': 'fullscreen',
     'ctrl+t': 'newtab',
     'ctrl+w': 'closetab',
     'ctrl+l': 'address',
@@ -807,6 +942,8 @@ internal sealed class BrowserTab
     'ctrl+f': 'find',
     'ctrl+d': 'bookmark',
     'ctrl+shift+d': 'readinglist',
+    'ctrl+shift+n': 'privatewindow',
+    'ctrl+,': 'settings',
     'ctrl+h': 'history',
     'ctrl+shift+l': 'sidebar',
     'ctrl+r': 'reload',
@@ -822,7 +959,8 @@ internal sealed class BrowserTab
   };
 
   window.addEventListener('keydown', function(e){
-    if (e.metaKey) { return; }
+    /* A page can dispatch a KeyboardEvent of its own; only real keystrokes count. */
+    if (!e.isTrusted || e.metaKey) { return; }
 
     var key = (e.key || '').toLowerCase();
 
@@ -839,7 +977,7 @@ internal sealed class BrowserTab
 
     e.preventDefault();
     e.stopPropagation();
-    try { window.chrome.webview.postMessage(JSON.stringify({type:'shortcut', action:action})); } catch(err){}
+    try { send(stringify({type:'shortcut', action:action, token:TOKEN})); } catch(err){}
   }, true);
 })();
 """;
@@ -893,7 +1031,10 @@ internal sealed class BrowserTab
         {
             Url = url;
             _internalTitle = null;
-            _navigationBecameDownload = false;
+
+            // From the address bar, a bookmark or the Start Page: no site started this one,
+            // so the privacy step treats it as coming from nowhere (see MaybeRewriteNavigation).
+            _hostNavigation = url;
             View.CoreWebView2.Navigate(url);
         }
     }
@@ -938,7 +1079,7 @@ internal sealed class BrowserTab
             try { sameDocument = !args.IsNewDocument; }
             catch (Exception ex) { sameDocument = false; Diagnostics.Swallowed(ex, "tab: IsNewDocument (older runtime?)"); }
 
-            if (sameDocument && Diagnostics.RecordsBrowsing)
+            if (sameDocument && Records)
             {
                 Diagnostics.Browse("same-document", Url, new { tab = Id, url = Url });
             }
@@ -966,7 +1107,8 @@ internal sealed class BrowserTab
     /// </summary>
     private void OnFaviconChanged(CoreWebView2 sender, object args)
     {
-        if (!Favicons.EngineApiAvailable || !AppSettings.GetBool("siteIcons"))
+        // A private tab leaves no icon behind on disk.
+        if (IsPrivate || !Favicons.EngineApiAvailable || !AppSettings.GetBool("siteIcons"))
         {
             return;
         }
@@ -1092,7 +1234,10 @@ internal sealed class BrowserTab
         // First letter of the host, not of the title — a monogram should stay put while a
         // single-page app rewrites its title underneath you.
         Monogram = PublicSuffix.Monogram(HostOf(Url));
-        History.UpdateTitle(Url, Title);
+        if (!IsPrivate)
+        {
+            History.UpdateTitle(Url, Title);
+        }
 
         Diagnostics.TabTitle(Id, Title);
         LogTitle();
@@ -1107,7 +1252,7 @@ internal sealed class BrowserTab
     /// </summary>
     private void LogTitle()
     {
-        if (!Diagnostics.RecordsBrowsing || string.Equals(Title, _lastTitleLogged, StringComparison.Ordinal))
+        if (!Records || string.Equals(Title, _lastTitleLogged, StringComparison.Ordinal))
         {
             return;
         }
@@ -1125,7 +1270,24 @@ internal sealed class BrowserTab
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        // Privacy first. A navigation Aviary replaces with a cleaner one is cancelled here and
+        // re-issued, and the replacement comes back through this handler on its own.
+        if (MaybeRewriteNavigation(sender, args))
+        {
+            return;
+        }
+
         IsLoading = true;
+
+        // A web page is loading, so this tab is no longer showing one of Aviary's own pages.
+        // Navigate() clears this for the address bar; a page that navigates ITSELF (a link on
+        // an internal page, or a test driver) must not leave the tab believing it is still
+        // the Start Page — it went on labelling websites "aviary:start-page".
+        if (args.Uri.StartsWith("http:", StringComparison.OrdinalIgnoreCase)
+            || args.Uri.StartsWith("https:", StringComparison.OrdinalIgnoreCase))
+        {
+            _internalTitle = null;
+        }
 
         try
         {
@@ -1145,9 +1307,20 @@ internal sealed class BrowserTab
                 catch (Exception ex) { _navKind = string.Empty; Diagnostics.Swallowed(ex, "tab: NavigationKind (older runtime?)"); }
             }
 
-            if (Diagnostics.RecordsBrowsing && _navChain.Count < 20)
+            if (Records && _navChain.Count < 20)
             {
                 _navChain.Add(args.Uri);
+            }
+
+            _prevUriInNavigation = args.Uri;
+
+            // The replacement HTTPS attempt has started: remember its id, and give it a
+            // deadline — a server that silently drops port 443 would otherwise hang for
+            // twenty seconds before Windows gives up on the connection.
+            if (_upgrade is { NavId: 0 } up && string.Equals(args.Uri, up.Https, StringComparison.Ordinal))
+            {
+                _upgrade = up with { NavId = args.NavigationId };
+                StartUpgradeDeadline();
             }
         }
         catch (Exception ex)
@@ -1169,23 +1342,39 @@ internal sealed class BrowserTab
             Diagnostics.Mark("first-page-loaded");
         }
 
-        if (Diagnostics.RecordsBrowsing)
+        // Read before anything can move on: the next navigation overwrites both.
+        long navStart = _navStart;
+        ulong navId = args.NavigationId;
+        CoreWebView2WebErrorStatus status = args.WebErrorStatus;
+
+        // A navigation the privacy step replaced with a cleaner one: its "cancelled" ending is
+        // expected, and the replacement is already on its way.
+        if (!args.IsSuccess && navId == _replacedNavId && status == CoreWebView2WebErrorStatus.OperationCanceled)
         {
-            _ = LogNavigationAsync(sender, args);
+            return;
+        }
+
+        // An HTTPS-Only attempt that found no secure site hands over to the fallback panel.
+        bool httpsFallback = FinishUpgrade(args);
+
+        // The one failure a download also produces (see _downloadStartedAt).
+        bool mayBeDownload = !args.IsSuccess && status == CoreWebView2WebErrorStatus.ConnectionAborted;
+
+        if (Records)
+        {
+            _ = LogNavigationAsync(sender, args, navStart, mayBeDownload);
         }
 
         // Once per successful navigation. The title is usually still the old one here, so
         // OnDocumentTitleChanged corrects it WITHOUT counting a second visit.
         if (args.IsSuccess && _internalTitle is null)
         {
-            History.Record(Url, Title);
-            Navigated?.Invoke(this);
-        }
+            if (!IsPrivate)
+            {
+                History.Record(Url, Title);
+            }
 
-        if (_navigationBecameDownload)
-        {
-            _navigationBecameDownload = false;
-            return;
+            Navigated?.Invoke(this);
         }
 
         // A SERVER that answered with 404 or 500 sent a page of its own — "not found", a
@@ -1193,11 +1382,65 @@ internal sealed class BrowserTab
         // status Unknown. Covering it with Aviary's "This page didn't load" panel hid the site's
         // own page behind a vaguer message. Found by diagnostics in M1 (the error-page-shown
         // event fired on a 404). Aviary's panel is for when nothing answered at all.
-        if (!args.IsSuccess
-            && args.WebErrorStatus != CoreWebView2WebErrorStatus.OperationCanceled
-            && !ServerAnswered(args))
+        if (args.IsSuccess
+            || httpsFallback
+            || status == CoreWebView2WebErrorStatus.OperationCanceled
+            || ServerAnswered(args))
         {
-            NavigationFailed?.Invoke(this, args.WebErrorStatus);
+            return;
+        }
+
+        if (mayBeDownload)
+        {
+            _ = ReportFailureUnlessDownloadAsync(status, navId, navStart);
+        }
+        else
+        {
+            ShowingFailure();
+            NavigationFailed?.Invoke(this, status);
+        }
+    }
+
+    /// <summary>
+    /// An aborted navigation is only a failure if it did NOT become a download. Waits briefly
+    /// for DownloadStarting, which this runtime raises after NavigationCompleted; stays quiet if
+    /// one arrives, or if the tab has moved on to another navigation meanwhile.
+    /// </summary>
+    private async Task ReportFailureUnlessDownloadAsync(CoreWebView2WebErrorStatus status, ulong navId, long navStart)
+    {
+        try
+        {
+            if (!DownloadStartedSince(navStart))
+            {
+                await Task.Delay(DownloadGraceMs);
+            }
+
+            if (DownloadStartedSince(navStart) || _navId != navId || !IsReady)
+            {
+                return;
+            }
+
+            ShowingFailure();
+            NavigationFailed?.Invoke(this, status);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: report failed navigation");
+        }
+    }
+
+    /// <summary>
+    /// Nothing secure is on screen when Aviary's own failure panel covers the page, so the
+    /// padlock goes. It used to stay: the https address that FAILED was still the tab's
+    /// address, and the HTTPS-Only fallback panel ("this site doesn't offer a secure
+    /// connection") sat under a padlock (found in M2's first look at that panel).
+    /// </summary>
+    private void ShowingFailure()
+    {
+        if (IsSecure)
+        {
+            IsSecure = false;
+            Changed?.Invoke(this);
         }
     }
 
@@ -1220,33 +1463,43 @@ internal sealed class BrowserTab
     /// that can change is read BEFORE the first await — another navigation may begin while the
     /// page's timing is being fetched.
     /// </summary>
-    private async Task LogNavigationAsync(CoreWebView2 core, CoreWebView2NavigationCompletedEventArgs args)
+    private async Task LogNavigationAsync(CoreWebView2 core, CoreWebView2NavigationCompletedEventArgs args,
+        long navStart, bool mayBeDownload)
     {
         try
         {
             bool success = args.IsSuccess;
-            bool download = _navigationBecameDownload;
+            bool download = DownloadStartedSince(navStart);
             bool internalPage = _internalTitle is not null;
 
             int? httpStatus = null;
             try { httpStatus = args.HttpStatusCode is > 0 and var code ? code : null; }
             catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: HttpStatusCode (older runtime?)"); }
 
-            // "Unknown" is what the engine calls a server's own error page; say what it was.
-            string result = download ? "became a download"
-                          : success ? "ok"
-                          : args.WebErrorStatus == CoreWebView2WebErrorStatus.Unknown && httpStatus is > 0
-                              ? "HTTP " + httpStatus
-                              : args.WebErrorStatus.ToString();
+            CoreWebView2WebErrorStatus status = args.WebErrorStatus;
 
-            double ms = _navStart == 0
+            double ms = navStart == 0
                 ? 0
-                : Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(_navStart).TotalMilliseconds, 1);
+                : Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(navStart).TotalMilliseconds, 1);
 
             string url = internalPage ? InternalAddress : core.Source;
             List<string>? redirects = _navChain.Count > 1 ? new List<string>(_navChain) : null;
             bool userInitiated = _navUserInitiated;
             string kind = _navKind;
+
+            // Everything mutable is captured; now it is safe to wait for a late DownloadStarting.
+            if (mayBeDownload && !download)
+            {
+                await Task.Delay(DownloadGraceMs);
+                download = DownloadStartedSince(navStart);
+            }
+
+            // "Unknown" is what the engine calls a server's own error page; say what it was.
+            string result = download ? "became a download"
+                          : success ? "ok"
+                          : status == CoreWebView2WebErrorStatus.Unknown && httpStatus is > 0
+                              ? "HTTP " + httpStatus
+                              : status.ToString();
 
             JsonElement? timing = null;
             if (success && !internalPage && !download)
@@ -1430,6 +1683,7 @@ internal sealed class BrowserTab
                 core.WebResourceRequested -= OnWebResourceRequested;
                 core.DownloadStarting -= OnDownloadStarting;
                 core.ProcessFailed -= OnProcessFailed;
+                core.ContainsFullScreenElementChanged -= OnContainsFullScreenElementChanged;
                 core.WebResourceResponseReceived -= OnWebResourceResponseReceived;
             }
 
@@ -1454,6 +1708,7 @@ internal sealed class BrowserTab
         DownloadStarted = null;
         NavigationFailed = null;
         Navigated = null;
+        FullScreenChanged = null;
         IsReady = false;
     }
 }

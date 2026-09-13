@@ -36,10 +36,7 @@ internal static class Bookmarks
     private static readonly object Gate = new();
     private static List<Bookmark>? _items;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary",
-        "bookmarks.json");
+    private static string FilePath => AppPaths.Of("bookmarks.json");
 
     public static event Action? Changed;
 
@@ -79,7 +76,7 @@ internal static class Bookmarks
     public static bool Contains(string url) =>
         Items.Exists(b => string.Equals(b.Url, url, StringComparison.OrdinalIgnoreCase));
 
-    public static void Add(string title, string url)
+    public static void Add(string title, string url, bool record = true)
     {
         if (string.IsNullOrWhiteSpace(url) || Contains(url))
         {
@@ -92,7 +89,7 @@ internal static class Bookmarks
             Url = url
         });
 
-        Diagnostics.Ui("bookmark-add", new { url, title });
+        if (record) { Diagnostics.Ui("bookmark-add", new { url, title }); }
         Save();
     }
 

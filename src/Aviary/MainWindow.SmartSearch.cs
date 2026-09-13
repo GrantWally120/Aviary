@@ -294,7 +294,7 @@ public sealed partial class MainWindow
         if (_active is { IsReady: true } tab)
         {
             // Category 2: which suggestion was picked, and what had been typed to get it.
-            Diagnostics.Browse(chosen.IsSearch ? "search" : "suggestion", url, new
+            DiagBrowse(chosen.IsSearch ? "search" : "suggestion", url, new
             {
                 tab = tab.Id,
                 typed = AddressBox.Text,

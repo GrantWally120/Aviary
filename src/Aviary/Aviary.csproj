@@ -56,6 +56,10 @@
          TreatWarningsAsErrors — that turns them into a hard build failure. -->
     <NoWarn>$(NoWarn);CS8618</NoWarn>
 
+    <!-- Main is Aviary's own (Program.cs), not the XAML compiler's: it has to turn a second
+         launch away before anything writes the profile (Phase 5 M2, bug 51). -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+
     <!-- Phase 1 has no icon asset yet. Adding <ApplicationIcon> before the .ico exists
          is a hard build error, so it lands with the branding work instead. -->
   </PropertyGroup>

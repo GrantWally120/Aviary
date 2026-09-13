@@ -13,9 +13,13 @@ internal sealed class DownloadItem
 {
     private readonly CoreWebView2DownloadOperation _operation;
 
-    public DownloadItem(CoreWebView2DownloadOperation operation)
+    /// <summary>From a private window: the file is kept, but nothing records where it came from.</summary>
+    private readonly bool _private;
+
+    public DownloadItem(CoreWebView2DownloadOperation operation, bool fromPrivateWindow = false)
     {
         _operation = operation;
+        _private = fromPrivateWindow;
         FilePath = operation.ResultFilePath ?? string.Empty;
 
         operation.StateChanged += (_, _) =>
@@ -31,7 +35,7 @@ internal sealed class DownloadItem
     /// <summary>Diagnostics category 15: how the download ended — once, when it does.</summary>
     private void RecordOutcome()
     {
-        if (_outcomeRecorded || !Diagnostics.On)
+        if (_outcomeRecorded || _private || !Diagnostics.On)
         {
             return;
         }

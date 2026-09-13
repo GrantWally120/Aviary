@@ -121,16 +121,25 @@ internal static class Favicons
         Timeout = TimeSpan.FromSeconds(8),
     };
 
-    private static string Folder => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary", "favicons");
+    private static string Folder => AppPaths.Of("favicons");
 
     private static string IndexPath => Path.Combine(Folder, "index.json");
 
     // ── LIFECYCLE ───────────────────────────────────────────────────────────
 
+    private static int _initialised;
+
+    /// <summary>
+    /// Once per process. A private window is a second MainWindow, and a second call used to
+    /// add the Safari user agent to the fetcher twice and reload the index over the live one.
+    /// </summary>
     public static void Initialise(Microsoft.UI.Dispatching.DispatcherQueue ui)
     {
+        if (Interlocked.Exchange(ref _initialised, 1) == 1)
+        {
+            return;
+        }
+
         _ui = ui;
         Http.DefaultRequestHeaders.UserAgent.ParseAdd(
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
@@ -387,14 +396,38 @@ internal static class Favicons
         }
     }
 
-    private static string Absolute(string origin, string href)
+    /// <summary>
+    /// A declared icon's address, resolved the way a browser resolves it — against the page —
+    /// and only if it is a web address at all.
+    ///
+    /// Google declares its icon as "//www.gstatic.com/…/favicon.ico": scheme-relative, which on
+    /// the web means "same scheme as the page". .NET reads a string starting with // as a
+    /// Windows network path instead, so trying it as an absolute URI first produced
+    /// file://www.gstatic.com/… and every fetch failed with "The 'file' scheme is not
+    /// supported" (found in Grant's own diagnostics, 12 Sep — bug 41). Hence the explicit
+    /// scheme, and the refusal of anything that does not come out as http or https.
+    /// </summary>
+    internal static string Absolute(string origin, string href)
     {
-        if (Uri.TryCreate(href, UriKind.Absolute, out Uri? abs))
+        if (string.IsNullOrWhiteSpace(href)
+            || !Uri.TryCreate(origin, UriKind.Absolute, out Uri? page)
+            || page.Scheme is not ("http" or "https"))
         {
-            return abs.ToString();
+            return string.Empty;
         }
 
-        return Uri.TryCreate(new Uri(origin), href, out Uri? rel) ? rel.ToString() : string.Empty;
+        href = href.Trim();
+        if (href.StartsWith("//", StringComparison.Ordinal))
+        {
+            href = page.Scheme + ":" + href;
+        }
+
+        if (!Uri.TryCreate(page, href, out Uri? resolved))
+        {
+            return string.Empty;
+        }
+
+        return resolved.Scheme is "http" or "https" ? resolved.AbsoluteUri : string.Empty;
     }
 
     private static async Task FetchAsync(string key, string url, IconRank rank)

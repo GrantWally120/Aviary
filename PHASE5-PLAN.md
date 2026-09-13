@@ -118,7 +118,20 @@ useful for debugging but a password-reset or login link is not a working credent
   report back is bugs and their causes, not a recital of where Grant browsed. Saved to
   memory when execution starts.
 
-### M2 — Privacy that actually works
+### M2 — Privacy that actually works · **done 13 Sep 2026** (HANDOFF §14)
+Built and tested with each switch on and off: third-party cookies (engine switch), GPC
+(engine switch), WebRTC policy (engine switch — not measurable without camera permission),
+tracking parameters (navigation AND request level), HTTPS-Only with a fallback panel, referrer
+trimming (header AND document.referrer), the Safari identity with client hints removed, a
+private window, saved passwords, form-entry autofill as its own switch. Added at Grant's
+request (12 Sep): **F11 full screen**, and a **Privacy Report with a 7-day / all-time choice**
+(in Settings and on the card) showing Brave's three figures — blocked, bandwidth saved, time
+saved (estimates, labelled). Decisions: engine switches apply at the next launch and say so;
+no Restart button until session restore exists. Finished 13 Sep with **Website data** (per-site
+cookies and storage, Remove per site) and, from Grant's own diagnostics, **one Aviary per
+profile** (a second launch hands itself to the running one — HANDOFF bug 51). Testing Remove
+found that the engine clears EVERY site for an origin it cannot parse (bug 52, fixed before it
+shipped).
 - **Fix the three lying toggles.** `safariUa` genuinely switches the per-tab UA.
   `thirdPartyCookies` blocks cookies on third-party requests in `OnWebResourceRequested`.
   **`dnt` becomes Global Privacy Control** (`Sec-GPC: 1` + `navigator.globalPrivacyControl`)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Web.WebView2.Core;
@@ -15,7 +16,9 @@ namespace Aviary;
 /// overhead, leaving only the per-renderer cost. Create one per tab and the app is
 /// unusable somewhere around fifteen tabs.
 ///
-/// Hence: created once, awaited by everyone, never recreated.
+/// Hence: created once, awaited by everyone, never recreated — which is also why the engine
+/// switches below are read ONCE, at creation, and a change to one of them takes effect the
+/// next time Aviary starts. Settings says so on each of those rows.
 /// </summary>
 internal static class WebViewEnvironment
 {
@@ -29,10 +32,21 @@ internal static class WebViewEnvironment
     /// installed somewhere protected, where the default folder is unwritable and
     /// environment creation fails outright with "Access Denied".
     /// </summary>
-    public static string UserDataFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary",
-        "WebView2");
+    public static string UserDataFolder { get; } = AppPaths.Of("WebView2");
+
+    /// <summary>
+    /// The settings the running engine was STARTED with, keyed like settings.json. Settings
+    /// compares the saved value against this to say "takes effect when Aviary restarts".
+    /// </summary>
+    public static IReadOnlyDictionary<string, bool> LaunchedWith => _launchedWith;
+
+    private static Dictionary<string, bool> _launchedWith = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The exact switches passed to the engine, for diagnostics.</summary>
+    public static string Arguments { get; private set; } = string.Empty;
+
+    /// <summary>The settings that are engine switches — each needs a restart to change.</summary>
+    public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect" };
 
     public static void EnsureUserDataFolder()
     {
@@ -56,12 +70,76 @@ internal static class WebViewEnvironment
     {
         lock (Gate)
         {
-            _creation ??= CoreWebView2Environment.CreateWithOptionsAsync(
-                string.Empty,
-                UserDataFolder,
-                new CoreWebView2EnvironmentOptions()).AsTask();
+            if (_creation is null)
+            {
+                Arguments = BuildArguments();
+                _creation = CoreWebView2Environment.CreateWithOptionsAsync(
+                    string.Empty,
+                    UserDataFolder,
+                    new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = Arguments }).AsTask();
+            }
 
             return _creation;
         }
+    }
+
+    /// <summary>
+    /// The Chromium switches Aviary's privacy settings need, from the settings as they are now.
+    ///
+    /// Each one was checked against the Chromium 152 source before it was used:
+    ///  - ForceThirdPartyCookieBlockingEnabled (net/base/features.cc): third-party cookies are
+    ///    refused everywhere — in requests and in cross-site frames' document.cookie. It only
+    ///    acts together with ThirdPartyStoragePartitioning, which is on by default. Partitioned
+    ///    ("CHIPS") cookies, which cannot track across sites, keep working.
+    ///  - GlobalPrivacyControlForce (blink runtime features): sends Sec-GPC: 1 on every
+    ///    request and sets navigator.globalPrivacyControl in pages AND workers — the whole GPC
+    ///    signal, from the engine itself.
+    ///  - force-webrtc-ip-handling-policy=default_public_interface_only (content switches):
+    ///    WebRTC may only use the interface the internet sees, so a page cannot read the
+    ///    computer's local network address through a video-call API.
+    ///
+    /// Never here, whatever anyone asks: anything that weakens security — certificate or
+    /// HTTPS errors, the sandbox, site isolation, web security, a debugging port.
+    /// <c>AVIARY_TEST_BROWSER_ARGS</c> appends to these for test instances only (a DevTools
+    /// port for the test harness); like AVIARY_CRASH_TEST it lives in the process
+    /// environment, which nothing inside the browser can set.
+    /// </summary>
+    internal static string BuildArguments()
+    {
+        _launchedWith = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        foreach (string key in RestartKeys)
+        {
+            _launchedWith[key] = AppSettings.GetBool(key);
+        }
+
+        List<string> features = new();
+        if (_launchedWith["thirdPartyCookies"])
+        {
+            features.Add("ForceThirdPartyCookieBlockingEnabled");
+        }
+
+        if (_launchedWith["gpc"])
+        {
+            features.Add("GlobalPrivacyControlForce");
+        }
+
+        List<string> args = new();
+        if (features.Count > 0)
+        {
+            args.Add("--enable-features=" + string.Join(",", features));
+        }
+
+        if (_launchedWith["webrtcProtect"])
+        {
+            args.Add("--force-webrtc-ip-handling-policy=default_public_interface_only");
+        }
+
+        string? test = Environment.GetEnvironmentVariable("AVIARY_TEST_BROWSER_ARGS");
+        if (!string.IsNullOrWhiteSpace(test))
+        {
+            args.Add(test.Trim());
+        }
+
+        return string.Join(" ", args);
     }
 }

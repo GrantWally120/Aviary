@@ -36,6 +36,12 @@ public sealed partial class MainWindow
     /// </remarks>
     private void TogglePinned(BrowserTab tab)
     {
+        // Pinned tabs are remembered on disk; a private window remembers nothing.
+        if (_private)
+        {
+            return;
+        }
+
         int from = _tabs.IndexOf(tab);
         if (from < 0)
         {
@@ -64,7 +70,7 @@ public sealed partial class MainWindow
         _tabs.Insert(Math.Clamp(pinnedAhead, 0, _tabs.Count), tab);
 
         Diagnostics.TabPinned(tab.Id, pinning);
-        Diagnostics.Feature(pinning ? "tab-pin" : "tab-unpin", new { tab = tab.Id, url = tab.Url, from, to = _tabs.IndexOf(tab) });
+        DiagFeature(pinning ? "tab-pin" : "tab-unpin", new { tab = tab.Id, url = tab.Url, from, to = _tabs.IndexOf(tab) });
 
         SavePinned();
         RebuildTabStrip();

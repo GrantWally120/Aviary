@@ -49,9 +49,7 @@ internal static class History
 
     public static event Action? Changed;
 
-    private static string FilePath => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary", "history.json");
+    private static string FilePath => AppPaths.Of("history.json");
 
     private static Dictionary<string, HistoryEntry> Items
     {

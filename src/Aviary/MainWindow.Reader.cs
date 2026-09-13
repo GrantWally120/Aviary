@@ -84,7 +84,7 @@ public sealed partial class MainWindow
 
             // Category 14: Reader's verdict on every page — the data M7 needs to tell whether
             // the extraction is too strict or too eager.
-            Diagnostics.Feature("reader-verdict", new
+            DiagFeature("reader-verdict", new
             {
                 url = tab.Url,
                 readable = _readerAvailable,
@@ -138,7 +138,7 @@ public sealed partial class MainWindow
                 _readerActive = true;
             }
 
-            Diagnostics.Feature(_readerActive ? "reader-on" : "reader-off", new
+            DiagFeature(_readerActive ? "reader-on" : "reader-off", new
             {
                 url = _active?.Url,
                 font = ReaderFont,
@@ -270,7 +270,7 @@ public sealed partial class MainWindow
             {
                 bool now = !SiteSettings.GetBool(host, "autoReader");
                 SiteSettings.Set(host, "autoReader", now ? "true" : "false");
-                Diagnostics.Feature("reader-automatic", new { site = host, on = now });
+                DiagFeature("reader-automatic", new { site = host, on = now });
                 if (now && _readerAvailable && !_readerActive)
                 {
                     ToggleReader();
@@ -302,9 +302,7 @@ internal static class SiteSettings
     private static readonly object Gate = new();
     private static Dictionary<string, string>? _values;
 
-    private static string FilePath => System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "Aviary", "sites.json");
+    private static string FilePath => AppPaths.Of("sites.json");
 
     private static Dictionary<string, string> Values
     {

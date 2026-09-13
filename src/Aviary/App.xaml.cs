@@ -5,12 +5,13 @@ using Microsoft.UI.Xaml;
 namespace Aviary;
 
 /// <summary>
-/// Application entry point.
+/// The application. Main is in Program.cs (since Phase 5 M2, bug 51): it makes sure only one
+/// Aviary runs per profile before this class — or anything that writes the profile — exists.
 ///
 /// The project sets WindowsPackageType=None with WindowsAppSDKSelfContained=true, so the
-/// Windows App SDK generates the Main() that initialises the bootstrapper for us. There is
-/// deliberately no manual Bootstrap.Initialize call here — adding one alongside the
-/// generated entry point is a known way to get a double-initialise failure.
+/// Windows App SDK initialises itself through its own module initializer. There is
+/// deliberately no manual Bootstrap.Initialize call anywhere — adding one alongside the
+/// SDK's own is a known way to get a double-initialise failure.
 /// </summary>
 public partial class App : Application
 {
@@ -27,6 +28,13 @@ public partial class App : Application
         // everything from here on is recorded — including a settings file that will not load.
         Diagnostics.Initialise();
 
+        if (Program.InstanceFailure is { } instanceFailure)
+        {
+            // Aviary is running without its one-per-profile guard; a second launch would be a
+            // second writer again (bug 51).
+            Diagnostics.Swallowed(instanceFailure, "single instance: register the profile");
+        }
+
         WebViewEnvironment.EnsureUserDataFolder();
 
         InitializeComponent();
@@ -38,6 +46,11 @@ public partial class App : Application
         _window = new MainWindow();
         _window.Activate();
         Diagnostics.Mark("window-activated");
+
+        // Aviary launched again while this one runs: that launch has ended itself and handed
+        // over here (Program.cs).
+        Program.ListenForOtherLaunches(
+            Microsoft.UI.Dispatching.DispatcherQueue.GetForCurrentThread(), MainWindow.ShowForAnotherLaunch);
     }
 
     private void App_UnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
@@ -52,9 +65,7 @@ public partial class App : Application
 
         try
         {
-            string folder = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "Aviary");
+            string folder = AppPaths.Root;
             Directory.CreateDirectory(folder);
             File.AppendAllText(
                 Path.Combine(folder, "crash.log"),

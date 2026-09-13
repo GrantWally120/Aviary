@@ -41,9 +41,16 @@ public sealed partial class MainWindow : Window
     private bool _dragging;
     private string _searchPrefix = "https://duckduckgo.com/?q=";
 
-    public MainWindow()
+    public MainWindow(bool isPrivate = false)
     {
-        Diagnostics.Mark("window-constructing");
+        _private = isPrivate;
+        OpenWindows.Add(this);
+
+        if (!isPrivate)
+        {
+            Diagnostics.Mark("window-constructing");
+        }
+
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
@@ -99,6 +106,9 @@ public sealed partial class MainWindow : Window
         AddAccelerator((VirtualKey)187, VirtualKeyModifiers.Control, (_, _) => Zoom(+1));   // '='
         AddAccelerator((VirtualKey)189, VirtualKeyModifiers.Control, (_, _) => Zoom(-1));   // '-'
         AddAccelerator(VirtualKey.Number0, VirtualKeyModifiers.Control, (_, _) => Zoom(0));
+        AddAccelerator(VirtualKey.F11, VirtualKeyModifiers.None, (_, _) => ToggleFullScreen());
+        AddAccelerator(VirtualKey.N, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => OpenPrivateWindow());
+        AddAccelerator((VirtualKey)188, VirtualKeyModifiers.Control, (_, _) => OpenSettingsTab());   // Ctrl+, — Safari's own
     }
 
     private void SelectTabByIndex(int index)
@@ -117,7 +127,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        ReadingList.Add(tab.Title, tab.Url);
+        ReadingList.Add(tab.Title, tab.Url, record: !_private);
 
         if (_sidebarVisible && _pane == SidebarPane.ReadingList)
         {
@@ -144,7 +154,7 @@ public sealed partial class MainWindow : Window
         a.Invoked += (s, e) =>
         {
             e.Handled = true;
-            Diagnostics.Ui("shortcut", new { keys = combo, from = "window" });
+            DiagUi("shortcut", new { keys = combo, from = "window" });
             handler(s, e);
         };
         RootGrid.KeyboardAccelerators.Add(a);
@@ -216,8 +226,12 @@ public sealed partial class MainWindow : Window
         WebViewEnvironment.EnsureUserDataFolder();
 
         // The watchdog and the minute sample need the UI thread; session.json needs a
-        // description of the window. Both come from here.
-        Diagnostics.AttachUi(DispatcherQueue, DescribeWindow);
+        // description of the window. Both come from here — from the normal window only:
+        // a private window is never described.
+        if (!_private)
+        {
+            Diagnostics.AttachUi(DispatcherQueue, DescribeWindow);
+        }
 
         // Whatever look was last chosen is the one Aviary opens with. Classic only wins
         // on a fresh install, because that is the default AppSettings falls back to.
@@ -228,6 +242,7 @@ public sealed partial class MainWindow : Window
         // accept a Microsoft.UI.Dispatching handler.
         Favicons.Initialise(DispatcherQueue);
         Favicons.Updated += OnFaviconUpdated;
+        ApplyPrivateChrome();
 
         // Dragging the window to a monitor at a different scale invalidates every decoded
         // bitmap — 16 logical pixels stops being 16 physical ones.
@@ -243,6 +258,18 @@ public sealed partial class MainWindow : Window
 
         RestorePreferences();
         InitialiseSidebar();
+
+        // Never create the session's first WebView on a minimised window (bug 50).
+        await WaitUntilNotMinimisedAsync();
+
+        if (_private)
+        {
+            // Pinned tabs belong to the normal window; a private one starts with just the
+            // Start Page, and there is no crash test to arm here.
+            await OpenNewTabAsync(null);
+            return;
+        }
+
         Diagnostics.Mark("chrome-ready");
 
         await RestorePinnedAsync();
@@ -251,6 +278,43 @@ public sealed partial class MainWindow : Window
         Diagnostics.Mark("first-tab-created");
 
         ArmCrashTest();
+    }
+
+    /// <summary>
+    /// Bug 50 — PARTLY fixed. Minimising the window while its FIRST tab is being created kills
+    /// Aviary outright: a native fail-fast (0xc0000409 in ucrtbase.dll) with no .NET exception,
+    /// no crash report, nothing in crash.log. Measured by minimising N ms after the window
+    /// appears: 0, 100, 250 ms crash; 400 ms and later never; and a LATER tab created while
+    /// minimised (Ctrl+T, a pop-up) never crashes. The fault is inside the engine or WinUI,
+    /// out of reach of a catch, and starting the engine earlier did not move it.
+    ///
+    /// What this does cover: a window that is ALREADY minimised when it finishes loading
+    /// (minimised at 0 ms) waits here, and its first tab is made once it is back on screen.
+    /// What it cannot: a minimise that lands in the ~300 ms the first tab takes to build.
+    /// Found while testing M2, 12 Sep; the repro script is in HANDOFF §10, bug 50.
+    /// </summary>
+    private Task WaitUntilNotMinimisedAsync()
+    {
+        if (_appWindow is not { } window
+            || window.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized })
+        {
+            return Task.CompletedTask;
+        }
+
+        TaskCompletionSource restored = new();
+
+        void OnChanged(AppWindow sender, AppWindowChangedEventArgs args)
+        {
+            if (sender.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized })
+            {
+                sender.Changed -= OnChanged;
+                restored.TrySetResult();
+            }
+        }
+
+        window.Changed += OnChanged;
+        DiagUi("first-tab-deferred", new { reason = "window minimised during start-up" });
+        return restored.Task;
     }
 
     /// <summary>
@@ -381,7 +445,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        Bookmarks.Add(tab.Title, tab.Url);
+        Bookmarks.Add(tab.Title, tab.Url, record: !_private);
 
         // Adding one with the bar hidden would look like nothing happened.
         if (!AppSettings.GetBool("bookmarksBar"))
@@ -444,7 +508,7 @@ public sealed partial class MainWindow : Window
         // meant turning the toggle on with an empty list did visibly nothing, which reads
         // as a broken switch rather than as an empty bar. Safari shows the empty strip.
         bool on = AppSettings.GetBool("bookmarksBar");
-        BookmarksBar.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        BookmarksBar.Visibility = on && !_fullScreen ? Visibility.Visible : Visibility.Collapsed;
         BookmarksEmptyHint.Visibility = on && Bookmarks.Items.Count == 0
             ? Visibility.Visible
             : Visibility.Collapsed;
@@ -493,13 +557,15 @@ public sealed partial class MainWindow : Window
     private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab")
     {
         long created = System.Diagnostics.Stopwatch.GetTimestamp();
-        BrowserTab tab = new();
+        BrowserTab tab = new(_private);
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
         tab.DownloadStarted += OnDownloadStarted;
         tab.NavigationFailed += OnNavigationFailed;
         tab.Navigated += OnTabNavigated;
+        tab.FullScreenChanged += OnTabFullScreenChanged;
+        tab.HttpsFallback += OnHttpsFallback;
         tab.BlankTabRequested = OpenBlankTabAsync;
 
         _tabs.Add(tab);
@@ -531,9 +597,9 @@ public sealed partial class MainWindow : Window
         }
 
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(created).TotalMilliseconds, 1);
-        Diagnostics.Perf("tab-create", new { tab = tab.Id, reason, ms, tabs = _tabs.Count });
-        Diagnostics.TrackSlow("tab-create", ms, reason);
-        Diagnostics.Ui("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
+        DiagPerf("tab-create", new { tab = tab.Id, reason, ms, tabs = _tabs.Count });
+        DiagTrackSlow("tab-create", ms, reason);
+        DiagUi("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
 
         HideError();
         ApplyWebViewBackground();
@@ -633,7 +699,8 @@ public sealed partial class MainWindow : Window
 
         return InternalPages.Settings
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
-                   + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";")
+                   + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
+                   + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";")
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json() + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
                 ? string.Empty
@@ -689,8 +756,8 @@ public sealed partial class MainWindow : Window
 
         // A baseline for M7, which lists Start Page build cost as something to optimise.
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2);
-        Diagnostics.Perf("start-page-build", new { ms, bytes = html.Length });
-        Diagnostics.TrackSlow("start-page-build", ms, html.Length + " characters");
+        DiagPerf("start-page-build", new { ms, bytes = html.Length });
+        DiagTrackSlow("start-page-build", ms, html.Length + " characters");
         return html;
     }
 
@@ -744,6 +811,7 @@ public sealed partial class MainWindow : Window
         var payload = new
         {
             token = PageToken,
+            isPrivate = _private,
             iconBase = Favicons.IconBase,
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
             sections = new
@@ -756,18 +824,35 @@ public sealed partial class MainWindow : Window
             favourites,
             frequent,
             reading,
-            privacy = new
-            {
-                total = PrivacyReport.WeekTotal(),
-                days = PrivacyReport.LastWeek(),
-                top = PrivacyReport.TopTracker(),
-            },
+            privacy = BuildPrivacyPayload(),
         };
 
         return StartPage.Html
             .Replace("/*__AVIARY_START__*/",
                 "window.__aviaryStart = " + JsonSerializer.Serialize(payload) + ";")
             .Replace("/*__AVIARY_THEME__*/", BuildThemeCss());
+    }
+
+    /// <summary>
+    /// The Privacy Report card's data: the seven-day chart always, and the three figures for
+    /// whichever range is chosen (Settings → Privacy, or the switch on the card itself).
+    /// </summary>
+    private static object BuildPrivacyPayload()
+    {
+        bool allTime = AppSettings.Get("privacyRange") == "All time";
+        (long blocked, long bytes, double seconds, string since) = PrivacyReport.Stats(allTime);
+
+        return new
+        {
+            total = PrivacyReport.WeekTotal(),
+            days = PrivacyReport.LastWeek(),
+            top = PrivacyReport.TopTracker(),
+            range = allTime ? "all" : "week",
+            blocked,
+            bytes,
+            seconds,
+            since,
+        };
     }
 
     /// <summary>
@@ -857,8 +942,8 @@ public sealed partial class MainWindow : Window
             OnEffectiveThemeChanged();
 
             double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1);
-            Diagnostics.Perf("look-swap", new { look, ms, tabs = _tabs.Count });
-            Diagnostics.TrackSlow("look-swap", ms, look);
+            DiagPerf("look-swap", new { look, ms, tabs = _tabs.Count });
+            DiagTrackSlow("look-swap", ms, look);
         }
         catch (Exception ex)
         {
@@ -914,9 +999,15 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        // A page's own full screen belongs to that page; switching away ends it.
+        if (_fullScreenByPage && !ReferenceEquals(_active, tab))
+        {
+            SetFullScreen(false, byPage: true);
+        }
+
         if (!ReferenceEquals(_active, tab))
         {
-            Diagnostics.Ui("tab-switch", new { tab = tab.Id, index = _tabs.IndexOf(tab), tabs = _tabs.Count });
+            DiagUi("tab-switch", new { tab = tab.Id, index = _tabs.IndexOf(tab), tabs = _tabs.Count });
         }
 
         _active = tab;
@@ -944,7 +1035,7 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        Diagnostics.Ui("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
+        DiagUi("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
 
         // Closing the last tab closes the window, the way every browser behaves.
         if (_tabs.Count == 1)
@@ -980,7 +1071,7 @@ public sealed partial class MainWindow : Window
     /// <summary>Shortcuts forwarded up from a page that had keyboard focus.</summary>
     private void OnShortcut(string action)
     {
-        Diagnostics.Ui("shortcut", new { action, from = "page" });
+        DiagUi("shortcut", new { action, from = "page" });
 
         switch (action)
         {
@@ -1001,6 +1092,9 @@ public sealed partial class MainWindow : Window
             case "zoomout": Zoom(-1); break;
             case "zoomreset": Zoom(0); break;
             case "tablast": SelectTabByIndex(_tabs.Count - 1); break;
+            case "fullscreen": ToggleFullScreen(); break;
+            case "privatewindow": OpenPrivateWindow(); break;
+            case "settings": OpenSettingsTab(); break;
             default:
                 if (action.StartsWith("tab", StringComparison.Ordinal)
                     && int.TryParse(action.AsSpan(3), out int n))
@@ -1016,7 +1110,7 @@ public sealed partial class MainWindow : Window
 
     private void OpenFindBar()
     {
-        Diagnostics.Ui("find-open");
+        DiagUi("find-open");
         FindBar.Visibility = Visibility.Visible;
         FindBox.Focus(FocusState.Programmatic);
         FindBox.SelectAll();
@@ -1036,7 +1130,7 @@ public sealed partial class MainWindow : Window
 
         // The term is logged when Find closes (and on every step), not per keystroke: what was
         // looked for, and whether it was there, is the useful part.
-        Diagnostics.Ui("find-close", new { term = FindBox.Text, matches = _findMatches });
+        DiagUi("find-close", new { term = FindBox.Text, matches = _findMatches });
 
         FindBar.Visibility = Visibility.Collapsed;
         FindCount.Text = string.Empty;
@@ -1064,7 +1158,7 @@ public sealed partial class MainWindow : Window
 
         int index = await FindInPage.StepAsync(_active, direction);
         FindCount.Text = index + " of " + _findMatches;
-        Diagnostics.Ui("find-step", new { term = FindBox.Text, direction, index, matches = _findMatches });
+        DiagUi("find-step", new { term = FindBox.Text, direction, index, matches = _findMatches });
     }
 
     private void FindBox_TextChanged(object sender, TextChangedEventArgs e) => _ = RunFindAsync(FindBox.Text);
@@ -1133,7 +1227,7 @@ public sealed partial class MainWindow : Window
 
     private void OnDownloadStarted(CoreWebView2DownloadOperation operation)
     {
-        Downloads.Add(new DownloadItem(operation));
+        Downloads.Add(new DownloadItem(operation, _private));
         DownloadsButton.Visibility = Visibility.Visible;
     }
 
@@ -1440,7 +1534,7 @@ public sealed partial class MainWindow : Window
 
             if (dragged is not null)
             {
-                Diagnostics.Ui("tab-reorder", new { tab = dragged.Id, from = _dragFrom, to = _tabs.IndexOf(dragged), strip = "top" });
+                DiagUi("tab-reorder", new { tab = dragged.Id, from = _dragFrom, to = _tabs.IndexOf(dragged), strip = "top" });
             }
 
             RebuildTabStrip();
@@ -1537,9 +1631,10 @@ public sealed partial class MainWindow : Window
             ShowIdleAddress();
         }
 
+        string app = _private ? "Aviary Private" : "Aviary";
         Title = tab is null || string.IsNullOrWhiteSpace(tab.Title) || tab.Title == "Aviary"
-            ? "Aviary"
-            : tab.Title + " — Aviary";
+            ? app
+            : tab.Title + " — " + app;
     }
 
     private void ApplyWebViewBackground()
@@ -1660,7 +1755,7 @@ public sealed partial class MainWindow : Window
         // Category 2. Only what was submitted — never the keystrokes on the way there.
         if (search)
         {
-            Diagnostics.Browse("search", "search: " + text, new
+            DiagBrowse("search", "search: " + text, new
             {
                 tab = tab.Id,
                 query = text,
@@ -1671,7 +1766,7 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            Diagnostics.Browse("typed", text, new { tab = tab.Id, typed = text, target });
+            DiagBrowse("typed", text, new { tab = tab.Id, typed = text, target });
         }
 
         HideError();
@@ -1681,7 +1776,7 @@ public sealed partial class MainWindow : Window
 
     private void BackButton_Click(object sender, RoutedEventArgs e)
     {
-        Diagnostics.Ui("back");
+        DiagUi("back");
         if (_active is { CanGoBack: true } tab)
         {
             tab.View.GoBack();
@@ -1690,7 +1785,7 @@ public sealed partial class MainWindow : Window
 
     private void ForwardButton_Click(object sender, RoutedEventArgs e)
     {
-        Diagnostics.Ui("forward");
+        DiagUi("forward");
         if (_active is { CanGoForward: true } tab)
         {
             tab.View.GoForward();
@@ -1714,12 +1809,12 @@ public sealed partial class MainWindow : Window
 
         if (tab.IsLoading)
         {
-            Diagnostics.Ui("stop", new { tab = tab.Id });
+            DiagUi("stop", new { tab = tab.Id });
             tab.View.CoreWebView2?.Stop();
         }
         else
         {
-            Diagnostics.Ui("reload", new { tab = tab.Id });
+            DiagUi("reload", new { tab = tab.Id });
             tab.View.Reload();
         }
     }
@@ -1756,7 +1851,7 @@ public sealed partial class MainWindow : Window
         }
 
         string text = next.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
-        Diagnostics.Ui("zoom", new { from = current, to = next });
+        DiagUi("zoom", new { from = current, to = next });
         AppSettings.Set("zoom", text);
         PushToSettingsPage("zoom", text);
 
@@ -1768,7 +1863,7 @@ public sealed partial class MainWindow : Window
 
     private void HomeButton_Click(object sender, RoutedEventArgs e)
     {
-        Diagnostics.Ui("home");
+        DiagUi("home");
         if (_active?.View.CoreWebView2 is CoreWebView2 core)
         {
             // -= first: Home can be pressed repeatedly, and a second subscription would
@@ -1804,14 +1899,16 @@ public sealed partial class MainWindow : Window
         && string.Equals(token.GetString(), PageToken, StringComparison.Ordinal);
 
     /// <summary>A website posted one of an internal page's own message types. Refused, and recorded.</summary>
-    private static void RefuseMessage(string handler, string type, CoreWebView2WebMessageReceivedEventArgs args)
+    private void RefuseMessage(string handler, string type, CoreWebView2WebMessageReceivedEventArgs args)
     {
         string source;
         try { source = args.Source; }
-        catch (Exception) { source = string.Empty; }
+        catch (Exception ex) { source = string.Empty; Diagnostics.Swallowed(ex, "refused message: source"); }
 
+        // Recorded even from a private window — it is an attack on Aviary, not browsing — but
+        // without the address it came from.
         Diagnostics.Anomaly("untrusted-message", "a website posted a " + handler + " message (" + type + ")",
-            new { handler, type, source });
+            new { handler, type, source = _private ? null : source });
     }
 
     /// <summary>The Start Page's own messages: navigation, section toggles, tile menus.</summary>
@@ -1828,7 +1925,7 @@ public sealed partial class MainWindow : Window
             // same event; only the Start Page's own types are refused, and only those recorded.
             if (!trusted)
             {
-                if (type is "navigate" or "startSection" or "tileMenu")
+                if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange")
                 {
                     RefuseMessage("Start Page", type, args);
                 }
@@ -1842,7 +1939,7 @@ public sealed partial class MainWindow : Window
                     if (root.TryGetProperty("url", out JsonElement u)
                         && u.GetString() is { Length: > 0 } target)
                     {
-                        Diagnostics.Feature("start-page-open", new { url = target });
+                        DiagFeature("start-page-open", new { url = target });
                         _active?.Navigate(target);
                         UpdateChrome();
                     }
@@ -1868,6 +1965,19 @@ public sealed partial class MainWindow : Window
                     AppSettings.Set(
                         "start" + char.ToUpperInvariant(name[0]) + name.Substring(1),
                         on ? "true" : "false");
+                    break;
+                }
+
+                case "privacyRange":
+                {
+                    string range = root.TryGetProperty("value", out JsonElement rv) && rv.GetString() == "all"
+                        ? "All time"
+                        : "Last 7 days";
+
+                    DiagFeature("privacy-report-range", new { range, from = "start page" });
+                    AppSettings.Set("privacyRange", range);
+                    PushToSettingsPage("privacyRange", range);
+                    RefreshStartPages();
                     break;
                 }
 
@@ -1928,7 +2038,7 @@ public sealed partial class MainWindow : Window
 
     private void NewTabButton_Click(object sender, RoutedEventArgs e)
     {
-        Diagnostics.Ui("new-tab-button");
+        DiagUi("new-tab-button");
         OpenNewTab(null);
     }
 
@@ -1943,6 +2053,11 @@ public sealed partial class MainWindow : Window
         newTab.KeyboardAcceleratorTextOverride = "Ctrl+T";
         newTab.Click += (_, _) => OpenNewTab(null);
         menu.Items.Add(newTab);
+
+        MenuFlyoutItem privateWindow = new() { Text = "New Private Window" };
+        privateWindow.KeyboardAcceleratorTextOverride = "Ctrl+Shift+N";
+        privateWindow.Click += (_, _) => OpenPrivateWindow();
+        menu.Items.Add(privateWindow);
 
         MenuFlyoutItem closeTab = new() { Text = "Close Tab" };
         closeTab.KeyboardAcceleratorTextOverride = "Ctrl+W";
@@ -1961,6 +2076,11 @@ public sealed partial class MainWindow : Window
         bookmark.Click += (_, _) => AddBookmark();
         menu.Items.Add(bookmark);
 
+        MenuFlyoutItem fullScreen = new() { Text = _fullScreen ? "Exit Full Screen" : "Enter Full Screen" };
+        fullScreen.KeyboardAcceleratorTextOverride = "F11";
+        fullScreen.Click += (_, _) => ToggleFullScreen();
+        menu.Items.Add(fullScreen);
+
         MenuFlyoutItem downloads = new() { Text = "Downloads" };
         downloads.Click += (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs());
         menu.Items.Add(downloads);
@@ -1974,6 +2094,7 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(help);
 
         MenuFlyoutItem settings = new() { Text = "Settings" };
+        settings.KeyboardAcceleratorTextOverride = "Ctrl+,";
         settings.Click += (_, _) => OpenSettingsTab();
         menu.Items.Add(settings);
 
@@ -2074,8 +2195,11 @@ public sealed partial class MainWindow : Window
                 case "command":
                 {
                     string name = root.TryGetProperty("name", out JsonElement n) ? n.GetString() ?? "" : "";
-                    Diagnostics.Ui("settings-command", new { command = name });
-                    _ = RunSettingsCommandAsync(name, sender);
+                    string? arg = root.TryGetProperty("arg", out JsonElement a) && a.ValueKind == JsonValueKind.String
+                        ? a.GetString()
+                        : null;
+                    DiagUi("settings-command", new { command = name });
+                    _ = RunSettingsCommandAsync(name, sender, arg);
                     return;
                 }
             }
@@ -2183,6 +2307,35 @@ public sealed partial class MainWindow : Window
                     RefreshBookmarksBar();
                     break;
 
+                case "privacyRange":
+                    RefreshStartPages();
+                    break;
+
+                case "safariUa":
+                    foreach (BrowserTab ut in _tabs)
+                    {
+                        _ = ut.ApplyUserAgentAsync();
+                    }
+
+                    break;
+
+                case "savePasswords":
+                case "formAutofill":
+                    foreach (BrowserTab at in _tabs)
+                    {
+                        at.ApplyAutofill();
+                    }
+
+                    break;
+
+                case "trimReferrer":
+                    foreach (BrowserTab rt in _tabs)
+                    {
+                        _ = rt.ApplyReferrerScriptAsync();
+                    }
+
+                    break;
+
                 case "fullUrl":
                     _showFullUrl = value.ValueKind == JsonValueKind.True;
                     if (!_addressFocused)
@@ -2234,7 +2387,7 @@ public sealed partial class MainWindow : Window
     // A command is a thing the page ASKS the host to do. It is not a preference, has no
     // value, and is never written to settings.json.
 
-    private async Task RunSettingsCommandAsync(string name, CoreWebView2 page)
+    private async Task RunSettingsCommandAsync(string name, CoreWebView2 page, string? arg = null)
     {
         try
         {
@@ -2299,7 +2452,7 @@ public sealed partial class MainWindow : Window
 
                     // After the delete, so that if collection is on, the fresh folder's first
                     // line says what just happened to the old one.
-                    Diagnostics.Ui("clear-browsing-data", new { alsoDiagnostics });
+                    DiagUi("clear-browsing-data", new { alsoDiagnostics });
 
                     History.Clear();
                     PrivacyReport.Clear();
@@ -2323,6 +2476,61 @@ public sealed partial class MainWindow : Window
                     RefreshSidebar();
                     RefreshStartPages();
                     TabFor(page)?.NavigateToHtml(BuildSettingsHtml("privacy"), "Settings");
+                    break;
+                }
+
+                case "privateWindow":
+                    OpenPrivateWindow();
+                    break;
+
+                case "siteData":
+                    await PushSiteDataAsync(page);
+                    break;
+
+                case "siteDataRemove":
+                    await RemoveSiteDataAsync(page, arg ?? string.Empty);
+                    break;
+
+                case "clearPasswords":
+                {
+                    if (!await ConfirmAsync(
+                            "Remove saved passwords?",
+                            "Every password Aviary has saved in this profile is deleted. Sites will ask you to "
+                          + "sign in again the next time you visit.",
+                            "Remove"))
+                    {
+                        return;
+                    }
+
+                    try
+                    {
+                        if (_active?.View.CoreWebView2?.Profile is { } profile)
+                        {
+                            await profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.PasswordAutosave);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Diagnostics.Swallowed(ex, "settings: clear saved passwords");
+                    }
+
+                    break;
+                }
+
+                case "clearFormData":
+                {
+                    try
+                    {
+                        if (_active?.View.CoreWebView2?.Profile is { } profile)
+                        {
+                            await profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.GeneralAutofill);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Diagnostics.Swallowed(ex, "settings: clear form entries");
+                    }
+
                     break;
                 }
 
@@ -2565,10 +2773,58 @@ public sealed partial class MainWindow : Window
             || host == "::1";
     }
 
+    /// <summary>The insecure address the HTTPS-Only panel offers, while it is showing.</summary>
+    private string? _fallbackUrl;
+
+    /// <summary>
+    /// HTTPS-Only asked the site for a secure connection and did not get one. Safari has no
+    /// equivalent to copy; this follows Chrome's HTTPS-First wording: say what failed, say
+    /// what the risk is in plain words, make going back the easy choice.
+    /// </summary>
+    private void OnHttpsFallback(BrowserTab tab, string httpUrl)
+    {
+        if (!ReferenceEquals(tab, _active))
+        {
+            return;
+        }
+
+        string host = Uri.TryCreate(httpUrl, UriKind.Absolute, out Uri? uri) ? uri.Host : httpUrl;
+        ShowError("This site doesn't offer a secure connection",
+            "Aviary tried a secure (HTTPS) connection to " + host + " and the site didn't answer securely. "
+          + "On an insecure connection, anyone on your network can see and change the pages you "
+          + "load and anything you send.");
+        _fallbackUrl = httpUrl;
+        ErrorActions.Visibility = Visibility.Visible;
+        ErrorBackButton.IsEnabled = tab.CanGoBack;
+    }
+
+    private void ErrorBack_Click(object sender, RoutedEventArgs e)
+    {
+        DiagUi("https-fallback-back");
+        BrowserTab? tab = _active;
+        HideError();
+        if (tab is { CanGoBack: true })
+        {
+            tab.View.GoBack();
+        }
+    }
+
+    private void ErrorContinue_Click(object sender, RoutedEventArgs e)
+    {
+        if (_fallbackUrl is not { } url || _active is not { } tab)
+        {
+            return;
+        }
+
+        DiagUi("https-fallback-continue");
+        HideError();
+        tab.ContinueInsecure(url);
+    }
+
     private void ShowError(string title, string detail)
     {
         // What the person actually SAW — the navigation line records the raw status.
-        Diagnostics.Ui("error-page-shown", new { title, detail, url = _active?.Url });
+        DiagUi("error-page-shown", new { title, detail, url = _active?.Url });
 
         ErrorTitle.Text = title;
         ErrorDetail.Text = detail;
@@ -2585,6 +2841,8 @@ public sealed partial class MainWindow : Window
     private void HideError()
     {
         ErrorPanel.Visibility = Visibility.Collapsed;
+        ErrorActions.Visibility = Visibility.Collapsed;
+        _fallbackUrl = null;
 
         if (_active is not null)
         {
@@ -2616,6 +2874,25 @@ public sealed partial class MainWindow : Window
     {
         Favicons.Updated -= OnFaviconUpdated;
         Bookmarks.Changed -= RefreshBookmarksBar;
+        OpenWindows.Remove(this);
+
+        if (OpenWindows.Count > 0)
+        {
+            // Another window is still open (a private one, or the normal one behind a private
+            // one). Only this window's tabs go; the shared stores and diagnostics carry on.
+            foreach (BrowserTab t in _tabs)
+            {
+                t.Dispose();
+            }
+
+            _tabs.Clear();
+            _tabButtons.Clear();
+            return;
+        }
+
+        // The last window: a launch arriving from here on waits until everything below is
+        // written, then gets a new Aviary (Program.cs, bug 51).
+        Program.BeginClosing();
 
         // Before the tabs go: the index write is debounced and the accumulated
         // last-used timestamps are only in memory.
@@ -2637,5 +2914,8 @@ public sealed partial class MainWindow : Window
         // Last: the final summary.md and a session.json that says this session ended
         // cleanly. Bounded, so a stuck disk cannot hold the window open.
         Diagnostics.Shutdown();
+
+        // Only now, with nothing left to write, may another Aviary have the profile.
+        Program.Release();
     }
 }

@@ -641,13 +641,21 @@ internal static partial class Diagnostics
                 CoreWebView2Environment env = await WebViewEnvironment.GetAsync();
                 IReadOnlyList<CoreWebView2ProcessExtendedInfo> infos = await env.GetProcessExtendedInfosAsync();
 
+                // While a private window is open, its tabs' renderers are in this list too, and
+                // nothing in it says which profile a process belongs to — M2 found the private
+                // tabs' addresses in the minute sample. So no frame addresses at all until the
+                // last private tab closes; the memory and processor figures stay.
+                bool privateOpen = AnyPrivateTab;
+
                 foreach (CoreWebView2ProcessExtendedInfo info in infos)
                 {
-                    string[] frames = info.AssociatedFrameInfos?
-                        .Select(f => f.Source)
-                        .Where(s => !string.IsNullOrEmpty(s))
-                        .Take(8)
-                        .ToArray() ?? Array.Empty<string>();
+                    string[] frames = privateOpen
+                        ? Array.Empty<string>()
+                        : info.AssociatedFrameInfos?
+                            .Select(f => f.Source)
+                            .Where(s => !string.IsNullOrEmpty(s))
+                            .Take(8)
+                            .ToArray() ?? Array.Empty<string>();
 
                     processes.Add((info.ProcessInfo.ProcessId, info.ProcessInfo.Kind.ToString(), frames));
                 }
