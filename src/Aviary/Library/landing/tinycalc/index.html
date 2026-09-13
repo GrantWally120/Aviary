@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinyCalc</title>
+<meta name="description" content="TinyCalc: a whole Windows calculator in 3,072 bytes, built from one C file.">
+<style>
+/* TinyCalc — its landing page in Aviary's Menagerie (AB5 M2.5). A Windows program, so the real
+   one cannot run in a tab; this page shows it as a specimen, and the calculator on it is a
+   faithful copy of tinycalc.c's own logic — same 32-bit integer maths, same Error cases, same
+   keys — so trying it here behaves like the real thing. Layout from the .c's own constants. */
+:root{
+  --paper:#f3efe6; --paper-2:#ebe5d8; --ink:#1c1b18; --ink-2:#55524a; --ink-3:#8b867a; --red:#c2402f; --line:rgba(28,27,24,.14);
+  --face:#f0f0f0; --hi:#ffffff; --sh:#a0a0a0; --dk:#696969;
+  --disp:"Bahnschrift","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --serif:"Cambria","Georgia",serif; --mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,.8,.26,1); color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){ :root{ --paper:#16150f; --paper-2:#1e1c15; --ink:#efeadb; --ink-2:#b7b1a0; --ink-3:#7c7768; --red:#ff7a5c; --line:rgba(239,234,219,.14); } }
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--body);overflow-x:clip}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:32px 32px;opacity:.35}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.wrap{position:relative;max-width:1120px;margin:0 auto;padding:0 clamp(18px,4vw,44px)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.back{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper-2);text-decoration:none}
+.back:hover{color:var(--red)}
+.tag{font:700 11px/1 var(--mono);letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+
+.sheet{display:grid;grid-template-columns:1fr 1.05fr;gap:clamp(24px,5vw,64px);align-items:center;padding:28px 0 20px}
+.label{font:700 12px/1 var(--mono);letter-spacing:.3em;color:var(--red);text-transform:uppercase}
+h1{margin:14px 0 0;font:700 clamp(60px,9vw,120px)/.85 var(--disp);font-stretch:80%;letter-spacing:-.01em}
+.latin{margin-top:10px;font:italic 20px/1.3 var(--serif);color:var(--ink-2)}
+.lede{margin:18px 0 0;max-width:470px;color:var(--ink-2);font-size:17px}
+.bytes{margin-top:26px;display:flex;align-items:baseline;gap:12px}
+.bytes b{font:700 64px/1 var(--disp);font-stretch:80%;color:var(--red);font-variant-numeric:tabular-nums}
+.bytes span{font:600 13px/1.4 var(--mono);color:var(--ink-3)}
+
+/* The specimen: tinycalc.c's window, drawn from its constants (BW 56, BH 36, GX 8, rows at 8 / 40 / 76 / 110), at 1.5×. */
+.stage{position:relative;display:grid;place-items:center;min-height:560px}
+.win{--s:1.3;position:relative;width:calc(256px*var(--s));border-radius:8px;background:var(--face);box-shadow:0 1px 0 rgba(0,0,0,.08),0 22px 60px rgba(0,0,0,.28),0 0 0 1px rgba(0,0,0,.25);overflow:hidden;color:#000;
+  font:700 calc(13px*var(--s))/1 "Microsoft Sans Serif","MS Sans Serif","Tahoma",sans-serif;user-select:none}
+.titlebar{display:flex;align-items:center;height:calc(22px*var(--s));padding-left:calc(10px*var(--s));background:#fff;font:400 calc(12px*var(--s))/1 "Segoe UI",sans-serif;color:#000}
+.titlebar .sp{flex:1}
+.titlebar i{width:calc(34px*var(--s));height:100%;display:grid;place-items:center;font-style:normal;font-size:calc(12px*var(--s));color:#333}
+.titlebar i.x:hover{background:#c42b1c;color:#fff}
+.client{position:relative;height:calc(263px*var(--s))}
+.b{position:absolute;display:grid;place-items:center;background:var(--face);border:0;padding:0;cursor:default;color:#000;font:inherit;
+  box-shadow:inset -1px -1px 0 var(--dk),inset 1px 1px 0 var(--hi),inset -2px -2px 0 var(--sh),inset 2px 2px 0 #e3e3e3}
+.b:active,.b.press{box-shadow:inset 1px 1px 0 var(--dk),inset -1px -1px 0 var(--hi),inset 2px 2px 0 var(--sh);padding-top:2px;padding-left:2px}
+.disp{position:absolute;display:flex;align-items:center;justify-content:flex-end;padding-right:calc(4px*var(--s));background:var(--face);font:400 calc(13px*var(--s))/1 "Microsoft Sans Serif","Tahoma",sans-serif;
+  box-shadow:inset 1px 1px 0 var(--sh),inset -1px -1px 0 var(--hi),inset 2px 2px 0 var(--dk),inset -2px -2px 0 #e3e3e3;overflow:hidden;white-space:nowrap}
+/* Annotations: a specimen's leader lines. */
+.ann{position:absolute;max-width:96px;font:700 11px/1.3 var(--mono);letter-spacing:.06em;color:var(--red);transform:translateY(-50%)}
+.ann::before{content:"";position:absolute;top:50%;height:1px;background:var(--red);width:var(--w,70px)}
+.ann.l{text-align:right}.ann.l::before{left:calc(100% + 8px)}
+.ann.r::before{right:calc(100% + 8px)}
+.ann em{display:block;font-style:normal;font-weight:500;color:var(--ink-3);letter-spacing:0}
+.dim{position:absolute;left:50%;transform:translateX(-50%);font:700 11px/1 var(--mono);color:var(--ink-3)}
+.hint{margin-top:14px;text-align:center;font:600 12px/1.5 var(--mono);color:var(--ink-3)}
+
+section{padding:62px 0 0}
+.h{display:flex;align-items:baseline;gap:14px;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.h h2{margin:0;font:700 clamp(26px,3.2vw,38px)/1 var(--disp);font-stretch:85%}
+.h span{font:700 11px/1 var(--mono);letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+.rv{opacity:0;transform:translateY(16px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.rv.in{opacity:1;transform:none}
+.scale{display:grid;gap:14px}
+.sc{display:grid;grid-template-columns:200px 1fr 110px;gap:14px;align-items:center}
+.sc b{font:700 14px/1.3 var(--disp)}
+.sc small{display:block;font:500 12px/1.3 var(--body);color:var(--ink-3)}
+.sc .track{height:22px;border-radius:5px;background:var(--paper-2);border:1px solid var(--line);overflow:hidden}
+.sc .track u{display:block;height:100%;width:0;background:var(--c,var(--ink));transition:width 1.4s var(--ease)}
+.sc .n{text-align:right;font:700 13px/1 var(--mono);color:var(--ink-2)}
+.tricks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.trick{padding:18px;border-radius:14px;background:var(--paper-2);border:1px solid var(--line)}
+.trick b{display:block;font:700 12px/1 var(--mono);letter-spacing:.12em;color:var(--red);text-transform:uppercase}
+.trick h3{margin:9px 0 5px;font:700 18px/1.15 var(--disp)}
+.trick p{margin:0;font-size:14px;color:var(--ink-2)}
+.trick code{font:600 12.5px var(--mono);color:var(--ink)}
+.keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.key{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+kbd{min-width:52px;text-align:center;font:700 12px/1 var(--mono);color:var(--ink);padding:7px 8px;border-radius:7px;border:1px solid var(--line);border-bottom-width:3px;background:var(--paper)}
+.homes{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.home{padding:18px 20px;border-radius:14px;background:var(--paper-2);border:1px solid var(--line)}
+.home b{font:700 12px/1 var(--mono);letter-spacing:.12em;color:var(--red);text-transform:uppercase}
+.home code{display:block;margin-top:9px;font:500 12.5px/1.5 var(--mono);word-break:break-all}
+.copy{margin-top:10px;border:1px solid var(--line);background:var(--paper);color:var(--ink-2);font:700 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:8px 11px;border-radius:8px;cursor:pointer}
+footer{padding:50px 0 60px;color:var(--ink-3);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media (max-width:920px){.sheet,.homes{grid-template-columns:1fr}.ann{display:none}.sc{grid-template-columns:1fr 70px}.sc .track{grid-column:1/-1;order:3}}
+@media (max-width:460px){.win{--s:1.15}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:1ms!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2 4 7l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>The Menagerie</a>
+    <span class="tag">Specimen · Windows program · landing page</span>
+  </div>
+
+  <div class="sheet">
+    <div>
+      <div class="label">Specimen no. 1 · the Workshop</div>
+      <h1>TinyCalc</h1>
+      <div class="latin">Calculator minimus, Windows — one C file, no runtime.</div>
+      <p class="lede">A whole desktop calculator — keypad, memory, backspace, sign, percent, keyboard shortcuts — in a program smaller than most icons. It can't run inside a browser, so here is a faithful copy to try: same maths, same errors, same keys.</p>
+      <div class="bytes"><b id="count">0</b><span>bytes — the entire<br>tinycalc.exe</span></div>
+    </div>
+
+    <div class="stage">
+      <div class="win" id="win" role="application" aria-label="A working copy of TinyCalc">
+        <div class="titlebar"><span>Calc</span><span class="sp"></span><i>–</i><i class="x">✕</i></div>
+        <div class="client" id="client"></div>
+      </div>
+      <!-- Positions from the window at 1.3× (370 px tall, centred in a 560 px stage): memory row
+           26.7%, display 35%, utility row 42.5%, keypad 64%; 180 px either side of centre. -->
+      <span class="ann l" style="top:26.7%;right:calc(50% + 184px);--w:14px">Memory<em>MC MR M+ M−</em></span>
+      <span class="ann r" style="top:35%;left:calc(50% + 184px);--w:14px">Display<em>32-bit, shows Error</em></span>
+      <span class="ann l" style="top:42.5%;right:calc(50% + 184px);--w:14px">Utility<em>← ± %</em></span>
+      <span class="ann r" style="top:64%;left:calc(50% + 184px);--w:14px">Keypad<em>each ID is its key</em></span>
+      <span class="dim" style="bottom:14px">256 × 302 px window · shown at 1.3×</span>
+    </div>
+  </div>
+  <p class="hint">Click it, or type: digits, + − × ÷ (* and /), Enter, Backspace, Esc, Shift+5 for %.</p>
+
+  <section class="rv">
+    <div class="h"><h2>How small is small</h2><span>To scale</span></div>
+    <div class="scale" id="scale"></div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>How it gets there</h2><span>From the build script and the source</span></div>
+    <div class="tricks">
+      <div class="trick"><b>No runtime</b><h3>It never loads the C library</h3><p>Linked with <code>/NODEFAULTLIB</code> and started at its own <code>CustomEntryPoint</code>, ending with <code>ExitProcess</code>. Only kernel32 and user32 are imported.</p></div>
+      <div class="trick"><b>Clang -Oz</b><h3>Compiled for size, 32-bit</h3><p>An i686 build at <code>-Oz</code> with no unwind tables, no compiler ident, merged constants, and every function in its own section so the linker can drop what is unused.</p></div>
+      <div class="trick"><b>lld-link</b><h3>Nothing to relocate</h3><p><code>/fixed</code> removes the relocation table and <code>/MERGE</code> folds sections together, saving 512-byte blocks — tested combination by combination, because one version of the linker crashed on it.</p></div>
+      <div class="trick"><b>No tables</b><h3>A key is its own ID</h3><p>The keypad is the string <code>789/456*123-0C=+</code>; each button's command ID is its character, so the dispatcher needs no lookup table. Memory buttons are 200–203.</p></div>
+      <div class="trick"><b>Honest maths</b><h3>Error, never nonsense</h3><p>Everything is a 32-bit integer. Overflow and divide-by-zero show <code>Error</code> instead of wrapping round, and the one division x86 would crash on — the smallest number divided by −1 — is caught first.</p></div>
+      <div class="trick"><b>Keyboard</b><h3>An accelerator table</h3><p>Buttons take focus when clicked, so a key handler would miss typing; an accelerator table catches keys wherever focus is and sends the same command a click would.</p></div>
+    </div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>The keys</h2><span>On the real one, and on this one</span></div>
+    <div class="keys">
+      <div class="key"><kbd>0–9</kbd>Digits, top row or numpad</div>
+      <div class="key"><kbd>+ −</kbd>Add, subtract</div>
+      <div class="key"><kbd>* /</kbd>Multiply, divide</div>
+      <div class="key"><kbd>Enter</kbd>Equals</div>
+      <div class="key"><kbd>Backspace</kbd>Drop the last digit</div>
+      <div class="key"><kbd>Esc</kbd>Clear</div>
+      <div class="key"><kbd>Shift+5</kbd>Percent — 200 + 10% shows 20</div>
+    </div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>Where it lives</h2><span>The real specimen</span></div>
+    <div class="homes">
+      <div class="home"><b>The program · 3 KB</b><code id="p1">C:\Users\user\Documents\Claude CoWork Enclosed\TinyCalc\tinycalc.exe</code><button class="copy" data-copy="p1">Copy the path</button></div>
+      <div class="home"><b>Its source · 286 lines</b><code id="p2">C:\Users\user\Documents\Claude CoWork Enclosed\TinyCalc\tinycalc.c</code><button class="copy" data-copy="p2">Copy the path</button></div>
+    </div>
+  </section>
+
+  <footer><span>Part of the Menagerie in Aviary · 6 July 2026.</span><a href="../../index.html" style="color:var(--red)">← Back to every exhibit</a></footer>
+</div>
+
+<script>
+"use strict";
+/* ── tinycalc.c, in JavaScript ─────────────────────────────────────────────
+   The same state (gAcc, gCur, gOp, gFresh, gErr, gMem) and the same functions, line for line.
+   JavaScript numbers are doubles, so every operation is checked against the 32-bit range the
+   way Apply() checks its 64-bit intermediate, and division truncates toward zero like C. */
+var MAX = 2147483647, MIN = -2147483648;
+var S = {acc:0, cur:0, op:'', fresh:1, err:0, mem:0};
+var disp;
+function apply(a, b, op){
+  var t;
+  if (op === '+') t = a + b; else if (op === '-') t = a - b; else if (op === '*') t = a * b;
+  else { if (b === 0) return null; if (a === MIN && b === -1) return null; return Math.trunc(a / b); }
+  if (t > MAX || t < MIN) return null;
+  return t;
+}
+function redraw(){ disp.textContent = S.err ? 'Error' : String(S.cur); }
+function digit(d){
+  if (S.err){ S.err = 0; S.acc = 0; S.op = ''; S.cur = 0; S.fresh = 1; }
+  if (S.fresh){ S.cur = 0; S.fresh = 0; }
+  if (S.cur <= Math.trunc((MAX - d) / 10)) { S.cur = (S.cur * 10 + d) | 0; }
+  redraw();
+}
+function op(o){
+  if (S.err) return;
+  if (S.op && !S.fresh){ var r = apply(S.acc, S.cur, S.op); if (r === null){ S.err = 1; redraw(); return; } S.acc = r; }
+  else if (!S.op){ S.acc = S.cur; }
+  S.op = o; S.fresh = 1; S.cur = S.acc; redraw();
+}
+function eq(){
+  if (S.err) return;
+  if (S.op){ var r = apply(S.acc, S.cur, S.op); if (r === null){ S.err = 1; redraw(); return; } S.acc = r; S.cur = S.acc; S.op = ''; }
+  S.fresh = 1; redraw();
+}
+function clear(){ S.acc = 0; S.cur = 0; S.op = ''; S.fresh = 1; S.err = 0; redraw(); }
+function back(){ if (S.err || S.fresh){ clear(); return; } S.cur = Math.trunc(S.cur / 10); redraw(); }
+function sign(){ if (S.err || S.cur === MIN) return; S.cur = -S.cur; redraw(); }
+function pct(){
+  if (S.err) return;
+  if (S.op){ if (S.fresh) return; var p = apply(S.acc, S.cur, '*'); if (p === null){ S.err = 1; redraw(); return; } S.cur = Math.trunc(p / 100); }
+  else { S.cur = Math.trunc(S.cur / 100); }
+  S.fresh = 1; redraw();
+}
+function mem(i){
+  if (S.err) return;
+  if (i === 0) S.mem = 0;
+  else if (i === 1){ S.cur = S.mem; S.fresh = 1; }
+  else { var r = apply(S.mem, S.cur, i === 2 ? '+' : '-'); if (r === null) S.err = 1; else S.mem = r; }
+  redraw();
+}
+
+/* The window's layout, from the #defines: BW 56, BH 36, GX 8, MEMROW_Y 8 (h 28), DISP_Y 40 (h 32),
+   UTILROW_Y 76 (h 28), GY 110. Buttons are BW-4 wide, their row's height minus 4. */
+(function(){
+  var s = parseFloat(getComputedStyle(document.getElementById('win')).getPropertyValue('--s')) || 1.3, client = document.getElementById('client'), html = '';
+  function px(v){ return (v * s) + 'px'; }
+  ['MC','MR','M+','M\u2212'].forEach(function(l, i){ html += '<button class="b" data-k="m' + i + '" style="left:' + px(8 + i*56) + ';top:' + px(8) + ';width:' + px(52) + ';height:' + px(24) + '">' + l + '</button>'; });
+  html += '<div class="disp" id="disp" style="left:' + px(8) + ';top:' + px(40) + ';width:' + px(224) + ';height:' + px(32) + '">0</div>';
+  [['\u2190','back'],['\u00B1','sign'],['%','pct']].forEach(function(u, i){ html += '<button class="b" data-k="' + u[1] + '" style="left:' + px(8 + i*56) + ';top:' + px(76) + ';width:' + px(52) + ';height:' + px(24) + '">' + u[0] + '</button>'; });
+  '789/456*123-0C=+'.split('').forEach(function(c, i){
+    var label = c === '*' ? '\u00D7' : c === '/' ? '\u00F7' : c;
+    html += '<button class="b" data-k="' + c + '" style="left:' + px(8 + (i%4)*56) + ';top:' + px(110 + Math.floor(i/4)*36) + ';width:' + px(52) + ';height:' + px(32) + '">' + label + '</button>';
+  });
+  client.innerHTML = html;
+  disp = document.getElementById('disp');
+})();
+function press(k){
+  if (/^[0-9]$/.test(k)) digit(+k);
+  else if ('+-*/'.indexOf(k) >= 0) op(k);
+  else if (k === '=') eq(); else if (k === 'C') clear(); else if (k === 'back') back(); else if (k === 'sign') sign(); else if (k === 'pct') pct();
+  else if (k.charAt(0) === 'm') mem(+k.charAt(1));
+}
+function flash(k){ var b = document.querySelector('.b[data-k="' + (k === '/' ? '\\/' : k) + '"]') || document.querySelector('.b[data-k="' + k + '"]'); if (!b) return; b.classList.add('press'); setTimeout(function(){ b.classList.remove('press'); }, 110); }
+document.getElementById('client').addEventListener('click', function(e){ var b = e.target.closest('.b'); if (b) press(b.getAttribute('data-k')); });
+document.addEventListener('keydown', function(e){
+  if (e.ctrlKey || e.altKey || e.metaKey || (e.target && e.target.closest && e.target.closest('button.copy'))) return;
+  var k = null;
+  if (/^[0-9]$/.test(e.key)) k = e.key;
+  else if (e.key === '+' ) k = '+'; else if (e.key === '-') k = '-'; else if (e.key === '*') k = '*'; else if (e.key === '/') k = '/';
+  else if (e.key === 'Enter' || e.key === '=') k = '='; else if (e.key === 'Backspace') k = 'back'; else if (e.key === 'Escape') k = 'C'; else if (e.key === '%') k = 'pct';
+  if (k === null) return;
+  e.preventDefault(); press(k); flash(k);
+});
+
+/* ── the rest of the page ── */
+var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+(function(){ var el = document.getElementById('count'), to = 3072, t0 = performance.now(), dur = reduced ? 1 : 1400;
+  (function f(t){ var k = Math.min(1, (t - t0) / dur); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))).toLocaleString(); if (k < 1) requestAnimationFrame(f); })(t0); })();
+var page = document.documentElement.outerHTML.length;
+var SCALE = [
+  ['tinycalc.exe', 'the whole program', 3072, 'var(--red)'],
+  ['tinycalc.c', 'its own source — 3.5× the program it builds', 10876, 'var(--ink-2)'],
+  ['This page', 'the one you are reading, measured just now', page, 'var(--ink-3)']
+];
+var most = Math.max.apply(null, SCALE.map(function(s){ return s[2]; }));
+document.getElementById('scale').innerHTML = SCALE.map(function(s){
+  return '<div class="sc" style="--c:' + s[3] + '"><div><b>' + s[0] + '</b><small>' + s[1] + '</small></div><div class="track"><u data-w="' + (s[2] / most * 100) + '"></u></div><span class="n">' + s[2].toLocaleString() + ' B</span></div>';
+}).join('');
+var io = new IntersectionObserver(function(l){ l.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); e.target.querySelectorAll('u[data-w]').forEach(function(u){ u.style.width = u.getAttribute('data-w') + '%'; }); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.rv').forEach(function(s){ io.observe(s); });
+document.querySelectorAll('.copy').forEach(function(b){ b.addEventListener('click', function(){
+  var t = document.getElementById(b.getAttribute('data-copy')).textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ b.textContent = 'Copied'; }, function(){ b.textContent = 'Select and copy'; });
+  setTimeout(function(){ b.textContent = 'Copy the path'; }, 1800); }); });
+</script>
+</body>
+</html>

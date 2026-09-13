@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WallyCore1</title>
+<meta name="description" content="WallyCore1: the shared Godot 4.7 engine under Wally2TTD and Jurassic Empire.">
+<style>
+/* WallyCore1 — its landing page in Aviary's Menagerie (AB5 M2.5). An engine add-on for Godot, so
+   nothing here can run it; the page is its engine room instead. Content from WallyCore1's own
+   README, CHANGELOG and VERSIONING. The oscilloscope and the tune are drawn and played by this
+   page, in the spirit of WcMusic (a square lead over a sine bass) — not a recording of it. */
+:root{
+  --bg:#031416; --panel:rgba(8,32,36,.78); --ink:#e6fbf8; --ink-2:#a3c9c4; --ink-3:#62918b;
+  --teal:#35b9c9; --mint:#6ff0c4; --amber:#ffc15e; --line:rgba(53,185,201,.16); --line-2:rgba(53,185,201,.34);
+  --disp:"Bahnschrift","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,.8,.26,1); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,#041a1d,#031416 40%,#020d0f);color:var(--ink);font:400 15.5px/1.6 var(--body)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(53,185,201,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(53,185,201,.06) 1px,transparent 1px),linear-gradient(rgba(53,185,201,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(53,185,201,.025) 1px,transparent 1px);background-size:120px 120px,120px 120px,24px 24px,24px 24px}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:8px}
+.wrap{position:relative;max-width:1180px;margin:0 auto;padding:0 clamp(18px,4vw,44px)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.back{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.back:hover{color:var(--mint);border-color:var(--line-2)}
+.chip{font:700 11px/1 var(--mono);letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+
+.hero{display:grid;grid-template-columns:1fr 1fr;gap:clamp(20px,4vw,48px);align-items:center;padding:30px 0 10px}
+.kick{font:700 12px/1 var(--mono);letter-spacing:.3em;color:var(--mint);text-transform:uppercase}
+h1{margin:14px 0 0;font:700 clamp(58px,8vw,112px)/.85 var(--disp);font-stretch:75%;letter-spacing:.01em}
+h1 em{font-style:normal;color:var(--teal)}
+.lede{margin:18px 0 0;max-width:500px;color:var(--ink-2);font-size:clamp(16px,1.5vw,18px)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.badges span{padding:7px 11px;border-radius:9px;border:1px solid var(--line-2);background:rgba(8,32,36,.9);font:700 11.5px/1 var(--mono);letter-spacing:.06em;color:var(--ink-2)}
+.badges b{color:var(--mint);font-weight:700}
+
+.scope{position:relative;border-radius:22px;padding:16px;background:linear-gradient(180deg,rgba(6,28,31,.95),rgba(3,18,20,.95));border:1px solid var(--line-2);box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.scope canvas{display:block;width:100%;aspect-ratio:16/9;border-radius:12px;background:#021012;border:1px solid var(--line)}
+.scope .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.scope .row span{font:600 11.5px/1.4 var(--mono);color:var(--ink-3)}
+.play{flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;gap:9px;padding:10px 14px;border-radius:11px;border:1px solid rgba(111,240,196,.5);background:rgba(111,240,196,.1);color:var(--mint);font:700 13px/1 var(--disp);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:background .2s}
+.play:hover{background:rgba(111,240,196,.2)}
+.play svg{width:14px;height:14px}
+
+section{padding:64px 0 0}
+.h{display:flex;align-items:baseline;gap:14px;margin-bottom:22px}
+.h h2{margin:0;font:700 clamp(28px,3.4vw,40px)/1 var(--disp);font-stretch:80%;letter-spacing:.01em}
+.h span{font:700 11px/1 var(--mono);letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.rv.in{opacity:1;transform:none}
+
+.map{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.grp{padding:16px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.grp h3{margin:0 0 12px;font:700 12px/1 var(--mono);letter-spacing:.2em;color:var(--c,var(--teal));text-transform:uppercase}
+.mod{display:block;width:100%;text-align:left;margin:0 0 7px;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(3,18,20,.6);color:var(--ink);font:700 13px/1.2 var(--mono);cursor:default;transition:border-color .2s,background .2s}
+.mod:hover,.mod.on{border-color:color-mix(in srgb,var(--c,var(--teal)) 60%,transparent);background:rgba(53,185,201,.08)}
+.detail{margin-top:14px;min-height:62px;padding:14px 18px;border-radius:14px;border:1px dashed var(--line-2);color:var(--ink-2);font-size:14.5px}
+.detail b{color:var(--mint);font-family:var(--mono);margin-right:8px}
+
+.cmp{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line-2);aspect-ratio:16/9;background:#021012;user-select:none;touch-action:none;cursor:ew-resize}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.cmp .clip{position:absolute;inset:0;clip-path:inset(0 50% 0 0)}
+.cmp .handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:var(--mint);box-shadow:0 0 16px var(--mint);transform:translateX(-1px)}
+.cmp .handle::after{content:"⟷";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:#031416;border:2px solid var(--mint);color:var(--mint);display:grid;place-items:center;font:700 16px/1 var(--mono)}
+.cmp .lab{position:absolute;bottom:12px;padding:6px 10px;border-radius:8px;background:rgba(2,13,15,.85);font:700 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;white-space:nowrap}
+.cmp .lab.l{left:12px;color:var(--amber)} .cmp .lab.r{right:12px;color:var(--mint)}
+.pick{display:flex;gap:8px;margin-top:12px}
+.pick button{border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);font:700 12px/1 var(--mono);letter-spacing:.08em;padding:9px 12px;border-radius:9px;cursor:pointer}
+.pick button[aria-pressed="true"]{color:var(--mint);border-color:rgba(111,240,196,.6)}
+.cmp-note{margin-top:10px;font-size:13.5px;color:var(--ink-2)}
+
+.rel{display:grid;gap:10px}
+.r{display:grid;grid-template-columns:110px 1fr auto;gap:16px;align-items:center;padding:14px 18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.r .v{font:700 26px/1 var(--disp);font-stretch:80%;color:var(--teal)}
+.r h4{margin:0;font:700 17px/1.2 var(--disp)}
+.r p{margin:3px 0 0;font-size:13.5px;color:var(--ink-2)}
+.r .d{text-align:right;font:700 11px/1.6 var(--mono);color:var(--ink-3)}
+.r .d i{display:inline-block;font-style:normal;margin-left:5px;padding:3px 6px;border-radius:5px;border:1px solid var(--line-2);color:var(--ink-2)}
+.r.now{border-color:rgba(111,240,196,.5);box-shadow:0 0 30px rgba(111,240,196,.08)}
+.r.now .v{color:var(--mint)}
+
+.runway{padding:22px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.slots{display:grid;grid-template-columns:repeat(50,1fr);gap:3px;margin:16px 0 10px}
+.slots i{aspect-ratio:1;border-radius:2px;background:rgba(53,185,201,.12)}
+.slots i.used{background:var(--teal)}
+.slots i.now{background:var(--mint);box-shadow:0 0 10px var(--mint)}
+.slots i.ceil{background:var(--amber)}
+.runway p{margin:0;color:var(--ink-2);font-size:14px}
+.runway .legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:10px;font:600 12px/1 var(--mono);color:var(--ink-3)}
+.runway .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+.two{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+.shot{border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#021012}
+.shot img{display:block;width:100%}
+.box{padding:22px 24px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.box h3{margin:0 0 8px;font:700 22px/1.1 var(--disp)}
+.box p{margin:0 0 10px;color:var(--ink-2)}
+.box code{display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.35);font:500 12.5px/1.5 var(--mono);color:#d9fff4;word-break:break-all}
+.copy{margin-top:10px;border:1px solid var(--line-2);background:rgba(8,32,36,.9);color:var(--ink-2);font:700 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-radius:9px;cursor:pointer}
+.copy:hover{color:#fff}
+footer{padding:50px 0 60px;color:var(--ink-3);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media (max-width:980px){.hero,.two{grid-template-columns:1fr}.map{grid-template-columns:1fr 1fr}.r{grid-template-columns:80px 1fr}.r .d{display:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2 4 7l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>The Menagerie</a>
+    <span class="chip">Godot add-on · landing page</span>
+  </div>
+
+  <header class="hero">
+    <div>
+      <div class="kick">The engine room</div>
+      <h1>Wally<em>Core</em>1</h1>
+      <p class="lede">The shared Godot 4.7 engine under the Wally2TTD and Jurassic Empire series. Audio made of maths, two graphics backends, saves, scenes, a debug overlay — and a self-test that has to pass every check before anything ships.</p>
+      <div class="badges">
+        <span>v<b>1.3.1</b> · The Shakedown Update</span>
+        <span>7 Aug 2026</span>
+        <span>Godot <b>4.7</b></span>
+        <span>self-test <b>120/120</b></span>
+        <span>stress <b>25/25</b></span>
+      </div>
+    </div>
+    <div class="scope">
+      <canvas id="scope" width="880" height="495" aria-label="A live oscilloscope"></canvas>
+      <div class="row"><span>A square lead over a sine bass, generated live — the idea behind WcMusic.<br>No audio files anywhere, here or in the engine.</span>
+        <button class="play" id="play"><svg viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5Z"/></svg><span>Hear it</span></button></div>
+    </div>
+  </header>
+
+  <section class="rv">
+    <div class="h"><h2>What's inside</h2><span>Point at a module</span></div>
+    <div class="map" id="map"></div>
+    <div class="detail" id="detail"><b>WcSfx</b>Point at any module above to read what it does.</div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>OpenGL and Vulkan</h2><span>Drag across it</span></div>
+    <div class="cmp" id="cmp">
+      <img id="imgR" alt="Rendered on Forward+ with Vulkan">
+      <div class="clip" id="clip"><img id="imgL" alt="Rendered on Compatibility with OpenGL"></div>
+      <div class="handle" id="handle"></div>
+      <span class="lab l">Compatibility · OpenGL 3</span><span class="lab r">Forward+ · Vulkan</span>
+    </div>
+    <div class="pick"><button data-set="demo" aria-pressed="true">The demo</button><button data-set="render" aria-pressed="false">With post-FX</button></div>
+    <p class="cmp-note">The same demo on both backends. Bloom is real on Forward+ and switched off safely on Compatibility — the demo says so itself, bottom left. Every renderer-sensitive system asks <b>WcRenderer</b> which backend it's on instead of guessing, and a game can relaunch itself on the other one. Both captures are the engine's own, from its screenshot tour.</p>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>Named updates</h2><span>BeamNG-style, since 1.2.1</span></div>
+    <div class="rel" id="rel"></div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>Version one, forever</h2><span>There is no v2</span></div>
+    <div class="runway">
+      <p>Versions run <b>1.0.0 → 1.9.9</b> and stop there: a hundred releases of runway. Six or more changes make a minor step, five or fewer a patch. The self-test fails on anything outside the range, so a stray 2.0 cannot ship — and if 1.9.9 is ever reached, the engine says so at boot.</p>
+      <div class="slots" id="slots"></div>
+      <div class="legend"><span><i style="background:var(--teal)"></i>Used</span><span><i style="background:var(--mint)"></i>Now · 1.3.1</span><span><i style="background:rgba(53,185,201,.12)"></i>Still to come</span><span><i style="background:var(--amber)"></i>The ceiling · 1.9.9</span></div>
+    </div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>Why it isn't a tab</h2><span>And how to run it</span></div>
+    <div class="two">
+      <figure class="shot" style="margin:0"><img src="../../files/Claude%20CoWork%20Enclosed/WallyCore1/build/screenshots/changelog.png" alt="WallyCore1's in-engine What's New panel" loading="lazy"></figure>
+      <div class="box"><h3>It's a toolbox, not a game.</h3>
+        <p>WallyCore1 is copied into a Godot project and games are built on top of it, so there is nothing for a browser to open. Its demo exercises every system and runs in Godot — press F1 there for the What's New panel you can see here, and F3 for the debug overlay.</p>
+        <p>Double-click the launcher menu and choose <b>Play the demo</b>:</p>
+        <code id="path">C:\Users\user\Documents\Claude CoWork Enclosed\WallyCore1\WallyCore1.cmd</code>
+        <button class="copy" id="copy">Copy the path</button></div>
+    </div>
+  </section>
+
+  <footer><span>Part of the Menagerie in Aviary. Nothing here reaches the internet.</span><a href="../../index.html" style="color:var(--mint)">← Back to every exhibit</a></footer>
+</div>
+
+<script>
+"use strict";
+var GROUPS = [
+  ['Audio', '#6ff0c4', [
+    ['WcSynth / WcSfx', 'The synthesized cue kernel: about thirty cues, pooled and rate-limited, ambient beds, an automatic click on every button, and play_at() for panned, distance-faded positional sound. Built on a worker thread and cached to disk, so it never blocks the first frame.'],
+    ['WcMusic', 'Procedural chiptune loops — main, menu, battle, victory, defeat — that crossfade into each other and duck automatically under loud cues.'],
+    ['WcAudio', 'A real bus mixer: Master into SFX and Music, a limiter on Master, and volume and mute per category — mute the effects without killing the music.']]],
+  ['Renderer', '#35b9c9', [
+    ['WcRenderer', 'Knows the live rendering method and driver, the GPU and what it can do. Everything sensitive asks it rather than guessing, and restart_with() relaunches on another backend.'],
+    ['WcPostFX', 'Vignette, scanlines and a colour wash on one shaded quad, with presets — identical on both backends because it never reads the screen.'],
+    ['WcLight', '2D lighting that works on both backends: a day–night ramp plus generated point lights that flicker and pulse.']]],
+  ['Perf', '#ffc15e', [
+    ['WcPool', 'A node recycler for projectiles and particles — no more hitches on the frame something spawns.'],
+    ['WcDraw', 'The 2D drawing both games hand-rolled: glow circles, range rings, health bars, dashed lines, arrows, turret barrels, cooldown wedges.'],
+    ['WcFX / WcGlow', 'One-shot particle bursts and screen flashes, and bloom that is real on Forward+ (Wally) and a safe no-op on Compatibility (Jurassic).']]],
+  ['Gameplay', '#9fb4ff', [
+    ['WcGrid', 'A 2D spatial hash, so tower targeting stops checking every tower against every enemy every frame.'],
+    ['WcState', 'An allocation-free state machine for creeps, guests and dinosaurs.'],
+    ['WcPath', 'Waypoint following with exact speed × delta movement, progress, heading, seek and loop.'],
+    ['WcCamera', 'Damped follow with a deadzone, look-ahead, bounds and smooth zoom.'],
+    ['WcJuice', 'Squash and stretch, pop-in, hit-flash, float-up, fade.']]],
+  ['Core', '#ff8fb8', [
+    ['WcSave / WcOptions', 'Slotted, versioned saves written atomically, and settings kept apart from them.'],
+    ['WcFlow', 'Scene changes with fades, and a global pause.'],
+    ['WcChangelog', 'The release history shipped inside the build, with a drop-in What\u2019s New window — F1 in the demo.'],
+    ['WcDebug', 'F3: frame rate, draw calls, VRAM, audio voices and the RNG seed.'],
+    ['WcCore / WcRng', 'The version, a one-line boot(), the self-test harness, and seeded randomness so a run replays exactly.']]]
+];
+var map = document.getElementById('map'), detail = document.getElementById('detail');
+map.innerHTML = GROUPS.map(function(g){
+  return '<div class="grp" style="--c:' + g[1] + '"><h3>' + g[0] + '</h3>' + g[2].map(function(m){ return '<button class="mod" data-d="' + m[1].replace(/"/g,'&quot;') + '">' + m[0] + '</button>'; }).join('') + '</div>';
+}).join('');
+function show(b){ map.querySelectorAll('.mod').forEach(function(x){ x.classList.toggle('on', x === b); }); detail.innerHTML = '<b>' + b.textContent + '</b>' + b.getAttribute('data-d'); }
+map.addEventListener('mouseover', function(e){ var b = e.target.closest('.mod'); if (b) { show(b); } });
+map.addEventListener('focusin', function(e){ var b = e.target.closest('.mod'); if (b) { show(b); } });
+show(map.querySelector('.mod'));
+
+var REL = [
+  ['1.3.1','The Shakedown Update','2026-08-07',['FIX','UX'],'Two bugs found by using the engine rather than testing it — F1 never opened the What\u2019s New window — plus seven more from an adversarial sweep.'],
+  ['1.3.0','The Pipeline Update','2026-08-07',['RENDER','AUDIO','PERF','FIX'],'OpenGL and Vulkan both first-class: WcRenderer, WcPostFX, WcLight, fourteen more cues and two new ambient beds.'],
+  ['1.2.1','The Proving Ground Update','2026-08-06',['FIX','PERF','TOOLS'],'Updates get names; a property-based stress harness; a camera that was broken on every frame it ran, fixed.'],
+  ['1.2.0','The Playbook Update','2026-08-06',['AUDIO','PERF','GAMEPLAY','FIX','UX'],'A launcher menu, the changelog inside the build, eighteen new cues, positional audio, five music themes, and the gameplay kit: grid, state, path, camera, juice.'],
+  ['1.1.0','The Mixer Update','2026-07-24',['AUDIO','RENDER','PERF','CORE'],'A real mixer, synthesis on a worker thread with a disk cache, the pool, the drawing kit, scene flow, the F3 overlay — and the v1-forever rule.'],
+  ['1.0.0','The Foundation Update','2026-07-21',['CORE','AUDIO','TOOLS'],'Extracted from what Wally2TTD-Godot and Jurassic Empire had already built: the synthesized audio kernel, the bus, saves, options, the self-test.']
+];
+function when(iso){ var d = new Date(iso + 'T12:00:00'); return d.getDate() + ' ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] + ' 2026'; }
+document.getElementById('rel').innerHTML = REL.map(function(r, i){
+  return '<div class="r' + (i === 0 ? ' now' : '') + '"><span class="v">' + r[0] + '</span><div><h4>' + r[1] + '</h4><p>' + r[4] + '</p></div>' +
+    '<span class="d">' + when(r[2]) + '<br>' + r[3].map(function(t){ return '<i>' + t + '</i>'; }).join('') + '</span></div>';
+}).join('');
+
+/* 1.0.0 … 1.9.9 is one hundred slots; 1.3.1 is the 32nd. Six releases so far. */
+var used = ['1.0.0','1.1.0','1.2.0','1.2.1','1.3.0','1.3.1'];
+var slots = [];
+for (var mi = 0; mi <= 9; mi++){ for (var pa = 0; pa <= 9; pa++){ var v = '1.' + mi + '.' + pa;
+  slots.push('<i class="' + (v === '1.3.1' ? 'now' : used.indexOf(v) >= 0 ? 'used' : v === '1.9.9' ? 'ceil' : '') + '" title="' + v + '"></i>'); } }
+document.getElementById('slots').innerHTML = slots.join('');
+
+/* The comparison: Compatibility/OpenGL on the left, Forward+/Vulkan on the right. */
+var base = '../../files/Claude%20CoWork%20Enclosed/WallyCore1/build/screenshots/';
+function set(which){
+  document.getElementById('imgL').src = base + which + '_gl_compatibility.png';
+  document.getElementById('imgR').src = base + which + '_forward_plus.png';
+  document.querySelectorAll('.pick button').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-set') === which ? 'true' : 'false'); });
+}
+set('demo');
+document.querySelectorAll('.pick button').forEach(function(b){ b.addEventListener('click', function(){ set(b.getAttribute('data-set')); }); });
+var cmp = document.getElementById('cmp'), clip = document.getElementById('clip'), handle = document.getElementById('handle'), dragging = false;
+function move(x){ var r = cmp.getBoundingClientRect(), p = Math.max(0, Math.min(1, (x - r.left) / r.width)); clip.style.clipPath = 'inset(0 ' + ((1 - p) * 100) + '% 0 0)'; handle.style.left = (p * 100) + '%'; }
+cmp.addEventListener('pointerdown', function(e){ dragging = true; cmp.setPointerCapture(e.pointerId); move(e.clientX); });
+cmp.addEventListener('pointermove', function(e){ if (dragging) { move(e.clientX); } });
+cmp.addEventListener('pointerup', function(){ dragging = false; });
+
+var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var io = new IntersectionObserver(function(l){ l.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.rv').forEach(function(s){ io.observe(s); });
+document.getElementById('copy').addEventListener('click', function(){
+  var b = this, t = document.getElementById('path').textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ b.textContent = 'Copied'; }, function(){ b.textContent = 'Select and copy'; });
+  setTimeout(function(){ b.textContent = 'Copy the path'; }, 1800);
+});
+
+/* The oscilloscope: a square wave and a sine, drifting in phase — and, once "Hear it" is pressed,
+   the real signal from the Web Audio analyser instead. */
+(function(){
+  var cv = document.getElementById('scope'), c = cv.getContext('2d'), W = cv.width, H = cv.height, t0 = performance.now();
+  var actx = null, analyser = null, data = null, playing = false;
+  function grid(){
+    c.fillStyle = '#021012'; c.fillRect(0, 0, W, H);
+    c.strokeStyle = 'rgba(53,185,201,.10)'; c.lineWidth = 1;
+    for (var x = 0; x <= W; x += W / 10){ c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+    for (var y = 0; y <= H; y += H / 6){ c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.strokeStyle = 'rgba(53,185,201,.25)'; c.beginPath(); c.moveTo(0, H/2); c.lineTo(W, H/2); c.stroke();
+  }
+  function trace(fn, color, width){
+    c.strokeStyle = color; c.lineWidth = width; c.shadowBlur = 14; c.shadowColor = color; c.beginPath();
+    for (var x = 0; x <= W; x += 2){ var y = fn(x); x === 0 ? c.moveTo(x, y) : c.lineTo(x, y); }
+    c.stroke(); c.shadowBlur = 0;
+  }
+  function frame(now){
+    var t = (now - t0) / 1000; grid();
+    if (playing && analyser){
+      analyser.getFloatTimeDomainData(data);
+      trace(function(x){ return H/2 - data[Math.floor(x / W * (data.length - 1))] * H * .42; }, '#6ff0c4', 2.4);
+    } else {
+      trace(function(x){ var p = (x / W * 6 + t * .6) % 1; return H/2 - (p < .5 ? 1 : -1) * H * .16 - Math.sin(x / W * 12.566 + t) * H * .05; }, '#ffc15e', 2);
+      trace(function(x){ return H/2 + Math.sin(x / W * 6.283 * 1.5 + t * 1.7) * H * .22; }, '#6ff0c4', 2.4);
+    }
+    if (!reduced || playing) { requestAnimationFrame(frame); }
+  }
+  requestAnimationFrame(frame);
+
+  /* A four-bar loop: a square lead over a sine bass. Short, quiet, and only on a click. */
+  document.getElementById('play').addEventListener('click', function(){
+    if (playing) { return; }
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    analyser = actx.createAnalyser(); analyser.fftSize = 2048; data = new Float32Array(analyser.fftSize);
+    var master = actx.createGain(); master.gain.value = .16; master.connect(analyser); analyser.connect(actx.destination);
+    var lead = [69,72,76,72, 71,74,79,74, 69,72,76,81, 79,76,74,71], bass = [45,45,43,43];
+    var step = .16, start = actx.currentTime + .05;
+    lead.forEach(function(n, i){
+      var o = actx.createOscillator(), g = actx.createGain(), at = start + i * step;
+      o.type = 'square'; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.35, at + .01); g.gain.exponentialRampToValueAtTime(.001, at + step * .95);
+      o.connect(g); g.connect(master); o.start(at); o.stop(at + step);
+    });
+    bass.forEach(function(n, i){
+      var o = actx.createOscillator(), g = actx.createGain(), at = start + i * step * 4;
+      o.type = 'sine'; o.frequency.value = 440 * Math.pow(2, (n - 69) / 12);
+      g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(.9, at + .02); g.gain.linearRampToValueAtTime(0, at + step * 4);
+      o.connect(g); g.connect(master); o.start(at); o.stop(at + step * 4);
+    });
+    playing = true; this.querySelector('span').textContent = 'Playing…';
+    if (reduced) { requestAnimationFrame(frame); }
+    var btn = this;
+    setTimeout(function(){ playing = false; btn.querySelector('span').textContent = 'Hear it again'; }, lead.length * step * 1000 + 250);
+  });
+})();
+</script>
+</body>
+</html>

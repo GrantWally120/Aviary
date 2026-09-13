@@ -44,6 +44,13 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
+# The Menagerie's copies of Grant's own projects (tools/library/sync.ps1). Rebuilt from his
+# Documents folder whenever it runs, and personal — they must never reach a public repo.
+src/Aviary/Library/files/
+src/Aviary/Library/thumbs/
+src/Aviary/Library/builds/
+tools/library/work/
+
 # Test kit output (tools/test/README.md)
 tools/test/pub/
 tools/test/profiles/

@@ -1,0 +1,5 @@
+{
+  "//": "Stops Node walking up to C:/Users/user/Documents/package.json (an old, malformed Wally2TTD file) — the nearest package.json wins.",
+  "private": true,
+  "type": "commonjs"
+}

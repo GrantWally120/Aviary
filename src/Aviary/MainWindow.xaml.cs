@@ -807,6 +807,23 @@ public sealed partial class MainWindow : Window
             })
             .ToList();
 
+        // The Menagerie row: the exhibits catalog.json marks featured (Library.cs). Null when this
+        // build carries no library, which also takes the row out of the Customise popover.
+        object? menagerie = null;
+        if (Library.Available)
+        {
+            (IReadOnlyList<Library.Featured> items, int count) = Library.FeaturedExhibits();
+            if (items.Count > 0)
+            {
+                menagerie = new
+                {
+                    home = Library.Home,
+                    count,
+                    items = items.Select(f => new { title = f.Title, url = f.Url, thumb = f.Thumb, accent = f.Accent, note = f.Note, mono = f.Mono }),
+                };
+            }
+        }
+
         var payload = new
         {
             token = PageToken,
@@ -816,11 +833,13 @@ public sealed partial class MainWindow : Window
             sections = new
             {
                 favourites = AppSettings.Get("startFavourites") != "false",
+                menagerie = AppSettings.Get("startMenagerie") != "false",
                 frequent = AppSettings.Get("startFrequent") != "false",
                 reading = AppSettings.Get("startReading") != "false",
                 privacy = AppSettings.Get("startPrivacy") != "false",
             },
             favourites,
+            menagerie,
             frequent,
             reading,
             privacy = BuildPrivacyPayload(),
@@ -2083,6 +2102,18 @@ public sealed partial class MainWindow : Window
         MenuFlyoutItem downloads = new() { Text = "Downloads" };
         downloads.Click += (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs());
         menu.Items.Add(downloads);
+
+        // Grant's own projects, bundled and offline (Library.cs). Absent from a build without them.
+        if (Library.Available)
+        {
+            MenuFlyoutItem menagerie = new() { Text = Library.Name };
+            menagerie.Click += (_, _) =>
+            {
+                DiagUi("menagerie-open", new { from = "app menu" });
+                OpenNewTab(Library.Home);
+            };
+            menu.Items.Add(menagerie);
+        }
 
         menu.Items.Add(new MenuFlyoutSeparator());
 

@@ -101,8 +101,9 @@ useful for debugging but a password-reset or login link is not a working credent
   a near-free no-op while collection is off.
 - Background writer on a channel; the UI thread only enqueues, never waits on disk. Network
   logging is batched so a busy page cannot flood the writer.
-- **200 MB** rolling cap (network logging needs room), **30-day** retention, rotated per
-  file, both shown in the row. **Private windows are never recorded.**
+- **200 MB** rolling cap (network logging needs room) — **raised to 500 MB in M2.5** —
+  **30-day** retention, rotated per file, both shown in the row. **Private windows are never
+  recorded.**
 - Row at the **bottom of Privacy**, stating plainly that it records every web address,
   page title and search. Buttons: **Open folder**, **Delete collected data**. Clear
   browsing data offers to clear it too.
@@ -146,6 +147,16 @@ Build 5 (AB5)**, a pre-release (HANDOFF §15). Committed 13 Sep (`6f44c59` + the
 - **Private window**: separate in-memory profile; `History.Record` already checks `privateMode`.
 - **Save passwords** made real via WebView2's password-autosave setting.
 - **Website data**: per-site list of cookies/storage with remove.
+
+### M2.5 — The Menagerie · **done 13 Sep 2026** (HANDOFF §16)
+Grant's "middle update", added between M2 and M3. His projects inside Aviary, running offline at
+`https://menagerie.aviary/`: the whole Wally series (the Complete Edition plus Silver, Radio, the
+v2.5 folder's cuts and the rest found across Documents) and everything else in the CoWork folder
+bar his six exclusions — 49 exhibits, copied, never edited. Wally2TTD 2.4.2 exported for the web
+and Jurassic Empire's own web build both play in a tab. New landing pages for what a browser
+cannot run — **Wally2TTD 2.4.1 & 2.4.2** (one page for both, as asked), the Wally2TTD Launcher,
+WallyCore1, TinyCalc. Entry: app menu, a Start Page row, the address. Also: a description under
+every milestone in Updates (and M2.5 itself), and the diagnostics cap raised to **500 MB**.
 
 ### M3 — The ad blocker: filter engine + selective control
 New `FilterEngine.cs` (parser + token index) and `Shields.cs` (per-site state).
@@ -270,7 +281,7 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
 ### M8 — Beta preparation
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
   repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
-- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 9` (0.5.0 and the name
+- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 10` (0.5.0 and the name
   "Alpha Build 5" already arrived on 13 Sep — until M8 they are labelled pre-release). Updates'
   AB5 entry finished, landing page and HANDOFF updated.
 

@@ -44,12 +44,13 @@ internal static class BuildInfo
     public const int PhaseShipped = 4;
 
     /// <summary>
-    /// How many of this build's milestones are finished (PHASE5-PLAN.md: M0 to M8, so nine).
-    /// Bump it when a milestone ships; Updates ticks them off from this one number.
+    /// How many of this build's milestones are finished, counted in order (PHASE5-PLAN.md: M0,
+    /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
+    /// when a milestone ships; Updates ticks them off from this one number.
     /// </summary>
-    public const int MilestonesDone = 3;
+    public const int MilestonesDone = 4;
 
-    public const int Milestones = 9;
+    public const int Milestones = 10;
 
     /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
     private const int LastAlphaPhase = 5;
@@ -84,7 +85,7 @@ internal static class BuildInfo
     public static string PhaseLabel =>
         (PhaseNumber < 10 ? "0" : "") + PhaseNumber + " — " + PhaseName;
 
-    /// <summary>"3 of 9 milestones done" while a pre-release; empty once the build ships.</summary>
+    /// <summary>"4 of 10 milestones done" while a pre-release; empty once the build ships.</summary>
     public static string Progress =>
         PreRelease ? MilestonesDone + " of " + Milestones + " milestones done" : string.Empty;
 

@@ -93,6 +93,28 @@ internal static class StartPage
     max-width:88px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   }
 
+  /* The Menagerie: Grant's own projects, bundled with Aviary (Library.cs). A row of the
+     exhibits catalog.json marks featured, each a window onto its thumbnail — its initials in
+     its own colour until the image arrives, or if it never does — then the way into all of it. */
+  .mg{display:grid;grid-auto-flow:column;grid-auto-columns:172px;gap:12px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin;}
+  .mg__card{
+    position:relative;display:flex;flex-direction:column;gap:2px;border:1px solid var(--line);border-radius:12px;
+    background:var(--card);padding:0 0 10px;overflow:hidden;cursor:default;text-align:left;font:inherit;color:inherit;
+    transition:transform 150ms cubic-bezier(.32,.72,0,1),box-shadow 150ms;
+  }
+  .mg__card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12);}
+  .mg__win{position:relative;display:block;aspect-ratio:16/10;background:color-mix(in srgb,var(--c) 20%,var(--well));border-bottom:1px solid var(--line);}
+  .mg__win img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top center;}
+  .mg__mono{position:absolute;inset:0;display:grid;place-items:center;font:700 26px/1 "Bahnschrift","Segoe UI",sans-serif;color:var(--c);}
+  .mg__t{padding:0 11px;margin-top:7px;font-size:12.5px;font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mg__n{padding:0 11px;font-size:11.5px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mg__all{
+    display:grid;place-items:center;align-content:center;gap:4px;border:1px dashed var(--line);border-radius:12px;
+    background:transparent;color:var(--ink-2);font:500 12.5px/1.35 inherit;cursor:default;text-align:center;padding:12px;
+  }
+  .mg__all:hover{background:var(--well);color:var(--ink);}
+  .mg__all b{font:700 26px/1 "Bahnschrift","Segoe UI",sans-serif;color:var(--ink);}
+
   /* Reading list, a horizontal row of cards. */
   .rl{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin;}
   .rl__card{
@@ -233,7 +255,7 @@ internal static class StartPage
 /*__AVIARY_START__*/
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
 var ICONS = D.iconBase || '';
-var SHOW = D.sections || {favourites:true, frequent:true, reading:true, privacy:true};
+var SHOW = D.sections || {favourites:true, menagerie:true, frequent:true, reading:true, privacy:true};
 
 /* Every message carries this page's secret, which the host checks: the host's handler stays
    attached after the tab moves on to a website, and only Aviary's own page knows the token. */
@@ -319,6 +341,21 @@ function render(){
   out += section('favourites', 'Favourites',
     favs.length ? '<div class="grid">' + favs.map(tile).join('') + '</div>'
                 : '<p class="empty">Press Ctrl+D on a page to keep it here.</p>');
+
+  /* Grant's projects, offline, from Aviary's own folder — absent in a build without them. */
+  var mg = D.menagerie;
+  if (mg && mg.items && mg.items.length){
+    out += section('menagerie', 'The Menagerie', '<div class="mg">' + mg.items.map(function(it){
+      var w = String(it.title).split(/\s+/);
+      var initials = it.mono || ((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase();
+      return '<button class="mg__card" data-url="' + esc(it.url) + '" title="' + esc(it.title) + '" style="--c:' + esc(it.accent) + '">' +
+               '<span class="mg__win"><span class="mg__mono">' + esc(initials) + '</span>' +
+               '<img src="' + esc(it.thumb) + '" alt="" loading="lazy" onerror="this.remove()"></span>' +
+               '<span class="mg__t">' + esc(it.title) + '</span><span class="mg__n">' + esc(it.note) + '</span>' +
+             '</button>';
+    }).join('') +
+      '<button class="mg__all" data-url="' + esc(mg.home) + '"><b>' + (mg.count | 0) + '</b>exhibits in the Menagerie &rarr;</button></div>');
+  }
 
   var freq = D.isPrivate ? [] : (D.frequent || []);
   if (freq.length){
@@ -451,8 +488,9 @@ document.addEventListener('click', function(e){
 }, true);
 
 /* ── customise ─────────────────────────────────────────────────────────── */
-var LABELS = {favourites:'Favourites', frequent:'Frequently Visited',
+var LABELS = {favourites:'Favourites', menagerie:'The Menagerie', frequent:'Frequently Visited',
               reading:'Reading List', privacy:'Privacy Report'};
+if (!D.menagerie) { delete LABELS.menagerie; }
 
 function buildCust(){
   var pop = document.getElementById('custPop');

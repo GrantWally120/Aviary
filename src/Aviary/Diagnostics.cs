@@ -28,7 +28,7 @@ namespace Aviary;
 /// bounded channel and return; nothing on the UI thread ever waits on the disk. ONE writer
 /// thread turns each record into a JSON line, runs EVERY string in it through
 /// <see cref="Scrub"/> — the secret filter, in Diagnostics.Scrub.cs — and appends it to its
-/// category's file. The writer also owns rotation, the 200 MB cap, 30-day retention,
+/// category's file. The writer also owns rotation, the size cap (<see cref="CapBytes"/>), 30-day retention,
 /// deletion and summary.md, so the files are only ever touched from one thread and there is
 /// no locking around them at all.
 ///
@@ -42,7 +42,14 @@ internal static partial class Diagnostics
     /// <summary>The settings key behind the switch at the bottom of Privacy.</summary>
     public const string SettingKey = "improvementCollection";
 
-    public const long CapBytes = 200L * 1024 * 1024;
+    /// <summary>
+    /// The whole folder never grows past this; the oldest archives go first. 500 MB since Alpha
+    /// Build 5 M2.5 (Grant, 13 Sep 2026: more room means longer, richer history to learn from;
+    /// it was 200 MB). Every sentence that states the cap is built from this number.
+    /// </summary>
+    public const int CapMB = 500;
+
+    public const long CapBytes = CapMB * 1024L * 1024;
     public const int RetentionDays = 30;
 
     /// <summary>A category file is moved into archive/ once it reaches this size.</summary>
@@ -718,7 +725,7 @@ internal static partial class Diagnostics
     }
 
     /// <summary>
-    /// 200 MB, oldest first. Archives go before anything else; the active files and the
+    /// <see cref="CapMB"/>, oldest first. Archives go before anything else; the active files and the
     /// crash reports are the last thing anyone would want gone.
     /// </summary>
     private static void EnforceCap()

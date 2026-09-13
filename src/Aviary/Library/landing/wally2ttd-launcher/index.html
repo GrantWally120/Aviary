@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Wally2TTD Launcher</title>
+<meta name="description" content="The Wally2TTD Launcher: a zero-install desktop command deck that finds every build, keeps score and profiles your rig.">
+<style>
+/* The Wally2TTD Launcher — its landing page in Aviary's Menagerie (AB5 M2.5). The launcher is a
+   Windows program (C# 5 + WebView2), so it cannot run in a tab; this page shows it instead, in
+   its own clothes: CRT scanlines, a neon grid horizon, the systems-check boot from v0.4.1.
+   Everything described is read from Launcher.cs and the patch log inside Launcher\ui.html. */
+:root{
+  --bg:#07040f; --panel:rgba(20,10,34,.8); --ink:#f5ecff; --ink-2:#c3b2d8; --ink-3:#7d6e94;
+  --pink:#ff6fb0; --cyan:#6fe8ff; --gold:#ffcc4d; --line:rgba(255,111,176,.16); --line-2:rgba(255,111,176,.32);
+  --disp:"Bahnschrift","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,.8,.26,1); color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(900px 520px at 50% -8%,rgba(255,111,176,.18),transparent 62%),linear-gradient(180deg,#0b0518,#07040f 60%);color:var(--ink);font:400 15.5px/1.6 var(--body)}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--pink);outline-offset:3px;border-radius:8px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 clamp(18px,4vw,44px)}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.back{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--disp);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.back:hover{color:var(--pink);border-color:var(--line-2)}
+.chip{font:700 11px/1 var(--mono);letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase}
+
+.hero{text-align:center;padding:26px 0 0}
+.kick{font:700 12px/1 var(--mono);letter-spacing:.34em;color:var(--pink);text-transform:uppercase}
+h1{margin:16px 0 0;font:700 clamp(46px,7vw,96px)/.9 var(--disp);font-stretch:75%;text-transform:uppercase;letter-spacing:.02em;
+  background:linear-gradient(180deg,#fff 20%,#ffc2e0 60%,var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(255,111,176,.35))}
+.lede{max-width:660px;margin:18px auto 0;color:var(--ink-2);font-size:clamp(16px,1.5vw,18px)}
+
+/* The CRT: the launcher's boot, replayed. */
+.crt{position:relative;max-width:860px;margin:36px auto 0;border-radius:26px;padding:18px;background:linear-gradient(180deg,#1a1026,#0f0818);border:1px solid var(--line);box-shadow:0 40px 90px rgba(0,0,0,.6),0 0 0 1px rgba(255,111,176,.06),inset 0 1px 0 rgba(255,255,255,.04)}
+.screen{position:relative;height:370px;border-radius:14px;overflow:hidden;background:radial-gradient(ellipse at center,#12081f 0%,#05020a 100%);border:1px solid rgba(255,111,176,.2)}
+.screen::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px);pointer-events:none;mix-blend-mode:multiply}
+.screen::before{content:"";position:absolute;inset:0;box-shadow:inset 0 0 90px rgba(0,0,0,.8);pointer-events:none;z-index:3}
+#grid{position:absolute;left:0;right:0;bottom:0;height:46%;display:block;width:100%}
+.boot{position:absolute;inset:0;padding:22px 26px;font:500 13.5px/1.75 var(--mono);color:#ffd1e8;z-index:2;text-align:left}
+.boot .l{white-space:pre;opacity:0}
+.boot .l.on{opacity:1}
+.boot .ok{color:#6fffb0}
+.boot .dim{color:var(--ink-3)}
+.boot .cur{display:inline-block;width:8px;height:15px;background:var(--pink);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.deck{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;opacity:0;transition:opacity .8s var(--ease);pointer-events:none}
+.deck.on{opacity:1}
+.deck b{font:700 40px/1 var(--disp);font-stretch:75%;letter-spacing:.06em;text-transform:uppercase;color:#fff;text-shadow:0 0 18px var(--pink)}
+.deck span{font:700 12px/1 var(--mono);letter-spacing:.24em;color:var(--cyan)}
+.cards{display:flex;gap:10px;margin-top:8px}
+.cards i{display:block;width:92px;height:58px;border-radius:9px;border:1px solid rgba(111,232,255,.35);background:linear-gradient(180deg,rgba(111,232,255,.14),rgba(111,232,255,.03));transform:perspective(420px) rotateX(18deg);animation:bob 3.2s ease-in-out infinite}
+.cards i:nth-child(2){border-color:rgba(255,204,77,.5);background:linear-gradient(180deg,rgba(255,204,77,.18),rgba(255,204,77,.03));animation-delay:.3s}
+.cards i:nth-child(3){border-color:rgba(255,111,176,.5);background:linear-gradient(180deg,rgba(255,111,176,.2),rgba(255,111,176,.04));animation-delay:.6s}
+.cards i:nth-child(4){animation-delay:.9s}
+@keyframes bob{50%{transform:perspective(420px) rotateX(18deg) translateY(-5px)}}
+.replay{position:absolute;right:30px;bottom:26px;z-index:4;border:1px solid var(--line-2);background:rgba(20,10,34,.85);color:var(--ink-2);font:700 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;padding:8px 11px;border-radius:9px;cursor:pointer}
+.replay:hover{color:#fff}
+.caption{margin-top:12px;text-align:center;font:600 11.5px/1.4 var(--mono);color:var(--ink-3)}
+
+section{padding:64px 0 0}
+.h{display:flex;align-items:baseline;gap:14px;margin-bottom:22px}
+.h h2{margin:0;font:700 clamp(28px,3.4vw,40px)/1 var(--disp);font-stretch:80%;text-transform:uppercase;letter-spacing:.02em}
+.h span{font:700 11px/1 var(--mono);letter-spacing:.22em;color:var(--ink-3);text-transform:uppercase}
+.rv{opacity:0;transform:translateY(18px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.rv.in{opacity:1;transform:none}
+
+.feats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media (max-width:860px){.feats{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.feats{grid-template-columns:1fr}}
+.feat{position:relative;padding:20px;border-radius:18px;background:var(--panel);border:1px solid var(--line);transition:transform .35s var(--ease),border-color .35s}
+.feat:hover{transform:translateY(-3px) rotate(-.3deg);border-color:var(--line-2)}
+.feat b{display:block;font:700 12px/1 var(--mono);letter-spacing:.18em;color:var(--c,var(--pink));text-transform:uppercase}
+.feat h3{margin:10px 0 6px;font:700 20px/1.1 var(--disp);letter-spacing:.02em}
+.feat p{margin:0;color:var(--ink-2);font-size:14px}
+
+.tags{display:flex;flex-wrap:wrap;gap:10px}
+.tag{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.tag em{font:700 11px/1 var(--mono);font-style:normal;letter-spacing:.14em;padding:6px 8px;border-radius:7px;border:1px solid currentColor;color:var(--c)}
+
+.log{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,260px);gap:12px;overflow-x:auto;padding:4px 2px 16px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.patch{scroll-snap-align:start;display:flex;flex-direction:column;padding:16px;border-radius:16px;background:var(--panel);border:1px solid var(--line);text-align:left;color:inherit;font:inherit;cursor:pointer;transition:border-color .3s,transform .3s var(--ease)}
+.patch:hover{border-color:var(--line-2);transform:translateY(-2px)}
+.patch .v{font:700 30px/1 var(--disp);font-stretch:80%;color:var(--pink)}
+.patch .v small{font:700 11px/1 var(--mono);color:var(--ink-3);letter-spacing:.1em;margin-left:8px;vertical-align:4px}
+.patch .n{margin-top:8px;font:700 13px/1.2 var(--mono);letter-spacing:.16em;color:var(--cyan);text-transform:uppercase}
+.patch ul{margin:10px 0 0;padding-left:16px;font-size:12.8px;color:var(--ink-2);display:grid;gap:4px}
+.patch ul li:nth-child(n+3){display:none}
+.patch.open ul li{display:list-item}
+.patch .more{margin-top:auto;padding-top:10px;font:700 10.5px/1 var(--mono);letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase}
+.patch.latest{border-color:rgba(255,111,176,.5);box-shadow:0 0 30px rgba(255,111,176,.12)}
+
+.why{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+.box{padding:22px 24px;border-radius:18px;background:var(--panel);border:1px solid var(--line)}
+.box h3{margin:0 0 8px;font:700 22px/1.1 var(--disp)}
+.box p{margin:0 0 10px;color:var(--ink-2)}
+.box code{display:block;margin-top:8px;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.35);font:500 12.5px/1.5 var(--mono);color:#ffe0ef;word-break:break-all}
+.copy{margin-top:10px;border:1px solid var(--line-2);background:rgba(20,10,34,.9);color:var(--ink-2);font:700 11px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:9px 12px;border-radius:9px;cursor:pointer}
+.copy:hover{color:#fff}
+.go{display:inline-flex;align-items:center;gap:8px;margin-top:6px;color:var(--cyan);font:700 14px/1 var(--disp);letter-spacing:.04em}
+footer{padding:50px 0 60px;color:var(--ink-3);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+@media (max-width:860px){.why{grid-template-columns:1fr}.screen{height:420px}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}.rv{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="back" href="../../index.html"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2 4 7l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>The Menagerie</a>
+    <span class="chip">Desktop app · landing page</span>
+  </div>
+
+  <header class="hero">
+    <div class="kick">Wally2TTD · the command deck</div>
+    <h1>The Launcher</h1>
+    <p class="lede">A zero-install desktop deck for the whole Complete Edition. It finds every build in its folder, watches for new ones, keeps score of what you play — and reads your rig down to the RAM sticks.</p>
+
+    <div class="crt">
+      <div class="screen" id="screen">
+        <canvas id="grid" width="860" height="170" aria-hidden="true"></canvas>
+        <div class="boot" id="boot" aria-hidden="true"></div>
+        <div class="deck" id="deck"><span>WALLY2TTD LAUNCHER · v0.9.1</span><b>Command deck online</b><div class="cards"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <button class="replay" id="replay">Replay boot</button>
+    </div>
+    <div class="caption">The systems check the launcher runs on start — replayed here. The real one checks real things.</div>
+  </header>
+
+  <section class="rv">
+    <div class="h"><h2>What it does</h2><span>Everything a tab isn't allowed to</span></div>
+    <div class="feats">
+      <div class="feat"><b>Finds</b><h3>Every build, found</h3><p>Scans its folder and Archive/ for every .html and .exe build. One the edition expects but can't find becomes a NOT DETECTED card, with the path it belongs at.</p></div>
+      <div class="feat" style="--c:var(--cyan)"><b>Watches</b><h3>Live folder watch</h3><p>Drop a build in and it appears; take it out and it goes — no restart. It never lists itself.</p></div>
+      <div class="feat" style="--c:var(--gold)"><b>Keeps score</b><h3>Your play, counted</h3><p>Launches, total playtime and last played for every build, a TOP badge on your most-played, and sorting by version, recent or played.</p></div>
+      <div class="feat"><b>Self report</b><h3>Builds speak for themselves</h3><p>A build can declare its own version track; the deck reads it straight out of the game file and shows it as a chip — v1.8 Remastered's build number updates itself.</p></div>
+      <div class="feat" style="--c:var(--cyan)"><b>Scan PC</b><h3>Reads your rig</h3><p>One click: CPU cores and clock, GPUs and VRAM, motherboard, BIOS, every drive, the RAM layout and speed, monitors and refresh rates — in the background, so the deck never freezes.</p></div>
+      <div class="feat" style="--c:var(--gold)"><b>Zero installs</b><h3>Built with what Windows has</h3><p>Compiled by the csc.exe that ships with Windows — deliberately C# 5 — with a WebView2 face. Nothing to install before it runs.</p></div>
+    </div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>The tags on the deck</h2><span>Read at a glance</span></div>
+    <div class="tags">
+      <div class="tag" style="--c:var(--gold)"><em>D-CUT</em>Director's Cut builds</div>
+      <div class="tag" style="--c:#ff9f1c"><em>REMASTER</em>in v1.8's own cyan-and-orange</div>
+      <div class="tag" style="--c:#8fb5ff"><em>ENGINE</em>the Godot port</div>
+      <div class="tag" style="--c:var(--cyan)"><em>ATLAS</em>the Version Atlas</div>
+      <div class="tag" style="--c:#b98cff"><em>APP</em>desktop shells</div>
+      <div class="tag" style="--c:#9aa4b2"><em>ARCHIVE</em>superseded cuts</div>
+      <div class="tag" style="--c:var(--pink)"><em>TOP</em>your most-played</div>
+    </div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>The patch log</h2><span>Fourteen named updates · click one</span></div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <section class="rv">
+    <div class="h"><h2>Why it isn't a tab</h2><span>And where it lives</span></div>
+    <div class="why">
+      <div class="box"><h3>A web page may never do what it does.</h3>
+        <p>The launcher lists folders, starts programs, times how long they run and asks Windows about your hardware. A browser tab is not allowed to do any of that — which is exactly what keeps a tab safe. So the launcher lives on your desktop, and this page lives here.</p>
+        <a class="go" href="../../index.html#wally">Every build it launches is also in the Wally House →</a></div>
+      <div class="box"><h3>Open it</h3>
+        <p>Double-click it in the Complete Edition folder:</p>
+        <code id="path">C:\Users\user\Documents\Wally2TTD Complete Edition\Wally2TTD Launcher.exe</code>
+        <button class="copy" id="copy">Copy the path</button></div>
+    </div>
+  </section>
+
+  <footer><span>Part of the Menagerie in Aviary. 151 KB of launcher · 29 Aug 2026.</span><a href="../../index.html" style="color:var(--pink)">← Back to every exhibit</a></footer>
+</div>
+
+<script>
+"use strict";
+var LOG = [
+  ['0.0','FIRST LIGHT','17 Jul',['The command deck itself: a boot sequence, CRT scanlines and a neon grid horizon']],
+  ['0.1','GOLD CUT','17 Jul',['Gold D-CUT badges for Director\u2019s Cut builds','Full screen: a deck button, and F11 in every game window','An Archive folder, to hide builds without deleting them','Background capped near 30 fps and paused while unfocused']],
+  ['0.2',"COMMANDER'S LOG",'18 Jul',['Play stats per build: launches, playtime, last played','A TOP badge on your most-played build','Live folder watch — builds come and go without a restart','Sort by version, recent or played','Close-confirm protects running games']],
+  ['0.3','WIDESCREEN PROTOCOL','18 Jul',['Full-screen layout rebuilt: a centred wide deck and a bigger hero','This patch log','The launcher version in the title bar and the boot','A pink dot on UPDATES until you have read the latest']],
+  ['0.3.1','RIG CHECK','18 Jul',['RIG SETUP: log your whole PC and peripherals','A readout per monitor: resolution, refresh, primary','An extra tier for 1440p and 4K screens']],
+  ['0.4','DEEP SCAN','18 Jul',['SCAN PC: one click reads the whole machine','Motherboard, every drive, the RAM layout and speed','Runs in the background — the deck never freezes']],
+  ['0.4.1','SYSTEMS CHECK','18 Jul',['The boot becomes a full systems check with spinners and OK stamps','Card tilt reacts in about 100 ms','The deck no longer jumps to the top on a live update']],
+  ['0.5','WARM START','18 Jul',['RIG SETUP redesigned into grouped neon cards','The scan sees more: network, sound devices, BIOS, CPU clock, free disk','The deep scan warms up behind the boot, so SCAN PC is instant']],
+  ['0.6','ATLAS LINK','24 Jul',['The Version Atlas registered as a companion with its own tag','An interactive timeline and compare deck in a launcher-owned window']],
+  ['0.7','FULL MUSTER','26 Jul',['Every build in the Complete Edition on the deck','.exe builds scanned alongside .html — the Godot port gets a real card','Archive/ scanned, with an ARCHIVE tag','NOT DETECTED cards for builds it expects but cannot find','It never lists itself']],
+  ['0.8','LINE CROSS','22 Aug',['v1.8 Remastered on the deck — Gen 1 carrying the Gen 2 arsenal','A REMASTER tag in v1.8\u2019s own colours']],
+  ['0.8.1','BUILD TRACK','22 Aug',['The deck follows v1.8 Remastered\u2019s own build track','A metadata pass — nothing else changed']],
+  ['0.9','SELF REPORT','23 Aug',['Builds can report their own version, shown as a chip','Read straight from the game file — no launcher rebuild needed']],
+  ['0.9.1','TRACK SYNC','27 Aug',['The browser-preview deck measured from disk, not remembered','The Version Atlas app card it was missing, added','No behaviour changed']]
+];
+document.getElementById('log').innerHTML = LOG.map(function(p, i){
+  return '<button class="patch' + (i === LOG.length - 1 ? ' latest' : '') + '"><span class="v">' + p[0] + '<small>' + p[2] + '</small></span>' +
+    '<span class="n">' + p[1] + '</span><ul>' + p[3].map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>' +
+    (p[3].length > 2 ? '<span class="more">+ ' + (p[3].length - 2) + ' more</span>' : '') + '</button>';
+}).join('');
+var logEl = document.getElementById('log');
+logEl.addEventListener('click', function(e){ var b = e.target.closest('.patch'); if (b){ b.classList.toggle('open'); } });
+requestAnimationFrame(function(){ logEl.scrollLeft = logEl.scrollWidth; });
+
+var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+var io = new IntersectionObserver(function(l){ l.forEach(function(e){ if (e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); } }); }, {rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.rv').forEach(function(s){ io.observe(s); });
+document.getElementById('copy').addEventListener('click', function(){
+  var b = this, t = document.getElementById('path').textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function(){ b.textContent = 'Copied'; }, function(){ b.textContent = 'Select and copy'; });
+  setTimeout(function(){ b.textContent = 'Copy the path'; }, 1800);
+});
+
+/* The boot: v0.4.1's systems check, line by line, then the deck. */
+var LINES = [
+  ['WALLY2TTD LAUNCHER v0.9.1 · TRACK SYNC', 'dim'],
+  ['> webview bridge ............', 'OK'],
+  ['> build index ............... scanned', 'OK'],
+  ['> pilot stats ............... loaded', 'OK'],
+  ['> rig profile ............... warm', 'OK'],
+  ['> display sync .............. locked', 'OK'],
+  ['> capacitor charge .......... 100%', 'OK'],
+  ['all systems nominal — opening the deck', 'dim']
+];
+var boot = document.getElementById('boot'), deck = document.getElementById('deck'), timers = [];
+function run(){
+  timers.forEach(clearTimeout); timers = [];
+  deck.classList.remove('on'); boot.style.opacity = 1;
+  boot.innerHTML = LINES.map(function(l){ return '<div class="l"><span' + (l[1] === 'dim' ? ' class="dim"' : '') + '>' + l[0] + '</span> <span class="st"></span></div>'; }).join('') + '<span class="cur"></span>';
+  var rows = boot.querySelectorAll('.l'), t = 250;
+  rows.forEach(function(r, i){
+    timers.push(setTimeout(function(){ r.classList.add('on'); }, t));
+    if (LINES[i][1] === 'OK'){
+      var st = r.querySelector('.st'), spin = '|/-\\', k = 0;
+      timers.push(setTimeout(function(){ var iv = setInterval(function(){ st.textContent = spin[k++ % 4]; }, 70); timers.push(setTimeout(function(){ clearInterval(iv); st.innerHTML = '<span class="ok">[ OK ]</span>'; }, 420)); }, t + 60));
+      t += 560;
+    } else { t += 420; }
+  });
+  timers.push(setTimeout(function(){ boot.style.transition = 'opacity .5s'; boot.style.opacity = 0; deck.classList.add('on'); }, t + 500));
+}
+document.getElementById('replay').addEventListener('click', run);
+if (reduced){ deck.classList.add('on'); } else { run(); }
+
+/* The neon grid horizon. */
+(function(){
+  var cv = document.getElementById('grid'), c = cv.getContext('2d'), off = 0, alive = true;
+  new IntersectionObserver(function(l){ alive = l[0].isIntersecting; }).observe(cv);
+  function draw(){
+    var W = cv.width, H = cv.height, hz = 8;
+    c.clearRect(0, 0, W, H);
+    var g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, 'rgba(255,111,176,0)'); g.addColorStop(1, 'rgba(255,111,176,.55)');
+    c.strokeStyle = g; c.lineWidth = 1.2;
+    for (var i = -14; i <= 14; i++){ c.beginPath(); c.moveTo(W/2 + i*14, hz); c.lineTo(W/2 + i*120, H); c.stroke(); }
+    for (var j = 0; j < 12; j++){ var p = ((j + off) % 12) / 12, y = hz + Math.pow(p, 2.2) * (H - hz); c.globalAlpha = p; c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+    c.globalAlpha = 1;
+    if (alive && !reduced){ off += .02; }
+    if (!reduced) { requestAnimationFrame(draw); }
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

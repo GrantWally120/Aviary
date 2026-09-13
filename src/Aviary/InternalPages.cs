@@ -244,7 +244,10 @@ internal static class InternalPages
   .bar__label{display:flex;justify-content:space-between;gap:16px;margin-top:9px;font-size:12px;color:var(--ink-2);}
   .bar__label b{color:var(--ink);font-weight:600;}
   .ms{margin:14px 0 0;padding:0;list-style:none;border-top:1px solid var(--line-soft);}
-  .ms li{display:grid;grid-template-columns:22px 30px minmax(0,1fr) auto;align-items:center;gap:4px;padding:9px 0;font-size:13px;}
+  .ms li{display:grid;grid-template-columns:22px 38px minmax(0,1fr) auto;align-items:start;gap:4px;padding:10px 0;font-size:13px;}
+  .ms li > span{padding-top:1px;}
+  .ms__t small{display:block;margin-top:2px;font-size:12px;line-height:1.45;color:var(--ink-2);font-weight:400;}
+  .ms li.todo .ms__t small{color:var(--ink-3);}
   .ms li + li{border-top:1px solid var(--line-soft);}
   .ms__dot{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--ink-3);display:grid;place-items:center;}
   .ms__dot svg{width:8px;height:8px;opacity:0;}
@@ -432,19 +435,39 @@ var UPDATES = [
     ]},
   { phase:5, name:'Privacy that works',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
-    short:'Every privacy switch now really does what it says — third-party cookies blocked, Global Privacy Control, tracking taken off links, HTTPS first — plus a private window, a list of what each site has stored, and this Updates page.',
+    short:'Grant’s own projects now live inside Aviary: the Menagerie runs every Wally2TTD, Jurassic Empire and the rest with no internet — on top of privacy switches that really do what they say.',
+    /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
+       "middle update"), so labels are written, not counted. `d` says what it is in plain words. */
     milestones:[
-      {t:'Loose ends from Alpha Build 4', when:'10 Sep'},
-      {t:'The diagnostics folder', when:'11 Sep'},
-      {t:'Every privacy switch made real', when:'13 Sep'},
-      {t:'An ad blocker you control site by site'},
-      {t:'Brave Search and more safe search engines'},
-      {t:'The download progress ring and tab groups'},
-      {t:'The Experimental menu, in plain English'},
-      {t:'Faster and smoother — and measured'},
-      {t:'Getting ready for Beta Build 1'}
+      {n:'M0', t:'Loose ends from Alpha Build 4', when:'10 Sep',
+       d:'Everything Alpha Build 4 had only ever compiled was tried in the running app, and the six things that were broken got fixed.'},
+      {n:'M1', t:'The diagnostics folder', when:'11 Sep',
+       d:'An opt-in record of what Aviary does, kept on this computer, so problems get found and every later change can be measured.'},
+      {n:'M2', t:'Every privacy switch made real', when:'13 Sep',
+       d:'Each privacy setting genuinely does what it says — cookies, tracking, HTTPS, the private window — tested with the switch on and off.'},
+      {n:'M2.5', t:'The Menagerie', when:'13 Sep',
+       d:'The middle update: Grant’s own projects — the whole Wally series and the rest — brought inside Aviary to run offline, with landing pages for the ones a browser can’t run, and room for 500 MB of diagnostics.'},
+      {n:'M3', t:'An ad blocker you control site by site',
+       d:'A real filter-list blocker built on EasyList and EasyPrivacy, with a shield for every site so you decide where it steps back.'},
+      {n:'M4', t:'Brave Search and more safe search engines',
+       d:'Brave Search, Mojeek, Qwant and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
+      {n:'M5', t:'The download progress ring and tab groups',
+       d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
+      {n:'M6', t:'The Experimental menu, in plain English',
+       d:'Twenty opt-in experiments, each explained in everyday words — and not one of them can make Aviary less safe.'},
+      {n:'M7', t:'Faster and smoother — and measured',
+       d:'Start-up, new tabs, memory and animation tuned, with every improvement proved by the diagnostics numbers rather than by feel.'},
+      {n:'M8', t:'Getting ready for Beta Build 1',
+       d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
+      {h:'The Menagerie', items:[
+        '<b>The Menagerie</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
+        '<b>Wally2TTD 2.4.2 and Jurassic Empire</b>, both built in Godot, now play right in a tab',
+        'New landing pages for Wally2TTD 2.4.1 &amp; 2.4.2, the Wally2TTD Launcher, WallyCore1 and TinyCalc — the things a browser can’t run itself',
+        'Open it from the app menu, or from its row on the Start Page',
+        'Every exhibit is a copy; the originals in Documents are never touched'
+      ]},
       {h:'Privacy', items:[
         '<b>Third-party cookies are really blocked</b> — the way ads follow you from one site to the next',
         '<b>Global Privacy Control</b> asks every site not to sell or share your data, replacing Do Not Track',
@@ -466,7 +489,8 @@ var UPDATES = [
         'Builds have names: Alpha Build 1 to 5, then Beta Build 1 and 2',
         '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
         'Only one Aviary runs at a time — opening it again brings the one already open to the front',
-        '“Allow data collection for improvements” keeps a record of what Aviary does in a folder on this computer, so problems can be found. It never leaves the computer and never holds passwords, form contents, cookies or card numbers'
+        '“Allow data collection for improvements” keeps a record of what Aviary does in a folder on this computer, so problems can be found. It never leaves the computer and never holds passwords, form contents, cookies or card numbers',
+        'That folder can now keep up to 500 MB — it was 200 MB — so it holds a longer history to learn from'
       ]},
       {h:'Safety fixes', items:[
         'A website could change Aviary’s settings — closed',
@@ -512,6 +536,7 @@ var SECTIONS = [
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
       {t:'Start Page sections', d:'The same switches as the Customise button in the corner of the Start Page.', ctl:{type:'none'}},
       {t:'Show Favourites', d:'', ctl:{type:'toggle', key:'startFavourites', value:true}},
+      {t:'Show The Menagerie', d:'A row of Grant’s own projects, which Aviary carries and runs offline. The whole collection is always in the app menu.', ctl:{type:'toggle', key:'startMenagerie', value:true}},
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
       {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
       {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},
@@ -763,11 +788,12 @@ function renderUpdates(s){
       h += '<div class="bar" style="grid-template-columns:repeat(' + ms.length + ',1fr)">' +
         ms.map(function(m, i){ return '<i class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
         '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> milestones done</span>' +
-        (done < ms.length ? '<span>Next: ' + ms[done].t + '</span>' : '') + '</div>' +
+        (done < ms.length ? '<span>Next: ' + esc(ms[done].n || '') + ' · ' + ms[done].t + '</span>' : '') + '</div>' +
         '<ol class="ms">' + ms.map(function(m, i){
           var st = i < done ? 'done' : (i === done ? 'next' : 'todo');
           return '<li class="' + st + '"><span class="ms__dot">' + TICK + '</span>' +
-                 '<span class="ms__n">M' + i + '</span><span class="ms__t">' + m.t + '</span>' +
+                 '<span class="ms__n">' + esc(m.n || ('M' + i)) + '</span>' +
+                 '<span class="ms__t">' + m.t + (m.d ? '<small>' + m.d + '</small>' : '') + '</span>' +
                  '<span class="ms__w">' + (st === 'done' ? (m.when || '') : (st === 'next' ? 'Next' : '')) + '</span></li>';
         }).join('') + '</ol>';
     } else {

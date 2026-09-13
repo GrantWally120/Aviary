@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Menagerie</title>
+<meta name="description" content="Everything Grant has built, running inside Aviary with no internet.">
+<link rel="icon" href="menagerie-icon.png">
+<link rel="apple-touch-icon" href="menagerie-icon.png">
+<style>
+/* ══ THE MENAGERIE ════════════════════════════════════════════════════════════
+   Aviary's own page for Grant's projects (Phase 5, Alpha Build 5 M2.5). Zoo signage
+   meets museum placards: every exhibit is a sign with its habitat, when it was born,
+   what it weighs and whether it runs here. Nothing on this page comes from the
+   internet — system fonts only, no libraries — so it works with the cable pulled.
+   The list itself is catalog.json, which the Start Page reads too. */
+:root{
+  color-scheme: light dark;
+  --bg:#f2eee5; --bg-2:#e9e3d6; --panel:#fffdf8; --panel-2:#f7f3ea;
+  --ink:#1b211e; --ink-2:#4f5b54; --ink-3:#86918a;
+  --line:rgba(27,33,30,.10); --line-2:rgba(27,33,30,.18);
+  --lamp:#b8860b; --lamp-2:#8a6608; --glow:rgba(184,134,11,.18);
+  --shadow:0 1px 1px rgba(40,30,10,.05),0 8px 26px rgba(40,30,10,.10);
+  --shadow-hi:0 2px 4px rgba(40,30,10,.08),0 18px 44px rgba(40,30,10,.18);
+  --sign:"Bahnschrift","DIN Alternate","Segoe UI Variable Display","Segoe UI",system-ui,sans-serif;
+  --body:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --serif:"Cambria","Georgia","Times New Roman",serif;
+  --mono:"Cascadia Mono","Consolas",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,.8,.26,1);
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0a0e0c; --bg-2:#0f1512; --panel:#121916; --panel-2:#17201c;
+    --ink:#edf2ec; --ink-2:#a8b6ad; --ink-3:#6d7d74;
+    --line:rgba(237,242,236,.08); --line-2:rgba(237,242,236,.15);
+    --lamp:#e9c46a; --lamp-2:#c9a24a; --glow:rgba(233,196,106,.16);
+    --shadow:0 1px 1px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+    --shadow-hi:0 2px 6px rgba(0,0,0,.5),0 22px 50px rgba(0,0,0,.55);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+::selection{background:var(--glow)}
+:focus-visible{outline:2px solid var(--lamp);outline-offset:3px;border-radius:6px}
+
+/* ── top bar ──────────────────────────────────────────────────────────── */
+.bar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:12px clamp(16px,4vw,44px);
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px) saturate(1.3);
+  border-bottom:1px solid transparent;transition:border-color .3s var(--ease)}
+.bar.scrolled{border-bottom-color:var(--line)}
+.brand{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+.brand svg{width:26px;height:26px}
+.brand b{font:700 17px/1 var(--sign);letter-spacing:.02em;font-stretch:87.5%}
+.find{flex:1;max-width:520px;margin-left:auto;position:relative}
+.find input{width:100%;height:38px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);
+  font:inherit;padding:0 38px 0 38px;transition:border-color .2s,box-shadow .2s}
+.find input:focus{outline:none;border-color:var(--lamp);box-shadow:0 0 0 4px var(--glow)}
+.find svg{position:absolute;left:12px;top:11px;width:16px;height:16px;color:var(--ink-3)}
+.find kbd{position:absolute;right:10px;top:9px;font:600 11px/1 var(--mono);color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:4px 6px}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex:0 0 auto}
+.seg button{border:0;background:transparent;color:var(--ink-2);font:600 12.5px/1 var(--body);padding:8px 11px;border-radius:7px;cursor:pointer;transition:background .2s,color .2s}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.dice{flex:0 0 auto;width:38px;height:38px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);cursor:pointer;display:grid;place-items:center;transition:transform .35s var(--ease),color .2s}
+.dice:hover{color:var(--lamp);transform:rotate(-12deg) scale(1.05)}
+.dice svg{width:18px;height:18px}
+
+/* ── hero ─────────────────────────────────────────────────────────────── */
+.hero{position:relative;overflow:hidden;padding:clamp(40px,8vw,96px) clamp(16px,4vw,44px) 38px;border-bottom:1px solid var(--line)}
+#flies{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.dome{position:absolute;right:-4vw;bottom:-2px;width:min(58vw,720px);opacity:.9;pointer-events:none}
+.dome path{fill:none;stroke:var(--lamp);stroke-linecap:round;opacity:.28;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 2.8s var(--ease) forwards}
+.dome path.rib{opacity:.14}
+@keyframes draw{to{stroke-dashoffset:0}}
+.hero__in{position:relative;max-width:1240px;margin:0 auto}
+.kicker{font:700 12px/1 var(--sign);letter-spacing:.24em;text-transform:uppercase;color:var(--lamp)}
+h1{margin:14px 0 0;font:700 clamp(54px,11vw,142px)/.86 var(--sign);font-stretch:75%;letter-spacing:.01em;text-transform:uppercase}
+h1 span{display:inline-block;opacity:0;transform:translateY(.35em);animation:rise .9s var(--ease) forwards}
+@keyframes rise{to{opacity:1;transform:none}}
+.lede{max-width:640px;margin:22px 0 0;font-size:clamp(16px,1.6vw,19px);color:var(--ink-2)}
+.stats{display:flex;flex-wrap:wrap;gap:10px 34px;margin-top:28px}
+.stat b{display:block;font:700 34px/1 var(--sign);font-stretch:87.5%;font-variant-numeric:tabular-nums}
+.stat span{font:600 11px/1.4 var(--sign);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+/* The zoo map: one signpost per enclosure. */
+.map{display:flex;flex-wrap:wrap;gap:10px;margin-top:34px}
+.post{--c:var(--lamp);display:flex;align-items:center;gap:10px;padding:10px 14px 10px 12px;border-radius:12px;background:var(--panel);
+  border:1px solid var(--line);box-shadow:var(--shadow);font:600 14px/1 var(--sign);letter-spacing:.02em;
+  transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s}
+.post:hover{transform:translateY(-2px);box-shadow:var(--shadow-hi);border-color:color-mix(in srgb,var(--c) 55%,transparent)}
+.post i{width:10px;height:10px;border-radius:3px;background:var(--c);box-shadow:0 0 12px color-mix(in srgb,var(--c) 70%,transparent)}
+.post em{font:700 12px/1 var(--mono);font-style:normal;color:var(--ink-3)}
+.post svg{width:13px;height:13px;color:var(--ink-3);transition:transform .3s var(--ease)}
+.post:hover svg{transform:translateX(3px);color:var(--c)}
+
+main{max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,44px) 60px}
+
+/* ── "Start here" ─────────────────────────────────────────────────────── */
+.sec-h{display:flex;align-items:end;justify-content:space-between;gap:16px;margin:54px 0 18px}
+.sec-h h2{margin:0;font:700 13px/1 var(--sign);letter-spacing:.24em;text-transform:uppercase;color:var(--ink-2)}
+.sec-h span{font-size:13px;color:var(--ink-3)}
+.rail{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(300px,380px);gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 4px 18px;margin:0 -4px;scrollbar-width:thin}
+.rail .card{scroll-snap-align:start}
+
+/* ── enclosure ───────────────────────────────────────────────────────── */
+.enc{--c:var(--lamp);margin-top:64px;scroll-margin-top:84px}
+.enc__sign{position:relative;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:18px;padding:22px 24px;border-radius:18px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--c) 16%,var(--panel)) 0%,var(--panel) 60%);border:1px solid color-mix(in srgb,var(--c) 30%,var(--line));
+  overflow:hidden}
+.enc__sign::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,color-mix(in srgb,var(--c) 7%,transparent) 22px 23px);pointer-events:none}
+.enc__badge{width:54px;height:54px;border-radius:14px;background:var(--c);display:grid;place-items:center;color:#fff;box-shadow:0 8px 24px color-mix(in srgb,var(--c) 45%,transparent)}
+.enc__badge svg{width:30px;height:30px}
+.enc__sign h3{margin:0;font:700 clamp(24px,3vw,34px)/1 var(--sign);font-stretch:87.5%;letter-spacing:.01em}
+.enc__sign p{margin:6px 0 0;color:var(--ink-2);max-width:760px}
+.enc__n{font:700 13px/1 var(--mono);color:var(--ink-3);text-align:right;white-space:nowrap}
+.enc__n b{display:block;font:700 34px/1 var(--sign);color:var(--c);margin-bottom:4px}
+.shelf{margin:30px 0 0}
+.shelf h4{display:flex;align-items:center;gap:12px;margin:0 0 14px;font:700 12px/1 var(--sign);letter-spacing:.2em;text-transform:uppercase;color:var(--ink-3)}
+.shelf h4::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:16px}
+
+/* ── the Wally timeline ──────────────────────────────────────────────── */
+.tl{margin-top:22px;padding:18px 20px 14px;border-radius:16px;background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+.tl__h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font:700 12px/1 var(--sign);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3)}
+.tl__h a{letter-spacing:.04em;text-transform:none;font:600 13px/1 var(--body);color:var(--lamp)}
+.tl svg{display:block;width:100%;height:132px;margin-top:10px;overflow:visible}
+.tl .axis{stroke:var(--line-2)}
+.tl .tick text{font:600 10.5px var(--sign);letter-spacing:.08em;fill:var(--ink-3)}
+.tl .tick line{stroke:var(--line)}
+.tl .dot{cursor:pointer;transform-box:fill-box;transform-origin:center;transition:transform .25s var(--ease)}
+.tl .dot:hover{transform:scale(1.5)}
+.tl .dot circle{stroke:var(--panel);stroke-width:2}
+.tl .dot{opacity:0;animation:pop .5s var(--ease) forwards;animation-play-state:paused}
+.tl.on .dot{animation-play-state:running}
+@keyframes pop{from{opacity:0;transform:scale(.2)}to{opacity:1;transform:none}}
+.tl__legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:6px;font-size:12px;color:var(--ink-3)}
+.tl__legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.tip{position:fixed;z-index:50;pointer-events:none;padding:8px 11px;border-radius:9px;background:var(--ink);color:var(--bg);font:600 12.5px/1.35 var(--body);
+  box-shadow:var(--shadow-hi);opacity:0;transform:translate(-50%,calc(-100% - 12px)) scale(.96);transition:opacity .15s,transform .15s var(--ease);max-width:260px}
+.tip.on{opacity:1;transform:translate(-50%,calc(-100% - 12px))}
+.tip small{display:block;font-weight:500;opacity:.7}
+
+/* ── a placard ───────────────────────────────────────────────────────── */
+.card{--c:var(--lamp);position:relative;display:flex;flex-direction:column;border-radius:16px;background:var(--panel);border:1px solid var(--line);
+  box-shadow:var(--shadow);overflow:hidden;transition:transform .35s var(--ease),box-shadow .35s var(--ease),border-color .35s;
+  opacity:0;transform:translateY(14px)}
+.card.in{opacity:1;transform:none}
+.card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hi);border-color:color-mix(in srgb,var(--c) 45%,var(--line))}
+.card.hide{display:none}
+.win{position:relative;aspect-ratio:16/10;overflow:hidden;background:var(--panel-2)}
+.win img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;transform:scale(1.001);transition:transform .8s var(--ease),filter .4s}
+.card:hover .win img{transform:scale(1.045)}
+.win .art{position:absolute;inset:0}
+.win::after{content:"";position:absolute;inset:0;box-shadow:inset 0 -40px 50px -30px rgba(0,0,0,.35);pointer-events:none}
+.pill{position:absolute;top:10px;left:10px;z-index:2;display:flex;align-items:center;gap:6px;padding:5px 9px 5px 8px;border-radius:99px;
+  font:700 10.5px/1 var(--sign);letter-spacing:.12em;text-transform:uppercase;background:rgba(8,12,10,.72);color:#fff;backdrop-filter:blur(6px)}
+.pill i{width:7px;height:7px;border-radius:50%;background:#4ade80;box-shadow:0 0 8px #4ade80}
+.pill.landing i{background:#b98cff;box-shadow:0 0 8px #b98cff;border-radius:2px;transform:rotate(45deg)}
+.pill.partial i{background:#fbbf24;box-shadow:0 0 8px #fbbf24}
+.pill.missing i{background:#f87171;box-shadow:none}
+.play{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:99px;background:var(--c);color:#0a0e0c;
+  font:700 12.5px/1 var(--sign);letter-spacing:.06em;text-transform:uppercase;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s var(--ease);box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.play svg{width:12px;height:12px}
+.card:hover .play,.card:focus-visible .play{opacity:1;transform:none}
+.plate{display:flex;flex-direction:column;gap:6px;padding:14px 16px 15px;flex:1}
+.plate .enc-tag{display:flex;align-items:center;gap:8px;font:700 10.5px/1 var(--sign);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.plate .enc-tag::before{content:"";width:14px;height:3px;border-radius:2px;background:var(--c)}
+.plate h5{margin:2px 0 0;font:700 19px/1.15 var(--sign);font-stretch:90%;letter-spacing:.005em}
+.plate .sci{font:italic 13.5px/1.3 var(--serif);color:var(--ink-2)}
+.plate p{margin:4px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.note{margin-top:6px;padding:8px 10px;border-radius:9px;font-size:12.5px;line-height:1.45;color:var(--ink-2);background:var(--panel-2);border-left:3px solid #fbbf24}
+.note.landing{border-left-color:#b98cff}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:auto;padding-top:12px;border-top:1px dashed var(--line-2);font-size:12px}
+.facts dt{font:700 10px/1.6 var(--sign);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.facts dd{margin:0;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.tags span{font:600 11px/1 var(--body);padding:5px 8px;border-radius:99px;background:var(--panel-2);color:var(--ink-2);border:1px solid var(--line)}
+.card.big .plate h5{font-size:23px}
+.card.missing .win img{filter:grayscale(1) opacity(.5)}
+
+.empty{display:none;margin:50px 0;text-align:center;color:var(--ink-3);font:600 15px var(--sign);letter-spacing:.06em}
+.empty.on{display:block}
+footer{max-width:1240px;margin:0 auto;padding:30px clamp(16px,4vw,44px) 60px;color:var(--ink-3);font-size:13px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 24px;justify-content:space-between}
+footer b{color:var(--ink-2);font-weight:600}
+
+@media (max-width:760px){.seg{display:none}.enc__sign{grid-template-columns:auto 1fr}.enc__n{display:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:1ms!important;animation-delay:0ms!important;transition-duration:1ms!important;scroll-behavior:auto!important}
+  .card{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="bar" id="bar">
+  <a class="brand" href="#top" aria-label="The Menagerie — top">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 20V12.6A9 9 0 0 1 21 12.6V20" stroke="var(--lamp)" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M12 3.6V20M7.6 5.1V20M16.4 5.1V20M3 14.4h18" stroke="var(--lamp)" stroke-width=".9" stroke-linecap="round" opacity=".55"/>
+      <path d="M2.2 20h19.6" stroke="var(--lamp)" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <b>The Menagerie</b>
+  </a>
+  <label class="find">
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <input id="q" type="search" placeholder="Find an exhibit — a version, a game, a word…" autocomplete="off" aria-label="Find an exhibit">
+    <kbd>/</kbd>
+  </label>
+  <div class="seg" role="group" aria-label="Show">
+    <button data-show="all" aria-pressed="true">Everything</button>
+    <button data-show="runs" aria-pressed="false">Plays here</button>
+    <button data-show="landing" aria-pressed="false">Landing pages</button>
+  </div>
+  <button class="dice" id="dice" title="Surprise me — open a random exhibit" aria-label="Open a random exhibit">
+    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><rect x="3" y="3" width="14" height="14" rx="3.5" stroke="currentColor" stroke-width="1.6"/><circle cx="7.2" cy="7.2" r="1.2" fill="currentColor"/><circle cx="12.8" cy="12.8" r="1.2" fill="currentColor"/><circle cx="12.8" cy="7.2" r="1.2" fill="currentColor"/><circle cx="7.2" cy="12.8" r="1.2" fill="currentColor"/></svg>
+  </button>
+</header>
+
+<section class="hero" id="top">
+  <canvas id="flies" aria-hidden="true"></canvas>
+  <svg class="dome" viewBox="0 0 400 220" aria-hidden="true" id="dome"></svg>
+  <div class="hero__in">
+    <div class="kicker">Aviary · the collection</div>
+    <h1 id="title" aria-label="The Menagerie">The Menagerie</h1>
+    <p class="lede">Everything Grant has built, alive inside Aviary. Every exhibit is a copy that runs right here with the internet unplugged — the originals stay exactly where they are.</p>
+    <div class="stats" id="stats"></div>
+    <nav class="map" id="map" aria-label="Enclosures"></nav>
+  </div>
+</section>
+
+<main id="main">
+  <div class="sec-h" id="startHead"><h2>Start here</h2><span>The ones to open first</span></div>
+  <div class="rail" id="rail"></div>
+  <div id="enclosures"></div>
+  <p class="empty" id="empty">Nothing in the Menagerie matches that.</p>
+</main>
+
+<footer>
+  <span><b>The Menagerie</b> is part of Aviary. Each exhibit is a copy made from Grant's Documents folder; nothing here is ever written back.</span>
+  <span id="foot"></span>
+</footer>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+"use strict";
+var ICONS = {
+  wally:'<svg viewBox="0 0 32 32" fill="none"><path d="M5 25V13l11-7 11 7v12" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M10 25v-7h12v7M5 25h22" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="16" cy="13" r="2" fill="currentColor"/></svg>',
+  jurassic:'<svg viewBox="0 0 32 32" fill="none"><path d="M4 23c3-1 5-4 6-8l2-6c1-2 4-2 5 0l1 3 4 1c2 1 3 3 2 5l-3 1v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 23v4M20 23v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="11" r="1.2" fill="currentColor"/></svg>',
+  arcade:'<svg viewBox="0 0 32 32" fill="none"><rect x="4" y="9" width="24" height="15" rx="7.5" stroke="currentColor" stroke-width="2.2"/><path d="M10 14v5M7.5 16.5h5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><circle cx="21" cy="15" r="1.6" fill="currentColor"/><circle cx="24" cy="18.5" r="1.6" fill="currentColor"/></svg>',
+  reading:'<svg viewBox="0 0 32 32" fill="none"><path d="M16 9c-3-2-7-2.5-11-1.5v16c4-1 8-.5 11 1.5 3-2 7-2.5 11-1.5v-16c-4-1-8-.5-11 1.5Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M16 9v16" stroke="currentColor" stroke-width="2.2"/></svg>',
+  workshop:'<svg viewBox="0 0 32 32" fill="none"><path d="M19.5 6.5a5.5 5.5 0 0 0-6.8 6.8L5.5 20.5a2.1 2.1 0 0 0 3 3l7.2-7.2a5.5 5.5 0 0 0 6.8-6.8l-3.3 3.3-3-.8-.8-3 3.3-3.3Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>',
+  keepsakes:'<svg viewBox="0 0 32 32" fill="none"><rect x="5" y="12" width="22" height="14" rx="2.5" stroke="currentColor" stroke-width="2.2"/><path d="M3.5 12h25M16 12v14M16 12c-3 0-6-1.5-6-4s3-2.5 6 4c3-6.5 6-6.5 6-4s-3 4-6 4Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>'
+};
+var STATUS = {
+  runs:['','Plays here'], partial:['partial','Runs · part needs more'], landing:['landing','Landing page'], missing:['missing','Not in this copy']
+};
+var KIND = {game:'Play', toy:'Open', page:'Open', app:'Open', landing:'Visit'};
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function href(p){ return p.split('/').map(encodeURIComponent).join('/'); }
+function day(iso){ var d = new Date(iso + 'T12:00:00'); return d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear(); }
+function weight(kb){ return !kb ? '—' : kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB'; }
+function fileName(e){ return e.kind === 'landing' ? 'a landing page, new in Aviary' : decodeURIComponent(e.open.split('/').pop()); }
+var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* When a thumbnail is missing, the window is drawn instead: the exhibit's accent colour,
+   its enclosure's pattern and its initials — so a fresh copy never shows a broken image. */
+function art(e, encl){
+  var words = e.title.replace(/[^A-Za-z0-9 .·]/g,' ').split(/\s+/).filter(Boolean);
+  var mono = e.mono || ((words[0] || '?').slice(0, 1) + (words[1] ? words[1].slice(0, 1) : ''));
+  var fs = mono.length <= 2 ? 58 : mono.length <= 3 ? 48 : mono.length <= 4 ? 40 : 34;
+  var pat = {
+    wally:'<path d="M0 60H90V20H170V80H240" stroke="' + e.accent + '" stroke-opacity=".5" stroke-width="10" fill="none" stroke-linejoin="round"/>',
+    jurassic:'<g stroke="' + e.accent + '" stroke-opacity=".35" fill="none"><path d="M-10 90c40-30 80-30 120 0s80 30 140 0"/><path d="M-10 70c40-30 80-30 120 0s80 30 140 0"/><path d="M-10 50c40-30 80-30 120 0s80 30 140 0"/></g>',
+    arcade:'<g fill="' + e.accent + '" fill-opacity=".35">' + [0,1,2,3,4,5].map(function(i){ return '<circle cx="' + (30 + i*38) + '" cy="' + (30 + (i%2)*40) + '" r="' + (6 + (i%3)*4) + '"/>'; }).join('') + '</g>',
+    reading:'<g stroke="' + e.accent + '" stroke-opacity=".35">' + [0,1,2,3,4,5,6].map(function(i){ return '<line x1="20" x2="' + (140 + (i*37)%90) + '" y1="' + (22 + i*12) + '" y2="' + (22 + i*12) + '" stroke-width="4" stroke-linecap="round"/>'; }).join('') + '</g>',
+    workshop:'<g stroke="' + e.accent + '" stroke-opacity=".3" fill="none"><circle cx="190" cy="40" r="26" stroke-width="6" stroke-dasharray="8 6"/><rect x="24" y="24" width="70" height="50" rx="8" stroke-width="4"/></g>',
+    keepsakes:'<g fill="' + e.accent + '" fill-opacity=".4">' + [0,1,2,3,4,5,6,7].map(function(i){ return '<rect x="' + (15 + i*29) + '" y="' + (12 + (i*23)%60) + '" width="7" height="12" rx="2" transform="rotate(' + (i*37) + ' ' + (18 + i*29) + ' ' + (18 + (i*23)%60) + ')"/>'; }).join('') + '</g>'
+  }[e.enclosure] || '';
+  return '<svg class="art" viewBox="0 0 240 150" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' +
+    '<defs><linearGradient id="g' + e.id + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + e.accent + '" stop-opacity=".30"/><stop offset="1" stop-color="' + (encl ? encl.color : e.accent) + '" stop-opacity=".08"/></linearGradient></defs>' +
+    '<rect width="240" height="150" fill="url(#g' + e.id + ')"/>' + pat +
+    '<text x="120" y="' + (75 + fs * .36) + '" text-anchor="middle" font-family="Bahnschrift,Segoe UI,sans-serif" font-weight="700" font-size="' + fs + '" fill="' + e.accent + '" fill-opacity=".85">' + esc(mono) + '</text></svg>';
+}
+
+function card(e, encl, big){
+  var st = STATUS[e.status] || STATUS.runs;
+  var enclName = encl ? encl.name.replace(/^The /,'') : '';
+  var sub = e.shelf && CAT.shelves[e.shelf] ? ' · ' + CAT.shelves[e.shelf].split(' · ')[0] : '';
+  var note = e.note ? '<div class="note' + (e.status === 'landing' ? ' landing' : '') + '">' + esc(e.note) + '</div>' : '';
+  return '<a class="card' + (big ? ' big' : '') + '" href="' + href(e.open) + '" data-id="' + esc(e.id) + '" data-status="' + esc(e.status) + '" style="--c:' + esc(e.accent) + '"' +
+      ' aria-label="' + esc(e.title + ' — ' + st[1]) + '">' +
+    '<div class="win">' + art(e, encl) +
+      '<img src="thumbs/' + esc(e.id) + '.jpg" alt="" loading="lazy" onerror="this.remove()">' +
+      '<span class="pill ' + st[0] + '"><i></i>' + st[1] + '</span>' +
+      '<span class="play">' + (KIND[e.kind] || 'Open') + ' <svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 1.5v9l7.5-4.5Z"/></svg></span>' +
+    '</div>' +
+    '<div class="plate">' +
+      '<div class="enc-tag">' + esc(enclName + sub) + '</div>' +
+      '<h5>' + esc(e.title) + '</h5>' +
+      '<div class="sci">' + esc(e.short) + '</div>' +
+      '<p>' + esc(e.blurb) + '</p>' + note +
+      '<dl class="facts"><dt>Habitat</dt><dd title="' + esc(e.home) + '">' + esc(e.home) + '</dd>' +
+        '<dt>Born</dt><dd>' + day(e.date) + '</dd>' +
+        '<dt>Weight</dt><dd>' + weight(e.kb) + '</dd>' +
+        '<dt>Species</dt><dd title="' + esc(fileName(e)) + '"><i style="font-family:var(--serif)">' + esc(fileName(e)) + '</i></dd></dl>' +
+      (e.tags && e.tags.length ? '<div class="tags">' + e.tags.map(function(t){ return '<span>' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
+    '</div></a>';
+}
+
+/* The Wally timeline: every build of the series on one axis, Dec 2025 → Sep 2026, one row per
+   shelf. Drawn AFTER it is in the page, at its real width — a fixed viewBox stretched to fit
+   squashed the dots and the month labels — and redrawn when the window changes size. */
+var TL_ROWS = ['play','gen2','gen1','spin','tools','archive'];
+function timeline(){
+  var legend = TL_ROWS.map(function(s, i){
+    return '<span><b style="font:700 11px var(--mono);color:var(--ink-2);margin-right:5px">' + (i + 1) + '</b>' + esc(CAT.shelves[s].split(' · ')[0]) + '</span>';
+  }).join('');
+  return '<div class="tl" id="tl"><div class="tl__h"><span>The Wally timeline · Dec 2025 → Sep 2026</span>' +
+    '<a href="' + href('files/Wally2TTD Complete Edition/Wally2TTD_Hub.html') + '">The full story is in the Wally2TTD Hub →</a></div>' +
+    '<svg id="tlsvg" aria-label="Every Wally build by date"></svg>' +
+    '<div class="tl__legend">Rows, top to bottom: ' + legend + '</div></div>';
+}
+function drawTimeline(){
+  var svg = document.getElementById('tlsvg');
+  if (!svg) { return; }
+  var W = Math.max(320, Math.round(svg.getBoundingClientRect().width)), H = 132, pad = 26, top = 16, row = 15, base = top + row * TL_ROWS.length + 8;
+  var t0 = new Date(2025, 11, 1).getTime(), t1 = new Date(2026, 8, 30).getTime();
+  function x(iso){ var p = iso.split('-'); return pad + (new Date(+p[0], +p[1] - 1, +p[2], 12).getTime() - t0) / (t1 - t0) * (W - pad * 2); }
+  var ticks = '';
+  for (var m = 0; m < 10; m++){
+    var d = new Date(2025, 11 + m, 1), tx = pad + (d.getTime() - t0) / (t1 - t0) * (W - pad * 2);
+    ticks += '<g class="tick"><line x1="' + tx.toFixed(1) + '" x2="' + tx.toFixed(1) + '" y1="' + (top - 6) + '" y2="' + base + '"/>' +
+      '<text x="' + (tx + 4).toFixed(1) + '" y="' + (base + 16) + '">' + MONTHS[d.getMonth()].toUpperCase() + (d.getMonth() === 0 || m === 0 ? ' ' + String(d.getFullYear()).slice(2) : '') + '</text></g>';
+  }
+  /* Same-day builds (the Aug 27–29 cluster, the April pairs) are pushed apart along their row. */
+  var gap = 15, last = {};
+  var items = CAT.exhibits.filter(function(e){ return e.enclosure === 'wally' && e.kind !== 'landing'; })
+    .sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  var dots = items.map(function(e, i){
+    var cx = x(e.date), r = TL_ROWS.indexOf(e.shelf);
+    if (last[r] !== undefined && cx - last[r] < gap) { cx = last[r] + gap; }
+    last[r] = cx;
+    return '<g class="dot" data-id="' + esc(e.id) + '" style="animation-delay:' + (i * 40) + 'ms" data-tip="' + esc(e.title) + '" data-sub="' + esc(day(e.date) + ' · ' + e.short) + '">' +
+      '<circle cx="' + cx.toFixed(1) + '" cy="' + (top + row * r + 4) + '" r="6.5" fill="' + esc(e.accent) + '"/></g>';
+  }).join('');
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.style.height = H + 'px';
+  svg.innerHTML = '<line class="axis" x1="' + pad + '" x2="' + (W - pad) + '" y1="' + base + '" y2="' + base + '"/>' + ticks + dots;
+  bindTimeline();
+}
+var tlTimer = 0;
+addEventListener('resize', function(){ clearTimeout(tlTimer); tlTimer = setTimeout(drawTimeline, 150); });
+
+var CAT = null;
+
+function render(){
+  var byEnc = {};
+  CAT.enclosures.forEach(function(n){ byEnc[n.id] = n; });
+  var all = CAT.exhibits, runs = all.filter(function(e){ return e.status !== 'landing'; }).length;
+  var landings = all.filter(function(e){ return e.status === 'landing'; }).length;
+
+  document.getElementById('stats').innerHTML = [
+    [all.length, 'Exhibits'], [runs, 'Run right here'], [landings, 'Landing pages'], [CAT.enclosures.length, 'Enclosures']
+  ].map(function(s){ return '<div class="stat"><b data-to="' + s[0] + '">0</b><span>' + s[1] + '</span></div>'; }).join('');
+
+  document.getElementById('map').innerHTML = CAT.enclosures.map(function(n){
+    var count = all.filter(function(e){ return e.enclosure === n.id; }).length;
+    return '<a class="post" href="#' + n.id + '" style="--c:' + n.color + '"><i></i>' + esc(n.name) + ' <em>' + count + '</em>' +
+      '<svg viewBox="0 0 12 12" fill="none"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>';
+  }).join('');
+
+  document.getElementById('rail').innerHTML = all.filter(function(e){ return e.featured; })
+    .map(function(e){ return card(e, byEnc[e.enclosure], true); }).join('');
+
+  document.getElementById('enclosures').innerHTML = CAT.enclosures.map(function(n){
+    var items = all.filter(function(e){ return e.enclosure === n.id; });
+    var body;
+    if (n.id === 'wally'){
+      body = timeline() + Object.keys(CAT.shelves).map(function(s){
+        var on = items.filter(function(e){ return e.shelf === s; });
+        return on.length ? '<div class="shelf" data-shelf="' + s + '"><h4>' + esc(CAT.shelves[s]) + '</h4><div class="grid">' + on.map(function(e){ return card(e, n); }).join('') + '</div></div>' : '';
+      }).join('');
+    } else {
+      body = '<div class="shelf"><div class="grid">' + items.map(function(e){ return card(e, n); }).join('') + '</div></div>';
+    }
+    return '<section class="enc" id="' + n.id + '" style="--c:' + n.color + '">' +
+      '<div class="enc__sign"><span class="enc__badge">' + (ICONS[n.id] || '') + '</span>' +
+        '<div><h3>' + esc(n.name) + '</h3><p>' + esc(n.blurb) + '</p></div>' +
+        '<div class="enc__n"><b>' + items.length + '</b>' + (items.length === 1 ? 'exhibit' : 'exhibits') + '</div></div>' +
+      body + '</section>';
+  }).join('');
+
+  var last = all.reduce(function(m, e){ return e.date > m ? e.date : m; }, '');
+  document.getElementById('foot').textContent = 'Newest exhibit: ' + day(last) + ' · Offline · menagerie.aviary';
+
+  observe();
+  countUp();
+  probe();
+  drawTimeline();
+}
+
+/* Cards rise in as they reach the viewport — once each. */
+function observe(){
+  var cards = document.querySelectorAll('.card');
+  if (reduced || !('IntersectionObserver' in window)){ cards.forEach(function(c){ c.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function(list){
+    list.forEach(function(en){
+      if (!en.isIntersecting) { return; }
+      var siblings = Array.prototype.indexOf.call(en.target.parentNode.children, en.target);
+      en.target.style.transitionDelay = Math.min(siblings % 6, 5) * 55 + 'ms';
+      en.target.classList.add('in');
+      io.unobserve(en.target);
+      setTimeout(function(){ en.target.style.transitionDelay = ''; }, 900);
+    });
+  }, {rootMargin:'0px 0px -6% 0px'});
+  cards.forEach(function(c){ io.observe(c); });
+  var tl = document.getElementById('tl');
+  if (tl){ new IntersectionObserver(function(l, o){ if (l[0].isIntersecting){ tl.classList.add('on'); o.disconnect(); } }).observe(tl); }
+}
+
+function countUp(){
+  document.querySelectorAll('[data-to]').forEach(function(el){
+    var to = +el.getAttribute('data-to'), t0 = performance.now(), dur = reduced ? 1 : 1100;
+    (function f(t){ var k = Math.min(1, (t - t0) / dur); el.textContent = Math.round(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(f); })(t0);
+  });
+}
+
+/* A copy of Aviary built without the sync has the catalog but not the files: those cards
+   say so instead of opening a 404. One HEAD request each, all local. */
+function probe(){
+  CAT.exhibits.forEach(function(e){
+    var url = href(e.open);
+    /* HEAD first; if the host will not answer one (405/501, or it throws), a real GET decides. */
+    fetch(url, {method:'HEAD', cache:'no-store'}).then(function(r){
+      if (r.ok) { return; }
+      if (r.status === 404) { mark(e.id); return; }
+      return fetch(url, {cache:'no-store'}).then(function(g){ if (!g.ok) { mark(e.id); } });
+    }).catch(function(){
+      fetch(url, {cache:'no-store'}).then(function(g){ if (!g.ok) { mark(e.id); } }).catch(function(){ mark(e.id); });
+    });
+  });
+  function mark(id){
+    document.querySelectorAll('.card[data-id="' + id + '"]').forEach(function(c){
+      c.classList.add('missing'); c.setAttribute('data-status', 'missing');
+      var p = c.querySelector('.pill'); p.className = 'pill missing'; p.innerHTML = '<i></i>' + STATUS.missing[1];
+    });
+  }
+}
+
+function bindTimeline(){
+  var tip = document.getElementById('tip');
+  document.querySelectorAll('.tl .dot').forEach(function(d){
+    d.addEventListener('mouseenter', function(){
+      var r = d.getBoundingClientRect();
+      tip.innerHTML = esc(d.getAttribute('data-tip')) + '<small>' + esc(d.getAttribute('data-sub')) + '</small>';
+      tip.style.left = (r.left + r.width / 2) + 'px'; tip.style.top = r.top + 'px'; tip.classList.add('on');
+    });
+    d.addEventListener('mouseleave', function(){ tip.classList.remove('on'); });
+    d.addEventListener('click', function(){
+      var c = document.querySelector('#enclosures .card[data-id="' + d.getAttribute('data-id') + '"]');
+      if (!c) { return; }
+      c.scrollIntoView({behavior: reduced ? 'auto' : 'smooth', block:'center'});
+      c.animate([{boxShadow:'0 0 0 0 ' + getComputedStyle(c).getPropertyValue('--c')},{boxShadow:'0 0 0 10px transparent'}], {duration:1200, iterations:2});
+    });
+  });
+}
+
+/* ── find and filter ─────────────────────────────────────────────────── */
+var show = 'all';
+function filter(){
+  var q = document.getElementById('q').value.trim().toLowerCase();
+  var words = q.split(/\s+/).filter(Boolean);
+  var shown = 0;
+  document.querySelectorAll('.card').forEach(function(c){
+    var e = CAT.exhibits.filter(function(x){ return x.id === c.getAttribute('data-id'); })[0];
+    var hay = (e.title + ' ' + e.short + ' ' + e.blurb + ' ' + (e.tags || []).join(' ') + ' ' + e.home + ' ' + e.open).toLowerCase();
+    var okQ = words.every(function(w){ return hay.indexOf(w) >= 0; });
+    var st = c.getAttribute('data-status');
+    var okS = show === 'all' || (show === 'runs' ? (st === 'runs' || st === 'partial') : st === 'landing');
+    var on = okQ && okS;
+    c.classList.toggle('hide', !on);
+    if (on) { c.classList.add('in'); if (c.closest('#enclosures')) { shown++; } }
+  });
+  document.querySelectorAll('.shelf').forEach(function(s){ s.style.display = s.querySelector('.card:not(.hide)') ? '' : 'none'; });
+  document.querySelectorAll('.enc').forEach(function(s){ s.style.display = s.querySelector('.card:not(.hide)') ? '' : 'none'; });
+  var filtering = words.length > 0 || show !== 'all';
+  document.getElementById('rail').style.display = filtering ? 'none' : '';
+  document.getElementById('startHead').style.display = filtering ? 'none' : '';
+  document.getElementById('empty').classList.toggle('on', shown === 0);
+}
+document.getElementById('q').addEventListener('input', filter);
+document.querySelectorAll('.seg button').forEach(function(b){
+  b.addEventListener('click', function(){
+    show = b.getAttribute('data-show');
+    document.querySelectorAll('.seg button').forEach(function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    filter();
+  });
+});
+document.addEventListener('keydown', function(e){
+  var q = document.getElementById('q');
+  if (e.key === '/' && document.activeElement !== q){ e.preventDefault(); q.focus(); }
+  else if (e.key === 'Escape' && document.activeElement === q){ q.value = ''; filter(); q.blur(); }
+});
+document.getElementById('dice').addEventListener('click', function(){
+  var pool = CAT.exhibits.filter(function(e){ return e.status !== 'landing'; });
+  var e = pool[Math.floor(Math.random() * pool.length)];
+  location.href = href(e.open);
+});
+addEventListener('scroll', function(){ document.getElementById('bar').classList.toggle('scrolled', scrollY > 8); }, {passive:true});
+
+/* ── the hero: its letters, its dome and its fireflies ───────────────── */
+(function(){
+  var t = document.getElementById('title');
+  t.innerHTML = t.textContent.split('').map(function(ch, i){
+    return ch === ' ' ? ' ' : '<span style="animation-delay:' + (80 + i * 38) + 'ms">' + ch + '</span>';
+  }).join('');
+
+  /* The dome: Aviary's mark as a glasshouse seen side-on — ribs and glazing bars drawing in. */
+  var W = 400, H = 220, cx = 200, cy = 214, r = 190, p = [];
+  p.push('<path d="M' + (cx - r) + ',' + cy + ' A' + r + ',' + (r * .95) + ' 0 0 1 ' + (cx + r) + ',' + cy + '" stroke-width="2.2"/>');
+  for (var k = 1; k <= 4; k++){ var rr = r * (.95 - k * .19); p.push('<path class="rib" d="M' + (cx - r) + ',' + cy + ' A' + r + ',' + rr + ' 0 0 1 ' + (cx + r) + ',' + cy + '" stroke-width="1.2"/>'); }
+  for (var i = -5; i <= 5; i++){ var tt = i / 6, xx = cx + tt * r, top = cy - Math.cos(tt * Math.PI / 2) * r * .95; p.push('<path class="rib" d="M' + xx.toFixed(1) + ',' + cy + ' L' + xx.toFixed(1) + ',' + top.toFixed(1) + '" stroke-width="1.2"/>'); }
+  p.push('<path d="M' + (cx - r - 8) + ',' + cy + ' L' + (cx + r + 8) + ',' + cy + '" stroke-width="2.2"/>');
+  var dome = document.getElementById('dome');
+  dome.innerHTML = p.join('');
+  dome.querySelectorAll('path').forEach(function(el, i){
+    var len = Math.ceil(el.getTotalLength());
+    el.style.setProperty('--len', len);
+    el.style.animationDelay = (200 + i * 70) + 'ms';
+  });
+
+  /* Fireflies — a few dozen warm points drifting on a sine; a still field under reduced motion. */
+  var cv = document.getElementById('flies'), ctx = cv.getContext('2d'), flies = [], dpr = Math.min(2, devicePixelRatio || 1);
+  function size(){ cv.width = cv.offsetWidth * dpr; cv.height = cv.offsetHeight * dpr; }
+  size(); addEventListener('resize', size);
+  for (var f = 0; f < 42; f++){ flies.push({x:Math.random(), y:.15 + Math.random() * .85, s:.4 + Math.random() * 1.1, ph:Math.random() * 6.28, sp:.00006 + Math.random() * .00012}); }
+  var lamp = getComputedStyle(document.documentElement).getPropertyValue('--lamp').trim() || '#e9c46a';
+  function frame(t){
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (var j = 0; j < flies.length; j++){
+      var q = flies[j], x = ((q.x + t * q.sp) % 1) * cv.width, y = (q.y + Math.sin(t * .0006 + q.ph) * .03) * cv.height;
+      var a = .25 + .75 * Math.pow(Math.sin(t * .0012 + q.ph) * .5 + .5, 3);
+      var g = ctx.createRadialGradient(x, y, 0, x, y, 9 * q.s * dpr);
+      g.addColorStop(0, lamp); g.addColorStop(1, 'transparent');
+      ctx.globalAlpha = a * .55; ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, 9 * q.s * dpr, 0, 6.29); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if (!reduced) { requestAnimationFrame(frame); }
+  }
+  requestAnimationFrame(frame);
+})();
+
+fetch('catalog.json').then(function(r){ return r.json(); }).then(function(c){ CAT = c; render(); })
+  .catch(function(){ document.getElementById('empty').textContent = 'The catalog could not be read.'; document.getElementById('empty').classList.add('on'); });
+</script>
+</body>
+</html>

@@ -80,4 +80,16 @@
   <!-- Theme dictionaries under Themes\ are picked up by the WinUI SDK's own glob; no
        explicit Page items needed, and adding them by hand only risks a path mismatch. -->
 
+  <!-- The Menagerie (Library.cs): the page, its catalog and landing pages are source; files\,
+       thumbs\ and builds\ are copies of Grant's own projects made by tools\library\sync.ps1 and
+       kept out of git. Everything under Library\ travels beside Aviary.exe. None, not Content:
+       Content items are fed to the WinUI resource indexer, which has no business with a 38 MB
+       WebAssembly engine or a file called "Game Ledger.html". -->
+  <ItemGroup>
+    <None Update="Library\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="WarnWithoutLibraryFiles" BeforeTargets="Build" Condition="!Exists('Library\files')">
+    <Warning Text="Library\files is missing, so the Menagerie will list exhibits it cannot open. Run tools\library\sync.ps1 first (it copies Grant's projects in from Documents)." />
+  </Target>
+
 </Project>

@@ -228,6 +228,10 @@ internal sealed partial class BrowserTab
             catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: read engine version"); }
         }
 
+        // The Menagerie (https://menagerie.aviary/) is answered from Aviary's own folder by this
+        // tab's engine. Per tab, before anything navigates — private tabs included.
+        Library.Attach(core);
+
         // Before the first navigation. Setting it later only affects subsequent ones.
         _defaultUserAgent = core.Settings.UserAgent;
         await ApplyUserAgentAsync();
@@ -1270,6 +1274,16 @@ internal sealed partial class BrowserTab
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        // A Menagerie folder opens its index.html, as a web server would. WebView2's folder
+        // mapping answers files only, so a bare https://menagerie.aviary/ — typed, or a link to a
+        // folder — was a failed navigation and Aviary's error panel (found in M2.5's first run).
+        if (Library.IndexFor(args.Uri) is { } index)
+        {
+            args.Cancel = true;
+            sender.Navigate(index);
+            return;
+        }
+
         // Privacy first. A navigation Aviary replaces with a cleaner one is cancelled here and
         // re-issued, and the replacement comes back through this handler on its own.
         if (MaybeRewriteNavigation(sender, args))

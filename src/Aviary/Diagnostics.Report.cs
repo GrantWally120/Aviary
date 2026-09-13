@@ -61,8 +61,9 @@ internal static partial class Diagnostics
     internal const string MaskingNote =
         "Web addresses that carry a login code, token or password keep the name of that part, with its value replaced by •••, so the address still says what it was without being a working key.";
 
-    internal const string StaysNote =
-        "Everything stays on this computer. This feature contains no code that can send anything anywhere. Kept for 30 days and never more than 200 MB — the oldest is removed first. Private browsing is never recorded.";
+    internal static readonly string StaysNote =
+        "Everything stays on this computer. This feature contains no code that can send anything anywhere. Kept for "
+        + RetentionDays + " days and never more than " + CapMB + " MB — the oldest is removed first. Private browsing is never recorded.";
 
     // ══ SESSION COUNTERS — for summary.md ═══════════════════════════════════
 
@@ -876,7 +877,7 @@ internal static partial class Diagnostics
 
         string status = _mode == 1
             ? "Collecting now · " + (files == 0 ? "starting" : size + " in " + files + (files == 1 ? " file" : " files"))
-              + " · kept 30 days, never more than 200 MB."
+              + " · kept " + RetentionDays + " days, never more than " + CapMB + " MB."
             : files > 0
                 ? "Off · " + size + " kept from earlier. Delete removes it."
                 : "Off · nothing collected.";
