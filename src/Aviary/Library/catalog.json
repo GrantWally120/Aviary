@@ -1,5 +1,5 @@
 {
-  "name": "The Menagerie",
+  "name": "The Collection",
   "about": "Everything Grant has built, running inside Aviary with no internet. Each exhibit is a copy; the originals stay exactly where they are.",
   "enclosures": [
     { "id": "wally",    "name": "The Wally House",      "color": "#35b9c9",
@@ -52,7 +52,7 @@
       "title": "Wally2TTD 2.4.1 & 2.4.2", "short": "The landing page for both",
       "kind": "landing", "status": "landing", "accent": "#b98cff",
       "open": "landing/wally2ttd-2.4.x/index.html",
-      "home": "Aviary · the Menagerie", "date": "2026-09-13", "kb": 0,
+      "home": "Aviary · the Collection", "date": "2026-09-13", "kb": 0,
       "tags": ["New", "Landing page"],
       "blurb": "The experimental 2.4.1 and the Godot 2.4.2 side by side: what changed, what didn't, and a Play button for each — both run here." },
 

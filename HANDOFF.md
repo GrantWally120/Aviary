@@ -8,10 +8,10 @@ website-data panel, one Aviary per profile (bug 51) and the checks M2 had left u
 the same day, Grant's closing ask: **an Updates section in Settings and every build renamed**
 (Alpha Build 1–5, Beta Build 1–2; the app now calls itself Alpha Build 5, "AB5") — section 15.
 M2 is committed (`6f44c59`, then `f30f182` for Updates). **Then M2.5, Grant's "middle update"
-(13 Sep): the Menagerie** — 49 of his own projects, the whole Wally series first, bundled into
-Aviary and running offline at `https://menagerie.aviary/`, both Godot games playable in a tab,
+(13 Sep): the Collection** — 49 of his own projects, the whole Wally series first, bundled into
+Aviary and running offline at `https://collection.aviary/`, both Godot games playable in a tab,
 four new landing pages, a description under every milestone, and a 500 MB diagnostics cap —
-section 16. **The Menagerie's copies of Grant's files are NOT in git** (section 16 says how
+section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). **M2.5 itself is uncommitted** — Grant OK'd committing M2 only; ask first.
 
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
@@ -107,7 +107,7 @@ found fourteen more bugs (39–52; 50 is still open). Two came from the end of M
 diagnostics showed a second Aviary running on his profile at the same time (51 — Aviary is now
 one per profile), and the website-data Remove could wipe EVERY site (52 — found in testing,
 never shipped). M2 closed with Grant's last ask — the **Updates** section in Settings and the
-build names (section 15). **M2.5 — the Menagerie — followed the same day** (section 16): Grant's
+build names (section 15). **M2.5 — the Collection — followed the same day** (section 16): Grant's
 projects inside Aviary, offline. **Next: M3**, the filter-list ad blocker. Read the plan before continuing; it
 records decisions Grant made that are not obvious from the code, notably that diagnostics
 deliberately collects everything including full URLs, and why secrets are still excluded.
@@ -221,7 +221,7 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 >   screenshot then waits FOREVER — it hung twice on 13 Sep before this. With them, screenshots
 >   work without ever fronting the window. (A page showing Aviary's error panel also hangs a
 >   screenshot: the WebView is collapsed behind the panel. Wrap every `node cdp.js` in `timeout`.)
-> - **The Menagerie's own tools live in `tools/library/`** (section 16): `sync.ps1` (copies Grant's
+> - **The Collection's own tools live in `tools/library/`** (section 16): `sync.ps1` (copies Grant's
 >   projects in), `export-godot-web.ps1` (the 2.4.2 web build), `thumbs.js` (placard photos via
 >   the test instance). It has its own `package.json` for the same reason as tools/test.
 
@@ -279,7 +279,7 @@ Zoo/
     Diagnostics.Scrub.cs      the secret filter every string passes through on its way to disk
     Diagnostics.Report.cs     manifest/session.json, environment, watchdog, minute sample
     Diagnostics.Summary.cs    summary.md
-    Library.cs                the Menagerie: menagerie.aviary → Library\ (section 16)
+    Library.cs                the Collection: collection.aviary → Library\ (section 16)
     Library\                  its page, catalog.json, landing pages (+ gitignored files/ builds/ thumbs/)
     Themes/Classic.xaml       token dictionary — Safari 15–18
     Themes/LiquidGlass.xaml   token dictionary — Safari 26
@@ -443,17 +443,17 @@ NOTHING to the host (postMessage hooked and empty); an earlier build expands; Ab
 New in Aviary** — was driven with guarded real clicks (Grant idle 17 min) and opened a Settings
 tab straight onto Updates. Screenshots in dark and light, and at 860 px wide.
 
-**13 Sep — M2.5, the Menagerie (section 16), in the published exe on a scratch profile:** all 49
+**13 Sep — M2.5, the Collection (section 16), in the published exe on a scratch profile:** all 49
 exhibits opened and photographed by `thumbs.js` (each a real page — the contact sheet was checked
 by eye); Wally2TTD 2.4.2's web build started a wave and Jurassic Empire's reached its title
 screen; the presence probe marked exactly the missing files and none once they existed; a bare
-`https://menagerie.aviary/` and `…/landing/wallycore1/` both landed on their index.html (bug 54);
-the app menu's **The Menagerie** item by guarded real clicks (Grant idle 74 min); the Start Page
+`https://collection.aviary/` and `…/landing/wallycore1/` both landed on their index.html (bug 54);
+the app menu's **The Collection** item by guarded real clicks (Grant idle 74 min); the Start Page
 row (9 tiles, real thumbnails, and a tile click through the token-checked navigate message into
-2.4.2); a private window (its Start Page row, and the Menagerie inside it with every exhibit
-present); Artemis reaching Grant's Ollama from `menagerie.aviary` with a GET and a JSON POST
+2.4.2); a private window (its Start Page row, and the Collection inside it with every exhibit
+present); Artemis reaching Grant's Ollama from `collection.aviary` with a GET and a JSON POST
 (`/api/show` — nothing loaded onto the GPU); the TinyCalc replica against seven sums; Updates
-showing M2.5 and all ten descriptions; the icon fetcher reading the Menagerie's own icon from
+showing M2.5 and all ten descriptions; the icon fetcher reading the Collection's own icon from
 disk (Frequently Visited showed its dome). The final `publish/Aviary` is hash-identical to the
 tested build — Aviary.dll, Aviary.exe and the whole 144-file Library tree.
 
@@ -474,16 +474,16 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
 
 ## 8. Known gaps and open items
 
-- **The Menagerie (section 16)** — its copies of Grant's files, the 2.4.2 web build and the
+- **The Collection (section 16)** — its copies of Grant's files, the 2.4.2 web build and the
   thumbnails are gitignored, so a fresh clone or a CI build carries the page and catalog but no
   exhibits (every card then says "Not in this copy"; the build warns). Run `tools/library/sync.ps1`
   (and `export-godot-web.ps1`, `thumbs.js`) before publishing. Other gaps:
   *Jurassic Chronicles* styles itself from Tailwind's CDN, so offline it is plain text (its card
-  says so); Jurassic Empire's site links a 105 MB exe the Menagerie does not carry (404);
+  says so); Jurassic Empire's site links a 105 MB exe the Collection does not carry (404);
   Artemis and Filma's FAQ bot work only because Grant's Ollama has `OLLAMA_ORIGINS=*`; the two
   Godot web builds each carry the same 38 MB engine; Godot 4.7 is no longer at `D:\` (the drive is
   gone) — the official build was unpacked from `Downloads` into `tools/library/work/godot`;
-  `Launcher.cs`'s header says "v1.2" while its own patch log (and the Menagerie) say 0.9.1.
+  `Launcher.cs`'s header says "v1.2" while its own patch log (and the Collection) say 0.9.1.
   Opening Settings stalled the UI thread 93 ms once in Grant's data (the page grew with Updates) —
   a candidate for M7.
 - **Download progress ring** — deferred from Phase 4 to Phase 5. Downloads still work; the
@@ -751,12 +751,12 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     Alpha Build 3, it was still promising AB4's Start Page, Reader and sidebar "this phase" in AB5.
     Bug 15's lesson one row over. It is now "What's new in <build>", its text the current build's
     `short` line from UPDATES (section 15). **Never hand-write what's-new text into a settings row.**
-54. **A bare Menagerie address was a failed navigation.** WebView2's folder mapping answers FILES
-    only, so `https://menagerie.aviary/` (typed, the app menu's first version, or any link to a
+54. **A bare Collection address was a failed navigation.** WebView2's folder mapping answers FILES
+    only, so `https://collection.aviary/` (typed, the app menu's first version, or any link to a
     folder) got no document — Aviary's error panel covered the WebView, and a DevTools screenshot
-    of it hung. `Library.IndexFor` now turns any Menagerie folder that holds an index.html into
+    of it hung. `Library.RedirectFor` now turns any Collection folder that holds an index.html into
     that page's address at the top of NavigationStarting, and `Library.Home` is the file itself.
-    Found on M2.5's first run. **Never link to a Menagerie folder without the page's own name
+    Found on M2.5's first run. **Never link to a Collection folder without the page's own name
     unless the address goes through NavigationStarting.**
 
 ---
@@ -782,13 +782,13 @@ agents' work before considering a re-run.
 
 > Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — section 5's
 > container box before anything else — then `Zoo/PHASE5-PLAN.md`. Alpha Build 5 (phase 5) is in
-> progress: M0, M1, M2 and M2.5 (the Menagerie) are done (sections 13–16); M0–M2 are committed,
+> progress: M0, M1, M2 and M2.5 (the Collection) are done (sections 13–16); M0–M2 are committed,
 > **M2.5 is NOT committed yet — ask Grant before committing it** (git status shows it). Start
 > M3, the filter-list ad blocker — downloading EasyList/EasyPrivacy needs Grant's yes first. Read
 > Grant's diagnostics folder first as section 13 describes. Test only on a scratch profile with
 > the section 5 kit; verify by running the real app; ask before any NuGet package. When a
 > milestone ships, bump `BuildInfo.MilestonesDone` and date it in Updates (section 15). Before
-> any publish, run `tools/library/sync.ps1` so the Menagerie carries its exhibits (section 16).
+> any publish, run `tools/library/sync.ps1` so the Collection carries its exhibits (section 16).
 
 ## 13. Diagnostics — `user.data.improvementcollection` (Phase 5 M1)
 
@@ -932,7 +932,7 @@ history is hand-written; STATE never is** — shipped / current / planned all co
 - Milestones carry their own label `n` (so "M2.5" works — they are written, not counted) and a
   plain-words description `d`; a new one needs both, and `Milestones` in BuildInfo goes up by one.
 
-## 16. The Menagerie — Alpha Build 5 M2.5 (13 Sep 2026)
+## 16. The Collection — Alpha Build 5 M2.5 (13 Sep 2026)
 
 Grant's ask: bring the Wally series and "the rest you can find" into Aviary so it all runs
 locally; landing pages for what a browser can't run — "good and dynamic smooth and unique"; a
@@ -940,22 +940,31 @@ combined landing page for **2.4.1 and 2.4.2**; call it **M2.5, the middle update
 milestone; raise the diagnostics cap to **500 MB**. His exclusions, enforced in `sync.ps1`: BCS
 Tracker, claude-linux, claude-model-matrix, parallax-loading, pam-database, steam-damage-report.
 
-**What it is.** `https://menagerie.aviary/` — Aviary's page for 49 exhibits in six enclosures:
+> **Renamed (Grant, 13 Sep, when he OK'd the commit): "the Menagerie" is now "the Collection".**
+> Committed first under the old name (`6718603`), renamed in the next commit. Every word Grant
+> sees changed, and so did the address: `collection.aviary`. The old address `menagerie.aviary` is
+> still MAPPED (`Library.LegacyHost`) so his 13-Sep history, Frequently Visited tiles and the
+> cached icon never fail or reach DNS, and `Library.RedirectFor` moves any page opened there to
+> the new host. Internal names kept on purpose so saved choices survive: the settings key
+> `startMenagerie`, the Start Page's `menagerie` section id and its `mg` classes.
+
+**What it is.** `https://collection.aviary/` — Aviary's page for 49 exhibits in six enclosures:
 the Wally House (30: Gen 1, Gen 2, the Godot port, Silver ×5, Tidepool, Radio, the Hub, the
 Atlas, the archive and two alternate v2.4s), the Jurassic Paddock (the game itself, its site,
 the Dig Plan, the timeline), the Arcade (EMBER, The Lost), the Reading Room (six data pages), the
 Workshop (Artemis, Filma, TinyCalc, Aviary's own pages) and Keepsakes (two birthday pages). 45
-run in the tab; 4 are new landing pages (below). Opened from the **app menu → The Menagerie**,
+run in the tab; 4 are new landing pages (below). Opened from the **app menu → The Collection**,
 its **Start Page row** (switch in Customise and Settings → Get started, key `startMenagerie`), or
 typing the address.
 
 **How it works.**
-- `Library.cs`: `SetVirtualHostNameToFolderMapping("menagerie.aviary", <exe>\Library, DenyCors)` on
+- `Library.cs`: `SetVirtualHostNameToFolderMapping("collection.aviary", <exe>\Library, DenyCors)` on
   every tab's engine before its first navigation (BrowserTab.InitialiseAsync), private tabs
   included — the name never touches the network. DenyCors: pages in the collection load their own
   files; any other site can at most show one of its images, never fetch one.
-- `Library.IndexFor` (bug 54) turns a folder address into its index.html in NavigationStarting.
-- `Favicons.FetchAsync` reads a Menagerie icon from disk (`Library.TryRead`, path-traversal
+- `Library.RedirectFor` (bug 54) turns a folder address into its index.html in NavigationStarting,
+  and any `menagerie.aviary` address into the same path on `collection.aviary`.
+- `Favicons.FetchAsync` reads a Collection icon from disk (`Library.TryRead`, path-traversal
   guarded) instead of the network, which would fail every time.
 - `Library.FeaturedExhibits()` reads `catalog.json` — the SAME file the page renders from — for
   the Start Page row, re-reading only when it changes.
@@ -966,7 +975,7 @@ typing the address.
 Wally timeline laid out at real pixel width, search, filters, "surprise me", fireflies and the
 dome drawing in, light and dark, no internet), `catalog.json` (every exhibit: enclosure, shelf,
 status, `open` path, `home`, date, size, `mono` fallback mark, accent, tags, blurb, note,
-`featured`), `menagerie-icon.png`, and `landing/`:
+`featured`), `collection-icon.png`, and `landing/`:
 - `wally2ttd-2.4.x/` — "One game. Two decks.": a live attract-mode arena on the real 2.4 hairpin
   (CONFIG.tilePath) with the real enemy colours and a TITAN every tenth wave; the split; the
   numbers carried over exactly; arsenal and threat board from the EXP file's CONFIG; what 2.4.2

@@ -1,4 +1,4 @@
-// Photographs every exhibit in the Menagerie for its placard: src/Aviary/Library/thumbs/<id>.jpg.
+// Photographs every exhibit in the Collection for its placard: src/Aviary/Library/thumbs/<id>.jpg.
 //
 // Drives a TEST Aviary over DevTools (tools/test/launch-m2.ps1 starts one with port 9222), so the
 // pictures are the pages exactly as Aviary renders them. Each is captured at 1280×800 and saved
@@ -15,7 +15,7 @@ const path = require('path');
 const PORT = process.env.CDP_PORT || 9222;
 const LIB = path.join(__dirname, '..', '..', 'src', 'Aviary', 'Library');
 const OUT = path.join(LIB, 'thumbs');
-const ROOT = 'https://menagerie.aviary/';
+const ROOT = 'https://collection.aviary/';
 const catalog = JSON.parse(fs.readFileSync(path.join(LIB, 'catalog.json'), 'utf8'));
 const only = process.argv.slice(2);
 

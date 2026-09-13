@@ -4,8 +4,10 @@ using Microsoft.Web.WebView2.Core;
 namespace Aviary;
 
 /// <summary>
-/// The Menagerie — Grant's own projects, bundled with Aviary and served from its install folder
-/// at https://menagerie.aviary/ (Phase 5, Alpha Build 5 M2.5).
+/// The Collection — Grant's own projects, bundled with Aviary and served from its install folder
+/// at https://collection.aviary/ (Phase 5, Alpha Build 5 M2.5). Built as "the Menagerie" at
+/// menagerie.aviary and renamed the same day at Grant's ask; the old address still works (see
+/// <see cref="LegacyHost"/>).
 ///
 /// <para>WebView2's virtual host mapping answers that name from disk inside the engine; the name is
 /// never looked up on the network, so every exhibit runs with no internet at all. DenyCors: a page
@@ -19,15 +21,23 @@ namespace Aviary;
 /// </summary>
 internal static class Library
 {
-    public const string Host = "menagerie.aviary";
+    public const string Host = "collection.aviary";
+
+    /// <summary>
+    /// The address M2.5 first shipped under, when the Collection was called the Menagerie. Still
+    /// mapped, so a history entry, a Frequently Visited tile or a bookmark made with it neither
+    /// fails nor sends the name to a DNS server; a page opened there is moved to <see cref="Host"/>
+    /// (<see cref="RedirectFor"/>).
+    /// </summary>
+    public const string LegacyHost = "menagerie.aviary";
 
     /// <summary>The library's root, which every exhibit address is relative to.</summary>
     public const string Root = "https://" + Host + "/";
 
-    /// <summary>The Menagerie page itself. A file, not the folder: see <see cref="IndexFor"/>.</summary>
+    /// <summary>The Collection page itself. A file, not the folder: see <see cref="RedirectFor"/>.</summary>
     public const string Home = Root + "index.html";
 
-    public const string Name = "The Menagerie";
+    public const string Name = "The Collection";
 
     /// <summary>...\Aviary\Library, beside Aviary.exe.</summary>
     public static string Folder { get; } = Path.Combine(AppContext.BaseDirectory, "Library");
@@ -49,6 +59,7 @@ internal static class Library
         try
         {
             core.SetVirtualHostNameToFolderMapping(Host, Folder, CoreWebView2HostResourceAccessKind.DenyCors);
+            core.SetVirtualHostNameToFolderMapping(LegacyHost, Folder, CoreWebView2HostResourceAccessKind.DenyCors);
         }
         catch (Exception ex)
         {
@@ -56,7 +67,9 @@ internal static class Library
         }
     }
 
-    public static bool IsLibraryHost(string host) => string.Equals(host, Host, StringComparison.OrdinalIgnoreCase);
+    public static bool IsLibraryHost(string host) =>
+        string.Equals(host, Host, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(host, LegacyHost, StringComparison.OrdinalIgnoreCase);
 
     public static bool IsLibraryUrl(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) && IsLibraryHost(uri.Host);
@@ -79,21 +92,28 @@ internal static class Library
     }
 
     /// <summary>
-    /// For a library address that names a FOLDER holding an index.html, that page's address;
-    /// otherwise null (a file, a missing path, or not the library at all).
+    /// Where a library address should really go, or null when it is fine as it is (or is not the
+    /// library at all). Two cases: a FOLDER holding an index.html opens that page, as a web server
+    /// would; and any address on <see cref="LegacyHost"/> moves to the same path on
+    /// <see cref="Host"/>, so the address bar never shows the old name.
     /// </summary>
-    public static string? IndexFor(string url)
+    public static string? RedirectFor(string url)
     {
         try
         {
-            if (!Available || !Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || DiskPath(uri) is not { } full
-                || !Directory.Exists(full) || !File.Exists(Path.Combine(full, "index.html")))
+            if (!Available || !Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || DiskPath(uri) is not { } full)
             {
                 return null;
             }
 
-            string path = uri.AbsolutePath.EndsWith('/') ? uri.AbsolutePath : uri.AbsolutePath + "/";
-            return uri.Scheme + "://" + Host + path + "index.html" + uri.Fragment;
+            bool legacy = string.Equals(uri.Host, LegacyHost, StringComparison.OrdinalIgnoreCase);
+            if (Directory.Exists(full) && File.Exists(Path.Combine(full, "index.html")))
+            {
+                string path = uri.AbsolutePath.EndsWith('/') ? uri.AbsolutePath : uri.AbsolutePath + "/";
+                return "https://" + Host + path + "index.html" + uri.Query + uri.Fragment;
+            }
+
+            return legacy ? "https://" + Host + uri.PathAndQuery + uri.Fragment : null;
         }
         catch (Exception ex)
         {
@@ -103,7 +123,7 @@ internal static class Library
     }
 
     /// <summary>
-    /// A library file's bytes for a https://menagerie.aviary/… address, for the parts of Aviary that
+    /// A library file's bytes for a https://collection.aviary/… address, for the parts of Aviary that
     /// fetch outside the engine (site icons). Refuses any path that resolves outside the folder.
     /// </summary>
     public static bool TryRead(string url, out byte[] bytes)
@@ -138,7 +158,7 @@ internal static class Library
 
     /// <summary>
     /// The exhibits catalog.json marks featured, in its order, plus the total exhibit count —
-    /// read from the same file the Menagerie page itself renders from, so the two cannot drift.
+    /// read from the same file the Collection page itself renders from, so the two cannot drift.
     /// Re-read only when the file changes.
     /// </summary>
     public static (IReadOnlyList<Featured> Items, int Count) FeaturedExhibits()

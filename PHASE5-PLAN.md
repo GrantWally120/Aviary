@@ -148,9 +148,9 @@ Build 5 (AB5)**, a pre-release (HANDOFF §15). Committed 13 Sep (`6f44c59` + the
 - **Save passwords** made real via WebView2's password-autosave setting.
 - **Website data**: per-site list of cookies/storage with remove.
 
-### M2.5 — The Menagerie · **done 13 Sep 2026** (HANDOFF §16)
+### M2.5 — The Collection · **done 13 Sep 2026** (HANDOFF §16)
 Grant's "middle update", added between M2 and M3. His projects inside Aviary, running offline at
-`https://menagerie.aviary/`: the whole Wally series (the Complete Edition plus Silver, Radio, the
+`https://collection.aviary/`: the whole Wally series (the Complete Edition plus Silver, Radio, the
 v2.5 folder's cuts and the rest found across Documents) and everything else in the CoWork folder
 bar his six exclusions — 49 exhibits, copied, never edited. Wally2TTD 2.4.2 exported for the web
 and Jurassic Empire's own web build both play in a tab. New landing pages for what a browser

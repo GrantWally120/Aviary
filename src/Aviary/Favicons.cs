@@ -437,7 +437,7 @@ internal static class Favicons
             return;
         }
 
-        // The Menagerie's host exists only inside the engine — the network has never heard of
+        // The Collection's host exists only inside the engine — the network has never heard of
         // it, so a fetch would fail every time and fill diagnostics with favicon errors. Its
         // icons are files in Aviary's own folder: read them from there.
         if (Library.IsLibraryUrl(url))

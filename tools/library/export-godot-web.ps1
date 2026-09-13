@@ -1,4 +1,4 @@
-# Exports Wally2TTD 2.4.2 (Godot 4.7) as a web build, so the Menagerie can play it inside Aviary.
+# Exports Wally2TTD 2.4.2 (Godot 4.7) as a web build, so the Collection can play it inside Aviary.
 #
 # It never touches Grant's project: the project is copied into tools\library\work\ (gitignored),
 # a "Web" preset — the same settings Jurassic Empire's own web export uses, single-threaded so it

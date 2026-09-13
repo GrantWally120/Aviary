@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Menagerie</title>
+<title>The Collection</title>
 <meta name="description" content="Everything Grant has built, running inside Aviary with no internet.">
-<link rel="icon" href="menagerie-icon.png">
-<link rel="apple-touch-icon" href="menagerie-icon.png">
+<link rel="icon" href="collection-icon.png">
+<link rel="apple-touch-icon" href="collection-icon.png">
 <style>
-/* ══ THE MENAGERIE ════════════════════════════════════════════════════════════
+/* ══ THE COLLECTION ═══════════════════════════════════════════════════════════
    Aviary's own page for Grant's projects (Phase 5, Alpha Build 5 M2.5). Zoo signage
    meets museum placards: every exhibit is a sign with its habitat, when it was born,
    what it weighs and whether it runs here. Nothing on this page comes from the
@@ -193,13 +193,13 @@ footer b{color:var(--ink-2);font-weight:600}
 <body>
 
 <header class="bar" id="bar">
-  <a class="brand" href="#top" aria-label="The Menagerie — top">
+  <a class="brand" href="#top" aria-label="The Collection — top">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M3 20V12.6A9 9 0 0 1 21 12.6V20" stroke="var(--lamp)" stroke-width="1.6" stroke-linecap="round"/>
       <path d="M12 3.6V20M7.6 5.1V20M16.4 5.1V20M3 14.4h18" stroke="var(--lamp)" stroke-width=".9" stroke-linecap="round" opacity=".55"/>
       <path d="M2.2 20h19.6" stroke="var(--lamp)" stroke-width="1.6" stroke-linecap="round"/>
     </svg>
-    <b>The Menagerie</b>
+    <b>The Collection</b>
   </a>
   <label class="find">
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="4.6" stroke="currentColor" stroke-width="1.6"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -220,8 +220,8 @@ footer b{color:var(--ink-2);font-weight:600}
   <canvas id="flies" aria-hidden="true"></canvas>
   <svg class="dome" viewBox="0 0 400 220" aria-hidden="true" id="dome"></svg>
   <div class="hero__in">
-    <div class="kicker">Aviary · the collection</div>
-    <h1 id="title" aria-label="The Menagerie">The Menagerie</h1>
+    <div class="kicker">Aviary · everything Grant has built</div>
+    <h1 id="title" aria-label="The Collection">The Collection</h1>
     <p class="lede">Everything Grant has built, alive inside Aviary. Every exhibit is a copy that runs right here with the internet unplugged — the originals stay exactly where they are.</p>
     <div class="stats" id="stats"></div>
     <nav class="map" id="map" aria-label="Enclosures"></nav>
@@ -232,11 +232,11 @@ footer b{color:var(--ink-2);font-weight:600}
   <div class="sec-h" id="startHead"><h2>Start here</h2><span>The ones to open first</span></div>
   <div class="rail" id="rail"></div>
   <div id="enclosures"></div>
-  <p class="empty" id="empty">Nothing in the Menagerie matches that.</p>
+  <p class="empty" id="empty">Nothing in the Collection matches that.</p>
 </main>
 
 <footer>
-  <span><b>The Menagerie</b> is part of Aviary. Each exhibit is a copy made from Grant's Documents folder; nothing here is ever written back.</span>
+  <span><b>The Collection</b> is part of Aviary. Each exhibit is a copy made from Grant's Documents folder; nothing here is ever written back.</span>
   <span id="foot"></span>
 </footer>
 <div class="tip" id="tip" role="tooltip"></div>
@@ -393,7 +393,7 @@ function render(){
   }).join('');
 
   var last = all.reduce(function(m, e){ return e.date > m ? e.date : m; }, '');
-  document.getElementById('foot').textContent = 'Newest exhibit: ' + day(last) + ' · Offline · menagerie.aviary';
+  document.getElementById('foot').textContent = 'Newest exhibit: ' + day(last) + ' · Offline · collection.aviary';
 
   observe();
   countUp();

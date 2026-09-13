@@ -435,7 +435,7 @@ var UPDATES = [
     ]},
   { phase:5, name:'Privacy that works',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
-    short:'Grant’s own projects now live inside Aviary: the Menagerie runs every Wally2TTD, Jurassic Empire and the rest with no internet — on top of privacy switches that really do what they say.',
+    short:'Grant’s own projects now live inside Aviary: the Collection runs every Wally2TTD, Jurassic Empire and the rest with no internet — on top of privacy switches that really do what they say.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
        "middle update"), so labels are written, not counted. `d` says what it is in plain words. */
     milestones:[
@@ -445,7 +445,7 @@ var UPDATES = [
        d:'An opt-in record of what Aviary does, kept on this computer, so problems get found and every later change can be measured.'},
       {n:'M2', t:'Every privacy switch made real', when:'13 Sep',
        d:'Each privacy setting genuinely does what it says — cookies, tracking, HTTPS, the private window — tested with the switch on and off.'},
-      {n:'M2.5', t:'The Menagerie', when:'13 Sep',
+      {n:'M2.5', t:'The Collection', when:'13 Sep',
        d:'The middle update: Grant’s own projects — the whole Wally series and the rest — brought inside Aviary to run offline, with landing pages for the ones a browser can’t run, and room for 500 MB of diagnostics.'},
       {n:'M3', t:'An ad blocker you control site by site',
        d:'A real filter-list blocker built on EasyList and EasyPrivacy, with a shield for every site so you decide where it steps back.'},
@@ -461,8 +461,8 @@ var UPDATES = [
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
-      {h:'The Menagerie', items:[
-        '<b>The Menagerie</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
+      {h:'The Collection', items:[
+        '<b>The Collection</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
         '<b>Wally2TTD 2.4.2 and Jurassic Empire</b>, both built in Godot, now play right in a tab',
         'New landing pages for Wally2TTD 2.4.1 &amp; 2.4.2, the Wally2TTD Launcher, WallyCore1 and TinyCalc — the things a browser can’t run itself',
         'Open it from the app menu, or from its row on the Start Page',
@@ -536,7 +536,7 @@ var SECTIONS = [
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
       {t:'Start Page sections', d:'The same switches as the Customise button in the corner of the Start Page.', ctl:{type:'none'}},
       {t:'Show Favourites', d:'', ctl:{type:'toggle', key:'startFavourites', value:true}},
-      {t:'Show The Menagerie', d:'A row of Grant’s own projects, which Aviary carries and runs offline. The whole collection is always in the app menu.', ctl:{type:'toggle', key:'startMenagerie', value:true}},
+      {t:'Show The Collection', d:'A row of Grant’s own projects, which Aviary carries and runs offline. All of them are always in the app menu.', ctl:{type:'toggle', key:'startMenagerie', value:true}},
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
       {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
       {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},

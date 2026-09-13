@@ -44,7 +44,7 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
-# The Menagerie's copies of Grant's own projects (tools/library/sync.ps1). Rebuilt from his
+# The Collection's copies of Grant's own projects (tools/library/sync.ps1). Rebuilt from his
 # Documents folder whenever it runs, and personal — they must never reach a public repo.
 src/Aviary/Library/files/
 src/Aviary/Library/thumbs/

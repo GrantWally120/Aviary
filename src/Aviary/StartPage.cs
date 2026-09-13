@@ -93,7 +93,7 @@ internal static class StartPage
     max-width:88px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
   }
 
-  /* The Menagerie: Grant's own projects, bundled with Aviary (Library.cs). A row of the
+  /* The Collection: Grant's own projects, bundled with Aviary (Library.cs). A row of the
      exhibits catalog.json marks featured, each a window onto its thumbnail — its initials in
      its own colour until the image arrives, or if it never does — then the way into all of it. */
   .mg{display:grid;grid-auto-flow:column;grid-auto-columns:172px;gap:12px;overflow-x:auto;padding:2px 2px 8px;scrollbar-width:thin;}
@@ -345,7 +345,7 @@ function render(){
   /* Grant's projects, offline, from Aviary's own folder — absent in a build without them. */
   var mg = D.menagerie;
   if (mg && mg.items && mg.items.length){
-    out += section('menagerie', 'The Menagerie', '<div class="mg">' + mg.items.map(function(it){
+    out += section('menagerie', 'The Collection', '<div class="mg">' + mg.items.map(function(it){
       var w = String(it.title).split(/\s+/);
       var initials = it.mono || ((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase();
       return '<button class="mg__card" data-url="' + esc(it.url) + '" title="' + esc(it.title) + '" style="--c:' + esc(it.accent) + '">' +
@@ -354,7 +354,7 @@ function render(){
                '<span class="mg__t">' + esc(it.title) + '</span><span class="mg__n">' + esc(it.note) + '</span>' +
              '</button>';
     }).join('') +
-      '<button class="mg__all" data-url="' + esc(mg.home) + '"><b>' + (mg.count | 0) + '</b>exhibits in the Menagerie &rarr;</button></div>');
+      '<button class="mg__all" data-url="' + esc(mg.home) + '"><b>' + (mg.count | 0) + '</b>exhibits in the Collection &rarr;</button></div>');
   }
 
   var freq = D.isPrivate ? [] : (D.frequent || []);
@@ -488,7 +488,9 @@ document.addEventListener('click', function(e){
 }, true);
 
 /* ── customise ─────────────────────────────────────────────────────────── */
-var LABELS = {favourites:'Favourites', menagerie:'The Menagerie', frequent:'Frequently Visited',
+/* `menagerie` is the Collection's section id and settings key (startMenagerie) from before its
+   rename — kept so a saved choice survives. Only the words changed. */
+var LABELS = {favourites:'Favourites', menagerie:'The Collection', frequent:'Frequently Visited',
               reading:'Reading List', privacy:'Privacy Report'};
 if (!D.menagerie) { delete LABELS.menagerie; }
 

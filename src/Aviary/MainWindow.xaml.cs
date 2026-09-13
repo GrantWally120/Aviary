@@ -807,8 +807,10 @@ public sealed partial class MainWindow : Window
             })
             .ToList();
 
-        // The Menagerie row: the exhibits catalog.json marks featured (Library.cs). Null when this
-        // build carries no library, which also takes the row out of the Customise popover.
+        // The Collection row: the exhibits catalog.json marks featured (Library.cs). Null when this
+        // build carries no library, which also takes the row out of the Customise popover. Its
+        // field and settings key keep the name it was built under (menagerie) so saved choices
+        // survive the rename.
         object? menagerie = null;
         if (Library.Available)
         {
@@ -2106,13 +2108,13 @@ public sealed partial class MainWindow : Window
         // Grant's own projects, bundled and offline (Library.cs). Absent from a build without them.
         if (Library.Available)
         {
-            MenuFlyoutItem menagerie = new() { Text = Library.Name };
-            menagerie.Click += (_, _) =>
+            MenuFlyoutItem collection = new() { Text = Library.Name };
+            collection.Click += (_, _) =>
             {
-                DiagUi("menagerie-open", new { from = "app menu" });
+                DiagUi("collection-open", new { from = "app menu" });
                 OpenNewTab(Library.Home);
             };
-            menu.Items.Add(menagerie);
+            menu.Items.Add(collection);
         }
 
         menu.Items.Add(new MenuFlyoutSeparator());
