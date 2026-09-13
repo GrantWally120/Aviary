@@ -758,6 +758,16 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     that page's address at the top of NavigationStarting, and `Library.Home` is the file itself.
     Found on M2.5's first run. **Never link to a Collection folder without the page's own name
     unless the address goes through NavigationStarting.**
+55. **Two favicon writes raced on one `.tmp` file.** Found in Grant's own diagnostics (13 Sep,
+    13:15, `Favicons.cs:803 — favicons: write master — IOException … -s.img.tmp … used by another
+    process`). Every Offer that changes an icon writes on its own thread-pool task; the
+    Collection's icon, read from disk in microseconds, was offered twice at once, and both tasks
+    wrote the same temp file — one failed, and the other order could rename the first task's bytes
+    or leave an OLDER icon on disk under a newer index row. `Favicons.DiskGate` now serialises every
+    write (icons, index.json — whose debounced save and shutdown flush could overlap the same way —
+    and Clear browsing data's folder delete), and the entry is read inside the lock so the last
+    write always lands the newest icon. **Anything that writes the favicon folder takes DiskGate
+    first, and never while holding Gate.**
 
 ---
 

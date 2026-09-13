@@ -89,6 +89,17 @@ internal static class Favicons
     }
 
     private static readonly object Gate = new();
+
+    /// <summary>
+    /// One writer on the favicon folder at a time (bug 55). Every Offer that changes an icon
+    /// writes on its own thread-pool task, and a page whose icons arrive together — the
+    /// Collection's, read from disk in microseconds, offered its small slot twice at once — had
+    /// two tasks writing the SAME ".tmp": the second failed "in use by another process", or
+    /// renamed the first one's bytes, leaving an older icon on disk under a newer index row.
+    /// Taken BEFORE <see cref="Gate"/>, never inside it.
+    /// </summary>
+    private static readonly object DiskGate = new();
+
     private static readonly Dictionary<string, Entry> Entries = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> Pinned = new(StringComparer.OrdinalIgnoreCase);
     private static readonly HashSet<string> InFlight = new(StringComparer.OrdinalIgnoreCase);
@@ -760,22 +771,27 @@ internal static class Favicons
     {
         try
         {
-            Directory.CreateDirectory(Folder);
-
-            Master? small, large;
-            lock (Gate)
+            // Serialised, and the entry read INSIDE the disk lock: whichever write runs last
+            // writes the newest icon, whatever order the tasks started in.
+            lock (DiskGate)
             {
-                if (!Entries.TryGetValue(key, out Entry? e))
+                Directory.CreateDirectory(Folder);
+
+                Master? small, large;
+                lock (Gate)
                 {
-                    return;
+                    if (!Entries.TryGetValue(key, out Entry? e))
+                    {
+                        return;
+                    }
+
+                    small = e.Small;
+                    large = e.Large;
                 }
 
-                small = e.Small;
-                large = e.Large;
+                WriteMaster(small);
+                WriteMaster(large);
             }
-
-            WriteMaster(small);
-            WriteMaster(large);
         }
         catch (Exception ex)
         {
@@ -808,6 +824,15 @@ internal static class Favicons
     public static Task FlushAsync() => Task.Run(SaveIndex);
 
     private static void SaveIndex()
+    {
+        // The debounced save and the shutdown flush can overlap, and both write index.json.tmp.
+        lock (DiskGate)
+        {
+            SaveIndexLocked();
+        }
+    }
+
+    private static void SaveIndexLocked()
     {
         try
         {
@@ -925,9 +950,14 @@ internal static class Favicons
 
         try
         {
-            if (Directory.Exists(Folder))
+            // After any write already under way, so Clear browsing data cannot leave behind an
+            // icon that a racing write put back a moment after the folder went.
+            lock (DiskGate)
             {
-                Directory.Delete(Folder, recursive: true);
+                if (Directory.Exists(Folder))
+                {
+                    Directory.Delete(Folder, recursive: true);
+                }
             }
         }
         catch (Exception ex)
