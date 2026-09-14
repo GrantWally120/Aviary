@@ -14,6 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
+Last updated 14 September 2026, at the end of M4 and Grant's redesign asks (sections 18–20).
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -39,8 +40,22 @@ from a private window, never an address, switched off by any change of engine). 
 `Aviary.html` redesigned as a "glass showcase" with just two phases — **Phase 1 · Alpha** (the
 interface study and Alpha Builds 1–5 inside it) and **Phase 2 · Beta** (Beta Builds 1–2) — and the
 Collection given the same look, a page per exhibit and five more exhibits (section 19); Liquid
-Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — the sidebar
-and a Classic re-check are still unrun). Then M5.
+Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
+run, the sidebar and Classic included).
+
+> **WHERE THINGS STAND (end of 14 Sep 2026 — read this first in a new chat)**
+> - Git is clean at `5e0d080` (docs) on top of `a5bb690` (M4 + the 14-Sep asks). `publish/Aviary`
+>   — Grant's desktop shortcut — is that build; it differs from the tested copy only by the commit
+>   sha stamped into its version (section 5).
+> - Alpha Build 5: **6 of 10 milestones done** (M0, M1, M2, M2.5, M3, M4). Remaining: M5 (download
+>   ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
+> - **Grant said NOT to start M5 yet (14 Sep).** Ask him what he wants next before building anything.
+> - Next bug number: **63**. Nothing is open from this session; bug 50 (minimise during start-up) is
+>   still the one known open bug.
+> - Standing orders: read his diagnostics folder each turn (section 13); ask before every commit,
+>   every download, every NuGet package, every new filter list; test only on scratch profiles and
+>   never drive the desktop while he is using it (`guard.ps1`); run `tools/library/sync.ps1` before
+>   any publish; never publish `Aviary.html` as an Artifact.
 
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
@@ -109,7 +124,7 @@ app say is the build name — `BuildInfo.NameOf` / `CodeOf` (section 15).
 | 02 | Alpha Build 2 · AB2 | Tabs and settings | done 6 Sep 2026 |
 | 03 | Alpha Build 3 · AB3 | Theming and features | done 6 Sep 2026 |
 | 04 | Alpha Build 4 · AB4 | Safari features | done 7 Sep 2026 |
-| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3, M4 done (6 of 10); landing page, Collection, glass, then M5** |
+| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3, M4 done (6 of 10); M5 on hold (Grant, 14 Sep)** |
 | 06 | Beta Build 1 · BB1 | "Testing 1" | planned |
 | 07 | Beta Build 2 · BB2 | "Testing 2" | planned |
 
@@ -138,9 +153,9 @@ never shipped). M2 closed with Grant's last ask — the **Updates** section in S
 build names (section 15). **M2.5 — the Collection — followed the same day** (section 16): Grant's
 projects inside Aviary, offline. **M3 — Shields, the ad blocker — is done** (13 Sep, section 17);
 its real-app run found five more bugs (56–60), all fixed before it shipped. **M4 — Brave Search
-and more safe search engines — is done** (14 Sep, section 18). **Next:** Grant's 14-Sep asks (the
-landing page, the Collection, Liquid Glass — see the top of this file), then M5. Read the plan
-before continuing; it
+and more safe search engines — is done** (14 Sep, section 18). Grant's 14-Sep asks followed the same
+day (the landing page, the Collection, Liquid Glass — sections 19–20), all committed. **Next: ask
+Grant** — he said not to start M5 yet. Read the plan before continuing; it
 records decisions Grant made that are not obvious from the code, notably that diagnostics
 deliberately collects everything including full URLs, and why secrets are still excluded.
 
@@ -1051,13 +1066,15 @@ agents' work before considering a re-run.
 
 > Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — section 5's
 > container box before anything else — then `Zoo/PHASE5-PLAN.md`. Alpha Build 5 (phase 5) is in
-> progress: M0, M1, M2, M2.5 (the Collection) and M3 (Shields, the ad blocker) are done
-> (sections 13–17), all committed — **ask Grant before committing each new milestone**. Bug 61
-> (page backgrounds, section 10) is built and tested but NOT committed — ask him about it first.
-> Start M4 (Brave Search and more safe engines). Next bug number: 62. Any new
-> filter list, like any download, needs Grant's yes first. Read
+> progress: M0, M1, M2, M2.5 (the Collection), M3 (Shields) and M4 (search) are done
+> (sections 13–18), plus the 14-Sep redesigns of the landing page and the Collection and the
+> app's Liquid Glass capsules (sections 19–20) — all committed and published. **Ask Grant before
+> committing each new milestone.** He said not to start M5 yet: ask him what's next before
+> building. Next bug number: 63. Any new filter list, like any download, needs Grant's yes first. Read
 > Grant's diagnostics folder first as section 13 describes. Test only on a scratch profile with
-> the section 5 kit; verify by running the real app; ask before any NuGet package. When a
+> the section 5 kit; verify by running the real app; ask before any NuGet package (Win2D 1.3.2 is
+> already approved and in). The landing page `Aviary.html` is edited only through its `PHASES`
+> array (section 19) and never published as an Artifact. When a
 > milestone ships, bump `BuildInfo.MilestonesDone` and date it in Updates (section 15). Before
 > any publish, run `tools/library/sync.ps1` so the Collection carries its exhibits (section 16).
 
