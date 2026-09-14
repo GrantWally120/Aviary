@@ -571,6 +571,10 @@ public sealed partial class MainWindow : Window
 
         _tabs.Add(tab);
 
+        // The colour Aviary's pages sit on, from the start. The tab itself stays invisible until
+        // its first page has painted (BrowserTab.Background.cs, bug 61).
+        tab.SetThemePageColour(ThemePageColour());
+
         // Added to the tree BEFORE initialising. A WebView2 created while collapsed and
         // shown later can come up rendering but not accepting the mouse; creating it in a
         // visible slot avoids that whole class of bug.
@@ -603,7 +607,6 @@ public sealed partial class MainWindow : Window
         DiagUi("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
 
         HideError();
-        ApplyWebViewBackground();
         HookContextMenu(tab);
         return tab;
     }
@@ -1668,25 +1671,40 @@ public sealed partial class MainWindow : Window
             : tab.Title + " — " + app;
     }
 
+    /// <summary>
+    /// Hands every tab the theme's page colour: what Aviary's own pages, and a tab that has shown
+    /// nothing yet, sit on. Websites sit on white whatever the theme, as in Chrome and Safari —
+    /// each tab decides which of the two applies, and when (BrowserTab.Background.cs, bug 61).
+    /// </summary>
     private void ApplyWebViewBackground()
+    {
+        Windows.UI.Color page = ThemePageColour();
+        foreach (BrowserTab tab in _tabs)
+        {
+            tab.SetThemePageColour(page);
+        }
+    }
+
+    /// <summary>
+    /// The shown theme's page colour, not Windows' — resolved against Windows', a pinned-Light
+    /// window flashed dark (bug 25).
+    /// </summary>
+    private Windows.UI.Color ThemePageColour()
     {
         try
         {
-            // The shown theme's page colour, not Windows' — otherwise a pinned-Light window
-            // flashes dark on every navigation.
             if (ThemeBrush("AvPageBrush") is SolidColorBrush brush)
             {
-                foreach (BrowserTab tab in _tabs)
-                {
-                    tab.View.DefaultBackgroundColor = brush.Color;
-                }
+                return brush.Color;
             }
         }
         catch (Exception ex)
         {
-            // A white flash on navigation is survivable; a crash is not.
+            // A wrong colour under a page is survivable; a crash is not.
             Diagnostics.Swallowed(ex, "window: WebView background colour");
         }
+
+        return Microsoft.UI.Colors.White;
     }
 
     private void ShowIdleAddress()

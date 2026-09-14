@@ -21,6 +21,12 @@ with a per-site switch, Standard/Strict, per-list switches, "Update now". Tested
 rules offline and on real sites. **M3 is committed** (13 Sep, with Grant's OK) and published to
 `publish/Aviary`, hash-identical to the tested build. Keep asking before each milestone's commit.
 
+**Then bug 61 (13 Sep, late): pages with no background of their own are no longer dark-on-dark
+in the dark theme** — websites sit on white as in Chrome and Safari, Aviary's own pages on the
+theme's colour, and a new tab stays invisible until its first page has painted (section 10, bug
+61; `BrowserTab.Background.cs`). Measured frame by frame on scratch profiles. **Committed and
+published 14 Sep with Grant's OK** — `publish/Aviary` is byte-identical to the tested copy.
+
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
 where %LOCALAPPDATA% is virtualized. Grant's real profile and the one the tests saw were
@@ -257,6 +263,21 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 >   - **Closing a test instance that has a private window open:** CloseMainWindow closes ONE
 >     window, so the process lives on and keeps the DevTools port; the next launch then has no
 >     DevTools ("fetch failed"). Close until the process exits.
+> - **Bug 61's kit (13 Sep)** — `bgsite.js` (port 8772: pages with and without a background of
+>   their own, a held-back stylesheet, a slow server, links into new tabs), `flash-watch.ps1`
+>   (what the window shows WHILE one page replaces another: a PrintWindow capture every ~7 ms,
+>   every change of colour logged) and `bg-battery.ps1` (26 transitions through it, for comparing
+>   two builds colour by colour). All DevTools / UI Automation / PrintWindow — no desktop input.
+>   - `flash-watch.ps1 -Resize 1280x800` parks the test window at the BOTTOM of the z-order without
+>     activating it. `launch-m2.ps1` maximises and fronts its window; on 13 Sep one was found
+>     minimised a minute after launch, with input on the machine that was not ours — Grant's.
+>   - `Process.MainWindowHandle` can name a 160x28 helper window rather than the browser (a peek
+>     came back 160x28); the kit's new scripts take the process's largest visible window.
+>   - **`guard.ps1` was blind after a restart**: its `lastinput.txt` stamp (16.7 M ticks) was larger
+>     than the tick count (3.1 M), so every input counted as ours and it waved everything through.
+>     Fixed — a stamp from before the restart is ignored.
+>   - DevTools key presses reach only a page in the FOREGROUND window: the private window, behind,
+>     ignored Ctrl+W. Close its tabs with `window.close()` over DevTools.
 
 **Launch and screenshot:**
 ```powershell
@@ -310,6 +331,7 @@ Zoo/
     FilterLists.cs            which list copies load, background build, "Update now", weekly refresh
     Shields.cs                blocking on/off, Standard/Strict, per-site Shields, the cached page script
     BrowserTab.Shields.cs     one tab's side: page context, verdicts, counts, Strict's warning, collapse
+    BrowserTab.Background.cs  the colour under a page (white for websites) and the new-tab veil (bug 61)
     MainWindow.Shields.cs     the toolbar shield, its popover, Settings → Shields commands
     Filters\                  easylist.txt, easyprivacy.txt (byte-for-byte, -text in git), README.txt
     FindInPage.cs             find engine (injected JS) + host helpers
@@ -515,6 +537,23 @@ ad boxes; with Shields down it made 466 requests in 14 s against 171 and showed 
 banner above its header; Rappler loaded normally (8 blocked); DuckDuckGo results untouched.
 Screenshots in `tools/test/shots/m3-*.png`.
 
+**13 Sep — bug 61, page backgrounds (section 10), in the test copy on scratch profiles, with no
+desktop input at all (DevTools, UI Automation, PrintWindow):** the plain page reproduced first —
+black text on #1E1E1E (`shots/bg-before-dark-plain.png`). Then 26 transitions through
+`bg-battery.ps1`, a capture every ~7 ms, on the old build and the new: same- and cross-site, a
+stylesheet held back 1.5 s, a server that waits 1.5 s, link clicks, Start Page ↔ website, Settings
+and Ctrl+T, links opening new tabs (dark, plain, slow, empty, text), and tab switches — including
+to a tab that loaded while hidden. Pinned Dark, pinned Light on this dark-Windows machine (bug
+25's case), System (Windows dark), Liquid Glass dark, a private window, pinned tabs restored
+behind the Start Page, and Dark → Light switched live from Settings. The old build: every new
+tab showed #202020 → #121212 (dark) or #F3F3F3 (light) before its page, and a link's new tab one
+white frame. The new build, final binary: every case goes straight from the old page to the new
+one; the only other colour anywhere is the theme's own while a new tab waits for its first paint.
+Thirty repeat runs of the riskiest cases were identical. One run with diagnostics on: no issues,
+nothing swallowed, a clean close. Screenshots `tools/test/shots/bg-after-*.png`, measurements
+`shots/bg-*.txt`. **Not tried:** Windows High Contrast, and System with Windows in LIGHT mode —
+both mean changing Grant's Windows settings.
+
 **Still never exercised by hand:** vertical tab reordering in the sidebar, and removing a
 reading-list item. Treat both as unproven. From M3: the weekly refresh (it is the same
 `UpdateAsync` as "Update now", gated by a date — never waited a week for).
@@ -597,11 +636,21 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   the harness (the URL is lowercased twice and TrackerBlocker parses a Uri first); the lists build
   in 70–110 ms at launch with no disk cache (the plan asked for one — not built, because the build
   is already under the first page's wait; M7 decides with numbers).
-- **Unstyled pages are dark-on-dark in the dark theme** (seen testing M3 with plain test pages):
-  `ApplyWebViewBackground` gives every WebView the theme's page colour as its default background,
-  so a page that paints no background of its own shows black text on dark grey. Chrome and Safari
-  show such pages on white unless the page opts into dark. Pre-existing (M0's fix for a
-  light-window flash); needs a decision, not just a colour change — M7 polish.
+- ~~**Unstyled pages are dark-on-dark in the dark theme**~~ — **fixed 13 Sep as bug 61, committed
+  and published 14 Sep** (section 10). Websites sit on white whatever the theme, as in Chrome and Safari; a
+  page that asks for dark gets Chromium's own dark canvas; Aviary's pages and a new tab keep the
+  theme's colour; a new tab is shown only once its first page has painted. What remains:
+  - A page that asks for dark gets Chromium's **#121212**, not Aviary's #1E1E1E / #1C1C1E — as in
+    Chrome. **Text files are such pages**: Chromium shows `text/plain` light on #121212 when dark is
+    preferred, so in the dark theme a text file is light-on-dark rather than white. Readable either
+    way; making it white would mean overriding the engine.
+  - **High Contrast was not tried** (it means switching Grant's Windows setting). By design,
+    Chromium's forced colours replace the white with the system window colour there.
+  - A new tab shows the theme's colour until its first page paints, for up to five seconds; a page
+    slower than that is shown anyway, and can then show white between arriving and painting — as
+    it would in Chrome.
+  - Every page now posts one small `painted` message to the host (the injected ShortcutScript).
+    Ignored once the tab is showing; a candidate for M7 to measure, not a known cost.
 - **Clear browsing data also resets every site's Shields choice** — they live in `sites.json` with
   the other per-site settings, which Clear has always emptied. Safe direction (blocking comes
   back), but worth saying in that dialog.
@@ -871,6 +920,33 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     containers but not all. Blocked frames and images are now hidden in the page itself
     (`QueueCollapse` — batched, one script per burst, addresses JSON-escaped), and blocked frames get
     a 204 so they never cost a process (§8).
+61. **A page with no background of its own was black text on dark grey in the dark theme** (seen
+    testing M3; fixed 13 Sep, committed 14 Sep). The WebView's `DefaultBackgroundColor` — what
+    Chromium paints wherever a page paints nothing — was the theme's page colour under EVERY page
+    (Phase 1 set it against a white flash; bug 25 made it the pinned theme's). Chromium uses that
+    colour only under pages in the light colour scheme; a page that asks for dark (`color-scheme`)
+    gets Chromium's own #121212 as long as the colour is opaque. So for Chrome's behaviour it must
+    be WHITE under websites. Options weighed: white under everything (a new tab in the dark theme
+    would flash white before its Start Page); CSS injected into pages, e.g. `html{background:Canvas}`
+    (changes the page — a body background stops filling the window); Chromium's force-dark (not what
+    Chrome or Safari do); **chosen: white under websites, the theme's colour under Aviary's own pages
+    and in a tab that has shown nothing, each change made where it cannot be seen**
+    (`BrowserTab.Background.cs`). To white at NavigationStarting when Aviary's page is showing (it
+    paints its whole background, so the change is hidden); to the theme's at ContentLoading, after
+    the old page has gone.
+    Measured before choosing (`tools/test/bg-battery.ps1`): within a tab Chromium keeps the old page
+    up until the new one has painted — 1.6 s behind a held-back stylesheet — so the colour never
+    shows between two pages. But a NEW tab has no old page: with white, a dark site behind a slow
+    stylesheet showed 1.5 s of white; and every new tab already showed the engine's own #202020 /
+    #F3F3F3, then #121212, and (from a link) a white frame, before any colour Aviary set could land.
+    So **a new tab's WebView starts at Opacity 0** over ContentHost (the theme's colour) and
+    `Unveil()` shows it on the page's first paint (a PerformanceObserver in the injected
+    ShortcutScript posts `{type:'painted'}` with the shortcut token), or 250 ms after a committed
+    navigation ends (a page that paints nothing; a page loaded while hidden reports no paint;
+    Settings finishes loading BEFORE its first frame — showing it at load put #121212 up for a
+    frame), or when the renderer dies, or after 5 s. **Never move the colour to the theme's before
+    ContentLoading — a plain website turns dark under its own text for the whole navigation. Never
+    show a new tab before its first paint. Set `DefaultBackgroundColor` only in `ApplyCanvasColour`.**
 
 ---
 
@@ -896,8 +972,9 @@ agents' work before considering a re-run.
 > Continue the Aviary browser project in `Zoo/`. Read `Zoo/HANDOFF.md` first — section 5's
 > container box before anything else — then `Zoo/PHASE5-PLAN.md`. Alpha Build 5 (phase 5) is in
 > progress: M0, M1, M2, M2.5 (the Collection) and M3 (Shields, the ad blocker) are done
-> (sections 13–17), all committed — **ask Grant before committing each new milestone**. Start M4
-> (Brave Search and more safe engines). Any new
+> (sections 13–17), all committed — **ask Grant before committing each new milestone**. Bug 61
+> (page backgrounds, section 10) is built and tested but NOT committed — ask him about it first.
+> Start M4 (Brave Search and more safe engines). Next bug number: 62. Any new
 > filter list, like any download, needs Grant's yes first. Read
 > Grant's diagnostics folder first as section 13 describes. Test only on a scratch profile with
 > the section 5 kit; verify by running the real app; ask before any NuGet package. When a

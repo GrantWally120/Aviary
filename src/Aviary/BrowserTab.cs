@@ -189,7 +189,10 @@ internal sealed partial class BrowserTab
 
         View = new Microsoft.UI.Xaml.Controls.WebView2
         {
-            Visibility = Visibility.Collapsed
+            Visibility = Visibility.Collapsed,
+
+            // Invisible until its first page has painted (Unveil, BrowserTab.Background.cs).
+            Opacity = 0
         };
     }
 
@@ -222,6 +225,12 @@ internal sealed partial class BrowserTab
             throw new InvalidOperationException("WebView2 initialised without a core.");
         }
 
+        // The colour under the page (BrowserTab.Background.cs) was set before the engine existed;
+        // hand it over again now that there is one, before anything navigates. And never leave a
+        // tab invisible for long whatever happens to its first page.
+        ApplyCanvasColour(force: true);
+        _ = UnveilAfterAsync(UnveilDeadlineMs);
+
         if (Diagnostics.EngineVersion.Length == 0)
         {
             try { Diagnostics.EngineVersion = environment.BrowserVersionString; }
@@ -243,6 +252,7 @@ internal sealed partial class BrowserTab
         core.DocumentTitleChanged += OnDocumentTitleChanged;
         core.FaviconChanged += OnFaviconChanged;
         core.NavigationStarting += OnNavigationStarting;
+        core.ContentLoading += OnContentLoading;
         core.NavigationCompleted += OnNavigationCompleted;
         core.NewWindowRequested += OnNewWindowRequested;
         core.WindowCloseRequested += OnWindowCloseRequested;
@@ -568,6 +578,9 @@ internal sealed partial class BrowserTab
     /// </summary>
     private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs args)
     {
+        // Whatever the engine shows for a dead page must be seen, even in a tab still waiting for its first paint.
+        Unveil();
+
         string Read(Func<object?> get)
         {
             try { return get()?.ToString() ?? string.Empty; }
@@ -744,6 +757,18 @@ internal sealed partial class BrowserTab
                         && action.GetString() is { Length: > 0 } name)
                     {
                         ShortcutPressed?.Invoke(name);
+                    }
+
+                    break;
+
+                case "painted":
+                    // The injected script saw this document's first paint (BrowserTab.Background.cs).
+                    // Token-checked like a shortcut, though all a fake could do is show its own tab early.
+                    if (root.TryGetProperty("token", out JsonElement paintToken)
+                        && paintToken.ValueKind == JsonValueKind.String
+                        && string.Equals(paintToken.GetString(), ShortcutToken, StringComparison.Ordinal))
+                    {
+                        Unveil();
                     }
 
                     break;
@@ -965,6 +990,10 @@ internal sealed partial class BrowserTab
     ///
     /// e.code, not e.key, for the digits: on a French or German layout the number row
     /// produces punctuation and Ctrl+1 would never match.
+    ///
+    /// It also reports each top-level document's first paint ({type:'painted'}), because it
+    /// already holds the captured postMessage and the token: a new tab is shown only once its
+    /// first page has painted (BrowserTab.Background.cs, bug 61).
     /// </summary>
     private const string ShortcutScript = """
 (function(){
@@ -978,6 +1007,20 @@ internal sealed partial class BrowserTab
   var send = wv.postMessage.bind(wv);
   var stringify = JSON.stringify;
   var TOKEN = '__AVIARY_KEYTOKEN__';
+
+  /* The page's first paint, once per document: a NEW tab stays invisible until its first page
+     has painted, so it never shows a colour that is not the page's (bug 61). */
+  if (window === window.top && window.PerformanceObserver) {
+    try {
+      var painted = false;
+      new PerformanceObserver(function(list, observer){
+        if (painted) { return; }
+        painted = true;
+        observer.disconnect();
+        try { send(stringify({type:'painted', token:TOKEN})); } catch(err){}
+      }).observe({type:'paint', buffered:true});
+    } catch(err){}
+  }
 
   var MAP = {
     'f11': 'fullscreen',
@@ -1355,6 +1398,9 @@ internal sealed partial class BrowserTab
             _internalTitle = null;
         }
 
+        // White under websites, the theme's colour under Aviary's own pages — and when (bug 61).
+        CanvasOnNavigationStarting(args);
+
         try
         {
             // A redirect arrives as another NavigationStarting with the SAME id, so the chain
@@ -1401,6 +1447,7 @@ internal sealed partial class BrowserTab
     {
         IsLoading = false;
         ApplyZoom();
+        CanvasOnNavigationCompleted(args);
 
         // A navigation that never committed (cancelled, a download, a failure) leaves the page
         // that was already showing — and that is the page its requests belong to.
@@ -1751,6 +1798,7 @@ internal sealed partial class BrowserTab
                 core.DocumentTitleChanged -= OnDocumentTitleChanged;
                 core.FaviconChanged -= OnFaviconChanged;
                 core.NavigationStarting -= OnNavigationStarting;
+                core.ContentLoading -= OnContentLoading;
                 core.NavigationCompleted -= OnNavigationCompleted;
                 core.NewWindowRequested -= OnNewWindowRequested;
                 core.WindowCloseRequested -= OnWindowCloseRequested;

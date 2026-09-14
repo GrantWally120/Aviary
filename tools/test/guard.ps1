@@ -23,6 +23,9 @@ $mine = 0
 if (Test-Path $stampFile) { $mine = [uint32](Get-Content $stampFile) }
 
 $now = [uint32]([Environment]::TickCount -band 0xFFFFFFFF)
+# A stamp from before a restart is LARGER than the tick count now, and then every input looked
+# like mine — the guard waved everything through (found 13 Sep: stamp 16.7M, tick count 3.1M).
+if ($mine -gt $now) { $mine = 0 }
 $last = [GuardIdle]::LastInputTick()
 $idle = $now - $last
 $sb = New-Object System.Text.StringBuilder 256
