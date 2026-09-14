@@ -313,6 +313,7 @@ internal static class InternalPages
 /*__AVIARY_PATHS__*/
 /*__AVIARY_DIAG__*/
 /*__AVIARY_LISTS__*/
+/*__AVIARY_ENGINES__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
 /* What the running engine STARTED with, for the switches that only apply at launch. */
@@ -321,6 +322,9 @@ var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) |
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
 /* The ad blocker's filter lists: versions, dates, counts, the last check (Shields, M3). */
 var LISTS = (typeof window.__aviaryLists === 'object' && window.__aviaryLists) || {};
+/* The search engines and which can suggest (M4) — SearchEngines.cs, the table the address bar uses. */
+var ENGINES = (Array.isArray(window.__aviaryEngines) && window.__aviaryEngines.length)
+  ? window.__aviaryEngines : [{name:'DuckDuckGo', suggests:true}];
 var RENDERED = {};
 var BUILD = (typeof window.__aviaryBuild === 'object' && window.__aviaryBuild) ||
             {version:'?', channel:'?', phaseLabel:'?', phaseNumber:0, names:{}, codes:{}};
@@ -453,8 +457,8 @@ var UPDATES = [
        d:'The middle update: Grant’s own projects — the whole Wally series and the rest — brought inside Aviary to run offline, with landing pages for the ones a browser can’t run, and room for 500 MB of diagnostics.'},
       {n:'M3', t:'An ad blocker you control site by site', when:'13 Sep',
        d:'A real filter-list blocker built on EasyList and EasyPrivacy, with a shield for every site so you decide where it steps back.'},
-      {n:'M4', t:'Brave Search and more safe search engines',
-       d:'Brave Search, Mojeek, Qwant and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
+      {n:'M4', t:'Brave Search and more safe search engines', when:'14 Sep',
+       d:'Brave Search, Mojeek and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -465,6 +469,12 @@ var UPDATES = [
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
+      {h:'Search', items:[
+        '<b>Brave Search</b>, <b>Mojeek</b> and <b>Ecosia</b> join DuckDuckGo, Startpage, Bing and Google in Settings → Search engine. DuckDuckGo is still where Aviary starts',
+        '<b>Suggestions from your search engine</b> as you type — off until you switch them on, and only ever sent to the engine you chose. Never from a private window, and never a web address',
+        'Changing your search engine switches its suggestions off again, so a new engine hears nothing until you say so',
+        'The right-click “Search … for” and the private window always use the engine you have chosen'
+      ]},
       {h:'Shields — the ad blocker', items:[
         '<b>A real ad blocker.</b> EasyList and EasyPrivacy — the lists behind most ad blockers — stop ads and trackers before they load, so they never learn you were there',
         'The <b>shield in the toolbar</b> shows how many were stopped on the page you are on, and where from, and switches Shields off for a site that doesn’t work with them',
@@ -478,7 +488,9 @@ var UPDATES = [
         '<b>Wally2TTD 2.4.2 and Jurassic Empire</b>, both built in Godot, now play right in a tab',
         'New landing pages for Wally2TTD 2.4.1 &amp; 2.4.2, the Wally2TTD Launcher, WallyCore1 and TinyCalc — the things a browser can’t run itself',
         'Open it from the app menu, or from its row on the Start Page',
-        'Every exhibit is a copy; the originals in Documents are never touched'
+        'Every exhibit is a copy; the originals in Documents are never touched',
+        '<b>Five more exhibits</b> (14 Sep): the PARALLAX site, a Dev Log, Console Spectrum, FileMaker Beta and a battery that charges itself',
+        'The Collection wears <b>Liquid Glass</b> now, and every exhibit has <b>a page of its own</b> — its story, its placard, its neighbours by date — with Play one press away'
       ]},
       {h:'Privacy', items:[
         '<b>Third-party cookies are really blocked</b> — the way ads follow you from one site to the next',
@@ -497,6 +509,7 @@ var UPDATES = [
         'Full screen with <kbd>F11</kbd>, and videos that fill the whole screen'
       ]},
       {h:'Aviary', items:[
+        '<b>Liquid Glass</b> wears the interface study’s capsule now: a sheen from the top, a rim that catches the light at two corners, soft shadows in three layers, and buttons that dip when you press them',
         '<b>Updates</b> — this page: the build you are on, what every build brought, and what is coming',
         'Builds have names: Alpha Build 1 to 5, then Beta Build 1 and 2',
         '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
@@ -507,9 +520,12 @@ var UPDATES = [
       {h:'Safety fixes', items:[
         'A website could change Aviary’s settings — closed',
         'A page could pretend to press Aviary’s keyboard shortcuts — closed',
+        'A website could be told when you changed some settings, such as the zoom level — closed',
         'Blocking now reaches trackers inside frames from other sites'
       ]},
       {h:'Fixes', items:[
+        'In the dark theme, websites with no colours of their own came out as black text on dark grey. They now sit on white, as they do in Safari and Chrome, and a new tab shows nothing until its page has drawn',
+        'A private window went on searching with the old engine after you changed it in Settings',
         'Visiting an ad or tracking company’s own website showed a blank page instead of the site',
         'Two site icons arriving at the same moment could leave the older one saved',
         'Pinning Aviary to light or dark left parts of it, and its menus, in the other theme’s colours',
@@ -625,8 +641,9 @@ var SECTIONS = [
   { id:'search', icon:'search', name:'Search engine', title:'Search engine',
     lede:'Where the address bar sends anything that is not a web address.',
     rows:[
-      {t:'Search engine', d:'Used when what you type is not a URL.', ctl:{type:'select', key:'searchEngine', opts:['DuckDuckGo','Bing','Google','Startpage'], value:'DuckDuckGo'}},
-      {t:'Search suggestions from the engine', d:'Ask the search engine for suggestions as you type. Off by default, and worth leaving off: it sends every keystroke in the address bar to them. Aviary’s own suggestions — from your history and favourites — work either way and never leave the machine.', phase:5, ctl:{type:'toggle', key:'suggest', value:false}}
+      {t:'Search engine', d:'Used when what you type is not a web address. DuckDuckGo, Brave Search, Startpage, Mojeek and Ecosia say they keep no profile of you; Bing and Google do. Startpage and Mojeek sometimes check you are not a robot before the first search.', ctl:{type:'select', key:'searchEngine', opts:ENGINES.map(function(e){ return e.name; }), value:'DuckDuckGo'}},
+      /* Live since M4. Its words name the engine chosen above and change with it (suggestRow). */
+      {t:'Search suggestions from the engine', d:'<span id="sgtext"></span>', ctl:{type:'toggle', key:'suggest', value:false}}
     ]},
 
   { id:'ext', icon:'ext', name:'Extensions', title:'Extensions',
@@ -1062,6 +1079,27 @@ window.__aviaryShieldsSites = function(list){
   });
 };
 
+/* ── Search: the suggestions row names the engine it would send to (M4) ── */
+function engineNamed(name){
+  for (var i = 0; i < ENGINES.length; i++) { if (ENGINES[i].name === name) { return ENGINES[i]; } }
+  return ENGINES[0];
+}
+function suggestRow(){
+  var sel = document.querySelector('.sel[data-key="searchEngine"] .sel__btn span');
+  var engine = engineNamed(sel ? sel.textContent : saved('searchEngine', ENGINES[0].name));
+  var sw = document.querySelector('.sw[data-key="suggest"]');
+  var el = document.getElementById('sgtext');
+  var own = 'Aviary’s own suggestions — from your history and favourites — work either way and never leave this computer.';
+  if (sw) { sw.disabled = !engine.suggests; }
+  if (!el) { return; }
+  el.textContent = engine.suggests
+    ? 'Ask ' + engine.name + ' for suggestions as you type. Off by default, and worth leaving off: what you type in the ' +
+      'address bar goes to ' + engine.name + ' as you type it, not only what you search for. Never from a private window, ' +
+      'never a web address, and changing the search engine switches this off again. ' + own
+    : engine.name + ' doesn’t offer suggestions, so nothing you type is sent while it is your search engine. ' + own;
+}
+suggestRow();
+
 var diagList = document.getElementById('diaglist');
 if (diagList && DIAG.categories){
   var ol = document.createElement('ol');
@@ -1156,12 +1194,17 @@ main.addEventListener('click', function(e){
   var opt = e.target.closest('.sel__opt');
   if (opt){
     var host = opt.closest('.sel');
+    /* Picking what is already chosen changes nothing and sends nothing — it used to save it
+       again, and choosing your own search engine again would have switched suggestions off. */
+    var unchanged = opt.getAttribute('aria-selected') === 'true';
     host.querySelectorAll('.sel__opt').forEach(function(o){ o.setAttribute('aria-selected','false'); });
     opt.setAttribute('aria-selected','true');
     host.querySelector('.sel__btn span').textContent = opt.getAttribute('data-v');
     host.querySelector('.sel__pop').hidden = true;
     host.querySelector('.sel__btn').setAttribute('aria-expanded','false');
+    if (unchanged) { return; }
     sendSetting(host.getAttribute('data-key'), opt.getAttribute('data-v'));
+    if (host.getAttribute('data-key') === 'searchEngine') { suggestRow(); }
     return;
   }
 
@@ -1209,6 +1252,7 @@ window.__aviaryApply = function(key, value){
     o.setAttribute('aria-selected', o.getAttribute('data-v') === String(value) ? 'true' : 'false');
   });
   sel.querySelector('.sel__btn span').textContent = String(value);
+  if (key === 'searchEngine') { suggestRow(); }
 };
 
 /* Opened from the app menu's "About Aviary", which used to land you on Get started. */

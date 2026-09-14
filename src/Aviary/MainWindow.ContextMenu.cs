@@ -100,9 +100,9 @@ public sealed partial class MainWindow
                     trimmed = trimmed.Substring(0, 40).TrimEnd() + "…";
                 }
 
-                string engine = AppSettings.Get("searchEngine");
-                Add(menu, "Search " + (engine.Length > 0 ? engine : "the web") + " for “" + trimmed + "”",
-                    () => OpenNewTab(_searchPrefix + Uri.EscapeDataString(selection)));
+                // The engine that will actually answer — a junk saved value falls back to the default.
+                Add(menu, "Search " + SearchEngines.Current.Name + " for “" + trimmed + "”",
+                    () => OpenNewTab(SearchPrefix + Uri.EscapeDataString(selection)));
                 menu.Items.Add(new MenuFlyoutSeparator());
             }
 

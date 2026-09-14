@@ -15,14 +15,16 @@ namespace Aviary;
 /// it — a list that drops beneath the toolbar as you type, with a Top Hit, matches from
 /// your own history and bookmarks, and inline completion of a host you already visit.
 ///
-/// Everything here is answered from local data. Network search suggestions are a separate,
-/// off-by-default setting, because the owner's stated goal for this browser is "for it to
-/// be safe and private" and suggestions-as-you-type means posting every keystroke in the
-/// address bar to a search engine.
+/// Everything here is answered from local data. Suggestions from the search engine are a
+/// separate, off-by-default setting (MainWindow.SearchSuggest.cs, M4), because the owner's
+/// stated goal for this browser is "for it to be safe and private" and suggestions-as-you-type
+/// means sending what is typed in the address bar to a search engine as it is typed.
 /// </summary>
 public sealed partial class MainWindow
 {
-    private sealed record Suggestion(string Url, string Title, string Host, bool IsBookmark, bool IsSearch);
+    /// <param name="FromEngine">A search the engine suggested, rather than the words as typed.</param>
+    private sealed record Suggestion(string Url, string Title, string Host, bool IsBookmark, bool IsSearch,
+        bool FromEngine = false);
 
     private Popup? _suggestPopup;
     private StackPanel? _suggestList;
@@ -85,6 +87,12 @@ public sealed partial class MainWindow
             return;
         }
 
+        // The engine's suggestions (M4), from its last answer — empty unless the switch is on.
+        // While there are some, your own matches are cut down so the list stays one screen tall.
+        bool isSearch = !LooksLikeUrl(query);
+        List<string> fromEngine = isSearch ? EngineSuggestionsFor(query) : new List<string>();
+        int localLimit = fromEngine.Count > 0 ? LocalLimitWithEngine : int.MaxValue;
+
         // Top Hit first: bookmarks outrank history, because a bookmark is a place you
         // decided mattered rather than one you merely passed through.
         foreach (Bookmark bookmark in Bookmarks.Items)
@@ -104,6 +112,11 @@ public sealed partial class MainWindow
 
         foreach (HistoryEntry entry in History.Search(query, 6))
         {
+            if (_suggestions.Count >= localLimit)
+            {
+                break;
+            }
+
             if (_suggestions.Any(s => string.Equals(s.Url, entry.Url, StringComparison.OrdinalIgnoreCase)))
             {
                 continue;
@@ -113,11 +126,21 @@ public sealed partial class MainWindow
                 IsBookmark: false, IsSearch: false));
         }
 
-        // Always last, always present: what typing this and pressing Enter would do.
-        if (!LooksLikeUrl(query))
+        if (isSearch)
         {
-            _suggestions.Add(new Suggestion(_searchPrefix + Uri.EscapeDataString(query),
-                query, AppSettings.Get("searchEngine"), IsBookmark: false, IsSearch: true));
+            string engine = SearchEngines.Current.Name;
+
+            // What the engine suggests: always a SEARCH for those words, with the same engine —
+            // never an address opened, whatever the words look like.
+            foreach (string words in fromEngine)
+            {
+                _suggestions.Add(new Suggestion(SearchPrefix + Uri.EscapeDataString(words),
+                    words, engine, IsBookmark: false, IsSearch: true, FromEngine: true));
+            }
+
+            // Always last, always present: what typing this and pressing Enter would do.
+            _suggestions.Add(new Suggestion(SearchPrefix + Uri.EscapeDataString(query),
+                query, engine, IsBookmark: false, IsSearch: true));
         }
 
         if (_suggestions.Count == 0)
@@ -129,10 +152,12 @@ public sealed partial class MainWindow
         RenderSuggestions();
         PositionSuggestions();
         _suggestPopup!.IsOpen = true;
+
+        // Ask the engine about these words (when the switch is on): its answer redraws this list.
+        RequestEngineSuggestions(query);
     }
 
-    private static bool LooksLikeUrl(string text) =>
-        !text.Contains(' ') && (text.Contains('.') || text.Contains("://", StringComparison.Ordinal));
+    private static bool LooksLikeUrl(string text) => SearchSuggestions.LooksLikeUrl(text);
 
     private void RenderSuggestions()
     {
@@ -186,7 +211,7 @@ public sealed partial class MainWindow
             });
             text.Children.Add(new TextBlock
             {
-                Text = s.IsSearch ? "Search with " + s.Host : s.Host,
+                Text = s.FromEngine ? "Suggested by " + s.Host : s.IsSearch ? "Search with " + s.Host : s.Host,
                 FontSize = 11.5,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 TextWrapping = TextWrapping.NoWrap,
@@ -278,6 +303,9 @@ public sealed partial class MainWindow
         }
 
         _suggestIndex = -1;
+
+        // A list nobody is looking at needs no suggestions: whatever was waiting to be sent is not.
+        CancelEngineSuggestions();
     }
 
     private void CommitSuggestion(int index)
@@ -300,10 +328,10 @@ public sealed partial class MainWindow
                 typed = AddressBox.Text,
                 picked = index,
                 of = _suggestions.Count,
-                kind = chosen.IsSearch ? "search" : chosen.IsBookmark ? "favourite" : "history",
+                kind = chosen.FromEngine ? "engine suggestion" : chosen.IsSearch ? "search" : chosen.IsBookmark ? "favourite" : "history",
                 topHit = index == 0,
                 query = chosen.IsSearch ? chosen.Title : null,
-                engine = chosen.IsSearch ? AppSettings.Get("searchEngine") : null,
+                engine = chosen.IsSearch ? chosen.Host : null,
                 target = url,
                 via = "suggestion list",
             });

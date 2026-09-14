@@ -9,7 +9,11 @@
 # Popups (a flyout) live in their own top-level window of the same process, so every window of the
 # process is searched.
 #   -Window "Private"   only search top-level windows whose title contains this (the private window)
-param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help")][string]$Action = "Invoke", [string]$Window = "")
+#   uia.ps1 -ProcessId <pid> -Id AddressBox -Action SetValue -Value "aviary bird"   # (M4) set a text box's
+#       text through its ValuePattern — raises TextChanged like typing, no keyboard. The box must already
+#       have focus for Aviary to treat it as typing (Ctrl+L over DevTools gives it focus without fronting).
+#   uia.ps1 -ProcessId <pid> -Id AddressBox -Action Value      # read a text box's text, and whether it has focus
+param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help", "SetValue", "Value")][string]$Action = "Invoke", [string]$Window = "", [string]$Value = "")
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $A = [System.Windows.Automation.AutomationElement]
@@ -37,7 +41,17 @@ if ($found.Count -eq 0) { Write-Output "NOT FOUND name='$Name' id='$Id'"; exit 1
 $target = $found[0]
 
 switch ($Action) {
-    "Invoke" { $target.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Write-Output "INVOKED '$($target.Current.Name)' ($($target.Current.AutomationId))" }
+    "Invoke" {
+        # A label inside a button (a Smart Search row, M4) cannot be invoked itself: climb to the
+        # nearest ancestor that can.
+        $walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+        $hit = $target
+        while ($hit -and -not [bool]$hit.GetCurrentPropertyValue($A::IsInvokePatternAvailableProperty)) { $hit = $walker.GetParent($hit) }
+        if (-not $hit) { Write-Output "NOT INVOKABLE '$($target.Current.Name)'"; exit 1 }
+        $hit.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Write-Output "INVOKED '$($target.Current.Name)' ($($hit.Current.ControlType.ProgrammaticName))"
+    }
     "Toggle" { $p = $target.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern); $p.Toggle(); Write-Output "TOGGLED '$($target.Current.Name)' -> $($p.Current.ToggleState)" }
     "Help"   { Write-Output ("HELP '{0}': {1}" -f $target.Current.Name, $target.Current.HelpText) }
+    "SetValue" { $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Write-Output "SET '$($target.Current.AutomationId)' = '$Value'" }
+    "Value"  { $v = $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value; Write-Output ("VALUE '{0}' = '{1}' focus={2}" -f $target.Current.AutomationId, $v, $target.Current.HasKeyboardFocus) }
 }

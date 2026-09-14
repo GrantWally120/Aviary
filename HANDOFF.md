@@ -27,6 +27,21 @@ theme's colour, and a new tab stays invisible until its first page has painted (
 61; `BrowserTab.Background.cs`). Measured frame by frame on scratch profiles. **Committed and
 published 14 Sep with Grant's OK** — `publish/Aviary` is byte-identical to the tested copy.
 
+**Then M4 (14 Sep): Brave Search and more safe search engines** — section 18. Brave Search,
+Mojeek and Ecosia join DuckDuckGo (still the default — Grant), Startpage, Bing and Google (kept —
+Grant), all from one table — Qwant was built, found not to serve the Philippines, and removed at
+Grant's word; suggestions from the engine made real (off by default, never
+from a private window, never an address, switched off by any change of engine). Its review found
+**bug 62**: host-to-Settings pushes ran in every tab, so a website could hear settings changes.
+**M4 is committed and published (14 Sep, Grant's OK).**
+
+**Also asked for on 14 Sep (Grant), all done the same day and committed with M4:** the landing page
+`Aviary.html` redesigned as a "glass showcase" with just two phases — **Phase 1 · Alpha** (the
+interface study and Alpha Builds 1–5 inside it) and **Phase 2 · Beta** (Beta Builds 1–2) — and the
+Collection given the same look, a page per exhibit and five more exhibits (section 19); Liquid
+Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — the sidebar
+and a Classic re-check are still unrun). Then M5.
+
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
 where %LOCALAPPDATA% is virtualized. Grant's real profile and the one the tests saw were
@@ -94,7 +109,7 @@ app say is the build name — `BuildInfo.NameOf` / `CodeOf` (section 15).
 | 02 | Alpha Build 2 · AB2 | Tabs and settings | done 6 Sep 2026 |
 | 03 | Alpha Build 3 · AB3 | Theming and features | done 6 Sep 2026 |
 | 04 | Alpha Build 4 · AB4 | Safari features | done 7 Sep 2026 |
-| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3 done (5 of 10); M4 next** |
+| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3, M4 done (6 of 10); landing page, Collection, glass, then M5** |
 | 06 | Beta Build 1 · BB1 | "Testing 1" | planned |
 | 07 | Beta Build 2 · BB2 | "Testing 2" | planned |
 
@@ -122,8 +137,10 @@ one per profile), and the website-data Remove could wipe EVERY site (52 — foun
 never shipped). M2 closed with Grant's last ask — the **Updates** section in Settings and the
 build names (section 15). **M2.5 — the Collection — followed the same day** (section 16): Grant's
 projects inside Aviary, offline. **M3 — Shields, the ad blocker — is done** (13 Sep, section 17);
-its real-app run found five more bugs (56–60), all fixed before it shipped. **Next: M4**, Brave
-Search and more safe search engines. Read the plan before continuing; it
+its real-app run found five more bugs (56–60), all fixed before it shipped. **M4 — Brave Search
+and more safe search engines — is done** (14 Sep, section 18). **Next:** Grant's 14-Sep asks (the
+landing page, the Collection, Liquid Glass — see the top of this file), then M5. Read the plan
+before continuing; it
 records decisions Grant made that are not obvious from the code, notably that diagnostics
 deliberately collects everything including full URLs, and why secrets are still excluded.
 
@@ -278,6 +295,22 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 >     Fixed — a stamp from before the restart is ignored.
 >   - DevTools key presses reach only a page in the FOREGROUND window: the private window, behind,
 >     ignored Ctrl+W. Close its tabs with `window.close()` over DevTools.
+> - **M4's kit (14 Sep)** — `tools/test/search/` is a console harness that compiles the shipping
+>   `SearchEngines.cs` + `SearchSuggestions.cs` (with a one-line AppSettings stub): 57 offline checks
+>   (what may be sent, reading answers, the table), then two real requests to every engine that
+>   suggests, through the app's own client. `dotnet run -c Release` there; add `offline` to skip
+>   the network. `uia.ps1` gained `-Action SetValue -Value "…"` (a text box's ValuePattern — raises
+>   TextChanged like typing, no keyboard) and `-Action Value` (text + HasKeyboardFocus), and
+>   `Invoke` now climbs from a label to the button holding it (a Smart Search row). **Typing into
+>   the address bar with no desktop input:** `node cdp.js key <tab> "ctrl+KeyL"` (focuses the box
+>   without fronting — works while the test window is in front of the page that gets the key),
+>   then `uia.ps1 -Id AddressBox -Action SetValue`. When DevTools keys stop landing (the test
+>   window has gone behind), press toolbar controls through UIA instead — the "Aa" menu's Zoom In
+>   is how bug 62 was reproduced.
+>   - **Searching over and over from one address trips the engines' bot checks**: after the harness
+>     and a dozen DevTools searches, Google answered "unusual traffic" for a few minutes, Startpage
+>     ran its ~10 s proof-of-work, and Mojeek asked for its ALTCHA tick. Not Aviary: the same
+>     searches worked minutes later, and with the Safari identity on and off.
 
 **Launch and screenshot:**
 ```powershell
@@ -333,6 +366,9 @@ Zoo/
     BrowserTab.Shields.cs     one tab's side: page context, verdicts, counts, Strict's warning, collapse
     BrowserTab.Background.cs  the colour under a page (white for websites) and the new-tab veil (bug 61)
     MainWindow.Shields.cs     the toolbar shield, its popover, Settings → Shields commands
+    SearchEngines.cs          THE engine table: 8 engines, results + suggestion addresses (section 18)
+    SearchSuggestions.cs      what may be sent to an engine, reading its answer, the HTTP client
+    MainWindow.SearchSuggest.cs  engine suggestions in the Smart Search list; engine change = consent off
     Filters\                  easylist.txt, easyprivacy.txt (byte-for-byte, -text in git), README.txt
     FindInPage.cs             find engine (injected JS) + host helpers
     DownloadItem.cs           download model + session list
@@ -554,6 +590,29 @@ nothing swallowed, a clean close. Screenshots `tools/test/shots/bg-after-*.png`,
 `shots/bg-*.txt`. **Not tried:** Windows High Contrast, and System with Windows in LIGHT mode —
 both mean changing Grant's Windows settings.
 
+**14 Sep — M4, search (section 18), in the test copy on scratch profiles, with no desktop
+input (DevTools, UI Automation, PrintWindow; Grant idle 17+ minutes):** Settings → Search engine
+listed the eight engines, DuckDuckGo chosen, the suggestions row live with no badge. Brave Search
+picked with trusted clicks → saved; suggestions switched on → saved. Ctrl+L + UIA SetValue "aviary
+bird" in the address bar → four "Suggested by Brave Search" rows above "aviary bird — Search with
+Brave Search" (`shots/m4-suggest.png`), and exactly ONE request in `network.jsonl`
+(`context:"Suggestions"`, 200, 340 ms) — the pause after typing held. Picking "aviary bird cage"
+opened `search.brave.com/search?q=aviary%20bird%20cage` and `browsing.jsonl` logged it as
+`kind:"engine suggestion"`. `wikipedia.org`, `localhost:8080`, `C:\Users\user`, `192.168.1.1` and
+`aviary:settings` → no rows and no request; "weather" → one request, four rows. Engine changed to
+Mojeek with suggestions on → the host switched them off, the open Settings page's switch followed
+(off and greyed, Mojeek's own wording), and `events.jsonl` recorded `suggest-off-for-new-engine`.
+Back to Brave: live but off; re-picking the chosen engine left suggestions on. Private window with
+suggestions on: no engine rows. Engine changed to Qwant in the main window's Settings while the
+private window was open → the private window's next search went to qwant.com (before M4 each window
+kept its own copy of the engine address). Diagnostics: no issues but the known private-window stall,
+a clean close. Every engine's results page loaded in the real browser from Grant's connection:
+DuckDuckGo, Brave Search, Ecosia, Bing and Google work; Startpage after a ~10 s automatic check;
+Mojeek after an "I'm not a robot" tick; **Qwant says it is not available in the Philippines** (§8).
+Bug 62 reproduced on the test copy BEFORE its fix (example.com, having defined
+`window.__aviaryApply`, received `["zoom","110%"]` when Zoom In was pressed) and gone after (`[]`,
+while the open Settings page still showed 110%).
+
 **Still never exercised by hand:** vertical tab reordering in the sidebar, and removing a
 reading-list item. Treat both as unproven. From M3: the weekly refresh (it is the same
 `UpdateAsync` as "Update now", gated by a date — never waited a week for).
@@ -588,9 +647,10 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   button is the plain one with a MenuFlyout, and downloads are still session-only with no
   history. A complete spec exists (see section 12).
 - **Tab groups** — deferred to Phase 5. Pinned tabs DID ship.
-- **Liquid Glass is still approximated.** WinUI has no per-element backdrop blur. Real glass
-  needs `Compositor.CreateBackdropBrush` + `GaussianBlurEffect` via **Win2D** — a NuGet
-  package, so ask Grant first. Today it is flat translucent fills over the window's Mica.
+- **Liquid Glass has Phase 0's capsule since 14 Sep** (section 20) — sheen, pole-bright ring,
+  edges, a Win2D three-layer shadow cut away under the glass, the press dip. Still no backdrop
+  blur: nothing but Mica is ever behind the bars (WebView2 has no content inset), so it would show
+  nothing. Win2D is in the project now (1.3.2, approved by Grant).
 - **Toolbar tinting** (sampling the page colour, flipping glyphs on YIQ brightness) is in the
   Phase 0 study and still not implemented.
 - **No GitHub repo.** `build.yml` has never run.
@@ -651,6 +711,12 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     it would in Chrome.
   - Every page now posts one small `painted` message to the host (the injected ShortcutScript).
     Ignored once the tab is showing; a candidate for M7 to measure, not a known cost.
+- **Search (M4, section 18) — what the engines do, not Aviary:** Qwant was removed (it does not serve
+  the Philippines — Grant's call, 14 Sep). Startpage runs a ~10 s proof-of-work page and Mojeek an "I'm not a robot" tick before a
+  first search from an address they are unsure of (the row says so). Engine suggestions are asked
+  in the user's language only by accident — no Accept-Language is sent (less to fingerprint).
+  Suggestion requests are .NET's, so Shields, the request filter and DevTools never see them;
+  diagnostics records each one itself (`context:"Suggestions"`).
 - **Clear browsing data also resets every site's Shields choice** — they live in `sites.json` with
   the other per-site settings, which Clear has always emptied. Safe direction (blocking comes
   back), but worth saying in that dialog.
@@ -947,6 +1013,14 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     frame), or when the renderer dies, or after 5 s. **Never move the colour to the theme's before
     ContentLoading — a plain website turns dark under its own text for the whole navigation. Never
     show a new tab before its first paint. Set `DefaultBackgroundColor` only in `ApplyCanvasColour`.**
+62. **A website could hear Aviary's settings changes** (found in M4's review, 14 Sep; never
+    reported). `PushToSettingsPage` — which tells an open Settings page that the host changed a
+    value (Ctrl+D turning the favourites bar on, zoom, tab layout, the Privacy Report's range, the
+    Shields master switch, and M4's suggestions going off) — ran `window.__aviaryApply(...)` in
+    EVERY tab. A site that defined that function received each key and value: reproduced on
+    example.com as `["zoom","110%"]`. It now runs only in tabs showing Settings
+    (`IsInternalPage && Title == "Settings"`), as the lists and collection pushes already did.
+    **Any host-to-page push goes only to the page it is for.**
 
 ---
 
@@ -1281,3 +1355,149 @@ M3 kit and §7's M3 paragraph.
 
 **Updates.** M3 dated 13 Sep, `MilestonesDone = 5`, "Shields — the ad blocker" notes, two Fixes,
 and AB5's what's-new line mentions Shields.
+
+## 18. Search — Brave Search and more safe engines, Alpha Build 5 M4 (14 Sep 2026)
+
+Grant's answers (14 Sep): **DuckDuckGo stays the default, and every engine stays** — Brave Search,
+Mojeek and Ecosia join DuckDuckGo, Startpage, Bing and Google. **Qwant was built and tested too, then
+removed (Grant, 14 Sep): its results page says "not yet available in your country" from the
+Philippines** — its suggestions answered, its searches never would. A saved "Qwant" falls back to
+DuckDuckGo.
+
+**One table.** `SearchEngines.cs` holds every engine's name, results address and suggestion
+address, each from the engine's own OpenSearch description (checked 14 Sep), minus the parameters
+that tag a search as coming from an add-on (`addon=`, `pl=`, `client=opensearch` on results pages).
+Before M4 the table was two copies of one `switch` in MainWindow plus a hand-typed Settings list,
+and the address was cached per window — so a private window kept searching the old engine after
+Settings changed it. Now `SearchPrefix` reads the store every time, the Settings list is built from
+the table (`window.__aviaryEngines`, like the other injected blobs), and so is the context menu's
+"Search … for". A junk saved name falls back to DuckDuckGo everywhere.
+
+**Suggestions from the engine** (`suggest`, off by default, now in AppSettings' Defaults) —
+`MainWindow.SearchSuggest.cs` for the window side, `SearchSuggestions.cs` for the rules the harness
+tests. The promises the Settings row makes, each one kept in code:
+- Only to the chosen engine, at its published address, while the switch is on. **Changing engine
+  switches it off** (`SearchEngineChanged` — host-side, pushed to open Settings pages), because
+  agreeing to send your typing to one company is not agreeing to send it to the next. Picking the
+  engine that is already chosen no longer re-saves it (a general Settings dropdown fix), so that
+  does not count as a change.
+- Never from a private window; never while the engine has none (Mojeek — the switch greys out and
+  the row says why); never an address — `MaySend` refuses what `LooksLikeUrl` catches plus one-word
+  text with `:`, `/` or `\` (host:port, paths, schemes) and anything over 120 characters.
+- After a 120 ms pause (a word typed quickly is one request); the pending one is cancelled by the
+  next keystroke or by the list closing. An answer is kept for the next keystroke and drawn only if
+  its words are still in the box and no row is highlighted with the arrow keys.
+- No cookies either way, no redirects, no Referer (`SearchSuggestions.CreateClient`: 3 s connect,
+  4 s total, 64 KB cap); the Safari user agent; `Sec-GPC: 1` when GPC is on.
+- The answer is untrusted: OpenSearch JSON only, cleaned (control characters, bidi overrides),
+  de-duplicated, capped at 120 characters and 8 entries (4 shown). Choosing one always SEARCHES for
+  it with the same engine — never opens it as an address.
+- In the list: up to four "Suggested by <engine>" rows just above the typed row, which stays last;
+  your own matches are cut to five while the engine's show, so the list stays one screen tall.
+- Diagnostics: each request in `network.jsonl` (`context:"Suggestions"`, status, bytes, ms — the
+  words are in its address, as every search already is in category 2); a chosen one in
+  `browsing.jsonl` as `kind:"engine suggestion"`; a timeout as a `suggest-timeout` anomaly; the
+  engine-change switch-off as a `suggest-off-for-new-engine` event.
+
+**Updates.** M4 dated 14 Sep, `MilestonesDone = 6`, a "Search" group in AB5's notes, bug 61 and the
+private-window engine fix under Fixes, bug 62 under Safety fixes.
+
+**Tests.** `tools/test/search/` (§5, M4's kit) and §7's M4 paragraph.
+
+## 19. The landing page and the Collection, redesigned (14 Sep 2026 — Grant's asks after M4)
+
+**`Aviary.html` — a glass showcase** (Grant picked it from three directions). Two phases and only
+two: **Phase 1 · Alpha** holds the interface study and Alpha Builds 1–5; **Phase 2 · Beta** holds
+Beta Builds 1–2. The page is built from Phase 0's Liquid Glass recipe verbatim (five layers per
+capsule; light and dark are different recipes) floating over a slow field of colour, so the glass
+has something to bend: a floating nav stadium, a live Aviary window in the hero whose toolbar and
+tab capsules really blur the Collection scrolling under them, the two looks side by side, and each
+phase as a card with a rail of its builds — pick one and its description, chips and (for the build
+being made) its milestones appear below. **It is still a living document: edit only its `PHASES`
+array** — builds carry `state`/`when`/`link`, the build being made carries `milestones` (tick one by
+giving it a `when`); the hero pill, facts line, rails and counts all follow. Never publish it as an
+Artifact. Rules found building it: anything INSIDE a glass capsule is `raised`, not glass again
+(Phase 0: one blur per capsule); loose text in a capsule paints under the sheen, so every capsule's
+text sits in an element; a grid list item turns each text run and `<em>` into a cell (the "why not
+Electron" bullets broke that way). Two claims that were wrong on the old page were corrected: "about
+20 MB instead of 200" (Aviary ships ~170 MB self-contained) and "it will be a per-tab toggle" (the
+Safari identity has been a Settings switch since M2). Checked in the browser pane at 1440, 1356,
+800 and 375 px, light and dark: no sideways scroll, no console errors, rails fit.
+
+**The Collection — glass, a page per exhibit, five more exhibits** (`src/Aviary/Library/`):
+- **Look:** the same glass over a field drifting in the six enclosures' own colours; the bar is a
+  floating stadium (real blur); placards, signs, stats and signposts use the same layers WITHOUT a
+  per-element blur (`.pane` — translucency over a soft field reads as frosted, and a page of 60-odd
+  placards stays smooth). System fonts only — it must work offline.
+- **Exhibit pages:** the whole placard opens `#exhibit/<id>` in a sheet over the Collection (Back
+  closes it, it can be linked, the page underneath keeps its scroll); the Play pill still opens the
+  exhibit directly. The sheet: photo, story, note, Play + "Open in a new tab", the full placard
+  (habitat, born, weight, species, what it is, whether it runs here), tags, its enclosure's
+  exhibits by date around it, and up to four related ones. ←/→ walk the placards in page order,
+  the filter included; Esc closes; focus stays inside and returns to the placard. Timeline dots and
+  "Surprise me" open the sheet too.
+- **Five exhibits** from the three experiment folders Grant said yes to (54 in all): **PARALLAX**
+  (the game's site, Arcade — with its four images, not the timestamped duplicates), **Dev Log** and
+  **Console Spectrum** (Reading Room), **FileMaker Beta** (Workshop; an Electron app whose page runs
+  in a tab because every `window.api` call is guarded — file saving, CSV export and printing need
+  its shell, and its card says so) and **Battery Charging** (Workshop). Codex EXP's
+  `parallax-loading.html` stays out: it is on Grant's do-not-include list. `sync.ps1` names every
+  file; `thumbs.js` shot the five and the redesigned landing page.
+- Tested in the test Aviary at `collection.aviary`: 54 exhibits, none missing, placard → sheet,
+  next/previous (38 of 54 …), close (hash cleared, scroll and focus restored), a linked
+  `#exhibit/filemaker` on a fresh load, Back, Surprise me, light and dark. A drawn stand-in painted
+  OVER the photo in the sheet (the placard's image escapes that only by having a transform) — fixed
+  by positioning the image. **Do not read resource-timing sizes for collection.aviary** — its
+  responses report 0 for everything; a staleness scare from that was tested and disproven (a changed
+  catalog.json is seen at once by a plain fetch).
+- **Committed and published 14 Sep with Grant's OK** (with M4).
+
+## 20. Liquid Glass — Phase 0's capsule on the real bars (14 Sep 2026)
+
+Grant's ask: "improve liquid glass on the Aviary as depicted on the Phase 0 and the landing page".
+Asked what he wanted, he picked **Phase 0 capsules** only (not the page tint, not glass menus, not a
+see-through window), and **approved Win2D** — the NuGet ask §2 has been carrying since Phase 1.
+
+**`GlassCapsule.cs`**, one per glass bar (toolbar, tab strip, sidebar), made in `InitialiseGlass`
+before the look is first applied; `ApplyLookGeometry` switches them on (Liquid Glass) or off
+(Classic), `OnEffectiveThemeChanged` and a display-scale change redraw them. The layers, in
+Phase 0's order, behind each bar's content:
+- **Sheen** — `AvGlassSheenBrush`, a vertical white wash (light .34 → .08 → 0 → .06; dark far dimmer).
+- **Edges** — `AvEdgeTopBrush` / `AvEdgeBottomBrush`, the inset specular pair. Declared since Phase 1
+  and drawn by nothing until now.
+- **Ring** — Phase 0's 157° rim, bright at the top-left and bottom-right poles, nearly gone along the
+  flanks. `AvGlassRingBrush` holds only its COLOURS; each capsule has its own brush in ABSOLUTE
+  coordinates computed the way CSS does (a gradient line through the centre, long enough for 0% and
+  100% to pass through the corners) and re-aimed when it resizes. A relative-mapped brush on a
+  1000×48 bar would put the poles in the wrong places.
+- **Shadow** — `AvGlassShadowSpec` ("dx,dy,blur,alpha;…", CSS numbers) plus the 0.5px hairline
+  (`AvHairlineBrush`), drawn with **Win2D** into a surface in a host Canvas placed just before the bar
+  in its panel, then **cut away under the bar** (DestinationOut). That is the reason for Win2D: a
+  composition DropShadow under a translucent fill greys the glass from below, where a CSS
+  box-shadow is clipped to the outside of its box. CSS blur = 2σ, so BlurAmount = blur / 2. Redrawn
+  only when size, radius, scale or spec change; a resize stretches the last one and redraws after
+  80 ms of stillness (the sidebar animates its width).
+- **Press** — the toolbar's own buttons (not the ones inside the address field) dip to 94% in 90 ms
+  and spring back (`SpringVector3NaturalMotionAnimation`, damping .55, period 42 ms), Liquid Glass
+  only, and not when `reduceMotion` is on. Measured with `press-hold.ps1`: hovered 27.5 px, held 26 px.
+- **Not done, on purpose:** backdrop blur, saturation and the refraction rim. WebView2 has no content
+  inset, so no page can slide under the bars; the only thing behind them is Mica, already a blurred
+  wallpaper, and a blur of it shows nothing. If glass menus or a see-through window are ever wanted
+  (Grant passed on both for now), those are where a backdrop brush would have something to show.
+
+**Theme contract:** three new keys in all six dictionaries (`AvGlassSheenBrush`, `AvGlassRingBrush`,
+`AvGlassShadowSpec`); Classic's three dictionaries and both High Contrast ones hold transparent brushes
+and an empty spec, so nothing is drawn there. `ThemeValue(key)` (MainWindow.Theme.cs) is ThemeBrush's
+walk for any value type. **Win2D 1.3.2 is pinned exactly** — 1.4.0 depends on the Windows App SDK 1.8
+split packages and would fight the `1.7.*` reference; it adds `Microsoft.Graphics.Canvas.dll` and
+`…Interop.dll` beside Aviary.exe.
+
+**Checked in the test copy** (screen captures, window in front, Grant idle 2–4 min): light — sheen,
+the bright top-left pole, soft shadows falling into the gaps between the toolbar, the tab strip and the
+page (`shots/glass-zoom-light.png`); dark — the rim and lip highlight, the shadows subtle on a dark
+desktop as Phase 0 intends (`shots/glass-zoom-dark.png`); the press dip (`shots/press-compare.png`).
+Someone used the machine mid-test (guard, 2.4 s) and testing stopped; with Grant's go-ahead the two
+left were run after: **the sidebar wears the capsule** (rim at the top-left pole, sheen, soft shadow —
+`shots/glass-sidebar-light.png`) and **Classic is unchanged after a swap from glass** (flat welded
+toolbar, flush sidebar with its hairline, no layers — `shots/classic-zoom.png`).
+Committed and published 14 Sep with Grant's OK, with M4 and sections 18–19.

@@ -60,6 +60,8 @@ internal static class AppSettings
         ["listAds"] = "true",
         ["listTrackers"] = "true",
         ["listsAutoUpdate"] = "false",
+        // Phase 5 M4 — search. Read on every keystroke in the address bar, Settings opened or not.
+        ["suggest"] = "false",
     };
 
     public static void Load()

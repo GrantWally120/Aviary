@@ -57,6 +57,20 @@ $items = @(
     'Claude CoWork Enclosed\jurassic-empire\build\web\*'    # the playable web export
     'Claude CoWork Enclosed\Zoo\Aviary.html'
     'Claude CoWork Enclosed\Zoo\Aviary-Phase0.html'
+    # ── The three experiment folders outside CoWork (Grant said yes, 14 Sep 2026) ────────
+    # Named file by file: Codex EXP's parallax-loading.html is on the do-not-include list, and
+    # AntiGravity Testing keeps each image twice (a timestamped copy the page never loads).
+    'AntiGravity Testing\index.html'                        # PARALLAX — the game's site
+    'AntiGravity Testing\ProjectDashboard.html'             # the Dev Log
+    'AntiGravity Testing\assets\earth64-vanguard.jpg'
+    'AntiGravity Testing\assets\hero-banner.jpg'
+    'AntiGravity Testing\assets\megatonic-facility.jpg'
+    'AntiGravity Testing\assets\xenar-invasion.jpg'
+    'Codex EXP\console-spectrum.html'
+    'vs testing\battery-animation.html'
+    'vs testing\FileMakerBeta-App\index.html'               # the page and what it loads — not its
+    'vs testing\FileMakerBeta-App\app.js'                   # Electron shell (main.js, preload.js),
+    'vs testing\FileMakerBeta-App\styles.css'               # which a browser cannot run
 )
 
 if (-not $dest.StartsWith($repo, [StringComparison]::OrdinalIgnoreCase)) { throw "refusing: $dest is outside the repo" }

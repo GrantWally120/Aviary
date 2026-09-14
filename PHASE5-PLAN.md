@@ -195,7 +195,17 @@ New `FilterEngine.cs` (parser + token index) and `Shields.cs` (per-site state).
 - Parsed once on a background thread, compiled index cached to disk. **Match cost is
   logged to `perf.jsonl`** with a budget (see M7).
 
-### M4 — Search
+### M4 — Search · **done 14 Sep 2026** (HANDOFF §18)
+Grant (14 Sep): DuckDuckGo stays the default; Bing and Google stay on the list. Built as planned:
+one engine table (`SearchEngines.cs`) behind the Settings list, the address bar and the context
+menu; engine suggestions real — off by default, "per-engine" made concrete as **changing engine
+switches them off**, never from a private window, never an address, no cookies or redirects.
+Mojeek has no suggestion service (its switch greys out). Found on the way: a private window kept
+searching the old engine (fixed), and bug 62 (a website could hear settings changes — fixed).
+Found from Grant's connection: **Qwant does not serve the Philippines** ("not yet available in your
+country") — so, at Grant's word, it was taken off the list: Brave Search, Mojeek and Ecosia joined.
+
+The original M4 plan:
 - Add **Brave Search** (`https://search.brave.com/search?q=`) plus Mojeek, Qwant, Ecosia
   beside DuckDuckGo (default) and Startpage.
 - Network suggestions (`suggest`): off by default, per-engine, and the row says it sends

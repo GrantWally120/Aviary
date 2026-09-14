@@ -93,6 +93,28 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#1F787880" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#B8FFFFFF" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF007AFF" />
+
+            <!-- LIQUID GLASS CAPSULE (GlassCapsule.cs) — Phase 0's .gcap, light recipe.
+                 Sheen: a white wash from the top (.34 → .08 at 38% → 0 at 58% → .06).
+                 Ring: the 157° rim, bright at the poles and nearly gone on the flanks — only its
+                 COLOURS live here; its direction is computed per capsule in absolute coordinates.
+                 Shadow: CSS box-shadow numbers, "dx,dy,blur,alpha;…" in DIPs. -->
+            <LinearGradientBrush x:Key="AvGlassSheenBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Offset="0"    Color="#57FFFFFF" />
+                <GradientStop Offset="0.38" Color="#14FFFFFF" />
+                <GradientStop Offset="0.58" Color="#00FFFFFF" />
+                <GradientStop Offset="1"    Color="#0FFFFFFF" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="AvGlassRingBrush">
+                <GradientStop Offset="0"    Color="#F2FFFFFF" />
+                <GradientStop Offset="0.14" Color="#6BFFFFFF" />
+                <GradientStop Offset="0.34" Color="#1AFFFFFF" />
+                <GradientStop Offset="0.52" Color="#0FFFFFFF" />
+                <GradientStop Offset="0.70" Color="#29FFFFFF" />
+                <GradientStop Offset="0.88" Color="#8CFFFFFF" />
+                <GradientStop Offset="1"    Color="#EBFFFFFF" />
+            </LinearGradientBrush>
+            <x:String x:Key="AvGlassShadowSpec">0,1,1,0.05;0,3,8,0.07;0,10,28,0.13</x:String>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -156,6 +178,25 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#21EBEBF5" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#3DEBEBF5" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF0A84FF" />
+
+            <!-- LIQUID GLASS CAPSULE — Phase 0's dark recipe: a dimmer sheen and ring, and about four
+                 times the shadow, because a dark bar on a dark desktop needs the depth to read at all. -->
+            <LinearGradientBrush x:Key="AvGlassSheenBrush" StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Offset="0"    Color="#1AFFFFFF" />
+                <GradientStop Offset="0.34" Color="#08FFFFFF" />
+                <GradientStop Offset="0.60" Color="#00FFFFFF" />
+                <GradientStop Offset="1"    Color="#05FFFFFF" />
+            </LinearGradientBrush>
+            <LinearGradientBrush x:Key="AvGlassRingBrush">
+                <GradientStop Offset="0"    Color="#57FFFFFF" />
+                <GradientStop Offset="0.16" Color="#29FFFFFF" />
+                <GradientStop Offset="0.38" Color="#0DFFFFFF" />
+                <GradientStop Offset="0.54" Color="#08FFFFFF" />
+                <GradientStop Offset="0.72" Color="#12FFFFFF" />
+                <GradientStop Offset="0.90" Color="#38FFFFFF" />
+                <GradientStop Offset="1"    Color="#61FFFFFF" />
+            </LinearGradientBrush>
+            <x:String x:Key="AvGlassShadowSpec">0,1,2,0.36;0,4,12,0.42;0,14,40,0.56</x:String>
         </ResourceDictionary>
 
         <!-- Required, and deliberately NOT glassy. Contrast themes exist to remove
@@ -217,6 +258,12 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="{ThemeResource SystemColorHighlightColor}" />
+
+            <!-- LIQUID GLASS CAPSULE (GlassCapsule.cs). Not drawn in this dictionary: Classic is one
+                 opaque plane, and High Contrast removes translucency by design. -->
+            <SolidColorBrush x:Key="AvGlassSheenBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AvGlassRingBrush"  Color="Transparent" />
+            <x:String x:Key="AvGlassShadowSpec"></x:String>
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>

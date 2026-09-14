@@ -39,7 +39,12 @@ public sealed partial class MainWindow : Window
     private BrowserTab? _dragTab;
     private double _dragStartX;
     private bool _dragging;
-    private string _searchPrefix = "https://duckduckgo.com/?q=";
+    /// <summary>
+    /// The chosen engine's results address; the words go on the end (SearchEngines.cs). Read
+    /// from the store every time rather than cached per window: a cached copy was only updated in
+    /// the window whose Settings tab changed it, so a private window kept searching the old engine.
+    /// </summary>
+    private static string SearchPrefix => SearchEngines.Current.SearchUrl;
 
     public MainWindow(bool isPrivate = false)
     {
@@ -253,8 +258,14 @@ public sealed partial class MainWindow : Window
                 Favicons.InvalidateDecoded();
                 RebuildTabStrip();
                 RefreshBookmarksBar();
+
+                // A new scale: the glass shadows are drawn in physical pixels.
+                RefreshGlass();
             };
         }
+
+        // Phase 0's glass capsule on each bar — before the look is applied, which switches it on.
+        InitialiseGlass();
 
         RestorePreferences();
         InitialiseSidebar();
@@ -410,14 +421,6 @@ public sealed partial class MainWindow : Window
         TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
         _showFullUrl = AppSettings.GetBool("fullUrl");
         HomeButton.Visibility = AppSettings.GetBool("homeButton") ? Visibility.Visible : Visibility.Collapsed;
-
-        _searchPrefix = AppSettings.Get("searchEngine") switch
-        {
-            "Bing" => "https://www.bing.com/search?q=",
-            "Google" => "https://www.google.com/search?q=",
-            "Startpage" => "https://www.startpage.com/sp/search?query=",
-            _ => "https://duckduckgo.com/?q="
-        };
 
         RootGrid.RequestedTheme = AppSettings.Get("theme") switch
         {
@@ -725,6 +728,10 @@ public sealed partial class MainWindow : Window
             // The filter lists' versions and counts, and the last check (Shields, M3).
             .Replace("/*__AVIARY_LISTS__*/",
                 "window.__aviaryLists = " + JsonSerializer.Serialize(FilterLists.Describe()) + ";")
+            // The search engines, and which of them can suggest (M4) — the same table the
+            // address bar searches with, so the list cannot offer an engine it does not know.
+            .Replace("/*__AVIARY_ENGINES__*/",
+                "window.__aviaryEngines = " + JsonSerializer.Serialize(SearchEngines.Describe()) + ";")
             .Replace("__AV_ICONCACHE__", DescribeIconCache())
             .Replace("__AV_BLOCKCOUNT__",
                 TrackerBlocker.BlockedCount == 0
@@ -1011,6 +1018,9 @@ public sealed partial class MainWindow : Window
         FaviconView.ApplyLookGeometryToAll(glass);
         ApplySidebarGeometry(glass);
         RestampSegments();
+
+        // Sheen, rim, edges, shadow and the press spring — Liquid Glass only (GlassCapsule.cs).
+        ApplyGlass(glass);
     }
 
     private void SelectTab(BrowserTab tab)
@@ -1797,7 +1807,7 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            target = _searchPrefix + Uri.EscapeDataString(text);
+            target = SearchPrefix + Uri.EscapeDataString(text);
             search = true;
         }
 
@@ -2349,13 +2359,16 @@ public sealed partial class MainWindow : Window
                     break;
 
                 case "searchEngine":
-                    _searchPrefix = (value.GetString() ?? "DuckDuckGo") switch
+                    SearchEngineChanged(value.GetString());
+                    break;
+
+                case "suggest":
+                    // Either way, nothing the engine said before is shown again; off also stops
+                    // whatever was about to be sent (MainWindow.SearchSuggest.cs).
+                    foreach (MainWindow window in OpenWindows)
                     {
-                        "Bing" => "https://www.bing.com/search?q=",
-                        "Google" => "https://www.google.com/search?q=",
-                        "Startpage" => "https://www.startpage.com/sp/search?query=",
-                        _ => "https://duckduckgo.com/?q="
-                    };
+                        window.ForgetEngineSuggestions();
+                    }
                     break;
 
                 case "homeButton":
@@ -2835,6 +2848,10 @@ public sealed partial class MainWindow : Window
     /// Pushes a host-side change into an open Settings page. Deliberately one-way: the
     /// page's handler sends nothing back, or Ctrl+D flipping the favourites bar on would
     /// ping-pong between the two forever.
+    ///
+    /// Only into Settings tabs, like the lists and collection pushes. It used to run in EVERY
+    /// tab, so any website that defined window.__aviaryApply was told each change (found in
+    /// M4's review: search suggestions going off was about to be one of them).
     /// </summary>
     private void PushToSettingsPage(string key, object value)
     {
@@ -2842,7 +2859,7 @@ public sealed partial class MainWindow : Window
 
         foreach (BrowserTab tab in _tabs)
         {
-            if (tab.View.CoreWebView2 is not CoreWebView2 core)
+            if (tab.View.CoreWebView2 is not CoreWebView2 core || !tab.IsInternalPage || tab.Title != "Settings")
             {
                 continue;
             }

@@ -23,7 +23,7 @@ internal sealed partial class BrowserTab
     /// per-WebView property, so a later phase can make this a switch on individual tabs
     /// rather than a silent global.
     /// </summary>
-    private const string SafariUserAgent =
+    internal const string SafariUserAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 " +
         "(KHTML, like Gecko) Version/18.0 Safari/605.1.15";
 

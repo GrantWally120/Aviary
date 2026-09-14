@@ -90,6 +90,83 @@ public sealed partial class MainWindow
         brush is SolidColorBrush solid ? solid.Color : Microsoft.UI.Colors.Transparent;
 
     /// <summary>
+    /// Any value from the theme dictionary on screen — a brush, a string — or null. The same
+    /// walk as <see cref="ThemeBrush"/>, for the glass capsules' gradients and shadow spec.
+    /// </summary>
+    private object? ThemeValue(string key)
+    {
+        string theme = EffectiveThemeKey();
+
+        try
+        {
+            var merged = Application.Current.Resources.MergedDictionaries;
+            for (int i = merged.Count - 1; i >= 0; i--)
+            {
+                if (merged[i].ThemeDictionaries.TryGetValue(theme, out object? found)
+                    && found is ResourceDictionary dictionary
+                    && dictionary.TryGetValue(key, out object? value))
+                {
+                    return value;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "theme: value lookup " + key);
+        }
+
+        return null;
+    }
+
+    // ── Liquid Glass: Phase 0's capsule on each bar (GlassCapsule.cs, 14 Sep 2026) ──
+
+    private GlassCapsule? _glassToolbar, _glassTabs, _glassSidebar;
+    private bool _glassOn;
+
+    /// <summary>Made once, before the look is first applied — which is what switches them on or off.</summary>
+    private void InitialiseGlass()
+    {
+        try
+        {
+            _glassToolbar = new GlassCapsule(ToolbarRow, ToolbarRow, RootGrid, ThemeValue);
+            _glassTabs = new GlassCapsule(TabStripRow, TabStripRow, RootGrid, ThemeValue);
+            if (SidebarRoot.Child is Panel sidebarPanel)
+            {
+                _glassSidebar = new GlassCapsule(SidebarRoot, sidebarPanel, ContentRow, ThemeValue);
+            }
+
+            // The toolbar's own buttons (Phase 0's .gbtn) — not the ones inside the address field.
+            foreach (ButtonBase button in new ButtonBase[]
+                     { SidebarButton, BackButton, ForwardButton, ShieldsButton, HomeButton, DownloadsButton, MenuButton, NewTabButton })
+            {
+                GlassCapsule.AttachPress(button, () => _glassOn && !AppSettings.GetBool("reduceMotion"));
+            }
+        }
+        catch (Exception ex)
+        {
+            // Without them the bars are the plain translucent fills they were before.
+            Diagnostics.Swallowed(ex, "glass: initialise capsules");
+        }
+    }
+
+    /// <summary>From ApplyLookGeometry: on under Liquid Glass, off under Classic.</summary>
+    private void ApplyGlass(bool glass)
+    {
+        _glassOn = glass;
+        _glassToolbar?.SetEnabled(glass);
+        _glassTabs?.SetEnabled(glass);
+        _glassSidebar?.SetEnabled(glass);
+    }
+
+    /// <summary>A new theme, a new display scale: the capsules read their colours and redraw.</summary>
+    private void RefreshGlass()
+    {
+        _glassToolbar?.Refresh();
+        _glassTabs?.Refresh();
+        _glassSidebar?.Refresh();
+    }
+
+    /// <summary>
     /// Makes a menu follow Aviary's theme. Menus render in the popup layer, outside
     /// RootGrid, so without this a menu opened while pinned Light is drawn Dark.
     ///
@@ -229,6 +306,7 @@ public sealed partial class MainWindow
         ApplyCaptionColors();
         RestampSegments();
         RefreshSidebar();
+        RefreshGlass();
 
         // The Smart Search popup caches its shell brushes; rebuild it next time it opens.
         _suggestPopup = null;

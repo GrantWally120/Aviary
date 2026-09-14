@@ -77,6 +77,12 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#14000000" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF007AFF" />
+
+            <!-- LIQUID GLASS CAPSULE (GlassCapsule.cs). Not drawn in this dictionary: Classic is one
+                 opaque plane, and High Contrast removes translucency by design. -->
+            <SolidColorBrush x:Key="AvGlassSheenBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AvGlassRingBrush"  Color="Transparent" />
+            <x:String x:Key="AvGlassShadowSpec"></x:String>
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
@@ -135,6 +141,12 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="#FF4A4A4E" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="#FF0A84FF" />
+
+            <!-- LIQUID GLASS CAPSULE (GlassCapsule.cs). Not drawn in this dictionary: Classic is one
+                 opaque plane, and High Contrast removes translucency by design. -->
+            <SolidColorBrush x:Key="AvGlassSheenBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AvGlassRingBrush"  Color="Transparent" />
+            <x:String x:Key="AvGlassShadowSpec"></x:String>
         </ResourceDictionary>
 
         <!-- Required. With only Light and Dark declared, a machine running a Windows
@@ -197,6 +209,12 @@
             <SolidColorBrush x:Key="AvSegmentBrush"                  Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="AvSegmentSelectedBrush"          Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="AvUnreadDotBrush"                Color="{ThemeResource SystemColorHighlightColor}" />
+
+            <!-- LIQUID GLASS CAPSULE (GlassCapsule.cs). Not drawn in this dictionary: Classic is one
+                 opaque plane, and High Contrast removes translucency by design. -->
+            <SolidColorBrush x:Key="AvGlassSheenBrush" Color="Transparent" />
+            <SolidColorBrush x:Key="AvGlassRingBrush"  Color="Transparent" />
+            <x:String x:Key="AvGlassShadowSpec"></x:String>
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>
