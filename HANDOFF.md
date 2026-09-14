@@ -33,7 +33,7 @@ Grant), all from one table — Qwant was built, found not to serve the Philippin
 Grant's word; suggestions from the engine made real (off by default, never
 from a private window, never an address, switched off by any change of engine). Its review found
 **bug 62**: host-to-Settings pushes ran in every tab, so a website could hear settings changes.
-**M4 is committed and published (14 Sep, Grant's OK).**
+**M4 is committed (`a5bb690`, with sections 19–20) and published (14 Sep, Grant's OK).**
 
 **Also asked for on 14 Sep (Grant), all done the same day and committed with M4:** the landing page
 `Aviary.html` redesigned as a "glass showcase" with just two phases — **Phase 1 · Alpha** (the
@@ -280,6 +280,12 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 >   - **Closing a test instance that has a private window open:** CloseMainWindow closes ONE
 >     window, so the process lives on and keeps the DevTools port; the next launch then has no
 >     DevTools ("fetch failed"). Close until the process exits.
+> - **"Hash-identical to the tested build" cannot survive a commit (14 Sep).** The .NET SDK stamps the
+>   current commit into Aviary.dll's version (`ProductVersion` = `1.0.0+<sha>`), so a build published
+>   after committing differs from the test copy built before it — in Aviary.dll, .exe and .pdb only.
+>   Check instead: `ProductVersion` differs only by the sha, nothing compiled is newer than the test
+>   copy (`find src/Aviary … -newer tools/test/pub/Aviary.dll`), and every other file is identical
+>   (`diff -rq`). Or commit first and build the test copy after.
 > - **Bug 61's kit (13 Sep)** — `bgsite.js` (port 8772: pages with and without a background of
 >   their own, a held-back stylesheet, a slow server, links into new tabs), `flash-watch.ps1`
 >   (what the window shows WHILE one page replaces another: a PrintWindow capture every ~7 ms,
