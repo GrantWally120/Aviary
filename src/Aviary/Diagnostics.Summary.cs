@@ -411,7 +411,7 @@ internal static partial class Diagnostics
         md.AppendLine();
         md.AppendLine("| File | Size | Last written |");
         md.AppendLine("|---|---:|---|");
-        foreach (FileInfo f in new DirectoryInfo(Folder).EnumerateFiles("*", SearchOption.AllDirectories)
+        foreach (FileInfo f in FilesNow(Folder)
                      .Where(f => !f.Name.EndsWith(".tmp", StringComparison.OrdinalIgnoreCase))
                      .OrderBy(f => f.FullName, StringComparer.OrdinalIgnoreCase))
         {

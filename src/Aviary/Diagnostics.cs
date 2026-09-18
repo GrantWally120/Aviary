@@ -735,9 +735,7 @@ internal static partial class Diagnostics
             return;
         }
 
-        List<FileInfo> all = new DirectoryInfo(Folder)
-            .EnumerateFiles("*", SearchOption.AllDirectories)
-            .ToList();
+        List<FileInfo> all = FilesNow(Folder);
 
         long total = all.Sum(f => f.Length);
         if (total <= CapBytes)
@@ -783,6 +781,30 @@ internal static partial class Diagnostics
                 Rotate(largest);
             }
         }
+    }
+
+    /// <summary>
+    /// Every file under <paramref name="folder"/>, with its size and time as they are NOW.
+    ///
+    /// A folder listing gives what Windows wrote into the directory when each file was last
+    /// CLOSED, and the category files stay open all session — so a listing alone reported the
+    /// previous session's sizes to the cap, the summary's Files table and Clear browsing data
+    /// (bug 63: blocking.jsonl "11 KB, 22:30" when it held 13 KB written at 22:38). Refresh
+    /// asks the file itself. A file deleted in between is left out rather than thrown over.
+    /// </summary>
+    private static List<FileInfo> FilesNow(string folder)
+    {
+        List<FileInfo> files = new();
+        foreach (FileInfo f in new DirectoryInfo(folder).EnumerateFiles("*", SearchOption.AllDirectories))
+        {
+            f.Refresh();
+            if (f.Exists)
+            {
+                files.Add(f);
+            }
+        }
+
+        return files;
     }
 
     /// <summary>
@@ -911,7 +933,7 @@ internal static partial class Diagnostics
                 return (0, 0);
             }
 
-            List<FileInfo> files = new DirectoryInfo(Folder).EnumerateFiles("*", SearchOption.AllDirectories).ToList();
+            List<FileInfo> files = FilesNow(Folder);
             return (files.Count, files.Sum(f => f.Length));
         }
         catch (Exception)
