@@ -54,6 +54,10 @@ public static class Program
     [STAThread]
     private static void Main()
     {
+        // Before anything native can fail: a C++ exception nobody catches ends in abort(), which
+        // no .NET handler sees — this is what records it (bug 50).
+        NativeCrash.Install();
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         if (HandedToRunningAviary())

@@ -1213,7 +1213,24 @@ internal static partial class Diagnostics
     /// </summary>
     public static void Crash(Exception ex, string source, bool terminating)
     {
-        if (_mode != 1 || ex is null)
+        if (ex is null)
+        {
+            return;
+        }
+
+        WriteCrash(source, terminating, DescribeException(ex), ex.GetType().FullName, ex.Message);
+    }
+
+    /// <summary>
+    /// A native crash (<see cref="NativeCrash"/>): the same report, built from what could be read
+    /// off the dying thread rather than from a .NET exception. The process ends when this returns.
+    /// </summary>
+    public static void CrashNative(string source, object exception, string type, string message) =>
+        WriteCrash(source, terminating: true, exception, type, message);
+
+    private static void WriteCrash(string source, bool terminating, object exception, string? type, string message)
+    {
+        if (_mode != 1)
         {
             return;
         }
@@ -1231,7 +1248,7 @@ internal static partial class Diagnostics
                 terminating,
                 build = new { version = BuildInfo.Version, channel = BuildInfo.Channel, phase = BuildInfo.PhaseLabel },
                 uptimeSeconds = Math.Round((now - ProcessStart).TotalSeconds, 1),
-                exception = DescribeException(ex),
+                exception,
                 lastActions = CrumbsSnapshot(),
                 openTabs = TabsSnapshot(),
                 experimentsOn = ActiveExperiments(),
@@ -1246,8 +1263,8 @@ internal static partial class Diagnostics
                 file = "crashes/" + name,
                 source,
                 terminating,
-                type = ex.GetType().FullName,
-                message = ex.Message,
+                type,
+                message,
             });
 
             if (terminating)

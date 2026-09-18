@@ -288,6 +288,9 @@ public sealed partial class MainWindow : Window
         await OpenNewTabAsync(null);
         Diagnostics.Mark("first-tab-created");
 
+        // The engine's code is loaded now; make sure a native crash still reaches Aviary's recorder.
+        NativeCrash.CheckStillInstalled();
+
         ArmCrashTest();
     }
 
@@ -338,11 +341,13 @@ public sealed partial class MainWindow : Window
     ///                            M0 pin bug) and crashes/ gets a report.
     ///   AVIARY_CRASH_TEST=fatal  a failure on a background thread, which ends the process;
     ///                            the report must still be written first.
+    ///   AVIARY_CRASH_TEST=native the C runtime's abort() on the UI thread — the way bug 50 ends
+    ///                            Aviary; NativeCrash must write crash.log and crashes/ first.
     /// </summary>
     private void ArmCrashTest()
     {
         string? mode = Environment.GetEnvironmentVariable("AVIARY_CRASH_TEST");
-        if (mode is not ("ui" or "fatal"))
+        if (mode is not ("ui" or "fatal" or "native"))
         {
             return;
         }
@@ -353,6 +358,12 @@ public sealed partial class MainWindow : Window
         timer.Tick += (_, _) =>
         {
             timer.Stop();
+
+            if (mode == "native")
+            {
+                NativeCrash.AbortForTest();
+                return;
+            }
 
             if (mode == "fatal")
             {

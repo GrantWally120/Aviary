@@ -35,6 +35,12 @@ public partial class App : Application
             Diagnostics.Swallowed(instanceFailure, "single instance: register the profile");
         }
 
+        if (NativeCrash.InstallFailure is { } nativeFailure)
+        {
+            // A native crash would leave no trace again, as before bug 50's recorder.
+            Diagnostics.Swallowed(nativeFailure, "native crash: install the abort handler");
+        }
+
         WebViewEnvironment.EnsureUserDataFolder();
 
         // The ad blocker's lists are read on a background thread while the window builds, so
