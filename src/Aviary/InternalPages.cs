@@ -534,10 +534,14 @@ var UPDATES = [
         'A site’s own “page not found” page was hidden behind Aviary’s error panel',
         'Every download was followed by a false “page didn’t load” panel',
         'Google’s site icon never loaded',
-        'A padlock showed beside a secure connection that had failed'
-      ]},
-      {h:'Known issue', warn:true, items:[
-        'Minimising Aviary in the first half-second after it opens can close it. Give it a moment before minimising.'
+        'A padlock showed beside a secure connection that had failed',
+        'Minimising Aviary in the first moments after it opened could close it',
+        'Shutting down or restarting Windows with Aviary open lost your last changes and was counted as a crash',
+        'A message such as “can’t reach this page” belonged to the window rather than its tab, so it could appear over the wrong page — each tab now keeps its own',
+        'A page that crashes now says so, with a Reload Page button',
+        'A setting changed at the very moment Aviary was reading its settings back could fail to save',
+        'The improvement data’s summary showed file sizes from the session before',
+        'A second copy of Aviary from another folder now says Aviary is already open, instead of sharing its data'
       ]}
     ]},
   { phase:6, name:'Testing 1',
