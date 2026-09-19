@@ -40,6 +40,19 @@ if ($Action -eq "Dump") { $found | Select-Object -First 200; exit 0 }
 if ($found.Count -eq 0) { Write-Output "NOT FOUND name='$Name' id='$Id'"; exit 1 }
 $target = $found[0]
 
+# A name can belong to more than a button's label — a tooltip with the same text lives in a popup,
+# and popups are searched first (19 Sep: a tab's tooltip was found before the tab). For Invoke and
+# Toggle, take the first match that sits inside something that can do it.
+if ($Action -in "Invoke", "Toggle") {
+    $prop = if ($Action -eq "Invoke") { $A::IsInvokePatternAvailableProperty } else { $A::IsTogglePatternAvailableProperty }
+    $w = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+    foreach ($candidate in $found) {
+        $p = $candidate
+        while ($p -and -not [bool]$p.GetCurrentPropertyValue($prop)) { $p = $w.GetParent($p) }
+        if ($p) { $target = $candidate; break }
+    }
+}
+
 switch ($Action) {
     "Invoke" {
         # A label inside a button (a Smart Search row, M4) cannot be invoked itself: climb to the
@@ -50,7 +63,14 @@ switch ($Action) {
         if (-not $hit) { Write-Output "NOT INVOKABLE '$($target.Current.Name)'"; exit 1 }
         $hit.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern).Invoke(); Write-Output "INVOKED '$($target.Current.Name)' ($($hit.Current.ControlType.ProgrammaticName))"
     }
-    "Toggle" { $p = $target.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern); $p.Toggle(); Write-Output "TOGGLED '$($target.Current.Name)' -> $($p.Current.ToggleState)" }
+    "Toggle" {
+        # A tab's label sits inside its ToggleButton (19 Sep): climb to the nearest ancestor that toggles.
+        $walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+        $hit = $target
+        while ($hit -and -not [bool]$hit.GetCurrentPropertyValue($A::IsTogglePatternAvailableProperty)) { $hit = $walker.GetParent($hit) }
+        if (-not $hit) { Write-Output "NOT TOGGLEABLE '$($target.Current.Name)'"; exit 1 }
+        $p = $hit.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern); $p.Toggle(); Write-Output "TOGGLED '$($target.Current.Name)' -> $($p.Current.ToggleState)"
+    }
     "Help"   { Write-Output ("HELP '{0}': {1}" -f $target.Current.Name, $target.Current.HelpText) }
     "SetValue" { $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Write-Output "SET '$($target.Current.AutomationId)' = '$Value'" }
     "Value"  { $v = $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value; Write-Output ("VALUE '{0}' = '{1}' focus={2}" -f $target.Current.AutomationId, $v, $target.Current.HasKeyboardFocus) }

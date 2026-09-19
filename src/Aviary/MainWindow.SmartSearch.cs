@@ -336,7 +336,7 @@ public sealed partial class MainWindow
                 via = "suggestion list",
             });
 
-            HideError();
+            ClearNotice(tab);
             tab.Navigate(url);
             FocusPage(tab);
         }

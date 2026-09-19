@@ -577,6 +577,8 @@ public sealed partial class MainWindow : Window
         tab.Navigated += OnTabNavigated;
         tab.FullScreenChanged += OnTabFullScreenChanged;
         tab.HttpsFallback += OnHttpsFallback;
+        tab.NavigationStarted += ClearNotice;
+        tab.PageGone += OnPageGone;
         WireShields(tab);
         tab.BlankTabRequested = OpenBlankTabAsync;
 
@@ -609,7 +611,7 @@ public sealed partial class MainWindow : Window
             // diagnostics keeps the exception that explains it.
             Diagnostics.Anomaly("webview-start", ex.GetType().Name + " — " + ex.Message,
                 new { reason, hresult = "0x" + ex.HResult.ToString("X8"), stack = ex.StackTrace });
-            ShowError("Aviary can't start its browser engine", ex.Message);
+            ShowNotice(tab, new TabNotice { Kind = "engine-start", Title = "Aviary can't start its browser engine", Detail = ex.Message });
             return null;
         }
 
@@ -618,7 +620,10 @@ public sealed partial class MainWindow : Window
         DiagTrackSlow("tab-create", ms, reason);
         DiagUi("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
 
-        HideError();
+        if (ReferenceEquals(tab, _active))
+        {
+            RenderNotice(tab);
+        }
         HookContextMenu(tab);
         return tab;
     }
@@ -1183,6 +1188,9 @@ public sealed partial class MainWindow : Window
             pair.Value.IsChecked = ReferenceEquals(pair.Key, tab);
         }
 
+        // This tab's panel, if it has one — never the last tab's (bug 65).
+        RenderNotice(tab);
+
         UpdateChrome();
     }
 
@@ -1370,18 +1378,14 @@ public sealed partial class MainWindow : Window
 
     private void OnNavigationFailed(BrowserTab tab, CoreWebView2WebErrorStatus status)
     {
-        if (!ReferenceEquals(tab, _active))
-        {
-            return;
-        }
-
         string detail = DescribeError(status);
         if (detail.Length == 0)
         {
             return;
         }
 
-        ShowError("This page didn't load", detail);
+        // Also for a tab in the background: switching to it must not show Chromium's page (bug 65).
+        ShowNotice(tab, new TabNotice { Kind = "failed", Title = "This page didn't load", Detail = detail });
     }
 
     private void OnDownloadStarted(CoreWebView2DownloadOperation operation)
@@ -1436,9 +1440,9 @@ public sealed partial class MainWindow : Window
         if (_tabButtons.TryGetValue(tab, out ToggleButton? button)
             && button.Tag is TabChrome chrome)
         {
-            chrome.Title.Text = tab.Title;
+            chrome.Title.Text = ShownTitle(tab);
             chrome.Icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
-            ToolTipService.SetToolTip(button, tab.Title);
+            ToolTipService.SetToolTip(button, ShownTitle(tab));
         }
 
         if (ReferenceEquals(tab, _active))
@@ -1550,7 +1554,7 @@ public sealed partial class MainWindow : Window
 
         TextBlock title = new()
         {
-            Text = tab.Title,
+            Text = ShownTitle(tab),
             FontSize = 12,
             FontWeight = Microsoft.UI.Text.FontWeights.Medium,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -1792,10 +1796,18 @@ public sealed partial class MainWindow : Window
         }
 
         string app = _private ? "Aviary Private" : "Aviary";
-        Title = tab is null || string.IsNullOrWhiteSpace(tab.Title) || tab.Title == "Aviary"
+        string shown = tab is null ? string.Empty : ShownTitle(tab);
+        Title = string.IsNullOrWhiteSpace(shown) || shown == "Aviary"
             ? app
-            : tab.Title + " — " + app;
+            : shown + " — " + app;
     }
+
+    /// <summary>
+    /// The title a tab goes by: its panel's while Aviary is showing one, not the page's — which,
+    /// behind the panel, is Chromium's error page ("Privacy error") or a page that is gone
+    /// (HANDOFF §8, bug 9's class).
+    /// </summary>
+    private static string ShownTitle(BrowserTab tab) => tab.Notice?.Title ?? tab.Title;
 
     /// <summary>
     /// Hands every tab the theme's page colour: what Aviary's own pages, and a tab that has shown
@@ -1944,7 +1956,7 @@ public sealed partial class MainWindow : Window
             DiagBrowse("typed", text, new { tab = tab.Id, typed = text, target });
         }
 
-        HideError();
+        ClearNotice(tab);
         tab.Navigate(target);
         return true;
     }
@@ -2646,8 +2658,10 @@ public sealed partial class MainWindow : Window
                     (bool clear, bool alsoDiagnostics) = await ConfirmWithOptionAsync(
                             "Clear browsing data?",
                             "History, cookies, cached files and site data for this profile are "
-                          + "removed. Your bookmarks, reading list and downloaded files are not "
-                          + "touched.",
+                          + "removed. Your choices for single sites go back to normal too: Shields "
+                          + "comes back on where you had turned it off, Reader stops opening by "
+                          + "itself, and sites you let use an insecure connection are asked again. "
+                          + "Your bookmarks, reading list and downloaded files are not touched.",
                             "Clear",
                             alsoOffer);
 
@@ -3016,100 +3030,27 @@ public sealed partial class MainWindow : Window
             || host == "::1";
     }
 
-    /// <summary>The insecure address the HTTPS-Only panel offers, while it is showing.</summary>
-    private string? _fallbackUrl;
-
     /// <summary>
     /// HTTPS-Only asked the site for a secure connection and did not get one. Safari has no
     /// equivalent to copy; this follows Chrome's HTTPS-First wording: say what failed, say
-    /// what the risk is in plain words, make going back the easy choice.
+    /// what the risk is in plain words, make going back the easy choice. A tab in the
+    /// background gets its panel too, shown when it is switched to (bug 65).
     /// </summary>
     private void OnHttpsFallback(BrowserTab tab, string httpUrl)
     {
-        if (!ReferenceEquals(tab, _active))
-        {
-            return;
-        }
-
         string host = Uri.TryCreate(httpUrl, UriKind.Absolute, out Uri? uri) ? uri.Host : httpUrl;
-        ShowError("This site doesn't offer a secure connection",
-            "Aviary tried a secure (HTTPS) connection to " + host + " and the site didn't answer securely. "
-          + "On an insecure connection, anyone on your network can see and change the pages you "
-          + "load and anything you send.");
-        _fallbackUrl = httpUrl;
-        ErrorActions.Visibility = Visibility.Visible;
-        ErrorBackButton.IsEnabled = tab.CanGoBack;
-    }
-
-    private void ErrorBack_Click(object sender, RoutedEventArgs e)
-    {
-        // Strict's warning: the stopped navigation never left the page that was showing, so
-        // going back is simply putting that page on screen again.
-        if (_blockedSiteUrl is not null)
+        ShowNotice(tab, new TabNotice
         {
-            DiagUi("site-blocked-back");
-            HideError();
-            return;
-        }
-
-        DiagUi("https-fallback-back");
-        BrowserTab? tab = _active;
-        HideError();
-        if (tab is { CanGoBack: true })
-        {
-            tab.View.GoBack();
-        }
-    }
-
-    private void ErrorContinue_Click(object sender, RoutedEventArgs e)
-    {
-        if (_blockedSiteUrl is { } blocked && _active is { } blockedTab)
-        {
-            DiagUi("site-blocked-open-anyway");
-            HideError();
-            blockedTab.OpenBlockedSite(blocked);
-            return;
-        }
-
-        if (_fallbackUrl is not { } url || _active is not { } tab)
-        {
-            return;
-        }
-
-        DiagUi("https-fallback-continue");
-        HideError();
-        tab.ContinueInsecure(url);
-    }
-
-    private void ShowError(string title, string detail)
-    {
-        // What the person actually SAW — the navigation line records the raw status.
-        DiagUi("error-page-shown", new { title, detail, url = _active?.Url });
-
-        ErrorTitle.Text = title;
-        ErrorDetail.Text = detail;
-        ErrorPanel.Visibility = Visibility.Visible;
-
-        // Hide the WebView, or Chromium's own error page shows behind ours — complete
-        // with a Microsoft Edge logo, which has no business appearing in this browser.
-        if (_active is not null)
-        {
-            _active.View.Visibility = Visibility.Collapsed;
-        }
-    }
-
-    private void HideError()
-    {
-        ErrorPanel.Visibility = Visibility.Collapsed;
-        ErrorActions.Visibility = Visibility.Collapsed;
-        _fallbackUrl = null;
-        _blockedSiteUrl = null;
-        ErrorContinueButton.Content = "Continue to Site";
-
-        if (_active is not null)
-        {
-            _active.View.Visibility = Visibility.Visible;
-        }
+            Kind = "https-fallback",
+            Title = "This site doesn't offer a secure connection",
+            Detail = "Aviary tried a secure (HTTPS) connection to " + host + " and the site didn't answer securely. "
+                   + "On an insecure connection, anyone on your network can see and change the pages you "
+                   + "load and anything you send.",
+            Back = true,
+            BackEnabled = tab.CanGoBack,
+            Action = "Continue to Site",
+            FallbackUrl = httpUrl,
+        });
     }
 
     /// <summary>Turns a WebView2 error status into something a person can act on.</summary>

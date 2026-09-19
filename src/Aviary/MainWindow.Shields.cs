@@ -397,16 +397,12 @@ public sealed partial class MainWindow
 
     // ══ STRICT'S WARNING ═══════════════════════════════════════════════════
 
-    /// <summary>The site Strict stopped, while its warning is showing.</summary>
-    private string? _blockedSiteUrl;
-
+    /// <summary>
+    /// Strict stopped a site. A tab in the background gets its warning too, shown when it is
+    /// switched to — it used to happen there silently (HANDOFF §8, bug 65).
+    /// </summary>
     private void OnSiteBlocked(BrowserTab tab, string url, string rule, string list)
     {
-        if (!ReferenceEquals(tab, _active))
-        {
-            return;
-        }
-
         string host = Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) ? uri.Host : url;
         string source = list switch
         {
@@ -416,15 +412,17 @@ public sealed partial class MainWindow
             _ => list,
         };
 
-        ShowError("Aviary stopped this site",
-            host + " is on " + source + " as a site that exists to serve ads or track people, so Strict "
-          + "blocking didn’t open it. If you trust it, you can open it anyway — only in this tab, and only "
-          + "until you leave it. (The rule: " + rule + ")");
-
-        _fallbackUrl = null;
-        _blockedSiteUrl = url;
-        ErrorContinueButton.Content = "Open Anyway";
-        ErrorBackButton.IsEnabled = true;
-        ErrorActions.Visibility = Visibility.Visible;
+        ShowNotice(tab, new TabNotice
+        {
+            Kind = "site-blocked",
+            Title = "Aviary stopped this site",
+            Detail = host + " is on " + source + " as a site that exists to serve ads or track people, so Strict "
+                   + "blocking didn’t open it. If you trust it, you can open it anyway — only in this tab, and only "
+                   + "until you leave it. (The rule: " + rule + ")",
+            Back = true,
+            BackEnabled = true,
+            Action = "Open Anyway",
+            BlockedUrl = url,
+        });
     }
 }

@@ -89,6 +89,15 @@ internal sealed partial class BrowserTab
     /// </summary>
     public event Action<BrowserTab, string>? HttpsFallback;
 
+    /// <summary>Raised when a navigation of this tab's own really starts (after Aviary's rewrites and Shields).</summary>
+    public event Action<BrowserTab>? NavigationStarted;
+
+    /// <summary>Raised when the renderer showing this tab's page has died; carries the engine's reason.</summary>
+    public event Action<BrowserTab, string>? PageGone;
+
+    /// <summary>What Aviary shows in place of this tab's page, if anything (MainWindow.Notices.cs, bug 65).</summary>
+    internal TabNotice? Notice { get; set; }
+
     /// <summary>Raised when the page enters or leaves element full screen (a video's button).</summary>
     public event Action<BrowserTab, bool>? FullScreenChanged;
 
@@ -612,6 +621,13 @@ internal sealed partial class BrowserTab
 
         string kind = Read(() => args.ProcessFailedKind);
         string reason = Read(() => args.Reason);
+
+        // The renderer of THIS page (not a frame's, not the GPU process — those recover by
+        // themselves) is gone: Aviary's panel, with Reload, instead of Chromium's (HANDOFF §8).
+        if (kind == nameof(CoreWebView2ProcessFailedKind.RenderProcessExited))
+        {
+            PageGone?.Invoke(this, reason);
+        }
 
         Diagnostics.Engine(new
         {
@@ -1385,6 +1401,11 @@ internal sealed partial class BrowserTab
         {
             return;
         }
+
+        // A navigation of this tab's own is under way: whatever panel it had is over (bug 65).
+        // After the Shields check, so Strict's warning — raised in there — is not cleared by the
+        // very navigation it stopped.
+        NavigationStarted?.Invoke(this);
 
         IsLoading = true;
 

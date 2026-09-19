@@ -60,7 +60,7 @@ public static class Program
 
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
-        if (HandedToRunningAviary())
+        if (HandedToRunningAviary() || AnotherCopyOwnsProfile())
         {
             return;
         }
@@ -101,6 +101,60 @@ public static class Program
         {
             // Without it Aviary still runs, exactly as it did before bug 51's fix.
             InstanceFailure = ex;
+            return false;
+        }
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
+
+    /// <summary>Held from start-up until everything is written (<see cref="Release"/>).</summary>
+    private static Mutex? _profileLock;
+
+    /// <summary>
+    /// The rest of bug 51 (HANDOFF §8): the Windows App SDK scopes an unpackaged app's instance keys
+    /// to its EXECUTABLE, so a second copy of Aviary.exe in another folder, on the same profile,
+    /// did not see the first and ran beside it — two writers again. A named lock per profile is
+    /// held by whichever copy owns it, whatever its folder. A launch that finds it held waits a
+    /// few seconds (the owner may be closing: it lets go once its last writes are done — and a
+    /// copy that crashed leaves it abandoned, which counts as free), then says so in plain words
+    /// and ends having written nothing. It cannot hand itself over the way a launch of the same
+    /// copy does: nothing about the other copy's window is reachable from here.
+    /// </summary>
+    private static bool AnotherCopyOwnsProfile()
+    {
+        try
+        {
+            _profileLock = new Mutex(initiallyOwned: false, @"Local\" + InstanceKey() + "-profile");
+            bool taken;
+            try
+            {
+                taken = _profileLock.WaitOne(TimeSpan.FromSeconds(5));
+            }
+            catch (AbandonedMutexException)
+            {
+                taken = true;
+            }
+
+            if (taken)
+            {
+                return false;
+            }
+
+            _profileLock.Dispose();
+            _profileLock = null;
+            MessageBoxW(IntPtr.Zero,
+                "Aviary is already open — another copy of it, from a different folder, is using the same "
+                + "profile. Two copies at once would both write your history, settings and bookmarks.\n\n"
+                + "Close the Aviary that is open first, or carry on using that one.",
+                "Aviary is already open",
+                0x00000040 /* MB_ICONINFORMATION */ | 0x00010000 /* MB_SETFOREGROUND */);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Without it Aviary still runs, exactly as before this guard.
+            InstanceFailure ??= ex;
             return false;
         }
     }
@@ -185,6 +239,19 @@ public static class Program
         {
             _state = InstanceState.Released;
             relaunch = _relaunchRequested;
+        }
+
+        // Before the relaunch below, which would otherwise wait on it. On the UI thread — Main's
+        // own, the thread that took it — as a mutex must be.
+        try
+        {
+            _profileLock?.ReleaseMutex();
+            _profileLock?.Dispose();
+            _profileLock = null;
+        }
+        catch (Exception)
+        {
+            // Released with the process moments from now anyway.
         }
 
         try
