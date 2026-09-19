@@ -63,6 +63,7 @@ public sealed partial class MainWindow : Window
 
         IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         _appWindow = GetAppWindow(hWnd);
+        WatchForSessionEnd(hWnd);
         ConfigureTitleBar();
 
         // AppWindow.Resize takes PHYSICAL pixels, so a fixed size opens small on a
@@ -227,6 +228,7 @@ public sealed partial class MainWindow : Window
     {
         RootGrid.Loaded -= RootGrid_Loaded;
         Diagnostics.Mark("window-loaded");
+        RootGrid.XamlRoot.Changed += OnXamlRootChangedForFocus;
         UpdateCaptionSpacer();
         WebViewEnvironment.EnsureUserDataFolder();
 
@@ -295,17 +297,12 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Bug 50 — PARTLY fixed. Minimising the window while its FIRST tab is being created kills
-    /// Aviary outright: a native fail-fast (0xc0000409 in ucrtbase.dll) with no .NET exception,
-    /// no crash report, nothing in crash.log. Measured by minimising N ms after the window
-    /// appears: 0, 100, 250 ms crash; 400 ms and later never; and a LATER tab created while
-    /// minimised (Ctrl+T, a pop-up) never crashes. The fault is inside the engine or WinUI,
-    /// out of reach of a catch, and starting the engine earlier did not move it.
+    /// A window that is already minimised when it finishes loading makes its first tab once it
+    /// is back on screen: nothing is gained by building a Start Page nobody can see.
     ///
-    /// What this does cover: a window that is ALREADY minimised when it finishes loading
-    /// (minimised at 0 ms) waits here, and its first tab is made once it is back on screen.
-    /// What it cannot: a minimise that lands in the ~300 ms the first tab takes to build.
-    /// Found while testing M2, 12 Sep; the repro script is in HANDOFF §10, bug 50.
+    /// This was bug 50's first, partial answer (12 Sep), when minimising during start-up killed
+    /// Aviary for no known reason. The reason turned out to be the new tab's keyboard focus
+    /// landing in a minimised window — fixed in <see cref="FocusPage"/> (18 Sep).
     /// </summary>
     private Task WaitUntilNotMinimisedAsync()
     {
@@ -604,6 +601,7 @@ public sealed partial class MainWindow : Window
         try
         {
             await tab.InitialiseAsync();
+            TrackFocusHandoff(tab);
         }
         catch (Exception ex)
         {
@@ -666,7 +664,114 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateChrome();
+        FocusPage(tab);
+    }
+
+    /// <summary>
+    /// Keyboard focus into a tab's page — but never while the window is out of sight (bug 50).
+    ///
+    /// WinUI's WebView2 passes focus on to its engine (CoreWebView2Controller.MoveFocus, from its
+    /// GotFocus handler, which WinUI raises later from its own queue). An engine that is not
+    /// visible refuses with E_INVALIDARG, and WinUI lets that escape through code that may not
+    /// throw: a native abort, Aviary gone, no .NET exception anywhere. Minimising the window while
+    /// the first tab was being made was enough — the new tab's focus landed with the window
+    /// already down. Proven 18 Sep with NativeCrash's report and an A/B: skipping this one Focus
+    /// call, 3 of 3 minimised launches lived; skipping the page load instead, 0 of 3.
+    ///
+    /// So while the window is minimised or hidden the request is remembered (the latest wins),
+    /// and given once the window is back — after WinUI has made the engine visible again, which
+    /// it does in its own XamlRoot.Changed handler; hence the low-priority hop.
+    /// </summary>
+    private void FocusPage(BrowserTab? tab)
+    {
+        if (tab is null)
+        {
+            return;
+        }
+
+        if (!WindowShowing)
+        {
+            _focusPageOnReturn = tab;
+            return;
+        }
+
         tab.View.Focus(FocusState.Programmatic);
+    }
+
+    private BrowserTab? _focusPageOnReturn;
+
+    /// <summary>
+    /// The tab whose page has been given focus but whose WebView2 has not yet handed it to the
+    /// engine. WinUI does that in three steps: GettingFocus (at once) marks the handoff pending,
+    /// LosingFocus (at once) clears it, and GotFocus — raised LATER, from its queue — calls
+    /// MoveFocus if it is still pending. A minimise that lands between the first and the last
+    /// hides the engine first, and GotFocus then crashes Aviary exactly as above (1 launch in 18
+    /// in the 18 Sep sweep, minimised 400 ms in: the focus was given 78 ms before the crash).
+    /// </summary>
+    private BrowserTab? _focusHandoff;
+
+    /// <summary>Holds the keyboard for a moment while a page cannot (see OnXamlRootChangedForFocus).</summary>
+    private ContentControl? _focusSink;
+
+    /// <summary>Not minimised, and WinUI says the window's content can be seen.</summary>
+    private bool WindowShowing =>
+        _appWindow?.Presenter is not OverlappedPresenter { State: OverlappedPresenterState.Minimized }
+        && RootGrid.XamlRoot?.IsHostVisible != false;
+
+    /// <summary>From CreateTabAsync, once the engine exists: follow this tab's focus handoffs.</summary>
+    private void TrackFocusHandoff(BrowserTab tab)
+    {
+        tab.View.GettingFocus += (_, _) => _focusHandoff = tab;
+        tab.View.GotFocus += (_, _) => { if (ReferenceEquals(_focusHandoff, tab)) _focusHandoff = null; };
+        tab.View.LosingFocus += (_, _) => { if (ReferenceEquals(_focusHandoff, tab)) _focusHandoff = null; };
+    }
+
+    private void OnXamlRootChangedForFocus(XamlRoot sender, XamlRootChangedEventArgs args)
+    {
+        // Going out of sight with a handoff still queued: take the keyboard back NOW. This runs in
+        // the same XamlRoot.Changed as the one in which WinUI hides the engine, so always before
+        // the queued GotFocus; LosingFocus clears the handoff and GotFocus then does nothing. The
+        // page gets the focus again when the window is back.
+        if (!sender.IsHostVisible && _focusHandoff is { } pending)
+        {
+            _focusHandoff = null;
+            if (_focusSink is null)
+            {
+                _focusSink = new ContentControl
+                {
+                    Width = 1,
+                    Height = 1,
+                    Opacity = 0,
+                    IsHitTestVisible = false,
+                    UseSystemFocusVisuals = false,
+                    IsTabStop = false,
+                    HorizontalAlignment = HorizontalAlignment.Left,
+                    VerticalAlignment = VerticalAlignment.Top,
+                };
+                RootGrid.Children.Add(_focusSink);
+            }
+
+            // A Control takes focus only while it is a tab stop; it stays out of Tab's way after.
+            _focusSink.IsTabStop = true;
+            _focusSink.Focus(FocusState.Programmatic);
+            _focusSink.IsTabStop = false;
+            _focusPageOnReturn = pending;
+            return;
+        }
+
+        if (_focusPageOnReturn is not { } tab || !WindowShowing)
+        {
+            return;
+        }
+
+        _focusPageOnReturn = null;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        {
+            if (ReferenceEquals(tab, _active) && _tabs.Contains(tab))
+            {
+                FocusPage(tab);
+            }
+        });
     }
 
     /// <param name="section">
@@ -1189,7 +1294,7 @@ public sealed partial class MainWindow : Window
         FindBar.Visibility = Visibility.Collapsed;
         FindCount.Text = string.Empty;
         await FindInPage.StopAsync(_active);
-        _active?.View.Focus(FocusState.Programmatic);
+        FocusPage(_active);
     }
 
     private async System.Threading.Tasks.Task RunFindAsync(string term)
@@ -1784,7 +1889,7 @@ public sealed partial class MainWindow : Window
 
         if (Navigate(AddressBox.Text))
         {
-            _active?.View.Focus(FocusState.Programmatic);
+            FocusPage(_active);
         }
     }
 
@@ -3059,6 +3164,7 @@ public sealed partial class MainWindow : Window
         // pending when the process ends is data that was never saved.
         try { PrivacyReport.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: privacy report"); }
         try { History.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: history"); }
+        try { AppSettings.SaveIfUnsaved(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: settings"); }
 
         foreach (BrowserTab tab in _tabs)
         {

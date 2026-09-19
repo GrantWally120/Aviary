@@ -241,6 +241,19 @@ internal static class AppSettings
     /// </summary>
     public static long SaveSequence => System.Threading.Interlocked.Read(ref _saveSequence);
 
+    /// <summary>
+    /// Held while settings.json is written and moved into place, and by anything else in Aviary
+    /// that opens it — diagnostics' read-back. Windows will not rename a file over one that is
+    /// open, whatever the reader shares (measured 19 Sep: error 5 even with FileShare.Delete), so
+    /// a read-back still open when the next save arrived made that save fail — bug 66, from
+    /// Grant's diagnostics: 18 Sep 21:45:35, the tab layout and the sidebar changed 2 ms apart and
+    /// the second save was refused ("Access to the path is denied").
+    /// </summary>
+    internal static readonly object FileGate = new();
+
+    /// <summary>The latest save did not reach the disk; the in-memory value is still right.</summary>
+    private static volatile bool _unsaved;
+
     private static void Save()
     {
         long sequence = System.Threading.Interlocked.Increment(ref _saveSequence);
@@ -260,8 +273,13 @@ internal static class AppSettings
             // Write beside the target and move into place, so an interrupted write cannot
             // leave a half-written settings file behind.
             string temp = FilePath + ".tmp";
-            File.WriteAllText(temp, json);
-            File.Move(temp, FilePath, overwrite: true);
+            lock (FileGate)
+            {
+                File.WriteAllText(temp, json);
+                MoveIntoPlace(temp, FilePath);
+            }
+
+            _unsaved = false;
 
             // Read back and compared on the diagnostics writer, off this thread: a key that
             // does not survive the round trip is the "saves but reverts" bug, caught live.
@@ -269,8 +287,39 @@ internal static class AppSettings
         }
         catch (Exception ex)
         {
-            // Losing a preference is survivable. Taking the browser down over it is not.
+            // Losing a preference is survivable. Taking the browser down over it is not. The
+            // next change writes everything again, and closing Aviary does if this was the last.
+            _unsaved = true;
             Diagnostics.Swallowed(ex, "settings: save settings.json");
+        }
+    }
+
+    /// <summary>
+    /// Something outside Aviary — a virus scanner, the search indexer, Explorer's preview — can
+    /// hold the file for a moment too. A few short tries (at most 90 ms) before giving up.
+    /// </summary>
+    private static void MoveIntoPlace(string temp, string target)
+    {
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                File.Move(temp, target, overwrite: true);
+                return;
+            }
+            catch (Exception ex) when (attempt < 4 && ex is IOException or UnauthorizedAccessException)
+            {
+                System.Threading.Thread.Sleep(15 * attempt);
+            }
+        }
+    }
+
+    /// <summary>At close and when Windows ends the session: one more try if the latest save did not land.</summary>
+    public static void SaveIfUnsaved()
+    {
+        if (_unsaved)
+        {
+            Save();
         }
     }
 }

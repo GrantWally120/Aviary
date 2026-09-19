@@ -793,7 +793,13 @@ internal static partial class Diagnostics
 
             try
             {
-                byte[] bytes = File.ReadAllBytes(path);
+                // Under AppSettings' own lock: a read still open when the next save moves its file
+                // into place makes that save fail (bug 66).
+                byte[] bytes;
+                lock (AppSettings.FileGate)
+                {
+                    bytes = File.ReadAllBytes(path);
+                }
                 if (AppSettings.SaveSequence != sequence)
                 {
                     return;

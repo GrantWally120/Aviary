@@ -293,7 +293,7 @@ internal static partial class Diagnostics
     /// The window is closing. Writes the last summary and session.json, and waits a bounded
     /// moment for the writer to finish so the process does not end mid-line.
     /// </summary>
-    public static void Shutdown()
+    public static void Shutdown(string reason = "Aviary closed")
     {
         StopTimers();
 
@@ -302,8 +302,8 @@ internal static partial class Diagnostics
             return;
         }
 
-        Enqueue(LogFile.Events, "session", "end", new { reason = "Aviary closed" });
-        RunOnWriter(() => CloseOnWriter("Aviary closed"), 4000);
+        Enqueue(LogFile.Events, "session", "end", new { reason });
+        RunOnWriter(() => CloseOnWriter(reason), 4000);
         _mode = 2;
     }
 

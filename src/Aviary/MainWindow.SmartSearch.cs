@@ -338,7 +338,7 @@ public sealed partial class MainWindow
 
             HideError();
             tab.Navigate(url);
-            tab.View.Focus(FocusState.Programmatic);
+            FocusPage(tab);
         }
     }
 
