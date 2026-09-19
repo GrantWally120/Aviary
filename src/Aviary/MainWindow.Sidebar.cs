@@ -70,6 +70,18 @@ public sealed partial class MainWindow
             _ => SidebarPane.Tabs,
         };
 
+        // With tabs down the side they have to be what the sidebar shows at launch — the strip
+        // they would otherwise be on is collapsed. With tabs across the top there is no Tabs
+        // pane at all (bug 68).
+        if (UsingSidebarTabs)
+        {
+            _pane = SidebarPane.Tabs;
+        }
+        else if (_pane == SidebarPane.Tabs)
+        {
+            _pane = SidebarPane.Bookmarks;
+        }
+
         PageSettingsButton.IsEnabled = true;
         PageSettingsButton.Click += PageSettingsButton_Click;
 
@@ -151,12 +163,23 @@ public sealed partial class MainWindow
 
     private readonly Dictionary<SidebarPane, ToggleButton> _segments = new();
 
+    /// <summary>
+    /// The segmented control, for the tab layout in force. <b>Tabs is a pane only while the tabs
+    /// ARE the sidebar</b> (bug 68, Grant's screenshots 19 Sep): with the tab bar across the top,
+    /// the sidebar's Tabs pane was a second list of the same tabs — drawn once when the sidebar
+    /// opened and never again, so right after launch it said "0 Tabs" beside an open Start Page,
+    /// and its rows took the top strip's place in _tabButtons, so the strip's titles and icons
+    /// stopped following their pages until the strip was next rebuilt.
+    /// </summary>
     private void BuildSegments()
     {
         SegmentStrip.Children.Clear();
+        // Cleared too, or every rebuild (each change of tab layout) adds another set of columns
+        // and the segments shrink into the left of the control.
+        SegmentStrip.ColumnDefinitions.Clear();
         _segments.Clear();
 
-        (SidebarPane pane, string name, string geometry)[] items =
+        (SidebarPane pane, string name, string geometry)[] all =
         {
             (SidebarPane.Tabs, "Tabs",
                 "M2.4,3.6 H13.6 A1.4,1.4 0 0 1 15,5 V11 A1.4,1.4 0 0 1 13.6,12.4 H2.4 A1.4,1.4 0 0 1 1,11 V5 A1.4,1.4 0 0 1 2.4,3.6 Z M6,3.6 V12.4"),
@@ -167,6 +190,10 @@ public sealed partial class MainWindow
             (SidebarPane.History, "History",
                 "M8,3.4 A4.6,4.6 0 1 1 3.4,8 M8,5.4 V8 L9.9,9.4 M3.4,8 L1.9,6.6 M3.4,8 L4.9,6.6"),
         };
+
+        bool tabsHere = UsingSidebarTabs;
+        (SidebarPane pane, string name, string geometry)[] items =
+            all.Where(item => tabsHere || item.pane != SidebarPane.Tabs).ToArray();
 
         for (int i = 0; i < items.Length; i++)
         {
@@ -229,8 +256,35 @@ public sealed partial class MainWindow
         }
     }
 
+    /// <summary>
+    /// The tab layout changed: offer the panes that layout has, and show the one it needs —
+    /// the tabs, when they have just moved into the sidebar; Bookmarks in place of a Tabs pane
+    /// that no longer exists. The user's own last choice (sidebarPane) is left as it was.
+    /// </summary>
+    private void SyncSidebarToLayout()
+    {
+        BuildSegments();
+
+        if (UsingSidebarTabs)
+        {
+            _pane = SidebarPane.Tabs;
+        }
+        else if (_pane == SidebarPane.Tabs)
+        {
+            _pane = SidebarPane.Bookmarks;
+        }
+
+        RestampSegments();
+        RefreshSidebar();
+    }
+
     private void ShowPane(SidebarPane pane)
     {
+        if (pane == SidebarPane.Tabs && !UsingSidebarTabs)
+        {
+            pane = SidebarPane.Bookmarks;
+        }
+
         if (pane != _pane)
         {
             DiagFeature("sidebar-pane", new { pane = pane.ToString() });
@@ -274,6 +328,7 @@ public sealed partial class MainWindow
         {
             AppSettings.Set("tabLayout", "Top bar");
             PushToSettingsPage("tabLayout", "Top bar");
+            SyncSidebarToLayout();
         }
 
         ToolTipService.SetToolTip(SidebarButton,
@@ -438,6 +493,14 @@ public sealed partial class MainWindow
         RestampSegments();
 
         SidebarBody.Children.Clear();
+
+        // A Tabs pane only while the tabs are the sidebar (bug 68) — defended here too, because
+        // RenderTabsPane takes over _tabButtons from the strip.
+        if (_pane == SidebarPane.Tabs && !UsingSidebarTabs)
+        {
+            _pane = SidebarPane.Bookmarks;
+            RestampSegments();
+        }
 
         switch (_pane)
         {

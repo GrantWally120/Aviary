@@ -255,7 +255,7 @@ internal static partial class Diagnostics
 
         if (Interlocked.Read(ref _stalls) > 0)
         {
-            attention.Add(Interlocked.Read(ref _stalls) + " UI stall(s) over 50 ms this session; longest " + Math.Round(_longestStall) + " ms, during: " + Cell(Scrub(_longestStallDuring)));
+            attention.Add(Interlocked.Read(ref _stalls) + " UI stall(s) over 50 ms this session; longest " + Math.Round(_longestStall) + " ms: " + Cell(Scrub(_longestStallDuring)));
         }
 
         if (attention.Count == 0)

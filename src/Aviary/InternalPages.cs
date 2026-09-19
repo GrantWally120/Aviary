@@ -515,7 +515,7 @@ var UPDATES = [
         '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
         'Only one Aviary runs at a time — opening it again brings the one already open to the front',
         '“Allow data collection for improvements” keeps a record of what Aviary does in a folder on this computer, so problems can be found. It never leaves the computer and never holds passwords, form contents, cookies or card numbers',
-        'That folder can now keep up to 500 MB — it was 200 MB — so it holds a longer history to learn from'
+        'That folder can now keep up to 650 MB — it was 200 MB, then 500 MB — so it holds a longer history to learn from'
       ]},
       {h:'Safety fixes', items:[
         'A website could change Aviary’s settings — closed',

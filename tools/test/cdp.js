@@ -7,6 +7,7 @@
 //   node cdp.js eval  <match> "<js expression>"        -> JSON result (promises awaited)
 //   node cdp.js nav   <match> <url>                     -> Page.navigate (NOT Aviary's address bar)
 //   node cdp.js click <match> "<css selector>"          -> a TRUSTED click (Input.dispatchMouseEvent) at the element's centre
+//   node cdp.js press <match> "<css selector>"          -> the same, without scrolling it into view first (dropdown options)
 //   node cdp.js wait  <match> "<js condition>" [ms]     -> polls until truthy
 //   node cdp.js shot  <match> <out.png> [WxH] [light|dark] -> screenshot at WxH, no window touched
 //
@@ -76,8 +77,11 @@ async function evaluate(s, expression) {
       console.log(JSON.stringify(await evaluate(s, arg), null, 1));
     } else if (cmd === 'nav') {
       console.log(JSON.stringify(await s.send('Page.navigate', { url: arg })));
-    } else if (cmd === 'click') {
-      const rect = await evaluate(s, `(function(){var e=document.querySelector(${JSON.stringify(arg)}); if(!e) return null; e.scrollIntoView({block:'center'}); var r=e.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2, w:r.width, h:r.height};})()`);
+    } else if (cmd === 'click' || cmd === 'press') {
+      // press = click WITHOUT scrolling first: Settings closes an open dropdown on any scroll, so
+      // an option must be pressed where it already is (M4.5, 19 Sep 2026).
+      const scroll = cmd === 'click' ? "e.scrollIntoView({block:'center'});" : "";
+      const rect = await evaluate(s, `(function(){var e=document.querySelector(${JSON.stringify(arg)}); if(!e) return null; ${scroll} var r=e.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2, w:r.width, h:r.height};})()`);
       if (!rect) { console.log('NO ELEMENT ' + arg); process.exitCode = 1; return; }
       for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
         await s.send('Input.dispatchMouseEvent', { type, x: rect.x, y: rect.y, button: 'left', clickCount: 1 });

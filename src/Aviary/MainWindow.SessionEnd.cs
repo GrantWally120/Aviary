@@ -58,12 +58,35 @@ public sealed partial class MainWindow
         }
     }
 
+    private const uint WmEnterSizeMove = 0x0231;
+    private const uint WmExitSizeMove = 0x0232;
+    private const uint WmEnterMenuLoop = 0x0211;
+    private const uint WmExitMenuLoop = 0x0212;
+
     private IntPtr OnWindowMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr refData)
     {
-        // wParam is non-zero when the session really is ending (zero: another app cancelled it).
-        if (msg == WmEndSession && wParam != IntPtr.Zero)
+        switch (msg)
         {
-            SaveForSessionEnd(lParam.ToInt64());
+            // wParam is non-zero when the session really is ending (zero: another app cancelled it).
+            case WmEndSession when wParam != IntPtr.Zero:
+                SaveForSessionEnd(lParam.ToInt64());
+                break;
+
+            // Windows' own modal loops (bug 67): while the window is dragged, sized or has its
+            // system menu open, Windows runs the message loop, and the watchdog must not report
+            // the wait as Aviary failing to respond.
+            case WmEnterSizeMove:
+                Diagnostics.NoteModalLoop("moving or resizing the window", entering: true);
+                break;
+            case WmExitSizeMove:
+                Diagnostics.NoteModalLoop("moving or resizing the window", entering: false);
+                break;
+            case WmEnterMenuLoop:
+                Diagnostics.NoteModalLoop("a window menu", entering: true);
+                break;
+            case WmExitMenuLoop:
+                Diagnostics.NoteModalLoop("a window menu", entering: false);
+                break;
         }
 
         return DefSubclassProc(hWnd, msg, wParam, lParam);

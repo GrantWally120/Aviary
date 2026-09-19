@@ -294,6 +294,7 @@ public sealed partial class MainWindow : Window
         NativeCrash.CheckStillInstalled();
 
         ArmCrashTest();
+        ArmStallTest();
     }
 
     /// <summary>
@@ -371,6 +372,52 @@ public sealed partial class MainWindow : Window
             }
 
             throw new InvalidOperationException("AVIARY_CRASH_TEST=ui: a deliberate UI-thread failure.");
+        };
+        timer.Start();
+    }
+
+    /// <summary>
+    /// Proves the stall watchdog tells stalls apart (bug 67) — the same reasoning, and the same
+    /// environment-only reach, as <see cref="ArmCrashTest"/>. Five seconds after start-up, and
+    /// four seconds apart, the UI thread is held for 400 ms:
+    ///   AVIARY_STALL_TEST=busy   by computing — issues.jsonl must say the window was busy working;
+    ///   AVIARY_STALL_TEST=wait   by sleeping — it must say the window was waiting on something;
+    ///   AVIARY_STALL_TEST=both   busy, then waiting.
+    /// </summary>
+    private void ArmStallTest()
+    {
+        string? mode = Environment.GetEnvironmentVariable("AVIARY_STALL_TEST");
+        if (mode is not ("busy" or "wait" or "both"))
+        {
+            return;
+        }
+
+        int round = 0;
+        DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(5) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Interval = TimeSpan.FromSeconds(4);
+            bool busy = mode == "busy" || (mode == "both" && round == 0);
+            if (busy)
+            {
+                System.Diagnostics.Stopwatch spin = System.Diagnostics.Stopwatch.StartNew();
+                double sink = 0;
+                while (spin.ElapsedMilliseconds < 400)
+                {
+                    sink += Math.Sqrt(spin.ElapsedTicks);
+                }
+
+                GC.KeepAlive(sink);
+            }
+            else
+            {
+                System.Threading.Thread.Sleep(400);
+            }
+
+            if (++round >= (mode == "both" ? 2 : 1))
+            {
+                timer.Stop();
+            }
         };
         timer.Start();
     }
@@ -2506,6 +2553,10 @@ public sealed partial class MainWindow : Window
                     break;
 
                 case "tabLayout":
+                    // The sidebar's panes follow the layout: a Tabs pane only while the tabs are
+                    // down the side (bug 68).
+                    SyncSidebarToLayout();
+
                     // Choosing Sidebar has to OPEN the sidebar, or the tabs vanish.
                     if (value.GetString() == "Sidebar")
                     {

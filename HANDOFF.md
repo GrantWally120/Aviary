@@ -1094,6 +1094,30 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     the read-back, a move refused by something outside Aviary is retried (≤ 90 ms), and a save that
     still failed is written again at close / session end. 900 rapid changes: the old build failed the
     same way, this one never. **Anything that opens settings.json takes `AppSettings.FileGate`.**
+67. **A stall's only label was the last breadcrumb, however old** (Grant's diagnostics, 16 Sep: an
+    861 ms and a 536 ms stall, each in a minute with several more, "during: ui tab-switch" — a switch
+    13 s earlier — and "during" the previous stall, 56 min earlier; Aviary's CPU 0.0–0.1% both
+    minutes; nothing else logged). The watchdog now MEASURES a stall (Diagnostics.Report.cs
+    `MeasureStall`): the UI thread's own CPU time across the wait (GetThreadTimes on a handle taken
+    in AttachUi) — working vs waiting; the machine's CPU (GetSystemTimes) — other programs; the
+    watchdog timer's own lateness — the whole process paused. Windows' move/size and menu loops
+    (WM_ENTERSIZEMOVE/EXITSIZEMOVE, ENTER/EXITMENULOOP, via the SessionEnd subclass) are breadcrumbs,
+    and a stall overlapping one is counted as `stallsWhileWindowHeld` in the minute sample, not as a
+    stall. "during" carries its age ("…, 13 s before"). Proven with `AVIARY_STALL_TEST=both`
+    (env-only, like AVIARY_CRASH_TEST): a 400 ms spin logs `ui-busy`, 375 ms of UI CPU; a 400 ms
+    sleep logs `ui-waiting`, 0 ms. **Cause confirmed 19 Sep** (`tools/test/drag-window.ps1`, a real
+    1.2 s drag of a test window while Grant was away): Windows' move loop HOLDS Aviary's dispatcher —
+    that minute's sample had 11 watchdog ticks missing and `stallsWhileWindowHeld: 1`, and no stall
+    was logged. Grant's idle clusters (CPU ~0, nothing in Aviary for 13 s / 56 min) are the window
+    being dragged or resized. **Never label a stall with a stale breadcrumb.**
+68. **With tabs across the top, the sidebar still listed them** (Grant's screenshots, 19 Sep; "0 Tabs"
+    beside an open Start Page). The Tabs pane was drawn when the sidebar opened — at launch, before
+    the first tab existed — and never redrawn in Top bar layout; and RenderTabsPane wrote its rows
+    into `_tabButtons`, taking the strip's place there. The Tabs segment now exists only when Tab
+    layout is Sidebar (`BuildSegments`, `SyncSidebarToLayout`); a saved Tabs pane in Top bar shows
+    Bookmarks; switching to Sidebar shows the tabs; BuildSegments also clears its columns (every
+    rebuild used to add four more). Checked: both layouts, both directions, a restart in each,
+    strip titles following pages afterwards. **A second list of the same tabs is never shown.**
 
 ---
 

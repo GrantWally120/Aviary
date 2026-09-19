@@ -433,6 +433,7 @@ internal static partial class Diagnostics
     {
         _ui = ui;
         _windowProvider = window;
+        CaptureUiThread();
         RefreshWindow();
 
         if (_mode == 1)
@@ -505,6 +506,91 @@ internal static partial class Diagnostics
     private static readonly List<double> TickLatencies = new();
     private static long _lastStallLogged;
 
+    // ── What a stall WAS (bug 67) ────────────────────────────────────────────────
+    //
+    // Grant's 16 Sep diagnostics held an 861 ms and a 536 ms stall, each in a minute with
+    // several more, while Aviary's own processor use was 0.0–0.1% and nothing at all had
+    // happened in Aviary for 13 seconds and 56 minutes. The only label they carried was the
+    // last breadcrumb — "ui tab-switch", thirteen seconds stale — which read as a cause and was
+    // not one. A stall is now measured, not guessed:
+    //   - the UI thread's OWN processor time across the wait says whether it was working
+    //     (Aviary or XAML doing something slow) or waiting (on the disk, the GPU, a lock,
+    //     another process);
+    //   - the whole machine's processor time over the same span says whether other programs
+    //     had it;
+    //   - the watchdog's own timer says whether this process was running at all — if the
+    //     timer was late by the length of the stall, the machine paused, not the UI thread;
+    //   - Windows' move/size loop (dragging or resizing the window, WM_ENTERSIZEMOVE) and its
+    //     menu loop are recorded, and a stall inside one is the window being held, not Aviary.
+    // The breadcrumb stays, with its age, so "during" can no longer pass for a cause.
+
+    private static IntPtr _uiThread;
+    private static long _lastTimerAt;
+    private static long _timerLateMaxTicks;
+    private static long _postedUiCpu;
+    private static long _postedSysIdle;
+    private static long _postedSysTotal;
+    private static int _modalLoop;           // 1 while Windows is moving/sizing the window or running a menu loop
+    private static int _modalLoopsSincePost; // loops that STARTED while the tick was waiting
+    private static string _modalKind = string.Empty;
+    private static long _stallsWhileMoving;
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr OpenThread(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, uint threadId);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetThreadTimes(IntPtr thread, out long created, out long exited, out long kernel, out long user);
+
+    [DllImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetSystemTimes(out long idle, out long kernel, out long user);
+
+    private const uint ThreadQueryLimitedInformation = 0x0800;
+
+    /// <summary>Called on the UI thread: a handle the watchdog can read the thread's time through.</summary>
+    private static void CaptureUiThread()
+    {
+        if (_uiThread == IntPtr.Zero)
+        {
+            _uiThread = OpenThread(ThreadQueryLimitedInformation, false, GetCurrentThreadId());
+        }
+    }
+
+    /// <summary>The UI thread's processor time so far, in 100 ns units; -1 when unreadable.</summary>
+    private static long UiThreadCpu() =>
+        _uiThread != IntPtr.Zero && GetThreadTimes(_uiThread, out _, out _, out long k, out long u) ? k + u : -1;
+
+    private static (long Idle, long Total) SystemCpu() =>
+        GetSystemTimes(out long idle, out long kernel, out long user) ? (idle, kernel + user) : (-1, -1);
+
+    /// <summary>
+    /// Windows entered or left a modal loop on one of Aviary's windows: moving or sizing it
+    /// (WM_ENTERSIZEMOVE / WM_EXITSIZEMOVE), or its system menu (WM_ENTERMENULOOP / WM_EXITMENULOOP).
+    /// Called from the window's subclass procedure (MainWindow.SessionEnd.cs).
+    /// </summary>
+    public static void NoteModalLoop(string kind, bool entering)
+    {
+        if (entering)
+        {
+            _modalKind = kind;
+            Interlocked.Exchange(ref _modalLoop, 1);
+            Interlocked.Increment(ref _modalLoopsSincePost);
+        }
+        else
+        {
+            Interlocked.Exchange(ref _modalLoop, 0);
+        }
+
+        if (_mode == 1)
+        {
+            Crumb("window", (entering ? "start " : "end ") + kind);
+        }
+    }
+
     private static void WatchdogTick(object? state)
     {
         Microsoft.UI.Dispatching.DispatcherQueue? ui = _ui;
@@ -513,17 +599,37 @@ internal static partial class Diagnostics
             return;
         }
 
+        // How late THIS timer fired. It is a thread-pool timer every 100 ms; if it too was held
+        // up for the length of a stall, the process (or the machine) was not running at all.
+        long firedAt = Stopwatch.GetTimestamp();
+        long previous = Interlocked.Exchange(ref _lastTimerAt, firedAt);
+        if (previous != 0)
+        {
+            long late = firedAt - previous - Stopwatch.Frequency / 10;
+            if (late > Interlocked.Read(ref _timerLateMaxTicks))
+            {
+                Interlocked.Exchange(ref _timerLateMaxTicks, late);
+            }
+        }
+
         if (Interlocked.CompareExchange(ref _tickPending, 1, 0) != 0)
         {
             return;
         }
 
+        Interlocked.Exchange(ref _timerLateMaxTicks, 0);
+        Interlocked.Exchange(ref _modalLoopsSincePost, 0);
+        Interlocked.Exchange(ref _postedUiCpu, UiThreadCpu());
+        (long idle, long total) = SystemCpu();
+        Interlocked.Exchange(ref _postedSysIdle, idle);
+        Interlocked.Exchange(ref _postedSysTotal, total);
+
         long posted = Stopwatch.GetTimestamp();
         bool queued = ui.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal, () =>
         {
             double ms = Stopwatch.GetElapsedTime(posted).TotalMilliseconds;
-            Interlocked.Exchange(ref _tickPending, 0);
             NoteTick(ms);
+            Interlocked.Exchange(ref _tickPending, 0);
         });
 
         if (!queued)
@@ -534,6 +640,19 @@ internal static partial class Diagnostics
 
     private static void NoteTick(double ms)
     {
+        // Past a minute it was the machine sleeping, not Aviary stalling.
+        bool stall = ms > StallMs && ms <= 60_000;
+        bool moving = Volatile.Read(ref _modalLoop) == 1 || Volatile.Read(ref _modalLoopsSincePost) > 0;
+
+        if (stall && moving)
+        {
+            // The window was being dragged, sized or had its system menu open. Counted in the
+            // minute's sample, but it is not Aviary failing to respond, and it is not logged as
+            // one — nor does it enter the latency figures, where one long drag would swamp them.
+            Interlocked.Increment(ref _stallsWhileMoving);
+            return;
+        }
+
         lock (TickGate)
         {
             if (TickLatencies.Count < 2000)
@@ -542,29 +661,76 @@ internal static partial class Diagnostics
             }
         }
 
-        // Past a minute it was the machine sleeping, not Aviary stalling.
-        if (ms <= StallMs || ms > 60_000)
+        if (!stall)
         {
             return;
         }
 
+        StallCause cause = MeasureStall(ms);
+
         Interlocked.Increment(ref _stalls);
-        string during = LastCrumb();
+        string during = LastCrumbWithAge();
         if (ms > _longestStall)
         {
             _longestStall = ms;
-            _longestStallDuring = during;
+            _longestStallDuring = cause.Verdict + " — last action: " + during;
         }
 
-        TrackSlow("ui-stall", ms, during);
+        TrackSlow("ui-stall", ms, cause.Verdict + " — last action: " + during);
 
         // At most one stall line every two seconds; the rest are in the minute's sample.
         long now = Environment.TickCount64;
         if (now - Interlocked.Read(ref _lastStallLogged) >= 2000)
         {
             Interlocked.Exchange(ref _lastStallLogged, now);
-            Anomaly("ui-stall", Math.Round(ms) + " ms without responding", new { ms = Math.Round(ms, 1), during });
+            Anomaly("ui-stall", Math.Round(ms) + " ms without responding — " + cause.Verdict, new
+            {
+                ms = Math.Round(ms, 1),
+                cause = cause.Kind,
+                uiThreadCpuMs = cause.UiCpuMs,
+                systemCpuPercent = cause.SystemCpuPercent,
+                timerLateMs = cause.TimerLateMs,
+                during,
+            });
         }
+    }
+
+    private sealed record StallCause(string Kind, string Verdict, double? UiCpuMs, double? SystemCpuPercent, double TimerLateMs);
+
+    /// <summary>Runs on the UI thread the moment a stall ends; compares against the post.</summary>
+    private static StallCause MeasureStall(double ms)
+    {
+        long uiBefore = Interlocked.Read(ref _postedUiCpu);
+        long uiAfter = UiThreadCpu();
+        double? uiCpuMs = uiBefore >= 0 && uiAfter >= uiBefore ? Math.Round((uiAfter - uiBefore) / 10_000.0, 1) : null;
+
+        long idleBefore = Interlocked.Read(ref _postedSysIdle), totalBefore = Interlocked.Read(ref _postedSysTotal);
+        (long idleAfter, long totalAfter) = SystemCpu();
+        double? systemPercent = null;
+        if (idleBefore >= 0 && idleAfter >= 0 && totalAfter > totalBefore)
+        {
+            double busy = (totalAfter - totalBefore) - (idleAfter - idleBefore);
+            systemPercent = Math.Round(Math.Clamp(busy * 100.0 / (totalAfter - totalBefore), 0, 100), 1);
+        }
+
+        double timerLateMs = Math.Round(Interlocked.Read(ref _timerLateMaxTicks) * 1000.0 / Stopwatch.Frequency, 1);
+
+        if (timerLateMs >= ms * 0.5)
+        {
+            return new StallCause("machine-paused", "the whole of Aviary was paused, not just its window (the computer was busy, sleeping or froze)", uiCpuMs, systemPercent, timerLateMs);
+        }
+
+        if (uiCpuMs is double busyMs && busyMs >= ms * 0.5)
+        {
+            return new StallCause("ui-busy", "Aviary's window was busy working", uiCpuMs, systemPercent, timerLateMs);
+        }
+
+        if (systemPercent is double sys && sys >= 85)
+        {
+            return new StallCause("ui-waiting-system-busy", "Aviary's window was waiting while other programs had the processor", uiCpuMs, systemPercent, timerLateMs);
+        }
+
+        return new StallCause("ui-waiting", "Aviary's window was waiting on something outside it (the disk, the graphics card, or another process)", uiCpuMs, systemPercent, timerLateMs);
     }
 
     // ══ THE MINUTE SAMPLE — memory, processor, responsiveness, blocker cost ═══
@@ -607,6 +773,7 @@ internal static partial class Diagnostics
 
         double ToUs(long t) => Math.Round(t * 1_000_000.0 / Stopwatch.Frequency, 1);
 
+        long whileHeld = Interlocked.Exchange(ref _stallsWhileMoving, 0);
         var ui = ticks.Count == 0 ? null : new
         {
             samples = ticks.Count,
@@ -614,6 +781,9 @@ internal static partial class Diagnostics
             p95Ms = Math.Round(Percentile(ticks, 0.95), 1),
             maxMs = Math.Round(ticks.Max(), 1),
             stallsOver50Ms = ticks.Count(t => t > StallMs && t <= 60_000),
+            // Waits while Windows held the window (moving, sizing, its system menu) — kept out
+            // of the figures above (bug 67).
+            stallsWhileWindowHeld = whileHeld == 0 ? (long?)null : whileHeld,
         };
 
         var filter = filterCount == 0 ? null : new

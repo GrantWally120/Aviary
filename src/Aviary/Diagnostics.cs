@@ -43,11 +43,12 @@ internal static partial class Diagnostics
     public const string SettingKey = "improvementCollection";
 
     /// <summary>
-    /// The whole folder never grows past this; the oldest archives go first. 500 MB since Alpha
-    /// Build 5 M2.5 (Grant, 13 Sep 2026: more room means longer, richer history to learn from;
-    /// it was 200 MB). Every sentence that states the cap is built from this number.
+    /// The whole folder never grows past this; the oldest archives go first. 650 MB since Alpha
+    /// Build 5 M4.5 (Grant, 19 Sep 2026: "expand storage by 150mb"); 500 MB from M2.5 (13 Sep:
+    /// more room means longer, richer history to learn from); 200 MB before that. Every sentence
+    /// that states the cap is built from this number.
     /// </summary>
-    public const int CapMB = 500;
+    public const int CapMB = 650;
 
     public const long CapBytes = CapMB * 1024L * 1024;
     public const int RetentionDays = 30;
@@ -1355,6 +1356,28 @@ internal static partial class Diagnostics
         lock (Crumbs)
         {
             return Crumbs.Count == 0 ? string.Empty : Crumbs.Last().K + " " + Crumbs.Last().What;
+        }
+    }
+
+    /// <summary>
+    /// The last breadcrumb and how long ago it was — "ui tab-switch, 13 s before". Without the
+    /// age a stale action reads as a cause (bug 67: a stall "during tab-switch" came 13 s after it).
+    /// </summary>
+    private static string LastCrumbWithAge()
+    {
+        lock (Crumbs)
+        {
+            if (Crumbs.Count == 0)
+            {
+                return "nothing yet";
+            }
+
+            Crumbed last = Crumbs.Last();
+            double seconds = (DateTimeOffset.Now - last.T).TotalSeconds;
+            string age = seconds < 1 ? "just before"
+                       : seconds < 120 ? Math.Round(seconds, seconds < 10 ? 1 : 0).ToString(CultureInfo.InvariantCulture) + " s before"
+                       : Math.Round(seconds / 60).ToString(CultureInfo.InvariantCulture) + " min before";
+            return last.K + " " + last.What + ", " + age;
         }
     }
 
