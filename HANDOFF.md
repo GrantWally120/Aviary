@@ -1697,3 +1697,14 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   refuses, the row says so. Dropped from the plan: per-tab "data loaded" (it would copy every
   response's headers into Aviary even with nobody watching) — each tab's blocked count instead.
   Bug 70 fixed on the way.
+- **Stage 6 — Settings → Storage Usage** (below Updates). `StorageUsage.cs` walks Aviary's own folder
+  and the profile off the UI thread, asks every file for its size (a refreshed FileInfo — never a
+  listing, bug 63), and files each in exactly one of eight categories by path (Chromium's layout under
+  `WebView2EBWebViewDefault…`; the profile is walked first so a profile inside the install folder is
+  not counted twice); anything unclaimed is "Everything else". Size on disk = GetCompressedFileSize
+  rounded to the volume's cluster. One stacked bar (the data-viz reference palette's eight
+  categorical slots in fixed order, validated on Settings' own panels in both modes) plus a row per
+  category with its biggest parts. "Clear cached files" clears the engine's DiskCache through the
+  engine (31.6 → 7.9 MB; the shader caches stay — the engine only lets them go at start-up).
+  Checked (`tools/test/storage-compare.ps1`): the install folder matches Get-ChildItem to the byte,
+  the live profile to within one diagnostics line, and the categories sum to the total exactly.

@@ -293,6 +293,53 @@ internal static class InternalPages
   .bits span{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--fill);color:var(--ink-2);}
   .upd-foot{margin:22px 2px 0;font-size:12.5px;}
 
+  /* ── Storage Usage (M4.5) — one stacked bar, then a row per category ──────
+     The eight colours are the data-viz reference palette's categorical slots in their fixed,
+     CVD-validated order (validated against these panels: light #FFFFFF, dark #2C2C2E — all
+     checks pass; three light slots are under 3:1, so every segment also has a visible label
+     in the rows below). A colour belongs to its category, never to its rank. */
+  :root{--st-app:#2a78d6;--st-collection:#eb6834;--st-sites:#1baf7a;--st-cache:#eda100;
+        --st-yours:#e87ba4;--st-diagnostics:#008300;--st-secrets:#4a3aa7;--st-other:#e34948;}
+  @media (prefers-color-scheme: dark){
+    :root{--st-app:#3987e5;--st-collection:#d95926;--st-sites:#199e70;--st-cache:#c98500;
+          --st-yours:#d55181;--st-diagnostics:#008300;--st-secrets:#9085e9;--st-other:#e66767;}
+  }
+  .st-hero{padding:18px 18px 16px;position:relative;}
+  .st-total{font-size:28px;font-weight:650;letter-spacing:-.022em;font-variant-numeric:tabular-nums;}
+  .st-total small{font-size:14px;font-weight:500;color:var(--ink-2);margin-left:4px;}
+  .st-sub{font-size:12.5px;color:var(--ink-2);margin-top:2px;}
+  .st-bar{display:flex;gap:2px;height:14px;margin-top:16px;}
+  .st-bar i{display:block;min-width:3px;height:100%;border-radius:2px;transform-origin:left center;
+    transition:filter 120ms,opacity 120ms;animation:bar-in 620ms var(--m-ease) backwards;}
+  .st-bar i:first-child{border-top-left-radius:4px;border-bottom-left-radius:4px;}
+  .st-bar i:last-child{border-top-right-radius:4px;border-bottom-right-radius:4px;}
+  .st-bar:hover i{opacity:.55;}
+  .st-bar i:hover{opacity:1;filter:saturate(1.15);}
+  .st-tip{position:absolute;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;
+    padding:7px 10px;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap;z-index:5;}
+  .st-tip b{display:block;font-weight:600;color:var(--ink);}
+  .st-tip span{color:var(--ink-2);font-variant-numeric:tabular-nums;}
+  .st-tip[hidden]{display:none;}
+  .st-cat > summary{display:grid;grid-template-columns:12px minmax(0,1fr) auto 52px 10px;align-items:center;gap:12px;
+    padding:12px 18px;list-style:none;cursor:default;}
+  .st-cat > summary::-webkit-details-marker{display:none;}
+  .st-cat > summary:hover{background:var(--fill);}
+  .st-cat + .st-cat{border-top:1px solid var(--line-soft);}
+  .st-chip{width:12px;height:12px;border-radius:3px;}
+  .st-name b{display:block;font-weight:500;font-size:14px;}
+  .st-name span{display:block;font-size:12px;color:var(--ink-2);margin-top:1px;}
+  .st-size{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap;}
+  .st-pct{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:12.5px;text-align:right;}
+  .st-cat[open] .bld__chev{transform:rotate(180deg);}
+  .st-body{padding:0 18px 14px 42px;font-size:12.5px;color:var(--ink-2);}
+  .st-body p{margin:0 0 8px;}
+  .st-parts{display:grid;gap:2px;margin-bottom:10px;}
+  .st-parts div{display:flex;gap:12px;padding:5px 10px;border-radius:6px;background:var(--fill);}
+  .st-parts b{flex:1;min-width:0;font-weight:500;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .st-parts i{font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .st-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .st-empty{padding:16px 18px;color:var(--ink-2);font-size:13px;}
+
   /* ── Performance (M4.5) — four live cards, then the details ─────────────── */
   .pf-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px;}
   @media (max-width:980px){.pf-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
@@ -438,6 +485,7 @@ var ICON = {
   system:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   reset:'<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 2.4v3.2H9.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   updates:'<svg viewBox="0 0 16 16" fill="none"><path d="M7.2 2.4c.5 3 2 4.5 5 5-3 .5-4.5 2-5 5-.5-3-2-4.5-5-5 3-.5 4.5-2 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.6 1.8v2.6M11.3 3.1h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  storage:'<svg viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4.4" rx="5.2" ry="1.9" stroke="currentColor" stroke-width="1.3"/><path d="M2.8 4.4v7.2c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9V4.4M2.8 8c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9" stroke="currentColor" stroke-width="1.3"/></svg>',
   perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
@@ -785,6 +833,12 @@ var SECTIONS = [
       {t:'Automatic updates', d:'For now, each new build replaces the copy of Aviary on your desktop. Updates arrive with the installer.', phase:6, ctl:{type:'none'}}
     ]},
 
+  /* Alpha Build 5 M4.5 — StorageUsage.cs measures every file under Aviary's folder and its profile
+     when this pane opens; the categories add up to the total exactly. */
+  { id:'storage', icon:'storage', name:'Storage Usage', title:'Storage Usage', storage:true,
+    lede:'Everything Aviary keeps on this computer, sorted into what it is — measured from the files themselves each time you open this page, so the parts add up to the whole, to the byte.',
+    rows:[] },
+
   /* Alpha Build 5 M4.5 — live figures from LiveStats.cs, pushed once a second, only while this
      pane is on screen in the visible Settings tab. Nothing here is recorded. */
   { id:'perf', icon:'perf', name:'Performance', title:'Performance', perf:true,
@@ -1002,6 +1056,8 @@ SECTIONS.forEach(function(s, i){
       '</div></div></div>' +
       '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
+  } else if (s.storage){
+    body += renderStorage();
   } else if (s.perf){
     body += renderPerf();
   } else if (s.updates){
@@ -1362,6 +1418,129 @@ window.__aviaryApply = function(key, value){
   if (key === 'searchEngine') { suggestRow(); }
 };
 
+/* ══ STORAGE USAGE (M4.5) ═══════════════════════════════════════════════════
+   Measured by the host when this pane opens and on Refresh; drawn with textContent (paths hold
+   backslashes, and nothing here should ever be read as markup). */
+function renderStorage(){
+  return '<div class="group st-hero" id="st-hero"><div class="st-total" id="st-total">Measuring…</div>' +
+      '<div class="st-sub" id="st-sub">Counting every file Aviary keeps.</div>' +
+      '<div class="st-bar" id="st-bar" role="img" aria-label="Storage by category"></div>' +
+      '<div class="st-tip" id="st-tip" hidden></div></div>' +
+    '<div class="group" id="st-cats"><div class="st-empty">Measuring…</div></div>' +
+    '<div class="group"><div class="row"><div class="row__t"><b>Where it lives</b>' +
+      '<span>Aviary itself<span class="path" id="st-install"></span></span>' +
+      '<span>Your profile<span class="path" id="st-profile"></span></span></div>' +
+      '<div class="btns"><button class="btn" id="st-refresh">Measure again</button></div></div></div>' +
+    '<p class="lede upd-foot" id="st-foot"></p>';
+}
+
+function stSize(b){
+  var u = ['bytes','KB','MB','GB','TB'], v = b, i = 0;
+  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
+  return (i === 0 ? String(v) : v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + ' ' + u[i];
+}
+var stRequested = false;
+function storageMeasure(){
+  var t = document.getElementById('st-total');
+  if (t && stRequested) { t.textContent = 'Measuring…'; }
+  stRequested = true;
+  post({type:'command', name:'storageMeasure'});
+}
+function storageWatch(){
+  var pane = document.getElementById('pane-storage');
+  if (pane && pane.classList.contains('on') && !stRequested) { storageMeasure(); }
+}
+nav.addEventListener('click', function(){ setTimeout(storageWatch, 0); });
+
+window.__aviaryStorage = function(d){
+  window.__aviaryStorageLast = d;   /* for tools/test/storage-compare.ps1 */
+  var total = document.getElementById('st-total');
+  if (!total) { return; }
+  total.textContent = stSize(d.bytes);
+  var small = document.createElement('small');
+  small.textContent = 'used by Aviary on this computer';
+  total.appendChild(small);
+  document.getElementById('st-sub').textContent = stSize(d.onDisk) + ' on disk · ' + d.files.toLocaleString() +
+    ' files · measured at ' + d.at + ', in ' + Math.round(d.ms) + ' ms';
+
+  var bar = document.getElementById('st-bar');
+  var tip = document.getElementById('st-tip');
+  bar.textContent = '';
+  var shown = d.categories.filter(function(c){ return c.bytes > 0; });
+  shown.forEach(function(c, i){
+    var seg = document.createElement('i');
+    seg.style.flex = String(Math.max(c.bytes / Math.max(d.bytes, 1), 0.002));
+    seg.style.background = 'var(--st-' + c.key + ')';
+    seg.style.animationDelay = (i * 40) + 'ms';
+    seg.setAttribute('aria-label', c.name + ', ' + stSize(c.bytes));
+    seg.addEventListener('mouseenter', function(){
+      tip.textContent = '';
+      var b = document.createElement('b'); b.textContent = c.name;
+      var s = document.createElement('span');
+      s.textContent = stSize(c.bytes) + ' · ' + (100 * c.bytes / Math.max(d.bytes, 1)).toFixed(1) + '% · ' + c.files.toLocaleString() + (c.files === 1 ? ' file' : ' files');
+      tip.appendChild(b); tip.appendChild(s);
+      tip.hidden = false;
+      var host = document.getElementById('st-hero').getBoundingClientRect(), r = seg.getBoundingClientRect();
+      tip.style.left = Math.max(8, Math.min(r.left - host.left + r.width / 2 - tip.offsetWidth / 2, host.width - tip.offsetWidth - 8)) + 'px';
+      tip.style.top = (r.bottom - host.top + 8) + 'px';
+    });
+    seg.addEventListener('mouseleave', function(){ tip.hidden = true; });
+    bar.appendChild(seg);
+  });
+
+  var cats = document.getElementById('st-cats');
+  cats.textContent = '';
+  d.categories.forEach(function(c){
+    var det = document.createElement('details');
+    det.className = 'st-cat';
+    var sum = document.createElement('summary');
+    var chip = document.createElement('span'); chip.className = 'st-chip'; chip.style.background = 'var(--st-' + c.key + ')';
+    var name = document.createElement('span'); name.className = 'st-name';
+    var nb = document.createElement('b'); nb.textContent = c.name;
+    var ns = document.createElement('span'); ns.textContent = c.files.toLocaleString() + (c.files === 1 ? ' file' : ' files') + ' · ' + stSize(c.onDisk) + ' on disk';
+    name.appendChild(nb); name.appendChild(ns);
+    var size = document.createElement('span'); size.className = 'st-size'; size.textContent = stSize(c.bytes);
+    var pct = document.createElement('span'); pct.className = 'st-pct'; pct.textContent = (100 * c.bytes / Math.max(d.bytes, 1)).toFixed(1) + '%';
+    sum.appendChild(chip); sum.appendChild(name); sum.appendChild(size); sum.appendChild(pct);
+    sum.insertAdjacentHTML('beforeend', CHEV);
+    det.appendChild(sum);
+
+    var body = document.createElement('div'); body.className = 'st-body';
+    var p = document.createElement('p'); p.textContent = c.plain; body.appendChild(p);
+    if (c.key === 'diagnostics') {
+      var capP = document.createElement('p');
+      capP.textContent = 'The improvement data is kept to ' + stSize(d.capBytes) + ' at most — the oldest goes first.';
+      body.appendChild(capP);
+    }
+    if (c.biggest.length) {
+      var parts = document.createElement('div'); parts.className = 'st-parts';
+      c.biggest.forEach(function(it){
+        var row = document.createElement('div');
+        var lb = document.createElement('b'); lb.textContent = it.label;
+        var sz = document.createElement('i'); sz.textContent = stSize(it.bytes) + ' · ' + it.files.toLocaleString() + (it.files === 1 ? ' file' : ' files');
+        row.appendChild(lb); row.appendChild(sz); parts.appendChild(row);
+      });
+      body.appendChild(parts);
+    }
+    var acts = document.createElement('div'); acts.className = 'st-actions';
+    function act(label, fn){ var b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.addEventListener('click', function(e){ e.stopPropagation(); fn(b); }); acts.appendChild(b); }
+    if (c.key === 'cache' && c.bytes > 0) {
+      act('Clear cached files', function(b){ b.disabled = true; b.textContent = 'Clearing…'; post({type:'command', name:'storageClearCache'}); });
+    }
+    if (c.key === 'sites' || c.key === 'secrets') { act('Manage in Privacy', function(){ showPane(c.key === 'sites' ? 'privacy' : 'autofill'); }); }
+    if (c.key === 'diagnostics') { act('Manage in Privacy', function(){ showPane('privacy'); }); }
+    if (acts.children.length) { body.appendChild(acts); }
+    det.appendChild(body);
+    cats.appendChild(det);
+  });
+
+  document.getElementById('st-install').textContent = d.install;
+  document.getElementById('st-profile').textContent = d.profile;
+  document.getElementById('st-foot').textContent = 'Every file is counted once, and its size is asked of the file itself rather than a folder listing, ' +
+    'so the parts add up to the total exactly. “On disk” is the space the files really take up — a little more, because disks store files in whole blocks.';
+};
+main.addEventListener('click', function(e){ if (e.target.closest('#st-refresh')) { storageMeasure(); } });
+
 /* ══ PERFORMANCE (M4.5) ═════════════════════════════════════════════════════
    The host (LiveStats.cs) measures once a second while this pane is on screen; perfWatch tells
    it when that is. Every tab title arrives from websites, so the tables are built with
@@ -1536,6 +1715,7 @@ main.addEventListener('click', function(e){ if (e.target.closest('button[data-go
 /* Opened from the app menu's "About Aviary", which used to land you on Get started. */
 if (window.__aviarySection){ showPane(window.__aviarySection); }
 setTimeout(perfWatch, 0);
+setTimeout(storageWatch, 0);
 </script>
 </body>
 </html>

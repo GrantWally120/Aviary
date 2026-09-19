@@ -2771,6 +2771,15 @@ public sealed partial class MainWindow : Window
                     await PerfTabAsync(arg ?? string.Empty);
                     break;
 
+                // ── Storage Usage (M4.5) ──
+                case "storageMeasure":
+                    await StorageMeasureAsync(page);
+                    break;
+
+                case "storageClearCache":
+                    await StorageClearCacheAsync(page);
+                    break;
+
                 // ── Shields (M3) ──
                 case "listsUpdate":
                 {
