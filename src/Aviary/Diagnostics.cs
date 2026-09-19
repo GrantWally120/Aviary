@@ -1519,6 +1519,29 @@ internal static partial class Diagnostics
         }
     }
 
+    /// <summary>How long Aviary has been running (Settings → Performance).</summary>
+    public static TimeSpan Uptime => DateTimeOffset.Now - ProcessStart;
+
+    /// <summary>Process start to the first page drawn, this launch; null until it has been (Settings → Performance).</summary>
+    public static double? StartupMs
+    {
+        get
+        {
+            lock (Marks)
+            {
+                foreach ((string phase, double ms) in Marks)
+                {
+                    if (phase == "first-page-loaded")
+                    {
+                        return ms;
+                    }
+                }
+            }
+
+            return null;
+        }
+    }
+
     private static DateTimeOffset ReadProcessStart()
     {
         try

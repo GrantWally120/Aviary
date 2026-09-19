@@ -293,6 +293,32 @@ internal static class InternalPages
   .bits span{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--fill);color:var(--ink-2);}
   .upd-foot{margin:22px 2px 0;font-size:12.5px;}
 
+  /* ── Performance (M4.5) — four live cards, then the details ─────────────── */
+  .pf-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px;}
+  @media (max-width:980px){.pf-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  .pf-card{background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:14px 14px 10px;min-width:0;}
+  .pf-k{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
+  .pf-v{display:block;font-size:24px;font-weight:650;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pf-v small{font-size:13px;font-weight:500;color:var(--ink-2);margin-left:3px;}
+  .pf-s{display:block;font-size:11.5px;color:var(--ink-2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pf-spark{display:block;width:100%;height:34px;margin-top:8px;overflow:visible;}
+  .pf-spark polyline{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;}
+  .pf-spark polygon{fill:color-mix(in srgb,var(--accent) 14%,transparent);stroke:none;}
+  .pf-table{padding:4px 0;}
+  .pf-row{display:grid;grid-template-columns:minmax(0,1fr) 78px 62px 56px auto;align-items:center;gap:10px;padding:8px 18px;font-size:13px;}
+  .pf-row + .pf-row{border-top:1px solid var(--line-soft);}
+  .pf-row.pf-head{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);padding-top:10px;padding-bottom:6px;}
+  .pf-row .pf-n{min-width:0;}
+  .pf-row .pf-n b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .pf-row .pf-n span{display:block;font-size:11.5px;color:var(--ink-2);margin-top:1px;}
+  .pf-row .pf-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .pf-row .btns{justify-content:flex-end;min-width:122px;}
+  .pf-row .btns button{border:1px solid var(--line);background:var(--fill);color:var(--ink);font:500 12px/1 inherit;padding:6px 10px;border-radius:6px;cursor:default;}
+  .pf-row .btns button:hover{background:var(--fill-hover);}
+  .pf-pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--fill);color:var(--ink-2);margin-left:6px;vertical-align:1px;}
+  .pf-pill--on{color:var(--accent);background:var(--sel);}
+  .pf-empty{padding:12px 18px;font-size:12.5px;color:var(--ink-2);}
+
   /* ── Motion (Alpha Build 5 M4.5) ───────────────────────────────────────────
      <html data-motion> is "flight" (Smooth Flight — Classic's: quick ease-outs, no overshoot),
      "fluid" (Fluid — Liquid Glass's: a spring, drawn with linear()) or "off" (Reduce motion).
@@ -412,6 +438,7 @@ var ICON = {
   system:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.5 3.5l1.4 1.4M11.1 11.1l1.4 1.4M12.5 3.5l-1.4 1.4M4.9 11.1l-1.4 1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   reset:'<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 2.4v3.2H9.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   updates:'<svg viewBox="0 0 16 16" fill="none"><path d="M7.2 2.4c.5 3 2 4.5 5 5-3 .5-4.5 2-5 5-.5-3-2-4.5-5-5 3-.5 4.5-2 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.6 1.8v2.6M11.3 3.1h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
 
@@ -758,6 +785,12 @@ var SECTIONS = [
       {t:'Automatic updates', d:'For now, each new build replaces the copy of Aviary on your desktop. Updates arrive with the installer.', phase:6, ctl:{type:'none'}}
     ]},
 
+  /* Alpha Build 5 M4.5 — live figures from LiveStats.cs, pushed once a second, only while this
+     pane is on screen in the visible Settings tab. Nothing here is recorded. */
+  { id:'perf', icon:'perf', name:'Performance', title:'Performance', perf:true,
+    lede:'What Aviary is using right now, updated every second while this page is open: memory, processor and graphics card, for Aviary itself and every part of its browser engine. The same figures Windows’ Task Manager shows. Nothing here is recorded.',
+    rows:[] },
+
   { id:'about', icon:'about', name:'About Aviary', title:'About Aviary', about:true,
     lede:'A Safari-inspired browser for Windows 11.', rows:[] }
 ];
@@ -969,6 +1002,8 @@ SECTIONS.forEach(function(s, i){
       '</div></div></div>' +
       '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
+  } else if (s.perf){
+    body += renderPerf();
   } else if (s.updates){
     body += renderUpdates(s);
   } else {
@@ -1327,8 +1362,180 @@ window.__aviaryApply = function(key, value){
   if (key === 'searchEngine') { suggestRow(); }
 };
 
+/* ══ PERFORMANCE (M4.5) ═════════════════════════════════════════════════════
+   The host (LiveStats.cs) measures once a second while this pane is on screen; perfWatch tells
+   it when that is. Every tab title arrives from websites, so the tables are built with
+   textContent, never markup. */
+function renderPerf(){
+  function card(id, k, s){
+    return '<div class="pf-card" id="pf-' + id + '"><span class="pf-k">' + k + '</span><b class="pf-v">—</b>' +
+      '<span class="pf-s">' + s + '</span><svg class="pf-spark" viewBox="0 0 60 30" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polygon points=""/><polyline points=""/></svg></div>';
+  }
+  return '<div class="pf-cards">' +
+      card('mem', 'Memory', 'All of Aviary') +
+      card('cpu', 'Processor', 'Of the whole processor') +
+      card('gpu', 'Graphics', 'Its busiest part, for Aviary') +
+      card('gmem', 'Graphics memory', 'The card’s own memory') +
+    '</div>' +
+    '<div class="group">' +
+      '<div class="row"><div class="row__t"><b>How quickly Aviary answers</b><span id="pf-ui">Measuring…</span></div></div>' +
+      '<div class="row"><div class="row__t"><b>Shields’ work</b><span id="pf-blocker">Measuring…</span></div></div>' +
+      '<div class="row"><div class="row__t"><b>This session</b><span id="pf-session">Measuring…</span></div></div>' +
+    '</div>' +
+    '<h2 class="upd-h">Tabs</h2><div class="group pf-table" id="pf-tabs"><div class="pf-empty">Measuring…</div></div>' +
+    '<h2 class="upd-h">Aviary’s processes</h2><div class="group pf-table" id="pf-procs"><div class="pf-empty">Measuring…</div></div>' +
+    '<p class="lede upd-foot" id="pf-foot"></p>';
+}
+
+var PF = {mem:[], cpu:[], gpu:[], gmem:[]};
+function pfSize(mb){
+  if (mb == null) { return '—'; }
+  return mb >= 1024 ? (mb / 1024).toFixed(2) + '<small>GB</small>' : Math.round(mb) + '<small>MB</small>';
+}
+function pfSizeText(mb){ return mb == null ? '—' : (mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : Math.round(mb) + ' MB'); }
+function pfPct(v){ return v == null ? '—' : (v < 10 ? v.toFixed(1) : String(Math.round(v))) + '<small>%</small>'; }
+function pfPctText(v){ return v == null ? '—' : (v < 10 ? v.toFixed(1) : String(Math.round(v))) + '%'; }
+function pfSpark(id, arr, v){
+  arr.push(v == null ? 0 : v);
+  if (arr.length > 60) { arr.shift(); }
+  var card = document.getElementById('pf-' + id);
+  if (!card) { return; }
+  var top = Math.max(Math.max.apply(null, arr) * 1.15, 0.0001);
+  var pts = arr.map(function(x, i){ return (i + 60 - arr.length) + ',' + (30 - (x / top) * 28).toFixed(2); }).join(' ');
+  card.querySelector('polyline').setAttribute('points', pts);
+  card.querySelector('polygon').setAttribute('points', (60 - arr.length) + ',30 ' + pts + ' 59,30');
+}
+function pfDuration(s){
+  if (s < 60) { return s + ' s'; }
+  if (s < 3600) { return Math.floor(s / 60) + ' min'; }
+  return Math.floor(s / 3600) + ' h ' + Math.floor((s % 3600) / 60) + ' min';
+}
+function pfRow(name, sub, nums, buttons, head){
+  var row = document.createElement('div');
+  row.className = 'pf-row' + (head ? ' pf-head' : '');
+  var n = document.createElement('div');
+  n.className = 'pf-n';
+  var b = document.createElement('b');
+  b.textContent = name;
+  n.appendChild(b);
+  if (sub) { var s = document.createElement('span'); s.textContent = sub; n.appendChild(s); }
+  row.appendChild(n);
+  nums.forEach(function(v){ var c = document.createElement('div'); c.className = 'pf-num'; c.textContent = v; row.appendChild(c); });
+  var btns = document.createElement('div');
+  btns.className = 'btns';
+  (buttons || []).forEach(function(bt){
+    var x = document.createElement('button');
+    x.textContent = bt.label;
+    x.setAttribute('data-perf-tab', bt.cmd);
+    btns.appendChild(x);
+  });
+  row.appendChild(btns);
+  return row;
+}
+
+window.__aviaryPerf = function(d){
+  function set(id, html, v, arr){
+    var card = document.getElementById('pf-' + id);
+    if (card) { card.querySelector('.pf-v').innerHTML = html; }
+    pfSpark(id, arr, v);
+  }
+  set('mem', pfSize(d.memory), d.memory, PF.mem);
+  set('cpu', pfPct(d.cpu), d.cpu, PF.cpu);
+  set('gpu', d.gpu == null ? '—' : pfPct(d.gpu), d.gpu, PF.gpu);
+  set('gmem', d.gpuMemory == null ? '—' : pfSize(d.gpuMemory), d.gpuMemory, PF.gmem);
+  if (d.gpu == null) {
+    var gs = document.querySelector('#pf-gpu .pf-s');
+    if (gs) { gs.textContent = 'Windows is not reporting it'; }
+  }
+
+  var ui = document.getElementById('pf-ui');
+  if (ui) {
+    ui.textContent = 'Aviary answered in ' + d.ui.now.toFixed(1) + ' ms just now · slowest in the last minute: ' +
+      d.ui.worst.toFixed(1) + ' ms. Anything under 50 ms feels instant.';
+  }
+  var bl = document.getElementById('pf-blocker');
+  if (bl) {
+    bl.textContent = d.blocker.checks
+      ? 'Checked ' + d.blocker.checks + (d.blocker.checks === 1 ? ' request' : ' requests') + ' in the last second · ' +
+        d.blocker.average + ' µs each on average, ' + d.blocker.worst + ' µs at most.'
+      : 'Nothing to check in the last second — no page was loading anything.';
+  }
+  var se = document.getElementById('pf-session');
+  if (se) {
+    var t = d.tabs.length;
+    se.textContent = 'Running for ' + pfDuration(d.session.uptimeSeconds) +
+      (d.session.startupMs ? ' · opened in ' + (d.session.startupMs / 1000).toFixed(2) + ' s' : '') +
+      ' · ' + t + (t === 1 ? ' tab' : ' tabs') + ' in ' + d.session.windows + (d.session.windows === 1 ? ' window' : ' windows') +
+      ' · ' + (d.session.rules || 0).toLocaleString() + ' Shields rules loaded.';
+  }
+
+  var tabs = document.getElementById('pf-tabs');
+  if (tabs) {
+    tabs.textContent = '';
+    tabs.appendChild(pfRow('Tab', '', ['Memory', 'Processor', 'Graphics'], [], true));
+    var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it'};
+    d.tabs.forEach(function(tb){
+      var name = tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled');
+      var note = PF_NOTES[tb.id];
+      var sub = (note && note.until > Date.now()) ? note.text
+        : (states[tb.state] || '') + (tb.own ? ' · Aviary’s own page' : '') +
+          (tb.shared ? ' · shares its process with ' + (tb.shared - 1) + (tb.shared === 2 ? ' other tab' : ' other tabs') : '') +
+          (tb.blocked ? ' · ' + tb.blocked + ' blocked' : '');
+      var buttons = [];
+      if (tb.canSleep) { buttons.push({label:'Sleep', cmd:'sleep:' + tb.id}); }
+      buttons.push({label:'Close', cmd:'close:' + tb.id});
+      tabs.appendChild(pfRow(name, sub,
+        [tb.memory == null ? '—' : pfSizeText(tb.memory), tb.cpu == null ? '—' : pfPctText(tb.cpu), tb.gpu == null ? '—' : pfPctText(tb.gpu)],
+        buttons));
+    });
+  }
+
+  var procs = document.getElementById('pf-procs');
+  if (procs) {
+    procs.textContent = '';
+    procs.appendChild(pfRow('Process', '', ['Memory', 'Processor', 'Graphics'], [], true));
+    d.processes.forEach(function(p){
+      var sub = 'Process ' + p.pid + (p.tabs ? ' · draws ' + p.tabs + (p.tabs === 1 ? ' tab' : ' tabs') : '') +
+        ' · ' + p.handles + ' handles' + (p.gpuMemory ? ' · ' + pfSizeText(p.gpuMemory) + ' of graphics memory' : '');
+      procs.appendChild(pfRow(p.kind, sub, [pfSizeText(p.memory), pfPctText(p.cpu), pfPctText(p.gpu)], []));
+    });
+  }
+
+  var foot = document.getElementById('pf-foot');
+  if (foot) {
+    foot.textContent = 'Measuring takes Aviary ' + d.samplerMs.toFixed(1) + ' ms a second, and stops the moment you leave this page. ' +
+      'Memory is each part’s private working set and processor is its share of the whole processor — the figures Task Manager shows.';
+  }
+};
+
+/* The host's word on a tab it could not put to sleep; shown under that tab's row for a while. */
+var PF_NOTES = {};
+window.__aviaryPerfNote = function(id, text){ PF_NOTES[id] = {text: String(text), until: Date.now() + 8000}; };
+
+main.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-perf-tab]');
+  if (b) { b.disabled = true; post({type:'command', name:'perfTab', arg: b.getAttribute('data-perf-tab')}); }
+});
+
+/* The host measures only while this pane is actually on screen. */
+var perfOn = false;
+function perfWatch(){
+  var pane = document.getElementById('pane-perf');
+  var want = !!pane && pane.classList.contains('on') && document.visibilityState === 'visible';
+  if (want !== perfOn) {
+    perfOn = want;
+    post({type:'command', name:'perfWatch', arg: want ? 'on' : 'off'});
+  }
+}
+document.addEventListener('visibilitychange', perfWatch);
+window.addEventListener('pagehide', function(){ if (perfOn) { perfOn = false; post({type:'command', name:'perfWatch', arg:'off'}); } });
+nav.addEventListener('click', function(){ setTimeout(perfWatch, 0); });
+main.addEventListener('click', function(e){ if (e.target.closest('button[data-goto]')) { setTimeout(perfWatch, 0); } });
+
 /* Opened from the app menu's "About Aviary", which used to land you on Get started. */
 if (window.__aviarySection){ showPane(window.__aviarySection); }
+setTimeout(perfWatch, 0);
 </script>
 </body>
 </html>

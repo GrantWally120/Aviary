@@ -2762,6 +2762,15 @@ public sealed partial class MainWindow : Window
                     await RemoveSiteDataAsync(page, arg ?? string.Empty);
                     break;
 
+                // ── Performance (M4.5): the page says when its pane is on screen; Sleep / Close a tab ──
+                case "perfWatch":
+                    await PerfWatchAsync(page, arg == "on");
+                    break;
+
+                case "perfTab":
+                    await PerfTabAsync(arg ?? string.Empty);
+                    break;
+
                 // ── Shields (M3) ──
                 case "listsUpdate":
                 {
@@ -2890,8 +2899,45 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private BrowserTab? TabFor(CoreWebView2 core) =>
-        _tabs.Find(t => ReferenceEquals(t.View.CoreWebView2, core));
+    /// <summary>
+    /// The tab a CoreWebView2 belongs to. By reference first — and then by the id of its main
+    /// frame, because the reference test alone never matched the CoreWebView2 an event hands over
+    /// (bug 70, found 19 Sep building M4.5's Performance page): WinRT gives the event its own
+    /// wrapper for the same WebView, so every "TabFor(page)?.…" silently did nothing — after Reset
+    /// settings, Clear browsing data and Clear site icons the Settings page was never redrawn and
+    /// went on showing the old values.
+    /// </summary>
+    private BrowserTab? TabFor(CoreWebView2 core)
+    {
+        BrowserTab? same = _tabs.Find(t => ReferenceEquals(t.View.CoreWebView2, core));
+        if (same is not null)
+        {
+            return same;
+        }
+
+        uint frame;
+        try
+        {
+            frame = core.FrameId;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "window: tab for a webview");
+            return null;
+        }
+
+        return _tabs.Find(t =>
+        {
+            try
+            {
+                return t.View.CoreWebView2 is CoreWebView2 own && own.FrameId == frame;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        });
+    }
 
     /// <summary>
     /// ContentDialog in WinUI 3 desktop throws a COMException without an explicit XamlRoot,

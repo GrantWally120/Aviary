@@ -1140,6 +1140,13 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     each tab after its title (kept current in OnTabChanged), switches on Checked, and re-checks the
     active tab if something un-checks it. Click no longer re-selects the tab it is already on.
     **Every tab-like control gets an AutomationProperties.Name and works through its UIA pattern.**
+70. **After Reset settings, Clear browsing data or Clear site icons, the Settings page was never
+    redrawn** (found 19 Sep building M4.5's Performance page; confirmed with a marker variable that
+    survived a real Reset). `TabFor(CoreWebView2)` compared by reference, and the CoreWebView2 a
+    WebMessageReceived event hands over is a different WinRT wrapper for the same WebView — so every
+    `TabFor(page)?.NavigateToHtml(...)` silently did nothing and the page went on showing old values.
+    TabFor now falls back to the main frame's id (`CoreWebView2.FrameId`). **Never find a tab by
+    reference to an event's CoreWebView2.**
 
 ---
 
@@ -1679,3 +1686,14 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
     Grant's copy logged 93–122 ms. His next stalls will carry the new cause (busy / waiting / window
     held), which says where to look.
   - Tab strip: no longer rebuilt on every change (Stage 3). Start-up unchanged: test copies 810–890 ms.
+- **Stage 5 — Settings → Performance.** `LiveStats.cs` samples once a second on a background
+  thread, only while the pane is on screen in the visible Settings tab (the page posts
+  `perfWatch on/off` from its pane switch and `visibilitychange`); `GpuCounters.cs` reads Windows' GPU
+  counters through pdh.dll; `MainWindow.Performance.cs` maps engine processes to tabs by main-frame
+  id (`ProcessInfosChanged` refreshes it) and pushes to that Settings tab only. Checked against
+  Windows (`tools/test/perf-compare.ps1`): memory within 2.9% for every process over a few MB,
+  graphics memory equal, CPU 6.1–6.3% against Windows' 6.24% for a tab burning one core; the
+  sampler costs ~1.2 ms a second. Sleep uses `TrySuspendAsync` (memory 24 → 2 MB); when the engine
+  refuses, the row says so. Dropped from the plan: per-tab "data loaded" (it would copy every
+  response's headers into Aviary even with nobody watching) — each tab's blocked count instead.
+  Bug 70 fixed on the way.

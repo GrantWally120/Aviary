@@ -438,7 +438,9 @@ internal sealed partial class BrowserTab
         // FilterCost returns at once while collection is off.
         long matchStart = System.Diagnostics.Stopwatch.GetTimestamp();
         (string Rule, string List)? verdict = ShieldsVerdict(uri, args.ResourceContext);
-        Diagnostics.FilterCost(System.Diagnostics.Stopwatch.GetTimestamp() - matchStart);
+        long matchTicks = System.Diagnostics.Stopwatch.GetTimestamp() - matchStart;
+        Diagnostics.FilterCost(matchTicks);
+        LiveStats.NoteBlocker(matchTicks);
 
         if (verdict is not { } stop || _environment is null)
         {
