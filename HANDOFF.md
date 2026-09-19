@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated 14 September 2026, at the end of M4 and Grant's redesign asks (sections 18–20).
+Last updated 19 September 2026: the landing page's Legacy look (section 19), the native-crash recorder, and bugs 50 and 63–66 with the section 8 loose ends (section 10).
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -43,19 +43,27 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (end of 14 Sep 2026 — read this first in a new chat)**
-> - Git is clean at `5e0d080` (docs) on top of `a5bb690` (M4 + the 14-Sep asks). `publish/Aviary`
->   — Grant's desktop shortcut — is that build; it differs from the tested copy only by the commit
->   sha stamped into its version (section 5).
+> **WHERE THINGS STAND (19 Sep 2026 — read this first in a new chat)**
+> - Git: everything is committed. 14–19 Sep, each with Grant's OK ("everything tested"):
+>   `133f61c` landing page Legacy look (§19) · `fe5220f` NativeCrash, the native-crash recorder ·
+>   `60d2339` bug 63 · `5bb88ac` bugs 50, 64, 66 · `5cba53e` bug 65 + the §8 loose ends — then this
+>   docs commit. **NOT published yet:** `publish/Aviary` (Grant's shortcut) is still `a5bb690`'s build.
+>   Ask before publishing; run `tools/library/sync.ps1` first.
 > - Alpha Build 5: **6 of 10 milestones done** (M0, M1, M2, M2.5, M3, M4). Remaining: M5 (download
 >   ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **Grant said NOT to start M5 yet (14 Sep).** Ask him what he wants next before building anything.
-> - Next bug number: **63**. Nothing is open from this session; bug 50 (minimise during start-up) is
->   still the one known open bug.
+> - **Grant said NOT to start M5 yet (14 Sep, again 18 Sep).** Ask him what he wants next.
+> - Bugs 63–66 fixed (section 10). **No known open bug** — bug 50 is fixed at last. Next bug number
+>   **67**.
 > - Standing orders: read his diagnostics folder each turn (section 13); ask before every commit,
 >   every download, every NuGet package, every new filter list; test only on scratch profiles and
 >   never drive the desktop while he is using it (`guard.ps1`); run `tools/library/sync.ps1` before
 >   any publish; never publish `Aviary.html` as an Artifact.
+> - **New since 14 Sep, worth knowing:** a native crash (a C++ exception nothing caught, ending in
+>   abort()) now leaves a full report in crash.log and crashes/ (`NativeCrash.cs`); Aviary's panels
+>   belong to their tab (`MainWindow.Notices.cs`); Windows ending the session is handled
+>   (`MainWindow.SessionEnd.cs`); a second copy of the exe on the same profile says so and ends.
+>   WinUI's own WebView2 source is readable at github.com/microsoft/microsoft-ui-xaml,
+>   `controls/dev/WebView2/WebView2.cpp` — it is how bug 50 was understood.
 
 **Read section 5's first box before touching any test.** On 12 Sep it turned out that every
 shell tool — and every Aviary launched from one — runs inside the Claude app's MSIX container,
@@ -680,27 +688,28 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   answers 0 for storage not opened since launch. Remove on a listed site still clears every
   kind; Clear browsing data clears everything. The database sizes come from the engine's own
   `IndexedDB\*.indexeddb.leveldb` folder names — a layout, not an API (§14).
-- **One Aviary per profile holds per copy of the exe.** Windows App SDK scopes an unpackaged
-  app's instance keys to its executable: a SECOND COPY of Aviary.exe in another folder on the
-  same profile still runs alongside (tested). Grant's only shortcut is `publish\Aviary`, so it
-  covers him; a named mutex + a "close the other one" message would cover the rest.
+- ~~**One Aviary per profile holds per copy of the exe.**~~ **Fixed 19 Sep (`5cba53e`):** a named
+  lock per profile (Program.cs `AnotherCopyOwnsProfile`). A second copy in another folder waits 5 s
+  (the owner may be closing), then says "Aviary is already open" and ends having written nothing. It
+  cannot bring the other copy's window forward — only a launch of the same copy can (bug 51).
 - Opening a private window stalls the UI thread 55–75 ms (building the window) — seen twice as
   `ui-stall` anomalies. Harmless; worth trimming in M7.
 - Workers still have `navigator.userAgentData` with the Safari identity on — no injection
-  reaches a worker. The Settings row says scripts; it should arguably say "page scripts".
+  reaches a worker. (The Settings row already says "page scripts" — checked 18 Sep.)
 - Favicon requests the ENGINE makes are outside the request filter; with the DevTools override
   they no longer carry client hints (measured), but nothing else of ours applies to them.
-- A failed page's window title can be Chromium's ("Privacy error") while Aviary's own panel
-  covers it. Same class as bug 9; M7 polish.
+- ~~A failed page's window title can be Chromium's ("Privacy error") while Aviary's own panel
+  covers it.~~ **Fixed 19 Sep (`5cba53e`):** the tab and the window go by the panel's title (bug 65).
 - Two windows share one Application resource set: a look swap in one window re-applies geometry
   only in that window until the other is touched.
 - The WebRTC switch could not be shown to differ (see §14).
 - Bookmarks have no folders or reordering.
 - `Aviary.csproj` floats `Microsoft.WindowsAppSDK` at `1.7.*` — pin once CI is green.
 - No app icon.
-- **A crashed tab shows Chromium's own "This page is having a problem" page** (seen in M1
-  by killing a renderer). Same class of tell as bug 9; Aviary should draw its own, with Reload.
-  Diagnostics records the failure either way. Candidate for M7 polish.
+- ~~**A crashed tab shows Chromium's own "This page is having a problem" page.**~~ **Fixed 19 Sep
+  (`5cba53e`):** "This page stopped working" with Reload Page, for the page's own renderer
+  (RenderProcessExited), also when it happened in a background tab. Still Chromium's: an engine that
+  died outright (BrowserProcessExited) — every tab would need a new WebView; not handled yet.
 - ~~Blocked ad iframes cost a renderer process each~~ — **fixed in M3**: a blocked frame is
   answered with 204 No Content, which Chromium never commits, so the frame stays an in-page
   `about:blank` (verified: it no longer appears as a DevTools target). Other blocked kinds keep 403.
@@ -710,8 +719,8 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   frame is not collapsed (the page's own script cannot reach it). `$domain=` and third-party are
   judged against the tab's top page, not the frame's own document. Cookie-banner and social-widget
   lists were not added — Grant approved EasyList and EasyPrivacy only; each extra list needs his yes.
-  Strict's warning is shown only for the tab on screen (as the HTTPS fallback is): a background
-  tab's stopped navigation leaves it where it was, silently.
+  ~~Strict's warning is shown only for the tab on screen~~ — fixed 19 Sep (bug 65): a background
+  tab keeps its warning (and HTTPS-Only's fallback) and shows it when switched to.
 - **Shields — for M7 to measure:** the element-hiding script is ~786 KB and is registered in every
   tab (each renderer keeps a copy); the blocker costs ~9 µs a request in the app against ~1.6 µs in
   the harness (the URL is lowercased twice and TrackerBlocker parses a Uri first); the lists build
@@ -740,7 +749,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   diagnostics records each one itself (`context:"Suggestions"`).
 - **Clear browsing data also resets every site's Shields choice** — they live in `sites.json` with
   the other per-site settings, which Clear has always emptied. Safe direction (blocking comes
-  back), but worth saying in that dialog.
+  back); **the dialog says so since 19 Sep**, with Reader-by-itself and insecure-connection exceptions.
 - Diagnostics records request addresses exactly as sent, so a website that puts what you
   type into ITS OWN addresses (live-search boxes do) is recorded like any other request;
   only secret parameters, path tokens and card numbers are cut from them. Consistent with the
@@ -926,7 +935,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     Also found: WebView2 turns form-entry autofill ON by default — the engine was keeping what
     you type into websites while Settings said autofill came "after beta". Now its own switch,
     off by default.
-50. **OPEN, partly mitigated — minimising the window during its first ~0.4 s kills Aviary.**
+50. **FIXED 18–19 Sep (`5bb88ac`) — see the end of this entry. Minimising the window during its first ~0.4 s killed Aviary.**
     A native fail-fast (Application Error 1000, `0xc0000409` in ucrtbase.dll): no .NET
     exception, no crash report, nothing in crash.log. Repro: launch, wait for the window
     handle, `ShowWindow(h, SW_SHOWMINNOACTIVE)` after N ms. 0 / 100 / 250 ms crash every
@@ -939,6 +948,20 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     procdump or cdb (NOT installed; ask Grant before downloading either) — and probably an
     upstream report to microsoft-ui-xaml / WebView2Feedback. The kit script
     `tools/test/min-window.ps1` maps it (delays → alive/dead + how far diagnostics got).
+    **The answer (18 Sep), with no debugger downloaded:** Windows' event log put every crash at
+    `ucrtbase!abort+0x4e` (the export table read from the DLL on disk) — a C++ exception nothing
+    caught. `NativeCrash.cs` (a SIGABRT handler; `fe5220f`) recorded it: `winrt::hresult_invalid_argument`
+    0x80070057 thrown in Microsoft.UI.Xaml.Controls.dll, escaping a `noexcept` handler, no Aviary code
+    on the thread. Timing logs then an A/B found the trigger: the new tab's `View.Focus(...)` landing
+    while the window was down (skip it: 3 of 3 lived; skip the page load instead: 0 of 3). WinUI's
+    WebView2 hands focus to the engine from its queued GotFocus with `CoreWebView2Controller.MoveFocus`;
+    a hidden engine refuses; the handler is `noexcept` and (in the 1.7 WinUI Aviary ships) checks no
+    visibility — today's WinUI source does check, i.e. Microsoft fixed it upstream. Aviary's fix:
+    `FocusPage` never focuses a page while the window is minimised or hidden (the request waits for
+    the window), and `TrackFocusHandoff` + `OnXamlRootChangedForFocus` close the race where focus was
+    given while showing and the minimise landed before the queued GotFocus (moving the keyboard to a
+    sink clears WinUI's pending handoff — its LosingFocus). 42 + 9 minimised launches, 0–600 ms, all
+    alive (`tools/test/min-sweep.ps1`). **Never call `View.Focus` on a tab directly — use FocusPage.**
 51. **Two Aviarys on one profile.** Found in Grant's own diagnostics: a launch at 16:04:09 on 12
     Sep started a second process while the first (running since 15:59) was still browsing; the
     second read the first's LIVE session.json as "never closed cleanly" and wrote a false
@@ -1042,6 +1065,35 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     example.com as `["zoom","110%"]`. It now runs only in tabs showing Settings
     (`IsInternalPage && Title == "Settings"`), as the lists and collection pushes already did.
     **Any host-to-page push goes only to the page it is for.**
+63. **Diagnostics read its own files' sizes from a folder listing** (Grant's summary.md, 14 Sep:
+    `blocking.jsonl` "11 KB, 22:30" when it held 13 KB written at 22:38; `60d2339`). A listing gives
+    what Windows noted when a file was last CLOSED, and the category logs stay open all session — so
+    the summary's Files table, the 500 MB cap and Clear browsing data's "(N KB)" all saw the previous
+    session. `Diagnostics.FilesNow` refreshes each FileInfo (asks the file itself). **Never size an
+    open file from a directory listing.**
+64. **Windows shutting down with Aviary open was an unclean exit** (Grant's diagnostics: Start → Shut
+    down, 16 Sep 16:55:59; `5bb88ac`). Windows ends a process after WM_ENDSESSION without closing its
+    windows and WinUI raises nothing, so Closed never ran — pending History / Privacy Report / favicon
+    / settings writes lost, a false "never closed cleanly". `MainWindow.SessionEnd.cs` subclasses each
+    window for WM_ENDSESSION and does the last window's writes with the reason. Tested by sending every
+    top-level window the two messages, then killing the process: 41 ms, `ended: "Windows shut down or
+    restarted"`. (Sending only to the process's FIRST visible window hit a WinUI popup window — the
+    test must message every top-level window, as Windows does.)
+65. **Aviary's panel was the window's, not the tab's** (found 18 Sep reading the code, confirmed on
+    screen 19 Sep; `5cba53e`). Switching back to a failed tab showed Chromium's "Hmmm… can't reach this
+    page" with the Microsoft Edge logo; a panel stayed over the tab switched TO; Strict's warning and
+    HTTPS-Only's fallback in a background tab happened silently. Every tab now carries its `TabNotice`
+    (`MainWindow.Notices.cs`), drawn by `RenderNotice` on every switch, cleared by the tab's own next
+    navigation (after Shields). The tab's label and the window title go by the notice (`ShownTitle`).
+    A crashed page's renderer gets a notice of its own with Reload Page (HANDOFF §8). **Never show a
+    panel for "the active tab" — give the notice to the tab it belongs to.** Kit: `tools/test/notices.ps1`.
+66. **A settings save was refused while diagnostics read the file back** (Grant's diagnostics, 18 Sep
+    21:45:35 — tab layout and sidebar changed 2 ms apart; "Access to the path is denied";
+    `5bb88ac`). Windows will not rename a file over one that is open, whatever the reader shares
+    (measured: error 5 with FileShare.Delete as well). `AppSettings.FileGate` serialises the save and
+    the read-back, a move refused by something outside Aviary is retried (≤ 90 ms), and a save that
+    still failed is written again at close / session end. 900 rapid changes: the old build failed the
+    same way, this one never. **Anything that opens settings.json takes `AppSettings.FileGate`.**
 
 ---
 
@@ -1446,6 +1498,25 @@ Electron" bullets broke that way). Two claims that were wrong on the old page we
 20 MB instead of 200" (Aviary ships ~170 MB self-contained) and "it will be a per-tab toggle" (the
 Safari identity has been a Settings switch since M2). Checked in the browser pane at 1440, 1356,
 800 and 375 px, light and dark: no sideways scroll, no console errors, rails fit.
+
+**18 Sep — two looks of its own: Liquid Glass and Legacy** (Grant: "find its old UI … add option to
+make it Legacy UI"). The page before the redesign (`334dd0d`, "a glasshouse at dusk": Fraunces, brass,
+a phase list in Alpha/Beta bands) is back as a second look, chosen by a "Liquid Glass | Legacy"
+switch in each look's top bar. `<html data-ui="glass|legacy">` decides; a script in `<head>` sets it
+before the first paint from `localStorage["aviary-ui"]` or `?ui=legacy|glass`, so there is no flash.
+**Both looks draw from the one `PHASES` array** — the Legacy page shows Phase 1 · Alpha / Phase 2 ·
+Beta bands, builds numbered 00–05 / 01–02, and the build being made gets a milestone list in the old
+rows' type (the old page told milestones inside AB5's text instead). Isolation: the old stylesheet is
+a second `<style>`, every class prefixed `v1-` (generated from 334dd0d, not retyped), its tokens set
+only on `:root[data-ui="legacy"]`; Liquid Glass's five bare element rules (`h1`, `h1 em`, `h2`,
+`section`, `footer`) are scoped to `.skin-glass`. Its facts are today's (One folder, no "20 MB",
+the Settings switch). The words outside PHASES exist once in each look — change both. Switching
+keeps the reader in the same section; one theme choice drives both looks. Checked: the Legacy look
+beside the original 334dd0d file (the same page), both looks light and dark, 1518 / 375 / 320 px (below
+380 px the bars keep just the mark, the switch and the theme), a reload keeps the choice (over
+http — the pane's `file:` view is a `data:` page with no storage), `?ui=` works, no console errors,
+the glass computed values unchanged. Found on the way: `focus()` on the newly shown switch scrolled
+the page back — `preventScroll`.
 
 **The Collection — glass, a page per exhibit, five more exhibits** (`src/Aviary/Library/`):
 - **Look:** the same glass over a field drifting in the six enclosures' own colours; the bar is a
