@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 
 namespace Aviary;
@@ -81,6 +82,7 @@ internal static class TrackerBlocker
     /// rule is what diagnostics records beside each blocked address, so a site broken by the
     /// blocker can be traced to the one entry responsible.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static string? Match(string url)
     {
         if (!Enabled || string.IsNullOrEmpty(url))

@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 using System.Collections.Generic;
 using System.IO;
 
@@ -701,6 +702,7 @@ internal sealed partial class FilterEngine
     /// The verdict for one request. <paramref name="thirdPartyOnly"/> is Standard mode: a
     /// request to the page's own site is never blocked by the lists.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Verdict Match(string url, ReqType type, Page page, bool thirdPartyOnly)
     {
         if (page.Allowed || url.Length < 8)
@@ -776,6 +778,7 @@ internal sealed partial class FilterEngine
         public readonly ReadOnlySpan<char> Host => Lower.AsSpan(HostStart, HostEnd - HostStart);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private NetRule? FindBlock(ref Request r, out string? plainHost)
     {
         plainHost = null;
@@ -804,7 +807,7 @@ internal sealed partial class FilterEngine
                 }
             }
 
-            int dot = suffix.IndexOf('.');
+            int dot = IndexOfDot(suffix);
             if (dot < 0)
             {
                 break;
@@ -816,6 +819,7 @@ internal sealed partial class FilterEngine
         return FindIndexed(ref r, _tokenRulesBySpan, _anyRules);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private NetRule? FindException(ref Request r)
     {
         ReadOnlySpan<char> host = r.Host;
@@ -834,7 +838,7 @@ internal sealed partial class FilterEngine
                 }
             }
 
-            int dot = suffix.IndexOf('.');
+            int dot = IndexOfDot(suffix);
             if (dot < 0)
             {
                 break;
@@ -846,6 +850,7 @@ internal sealed partial class FilterEngine
         return FindIndexed(ref r, _tokenExceptionsBySpan, _anyExceptions);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private NetRule? FindImportant(ref Request r)
     {
         foreach (NetRule rule in _important)
@@ -859,6 +864,41 @@ internal sealed partial class FilterEngine
         return null;
     }
 
+    /// <summary>
+    /// For the filters harness: every token of the address that has a bucket, and how many rules
+    /// the bucket holds — how much work a Match on it does (M4.5, the slow YouTube checks).
+    /// </summary>
+    internal List<(string Token, int Rules)> BucketsFor(string url)
+    {
+        List<(string, int)> found = new();
+        string lower = url.ToLowerInvariant();
+        int i = 0;
+        while (i < lower.Length)
+        {
+            if (!IsTokenChar(lower[i]))
+            {
+                i++;
+                continue;
+            }
+
+            int start = i;
+            while (i < lower.Length && IsTokenChar(lower[i]))
+            {
+                i++;
+            }
+
+            int length = i - start;
+            if (length is >= MinToken and <= MaxToken
+                && _tokenRulesBySpan.TryGetValue(lower.AsSpan(start, length), out List<NetRule>? bucket))
+            {
+                found.Add((lower.Substring(start, length), bucket.Count));
+            }
+        }
+
+        return found;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private NetRule? FindIndexed(ref Request r, Dictionary<string, List<NetRule>>.AlternateLookup<ReadOnlySpan<char>> index, List<NetRule> any)
     {
         string url = r.Lower;
@@ -907,6 +947,7 @@ internal sealed partial class FilterEngine
     }
 
     /// <summary>Options first — they are cheap and usually decide it — then the pattern.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool Applies(NetRule rule, ref Request r)
     {
         if ((rule.Types & r.Type) == 0)
@@ -934,6 +975,7 @@ internal sealed partial class FilterEngine
     }
 
     /// <summary>$domain=: the page's host is one of (or under one of) the included, and none of the excluded.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static bool DomainApplies(string[]? include, string[]? exclude, Page page)
     {
         if (page.Host.Length == 0)
@@ -983,6 +1025,7 @@ internal sealed partial class FilterEngine
                    && host.EndsWith(domain, StringComparison.Ordinal));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static bool PatternMatches(NetRule rule, string url, int hostStart, int hostEnd)
     {
         string p = rule.Pattern;
@@ -1124,6 +1167,7 @@ internal sealed partial class FilterEngine
         !(c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '_' or '-' or '.' or '%');
 
     /// <summary>Where the host sits in an absolute http(s)/ws(s) URL, without allocating.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static bool TryHost(string lower, out int start, out int end)
     {
         start = end = 0;
@@ -1142,7 +1186,8 @@ internal sealed partial class FilterEngine
         // user:pass@ never reaches here in practice, but must not be mistaken for the host.
         int limit = lower.IndexOfAny(HostEnders, start);
         if (limit < 0) { limit = lower.Length; }
-        int at = lower.LastIndexOf('@', limit - 1, limit - start);
+        int at = LastIndexOfChar(lower.AsSpan(start, limit - start), '@');
+        if (at >= 0) { at += start; }
         if (at >= start) { start = at + 1; }
 
         end = start;
@@ -1162,8 +1207,44 @@ internal sealed partial class FilterEngine
 
     private static readonly char[] HostEnders = { '/', '?', '#' };
 
+    // Plain loops for searching a HOST, not the framework's vectorised IndexOf/LastIndexOf.
+    // A host is a few dozen characters, so a loop costs nothing — and the framework's search
+    // switches to 512-bit vectors at 32 characters, code compiled at run time the first time a host
+    // that long turns up. That was YouTube's video hosts (rr1---sn-q4flrnlz.googlevideo.com, 33
+    // characters): 3.4 ms of compiling on the UI thread, in the middle of a page load, once a
+    // session (M4.5, measured with JitInfo; the JIT log named SpanHelpers' Vector512 SimdImpl).
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static int IndexOfDot(ReadOnlySpan<char> s)
+    {
+        for (int i = 0; i < s.Length; i++)
+        {
+            if (s[i] == '.')
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static int LastIndexOfChar(ReadOnlySpan<char> s, char c)
+    {
+        for (int i = s.Length - 1; i >= 0; i--)
+        {
+            if (s[i] == c)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     // ══ SITES ═══════════════════════════════════════════════════════════════
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static bool IsThirdParty(ReadOnlySpan<char> host, Page page)
     {
         if (page.Site.Length == 0)
@@ -1176,6 +1257,7 @@ internal sealed partial class FilterEngine
     }
 
     /// <summary>A host's registrable domain — the same answer PublicSuffix gives, without allocating.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static ReadOnlySpan<char> SiteSpan(ReadOnlySpan<char> host)
     {
         if (host.Length > 0 && host[^1] == '.')
@@ -1188,13 +1270,13 @@ internal sealed partial class FilterEngine
             return host;
         }
 
-        int last = host.LastIndexOf('.');
+        int last = LastIndexOfChar(host, '.');
         if (last < 0)
         {
             return host;
         }
 
-        int second = host[..last].LastIndexOf('.');
+        int second = LastIndexOfChar(host[..last], '.');
         if (second < 0)
         {
             return host;
@@ -1203,13 +1285,14 @@ internal sealed partial class FilterEngine
         ReadOnlySpan<char> lastTwo = host[(second + 1)..];
         if (PublicSuffix.IsMultiLabel(lastTwo))
         {
-            int third = host[..second].LastIndexOf('.');
+            int third = LastIndexOfChar(host[..second], '.');
             return third < 0 ? host : host[(third + 1)..];
         }
 
         return lastTwo;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static bool IsIpv4(ReadOnlySpan<char> host)
     {
         int dots = 0;
@@ -1225,6 +1308,7 @@ internal sealed partial class FilterEngine
     public static string SiteOf(string host) => SiteSpan(host.AsSpan()).ToString();
 
     /// <summary>True when the request goes to the page's own site (its registrable domain).</summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool IsSameSite(string url, Page page)
     {
         if (page.Site.Length == 0)
@@ -1265,6 +1349,7 @@ internal sealed partial class FilterEngine
     /// For a page about to load: the page context its requests are judged against, with
     /// <see cref="Page.Allowed"/> set when a <c>@@…$document</c> exception covers it.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Page PageFor(string url)
     {
         if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? uri) || uri.Host.Length == 0)
@@ -1314,6 +1399,7 @@ internal sealed partial class FilterEngine
     /// Origin's "strict blocking" works the same way). None when nothing does, or the lists
     /// themselves make an exception for it.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public Verdict MatchPage(string url)
     {
         Page page = PageFor(url);
@@ -1352,7 +1438,7 @@ internal sealed partial class FilterEngine
                 return new Verdict(true, "||" + blocked + "^", NameOf(_plainHostList.TryGetValue(blocked, out byte l) ? l : (byte)0));
             }
 
-            int dot = suffix.IndexOf('.');
+            int dot = IndexOfDot(suffix);
             if (dot < 0)
             {
                 break;

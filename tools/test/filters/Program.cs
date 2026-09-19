@@ -4,6 +4,27 @@
 using System.Diagnostics;
 using Aviary;
 
+// "samesite": what the FIRST long-URL same-site check costs in a fresh process (M4.5 — 3.4 ms
+// of UI-thread CPU on the first YouTube video request, even after the engine's warm-up).
+if (args.Length > 0 && args[0] == "samesite")
+{
+    string longUrl = "https://rr1---sn-q4flrnlz.googlevideo.com/videoplayback?expire=1278794868&ei=bXctofU8nofAiMVK1psMuEd&ip=60.40.47.79&id=o-AAvR-jejr0lG684UaJjhEiCN0zXUvYQWhHYmjF7ffqRi&itag=243&aitags=133%2C134%2C135&source=youtube&requiressl=yes&mh=Qd&mm=31%2C29&mn=sn-q4flrnlz&ms=au%2Crdu&mv=m&mvi=3&pl=24&initcwndbps=2360000&vprv=1&mime=video%2Fwebm&rqh=1&gir=yes&clen=1234567&dur=123.456&lmt=1757830000000000&mt=1757830653&fvip=3&keepalive=yes&c=WEB&txp=4535434&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource&sig=AJfQdSswRQIgVx7ZmL0p2N3o4Q5R6S7T8U9V&cver=2.20260915.01.00&range=0-123456&rn=1&rbuf=0";
+    FilterEngine.Page ytPage = new("www.youtube.com");
+    string mode = args.Length > 1 ? args[1] : "";
+    if (mode == "warm-lower") { _ = "https://Example.com/Some/Long/Path?Query=Value&More=Stuff&Even=More&And=More&Yet=More&Still=More&Keep=Going&A=1&B=2".ToLowerInvariant(); }
+    if (mode == "warm-long") { FilterEngine.IsSameSite(longUrl.Replace("rr1", "rr9"), ytPage); }
+    foreach (string label in new[] { "first", "second", "third" })
+    {
+        var t = Stopwatch.StartNew();
+        FilterEngine.IsSameSite(label == "first" ? longUrl : longUrl.Replace("rr1", label == "second" ? "rr2" : "rr3"), ytPage);
+        Console.WriteLine($"{mode,-10} {label}: {t.Elapsed.TotalMilliseconds * 1000:0.0} us");
+    }
+    var tl = Stopwatch.StartNew();
+    _ = longUrl.Replace("rr1", "rr7").ToLowerInvariant();
+    Console.WriteLine($"{mode,-10} ToLowerInvariant alone after: {tl.Elapsed.TotalMilliseconds * 1000:0.0} us");
+    return;
+}
+
 int pass = 0, fail = 0;
 void Check(string name, bool ok, string? detail = null)
 {
@@ -169,6 +190,26 @@ for (int warm = 0; warm < 2; warm++)
     GC.KeepAlive(real0);
 }
 FilterEngine real = FilterEngine.Build(sources);
+
+// ── a long YouTube video-stream request (M4.5: one took 5-6 ms in the app, UI thread) ──
+{
+    string vp = "https://rr3---sn-q4flrnld.googlevideo.com/videoplayback?expire=4986042948&ei=WNw83dmQt5Hyn7uVdbOYu2d&ip=24.70.45.94&id=o-AAvR-jejr0lG684UaJjhEiCN0zXUvYQWhHYmjF7ffqRi&itag=243&aitags=133%2C134%2C135%2C136%2C160%2C242%2C243%2C244%2C247%2C278&source=youtube&requiressl=yes&xpc=EgVo2aDSNQ%3D%3D&met=1757830927%2C&mh=Qd&mm=31%2C29&mn=sn-q4flrnld%2Csn-q4fzen7e&ms=au%2Crdu&mv=m&mvi=3&pl=24&rms=au%2Cau&initcwndbps=2360000&bui=AY1jyLNnVxNcHTo6&spc=hcYD5bKq1Vp9&vprv=1&svpuc=1&mime=video%2Fwebm&rqh=1&gir=yes&clen=1234567&dur=123.456&lmt=1757830000000000&mt=1757830653&fvip=3&keepalive=yes&fexp=51331020&c=WEB&sefc=1&txp=4535434&n=abcDEFghi&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl%2Cxpc%2Cbui%2Cspc%2Cvprv%2Csvpuc%2Cmime%2Crqh%2Cgir%2Cclen%2Cdur%2Clmt&sig=AJfQdSswRQIgVx7ZmL0p2N3o4Q5R6S7T8U9V0W1X2Y3Z4a5b6c7d8e9f0CIQD&lsparams=met%2Cmh%2Cmm%2Cmn%2Cms%2Cmv%2Cmvi%2Cpl%2Crms%2Cinitcwndbps&lsig=APaTxxMwRgIhAK1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2&alr=yes&cpn=AbCdEfGhIjKlMnOp&cver=2.20260915.01.00&range=0-123456&rn=1&rbuf=0";
+    FilterEngine.Page yt = new("www.youtube.com");
+    foreach (bool standard in new[] { true, false })
+    {
+        for (int w = 0; w < 50; w++) { real.Match(vp, ReqType.Xhr, yt, standard); }
+        var lw = Stopwatch.StartNew();
+        const int n = 2000;
+        for (int k = 0; k < n; k++) { real.Match(vp, ReqType.Xhr, yt, standard); }
+        double us = lw.Elapsed.TotalMilliseconds * 1000 / n;
+        Console.WriteLine($"long URL ({vp.Length} chars), {(standard ? "Standard" : "Strict")}: {us:0.0} us per match");
+        Check("long URL under 200 us (" + (standard ? "Standard" : "Strict") + ")", us < 200, $"{us:0.0} us");
+    }
+    var buckets = real.BucketsFor(vp);
+    Console.WriteLine($"   tokens with buckets: {buckets.Count}, rules in them: {buckets.Sum(b => b.Rules)}; biggest: " +
+        string.Join(", ", buckets.OrderByDescending(b => b.Rules).Take(8).Select(b => b.Token + "=" + b.Rules)));
+}
+
 var s = real.Stats;
 Console.WriteLine($"lines={s.Lines} network={s.Network} exc={s.NetworkExceptions} hostOnly={s.HostOnly} generic={s.CosmeticGeneric} specific={s.CosmeticSpecific} cexc={s.CosmeticExceptions} page={s.PageExceptions} skipped={s.Skipped}");
 foreach (var kv in s.SkippedBy.OrderByDescending(k => k.Value))

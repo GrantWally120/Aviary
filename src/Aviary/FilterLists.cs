@@ -150,6 +150,7 @@ internal static class FilterLists
             }
 
             FilterEngine engine = FilterEngine.Build(sources);
+            double warmMs = Warm(engine);
             Current = loaded;
             _engine = engine;
 
@@ -158,6 +159,7 @@ internal static class FilterLists
             {
                 why,
                 ms = Math.Round(engine.BuildMs, 1),
+                warmMs = Math.Round(warmMs, 1),
                 lists = loaded.ConvertAll(l => new { l.Info.Name, l.Version, l.FromUpdate, l.Lines }),
                 network = s.Network,
                 networkExceptions = s.NetworkExceptions,
@@ -455,6 +457,67 @@ internal static class FilterLists
     }
 
     /// <summary>What Settings shows about the lists: each one's version and date, the counts, the last check.</summary>
+    /// <summary>
+    /// Runs every match path once, here on the loading thread, before any tab gets the engine.
+    ///
+    /// The hot methods are [AggressiveOptimization] (FilterEngine.cs, TrackerBlocker.cs): compiled
+    /// fully optimised on their first call, which is this one, instead of quickly first and then
+    /// again mid-loop on the UI thread — measured 19 Sep as 3.4-7.4 ms of UI-thread CPU on the first
+    /// long YouTube video request of a session.
+    ///
+    /// Grant's diagnostics (M4.5): the blocker's worst single check was 3.3–3.6 ms — and in three of
+    /// six sessions it was the FIRST minute's worst, while every later minute's median worst was
+    /// under 9 µs. A first call pays for compiling its code and warming its caches, and the first
+    /// requests of a session were paying it on the UI thread, inside a page load. Paid here instead.
+    /// </summary>
+    private static double Warm(FilterEngine engine)
+    {
+        long started = System.Diagnostics.Stopwatch.GetTimestamp();
+        try
+        {
+            string[] requests =
+            {
+                "https://www.example.com/",
+                "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js",
+                "https://www.google-analytics.com/analytics.js",
+                "https://cdn.example.net/assets/app.js?v=1",
+                "https://static.example.org/img/logo.png",
+                "https://ads.example.com/banner.gif?utm_source=x&id=1",
+                "https://example.com/api/track?event=view",
+                "https://connect.facebook.net/en_US/fbevents.js",
+                // Long hosts (32+ characters take the framework's widest vector paths) and a long address.
+                "https://rr1---sn-q4flrnlz-abcdefghijklmn.googlevideo.example-cdn-network.com/x.js?a=1",
+                // A long one: the loops in the match code run long enough to be recompiled mid-loop.
+                "https://rr3---sn-abcdefg.googlevideo.com/videoplayback?expire=1789566927&ei=b0uqat7WGuqMvcAPi42BmQI&ip=203.0.113.4&id=o-AAvR-jejr0lG684UaJjhEiCN0zXUvYQWhHYmjF7ffqRi&itag=243&aitags=133%2C134%2C135%2C136%2C160%2C242&source=youtube&requiressl=yes&mh=Qd&mm=31%2C29&mn=sn-abcdefg&ms=au%2Crdu&mv=m&mvi=3&pl=24&initcwndbps=2360000&vprv=1&mime=video%2Fwebm&rqh=1&gir=yes&clen=1234567&dur=123.456&lmt=1757830000000000&mt=1757830653&fvip=3&keepalive=yes&c=WEB&txp=4535434&sparams=expire%2Cei%2Cip%2Cid%2Caitags%2Csource%2Crequiressl&sig=AJfQdSswRQIgVx7ZmL0p2N3o4Q5R6S7T8U9V0W1X2Y3Z&cver=2.20260915.01.00&range=0-123456&rn=1&rbuf=0",
+            };
+            ReqType[] types = { ReqType.Script, ReqType.Image, ReqType.Xhr, ReqType.Subdocument, ReqType.Stylesheet, ReqType.Media, ReqType.Ping, ReqType.Other };
+
+            foreach (string pageUrl in new[] { "https://news.example.com/2026/article", "https://www.youtube.com/" })
+            {
+                engine.MatchPage(pageUrl);
+                FilterEngine.Page page = engine.PageFor(pageUrl);
+                foreach (string url in requests)
+                {
+                    TrackerBlocker.Match(url);
+                    FilterEngine.IsSameSite(url, page);
+                    foreach (ReqType type in types)
+                    {
+                        engine.Match(url, type, page, thirdPartyOnly: true);
+                        engine.Match(url, type, page, thirdPartyOnly: false);
+                    }
+                }
+            }
+
+            Shields.SiteOf("www.example.co.uk");
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "filters: warm up");
+        }
+
+        return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+    }
+
     public static object Describe(bool? updating = null)
     {
         FilterEngine? engine = Engine;

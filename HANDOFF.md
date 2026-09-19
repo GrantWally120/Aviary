@@ -1641,3 +1641,41 @@ left were run after: **the sidebar wears the capsule** (rim at the top-left pole
 `shots/glass-sidebar-light.png`) and **Classic is unchanged after a swap from glass** (flat welded
 toolbar, flush sidebar with its hairline, no layers — `shots/classic-zoom.png`).
 Committed and published 14 Sep with Grant's OK, with M4 and sections 18–19.
+
+---
+
+## 21. Alpha Build 5 M4.5 "Smooth Flight" (19 Sep 2026 — in progress)
+
+Grant's milestone between M4 and M5 (M5 still on hold): performance, bugs, motion and more. Plan:
+`C:\Users\user\.claude\plans\dont-do-m5-yet-distributed-sparkle.md`. Grant named it: **Smooth
+Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass's.
+
+- **Stage 0** `63407c0` — the stale "Known issue" note removed; the 14–19 Sep build published.
+- **Stage 1** `fc52325` — bugs 67 (stall labels; the move/size loop confirmed as the cause of Grant's
+  idle stalls) and 68 (tabs in the sidebar in Top bar layout); diagnostics cap 650 MB.
+- **Stage 2** — Liquid Glass caption buttons: tried, reverted at Grant's choice (§8).
+- **Stage 3** `faf2b14` — motion: `Motion.cs`, the strip keeps its buttons + the Composition tab
+  pill (`MainWindow.TabMotion.cs`), `MainWindow.ChromeMotion.cs`, Settings / Start Page motion via
+  `<html data-motion>`, Reduce motion live, Appearance → Animation style. Bug 69. Not built: a fade on
+  tab switch (touches bug 61's first-paint code).
+- **Stage 4 — performance, measured** (the numbers below are from test copies on this machine):
+  - **The blocker's worst check: 3.5–7.4 ms → under 1 ms** (6 of 6 YouTube launches; was 3 of 6 of
+    Grant's sessions). Not the rules: the harness matches even a 1,040-character googlevideo URL in
+    18–25 µs (tools/test/filters: "long URL" checks). It was **run-time compiling on the UI thread**,
+    proved with `JitInfo.GetCompiledMethodCount(currentThread)` and named by `DOTNET_JitDisasmSummary`:
+    (1) the engine's loops, compiled quickly first and again mid-loop (OSR) on the first long URL —
+    fixed with `[MethodImpl(AggressiveOptimization)]` on the hot methods (FilterEngine, TrackerBlocker)
+    plus `FilterLists.Warm`, which runs every match path on the loading thread before any tab has the
+    engine (~10 ms, recorded as `warmMs`); (2) the framework's Vector512 `IndexOf`/`LastIndexOf`, which
+    only kicks in for spans of 32+ characters — YouTube's video hosts are 33 — fixed with plain loops for
+    host searches (`IndexOfDot`, `LastIndexOfChar`). **Anything on the request path that searches a
+    span with the framework can pay a first-use compile; hosts use the loops.**
+  - **Leaving full screen: 60–110 ms, NOT fixed** — 85–120 ms of it is inside the Windows App SDK's own
+    `AppWindow.SetPresenter(Overlapped)`; Aviary's part (chrome, geometry, layout) measured ~3.5 ms, and
+    handing back the original presenter object did not help. It is the same in Classic (so not the
+    glass shadows). `full-screen` perf lines (`presenterMs`, `chromeMs`) keep measuring it for M7;
+    replacing the SDK's full-screen mechanism is the only lever left. Kit: `fullscreen-bench.ps1`.
+  - **Opening Settings: not reproduced** on scratch profiles (≤ 19 ms at 1280 and 2540 wide) while
+    Grant's copy logged 93–122 ms. His next stalls will carry the new cause (busy / waiting / window
+    held), which says where to look.
+  - Tab strip: no longer rebuilt on every change (Stage 3). Start-up unchanged: test copies 810–890 ms.

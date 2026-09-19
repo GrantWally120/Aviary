@@ -68,6 +68,7 @@ public sealed partial class MainWindow
             return;
         }
 
+        long switchStart = System.Diagnostics.Stopwatch.GetTimestamp();
         try
         {
             if (on)
@@ -91,12 +92,19 @@ public sealed partial class MainWindow
             return;
         }
 
+        // Timed for M7 (M4.5 found it): leaving full screen stalls the UI thread 60-110 ms, and
+        // 85-110 ms of it is inside the Windows App SDK's own AppWindow.SetPresenter — Aviary's
+        // part is about 3 ms, and handing back the original presenter object does not help.
+        double presenterMs = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(switchStart).TotalMilliseconds, 1);
+
         _fullScreen = on;
         _fullScreenByPage = on && byPage;
 
         DiagUi(on ? "full-screen-on" : "full-screen-off", new { by = byPage ? "page" : "F11" });
 
+        long chromeStart = System.Diagnostics.Stopwatch.GetTimestamp();
         ApplyFullScreenChrome();
+        DiagPerf("full-screen", new { on, presenterMs, chromeMs = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(chromeStart).TotalMilliseconds, 1) });
 
         if (on)
         {
