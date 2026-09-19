@@ -565,6 +565,16 @@
                         BorderBrush="{ThemeResource AvAccentBrush}"
                         BorderThickness="1" />
 
+                <!-- Safari's page-loading progress: a thin line along the bottom of the field that
+                     runs out while a page loads and finishes when it has (M4.5, ChromeMotion.cs).
+                     WebView2 reports no percentage, so like Safari's it eases toward three
+                     quarters and completes on the page's own finish. -->
+                <Border x:Name="LoadLine"
+                        Height="2" Margin="10,0,10,1" CornerRadius="1"
+                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch"
+                        IsHitTestVisible="False" Opacity="0"
+                        Background="{ThemeResource AvAccentBrush}" />
+
                 <Grid Padding="{StaticResource AvFieldPadding}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -691,6 +701,12 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
+
+            <!-- The active tab's chip, drawn ONCE behind the strip rather than by each tab, so
+                 it can travel from tab to tab: gliding under Smooth Flight, stretching like gel
+                 under Fluid (MainWindow.TabMotion.cs, M4.5). Before the strip, so the tabs'
+                 titles draw over it. -->
+            <Border x:Name="TabPillHost" Grid.Column="0" IsHitTestVisible="False" />
 
             <Grid x:Name="TabStrip" Grid.Column="0" />
 

@@ -62,6 +62,8 @@ internal static class AppSettings
         ["listsAutoUpdate"] = "false",
         // Phase 5 M4 — search. Read on every keystroke in the address bar, Settings opened or not.
         ["suggest"] = "false",
+        // Alpha Build 5 M4.5 — how Aviary moves (Motion.cs). Read by the window at start-up.
+        ["animationStyle"] = "Match the look",
     };
 
     public static void Load()

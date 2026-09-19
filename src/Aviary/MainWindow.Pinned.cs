@@ -159,11 +159,15 @@ public sealed partial class MainWindow
         };
 
         ToolTipService.SetToolTip(button, tab.Title);
+        WireTabAccess(button, tab);
 
         button.Click += (_, _) =>
         {
             button.IsChecked = true;
-            SelectTab(tab);
+            if (!ReferenceEquals(tab, _active))
+            {
+                SelectTab(tab);
+            }
         };
 
         button.RightTapped += (_, e) =>

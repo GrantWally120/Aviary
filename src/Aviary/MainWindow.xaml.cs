@@ -65,6 +65,7 @@ public sealed partial class MainWindow : Window
         _appWindow = GetAppWindow(hWnd);
         WatchForSessionEnd(hWnd);
         ConfigureTitleBar();
+        InitialiseActivationDim();
 
         // AppWindow.Resize takes PHYSICAL pixels, so a fixed size opens small on a
         // scaled display. Scale by the window's DPI.
@@ -258,7 +259,7 @@ public sealed partial class MainWindow : Window
             RootGrid.XamlRoot.Changed += (_, _) =>
             {
                 Favicons.InvalidateDecoded();
-                RebuildTabStrip();
+                RebuildTabStrip(fresh: true);
                 RefreshBookmarksBar();
 
                 // A new scale: the glass shadows are drawn in physical pixels.
@@ -876,7 +877,8 @@ public sealed partial class MainWindow : Window
         return InternalPages.Settings
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
-                   + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";")
+                   + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
+                   + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
@@ -1016,6 +1018,8 @@ public sealed partial class MainWindow : Window
         var payload = new
         {
             token = PageToken,
+            // How it moves: "flight", "fluid" or "off" (Motion.cs, M4.5) — its CSS keys off it.
+            motion = Motion.PageToken,
             isPrivate = _private,
             iconBase = Favicons.IconBase,
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
@@ -1149,6 +1153,10 @@ public sealed partial class MainWindow : Window
             ApplyLookGeometry(glass);
             OnEffectiveThemeChanged();
 
+            // Tab geometry is StaticResource, resolved when a button is built: the strip keeps its
+            // buttons now (MainWindow.TabMotion.cs), so a new look needs new ones.
+            RebuildTabStrip(fresh: true);
+
             double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1);
             DiagPerf("look-swap", new { look, ms, tabs = _tabs.Count });
             DiagTrackSlow("look-swap", ms, look);
@@ -1234,6 +1242,9 @@ public sealed partial class MainWindow : Window
         {
             pair.Value.IsChecked = ReferenceEquals(pair.Key, tab);
         }
+
+        // The chip travels to it (MainWindow.TabMotion.cs).
+        QueuePill(animate: true);
 
         // This tab's panel, if it has one — never the last tab's (bug 65).
         RenderNotice(tab);
@@ -1488,6 +1499,7 @@ public sealed partial class MainWindow : Window
             && button.Tag is TabChrome chrome)
         {
             chrome.Title.Text = ShownTitle(tab);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, ShownTitle(tab));
             chrome.Icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
             ToolTipService.SetToolTip(button, ShownTitle(tab));
         }
@@ -1495,45 +1507,6 @@ public sealed partial class MainWindow : Window
         if (ReferenceEquals(tab, _active))
         {
             UpdateChrome();
-        }
-    }
-
-    /// <summary>
-    /// Rebuilds the strip's columns so tabs divide its full width. Safari tabs always
-    /// share the whole bar; capping them at a Chrome-like fixed width is the fastest way
-    /// to lose the silhouette.
-    /// </summary>
-    private void RebuildTabStrip()
-    {
-        // BOTH hosts, every time. A UIElement can have exactly one parent, so a button
-        // still living in the other host throws ArgumentException on Children.Add — and
-        // the message ("value does not fall within the expected range") says nothing.
-        TabStrip.Children.Clear();
-        TabStrip.ColumnDefinitions.Clear();
-        _tabButtons.Clear();
-
-        if (UsingSidebarTabs && _sidebarVisible)
-        {
-            RefreshSidebar();
-            return;
-        }
-
-        for (int i = 0; i < _tabs.Count; i++)
-        {
-            BrowserTab tab = _tabs[i];
-            bool pinned = _pinned.Contains(tab);
-
-            // A pinned tab is a fixed narrow cell; the rest still divide what is left,
-            // which is what keeps the Safari silhouette rather than Chrome's fixed widths.
-            TabStrip.ColumnDefinitions.Add(pinned
-                ? new ColumnDefinition { Width = new GridLength(PinnedTabWidth) }
-                : new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star), MinWidth = TabMinWidth });
-
-            ToggleButton button = pinned ? BuildPinnedTabButton(tab) : BuildTabButton(tab);
-            Grid.SetColumn(button, i);
-            TabStrip.Children.Add(button);
-            _tabButtons[tab] = button;
-            button.IsChecked = ReferenceEquals(tab, _active);
         }
     }
 
@@ -1631,6 +1604,7 @@ public sealed partial class MainWindow : Window
             button.CornerRadius = Res<CornerRadius>("AvSidebarRowRadius", new CornerRadius(6));
         }
         ToolTipService.SetToolTip(button, tab.Title);
+        WireTabAccess(button, tab);
 
         button.PointerEntered += (_, _) => { FadeTo(icon, 0, 150); FadeTo(close, 1, 150); };
         button.PointerExited += (_, _) => { FadeTo(icon, 1, 120); FadeTo(close, 0, 120); };
@@ -1639,7 +1613,10 @@ public sealed partial class MainWindow : Window
         {
             // A ToggleButton would otherwise let you un-check the active tab.
             button.IsChecked = true;
-            SelectTab(tab);
+            if (!ReferenceEquals(tab, _active))
+            {
+                SelectTab(tab);
+            }
         };
 
         // Drag to reorder.
@@ -1779,6 +1756,9 @@ public sealed partial class MainWindow : Window
         _tabs.RemoveAt(current);
         _tabs.Insert(target, tab);
 
+        // The tabs it passes glide aside; the dragged one follows the pointer as it always has.
+        Motion.GlideNextLayout(_tabButtons.Where(p => !ReferenceEquals(p.Key, tab)).Select(p => (UIElement)p.Value).ToList());
+
         for (int i = 0; i < _tabs.Count; i++)
         {
             if (_tabButtons.TryGetValue(_tabs[i], out ToggleButton? b))
@@ -1786,6 +1766,8 @@ public sealed partial class MainWindow : Window
                 Grid.SetColumn(b, i);
             }
         }
+
+        QueuePill(animate: true);
     }
 
     /// <summary>
@@ -1834,6 +1816,8 @@ public sealed partial class MainWindow : Window
         ReloadGlyph.Data = (Geometry)Microsoft.UI.Xaml.Markup.XamlBindingHelper.ConvertValue(
             typeof(Geometry), loading ? StopGeometry : ReloadGeometry);
         ToolTipService.SetToolTip(ReloadButton, loading ? "Stop (Esc)" : "Reload (Ctrl+R)");
+        NoteReloadGlyph(loading);
+        UpdateLoadLine(tab);
         LockGlyph.Visibility = (tab?.IsSecure ?? false) ? Visibility.Visible : Visibility.Collapsed;
         UpdateShieldsButton();
 
@@ -1902,7 +1886,7 @@ public sealed partial class MainWindow : Window
     private void AddressBox_GotFocus(object sender, RoutedEventArgs e)
     {
         _addressFocused = true;
-        FieldFocus.Opacity = 1;
+        Motion.Reveal(FieldFocus, true);
         AddressBox.TextAlignment = TextAlignment.Left;
 
         string url = _active?.Url ?? string.Empty;
@@ -1922,7 +1906,7 @@ public sealed partial class MainWindow : Window
     private void AddressBox_LostFocus(object sender, RoutedEventArgs e)
     {
         _addressFocused = false;
-        FieldFocus.Opacity = 0;
+        Motion.Reveal(FieldFocus, false);
         HideSuggestions();
         AddressBox.Select(0, 0);
         ShowIdleAddress();
@@ -2478,6 +2462,14 @@ public sealed partial class MainWindow : Window
             {
                 case "look":
                     ApplyLook(value.GetString() ?? "Classic");
+                    PushMotionToPages();
+                    break;
+
+                // How Aviary moves (Motion.cs): the chrome reads it at each animation; Aviary's own
+                // pages are told, so Settings and the Start Page change style at once.
+                case "animationStyle":
+                case "reduceMotion":
+                    PushMotionToPages();
                     break;
 
                 case "blockTrackers":
@@ -2577,7 +2569,7 @@ public sealed partial class MainWindow : Window
                 case "siteIcons":
                     // Turning it off has to be visible immediately, or it reads as inert.
                     Favicons.InvalidateDecoded();
-                    RebuildTabStrip();
+                    RebuildTabStrip(fresh: true);
                     RefreshBookmarksBar();
                     break;
 
@@ -2841,7 +2833,7 @@ public sealed partial class MainWindow : Window
                 case "clearFavicons":
                 {
                     Favicons.ClearAll();
-                    RebuildTabStrip();
+                    RebuildTabStrip(fresh: true);
                     RefreshBookmarksBar();
 
                     // Re-rendered so the "N sites · M KB" line is not left claiming icons

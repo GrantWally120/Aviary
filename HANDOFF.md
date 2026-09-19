@@ -660,6 +660,21 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
 
 ## 8. Known gaps and open items
 
+- **Liquid Glass keeps Windows' own caption buttons — tried and decided, 19 Sep (M4.5 stage 2).**
+  Grant asked for – ☐ × in line with the glass capsule. They sit 8 px high because Windows' "Tall"
+  buttons are 46x48 at y=0 (centre 24) and the capsule floats at margin 12,8 (centre 32); Windows
+  will not move them. Built: `TitleBarHeightOption.Collapsed` plus three toolbar-style buttons in the
+  capsule, each rectangle registered as a Minimize/Maximize/Close region through
+  `InputNonClientPointerSource`. **In WinAppSDK 1.7 those three region kinds do nothing when an
+  app sets them**: `tools/test/hit-probe.ps1` (WM_NCHITTEST, no input) read HTCLIENT at every one,
+  with the title bar Collapsed or Tall, with or without SetTitleBar — while a Caption region set the
+  same way read HTCAPTION. So no Snap Layouts on hover. Everything else worked (UIA Maximise /
+  Restore / Minimise, top-edge and corner resize). Offered as "glass buttons, no Snap pop-up" or
+  "keep Windows' buttons"; **Grant chose Windows' buttons** and the stage was reverted. Revisit
+  only if a later Windows App SDK honours app-set Min/Max/Close regions (re-run hit-probe first).
+  Side finding: `DragRegionRight` (right of the address field) is not a drag region — only
+  `DragRegion` is passed to SetTitleBar; an app-set Caption region covering both does work.
+
 - **The Collection (section 16)** — its copies of Grant's files, the 2.4.2 web build and the
   thumbnails are gitignored, so a fresh clone or a CI build carries the page and catalog but no
   exhibits (every card then says "Not in this copy"; the build warns). Run `tools/library/sync.ps1`
@@ -1118,6 +1133,13 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     Bookmarks; switching to Sidebar shows the tabs; BuildSegments also clears its columns (every
     rebuild used to add four more). Checked: both layouts, both directions, a restart in each,
     strip titles following pages afterwards. **A second list of the same tabs is never shown.**
+69. **Tabs had no accessible name, and Toggle did not switch to them** (found 19 Sep testing M4.5
+    motion through UI Automation). A tab button's content is a Grid, so Narrator heard only "toggle
+    button"; and a ToggleButton's UIA pattern is Toggle, which flipped its checked look without
+    selecting the tab — tabs answered Click alone. `WireTabAccess` (MainWindow.TabMotion.cs) names
+    each tab after its title (kept current in OnTabChanged), switches on Checked, and re-checks the
+    active tab if something un-checks it. Click no longer re-selects the tab it is already on.
+    **Every tab-like control gets an AutomationProperties.Name and works through its UIA pattern.**
 
 ---
 

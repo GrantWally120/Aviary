@@ -304,6 +304,7 @@ public sealed partial class MainWindow
     {
         ApplyWebViewBackground();
         ApplyCaptionColors();
+        RefreshPillBrush();
         RestampSegments();
         RefreshSidebar();
         RefreshGlass();

@@ -219,6 +219,22 @@ internal static class StartPage
   }
   .cust__row[aria-checked="true"] .cust__tick path{stroke-dashoffset:0;}
 
+  /* ── Motion (Alpha Build 5 M4.5) — <html data-motion>: flight (Smooth Flight, Classic's),
+     fluid (Fluid, Liquid Glass's spring) or off (Reduce motion). Set from the page's data and
+     re-set by the host whenever the style changes (Motion.cs). */
+  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-dur:380ms;--m-rise:10px;}
+  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:560ms;--m-rise:18px;}
+  html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
+  /* The sections arrive one after another. backwards: nothing is left behind once done. */
+  #panes > section{animation:sec-in var(--m-dur) var(--m-ease) backwards;animation-delay:calc(var(--i,0) * 60ms + 40ms);}
+  @keyframes sec-in{from{opacity:0;transform:translateY(var(--m-rise));}to{opacity:1;transform:none;}}
+  .chart i{transition-timing-function:var(--m-ease);transition-duration:calc(var(--m-dur) + 180ms);}
+  /* Fluid: tiles lift a little further on a spring, and squish when pressed. */
+  html[data-motion="fluid"] .tile__well{transition-timing-function:var(--m-ease);transition-duration:420ms;}
+  html[data-motion="fluid"] .tile:hover .tile__well{transform:translateY(-3px) scale(1.04);}
+  html[data-motion="fluid"] .tile:active .tile__well{transform:scale(.92);}
+  html[data-motion="fluid"] .cust__pop{animation:pop-fluid 380ms var(--m-ease);}
+  @keyframes pop-fluid{from{opacity:0;transform:scale(.86) translateY(8px);}to{opacity:1;transform:none;}}
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{transition-duration:1ms!important;animation-duration:1ms!important;}
   }
@@ -254,6 +270,8 @@ internal static class StartPage
 <script>
 /*__AVIARY_START__*/
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
+/* How this page moves (Motion.cs, M4.5): the host re-sets it whenever the style changes. */
+document.documentElement.dataset.motion = D.motion || 'flight';
 var ICONS = D.iconBase || '';
 var SHOW = D.sections || {favourites:true, menagerie:true, frequent:true, reading:true, privacy:true};
 /* Opened to show one section (the Shields popover's "Privacy Report"): shown on this page even
@@ -409,6 +427,8 @@ function render(){
     '</div>');
 
   document.getElementById('panes').innerHTML = out;
+  /* Each section's place in the order it arrives in (M4.5). */
+  document.querySelectorAll('#panes > section').forEach(function(sec, i){ sec.style.setProperty('--i', i); });
   drawChart(p);
   countUp('pcount', blocked);
   countUp('sblocked', blocked);
@@ -459,10 +479,17 @@ function drawChart(p){
                 minimum no matter the data — invisible for as long as the count was zero,
                 which is the only state anyone had looked at. Found in Phase 5 M0 when a
                 real 23 still drew a flat line. */
-             '<i style="height:' + Math.max(3, Math.round((v / max) * 44)) + 'px"></i>' +
+             '<i style="height:3px" data-h="' + Math.max(3, Math.round((v / max) * 44)) + '"></i>' +
              '<span>' + esc(names[i]) + '</span>' +
            '</div>';
   }).join('');
+
+  /* The bars rise from the baseline to their day's height (M4.5) — drawn at 3px, then given
+     their height two frames later, so the height transition runs. Instantly with motion off. */
+  var bars = el.querySelectorAll('i[data-h]');
+  var rise = function(){ bars.forEach(function(b){ b.style.height = b.getAttribute('data-h') + 'px'; }); };
+  if (document.documentElement.dataset.motion === 'off') { rise(); }
+  else { requestAnimationFrame(function(){ requestAnimationFrame(rise); }); }
 }
 
 /* Integer steps, so it never shows a fraction of a tracker; thousands grouped, "149,871". */

@@ -108,7 +108,12 @@ public sealed partial class MainWindow
         ErrorContinueButton.Visibility = notice.Action is null ? Visibility.Collapsed : Visibility.Visible;
         ErrorContinueButton.Content = notice.Action ?? string.Empty;
         ErrorActions.Visibility = notice.Back || notice.Action is not null ? Visibility.Visible : Visibility.Collapsed;
+        bool arriving = ErrorPanel.Visibility != Visibility.Visible;
         ErrorPanel.Visibility = Visibility.Visible;
+        if (arriving)
+        {
+            Motion.SlideIn(ErrorPanel, 10f);
+        }
 
         // Hide the WebView, or Chromium's own page shows behind ours — complete with a Microsoft
         // Edge logo, which has no business appearing in this browser.

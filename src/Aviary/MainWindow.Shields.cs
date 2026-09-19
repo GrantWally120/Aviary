@@ -65,6 +65,7 @@ public sealed partial class MainWindow
         int count = applies && !off ? tab!.BlockedOnPage : 0;
         ShieldCount.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
         ShieldCountText.Text = count > 99 ? "99+" : count.ToString(CultureInfo.InvariantCulture);
+        NoteShieldCount(tab, count);
 
         string tip = !Shields.Enabled ? "Shields: blocking is off everywhere"
             : !applies ? "Shields"

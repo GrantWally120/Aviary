@@ -290,6 +290,7 @@ public sealed partial class MainWindow
             DiagFeature("sidebar-pane", new { pane = pane.ToString() });
         }
 
+        bool changed = pane != _pane;
         _pane = pane;
         AppSettings.Set("sidebarPane", pane switch
         {
@@ -300,6 +301,10 @@ public sealed partial class MainWindow
         });
 
         RefreshSidebar();
+        if (changed)
+        {
+            Motion.SlideIn(SidebarBody, 6f);
+        }
     }
 
     // ══ SHOW AND HIDE ══════════════════════════════════════════════════════
@@ -342,6 +347,12 @@ public sealed partial class MainWindow
             RefreshSidebar();
         }
 
+        // Reduce motion: the sidebar is simply there, or not.
+        if (!Motion.On)
+        {
+            animate = false;
+        }
+
         if (!animate)
         {
             SidebarRoot.Width = target ? _sidebarWidth : 0;
@@ -360,8 +371,13 @@ public sealed partial class MainWindow
         {
             From = SidebarRoot.ActualWidth,
             To = target ? _sidebarWidth : 0,
-            Duration = new Duration(TimeSpan.FromMilliseconds(220)),
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            // Smooth Flight glides out and stops; Fluid overshoots a touch and settles back —
+            // OPENING only. Closing overshoots below zero, and a negative Width throws
+            // ("Invalid attribute value Unknown for property Width", found testing M4.5).
+            Duration = new Duration(TimeSpan.FromMilliseconds(Motion.Current == Motion.Style.Fluid && target ? 340 : 220)),
+            EasingFunction = Motion.Current == Motion.Style.Fluid && target
+                ? new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.28 }
+                : new CubicEase { EasingMode = EasingMode.EaseOut },
 
             // Without this the animation silently does nothing — no exception, no warning,
             // the sidebar simply appears instantly. Width triggers layout, and WinUI

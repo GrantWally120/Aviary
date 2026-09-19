@@ -292,6 +292,45 @@ internal static class InternalPages
   .bits{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .bits span{font-size:12px;padding:4px 9px;border-radius:99px;background:var(--fill);color:var(--ink-2);}
   .upd-foot{margin:22px 2px 0;font-size:12.5px;}
+
+  /* ── Motion (Alpha Build 5 M4.5) ───────────────────────────────────────────
+     <html data-motion> is "flight" (Smooth Flight — Classic's: quick ease-outs, no overshoot),
+     "fluid" (Fluid — Liquid Glass's: a spring, drawn with linear()) or "off" (Reduce motion).
+     The host sets it on load and again whenever the style changes (Motion.cs). */
+  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-dur:200ms;--m-pane:240ms;--m-rise:8px;interpolate-size:allow-keywords;}
+  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:360ms;--m-pane:420ms;--m-rise:14px;}
+  html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;}}
+  /* The selection in the side menu is ONE pill that travels to the item you pick. */
+  nav{position:relative;}
+  nav button{position:relative;z-index:1;}
+  nav button[aria-current="true"]{background:transparent;}
+  .nav-pill{position:absolute;left:12px;right:12px;top:0;height:34px;border-radius:7px;background:var(--sel);
+    pointer-events:none;z-index:0;transition:transform var(--m-dur) var(--m-ease),height var(--m-dur) var(--m-ease);}
+  /* A pane arrives; its rows follow one after another. backwards, not both: once finished an
+     animation must leave nothing behind, or every row keeps a stacking context and an open
+     dropdown can end up under the row below it. */
+  .pane.on{animation:pane-in var(--m-pane) var(--m-ease) backwards;}
+  .pane.on .row,.pane.on .bld,.pane.on .hero,.pane.on h2.upd-h{animation:row-in var(--m-pane) var(--m-ease) backwards;animation-delay:calc(var(--i,0) * 16ms);}
+  @keyframes pane-in{from{opacity:0;}to{opacity:1;}}
+  @keyframes row-in{from{opacity:0;transform:translateY(var(--m-rise));}to{opacity:1;transform:none;}}
+  /* Expanding details open and close rather than jump. */
+  details.more::details-content,details.bld::details-content{height:0;overflow:clip;
+    transition:height var(--m-dur) var(--m-ease),content-visibility var(--m-dur) allow-discrete;}
+  details.more[open]::details-content,details.bld[open]::details-content{height:auto;}
+  html[data-motion="fluid"] .sel__pop{animation:pop-fluid 340ms var(--m-ease);}
+  @keyframes pop-fluid{from{opacity:0;transform:scale(.86) translateY(-8px);}to{opacity:1;transform:none;}}
+  .sw,.sw::after{transition-timing-function:var(--m-ease);transition-duration:var(--m-dur);}
+  /* Fluid: the knob stretches like gel while it is held. */
+  html[data-motion="fluid"] .sw::after{transition-property:transform,width;}
+  html[data-motion="fluid"] .sw:active::after{width:24px;}
+  html[data-motion="fluid"] .sw[aria-checked="true"]:active::after{transform:translateX(10px);}
+  .btn{transition:background-color 120ms,transform var(--m-dur) var(--m-ease);}
+  .btn:active{transform:scale(.97);}
+  html[data-motion="fluid"] .btn:active{transform:scale(.93);}
+  /* The Updates milestone bar fills in, one milestone after another. */
+  .bar i{transform-origin:left center;animation:bar-in 560ms var(--m-ease) backwards;animation-delay:calc(var(--i,0) * 45ms + 140ms);}
+  @keyframes bar-in{from{transform:scaleX(0);}to{transform:none;}}
 </style>
 </head>
 <body>
@@ -316,6 +355,8 @@ internal static class InternalPages
 /*__AVIARY_ENGINES__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
+/* How this page moves (Motion.cs): the host re-sets it whenever the style changes. */
+document.documentElement.dataset.motion = window.__aviaryMotion || 'flight';
 /* What the running engine STARTED with, for the switches that only apply at launch. */
 var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
@@ -585,6 +626,9 @@ var SECTIONS = [
       {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
       {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
       {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
+      /* Alpha Build 5 M4.5 — Motion.cs. Grant’s names: Smooth Flight is Classic’s way of moving,
+         Fluid is Liquid Glass’s. Reduce motion (Accessibility) turns both off. */
+      {t:'Animation style', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick, like Safari on the Mac. <b>Fluid</b> is springy and gel-like, like Safari 26 — tabs stretch toward where they are going and buttons squish when pressed. Each look has its own, or choose one for both.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
       {t:'Show site icons', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
       {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
       {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}},
@@ -689,7 +733,8 @@ var SECTIONS = [
     rows:[
       {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
       {t:'Always show scrollbars', d:'Instead of the thin overlay ones.', phase:5, ctl:{type:'toggle', key:'scrollbars', value:false}},
-      {t:'Reduce motion', d:'Follow the Windows animation setting and keep chrome transitions short. Aviary reads your Windows setting the first time it runs, so this usually starts where you want it.', phase:5, ctl:{type:'toggle', key:'reduceMotion', value:false}}
+      /* Live since M4.5: every animation Aviary draws checks it (Motion.cs, and the pages’ data-motion). */
+      {t:'Reduce motion', d:'Turns off Aviary’s own animations — tabs, the sidebar, panels, Settings and the Start Page — so things appear in place instead of moving there. Aviary reads your Windows animation setting the first time it runs, so this usually starts where you want it.', ctl:{type:'toggle', key:'reduceMotion', value:false}}
     ]},
 
   { id:'system', icon:'system', name:'System', title:'System',
@@ -834,7 +879,7 @@ function renderUpdates(s){
 
     if (BUILD.preRelease && ms.length){
       h += '<div class="bar" style="grid-template-columns:repeat(' + ms.length + ',1fr)">' +
-        ms.map(function(m, i){ return '<i class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
+        ms.map(function(m, i){ return '<i style="--i:' + i + '" class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
         '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> milestones done</span>' +
         (done < ms.length ? '<span>Next: ' + esc(ms[done].n || '') + ' · ' + ms[done].t + '</span>' : '') + '</div>' +
         '<ol class="ms">' + ms.map(function(m, i){
@@ -1138,16 +1183,39 @@ if (diagList && DIAG.categories){
   });
 }
 
+/* The side menu's selection: one pill that travels to the item picked (M4.5). */
+var navPill = document.createElement('div');
+navPill.className = 'nav-pill';
+nav.insertBefore(navPill, nav.firstChild);
+function placeNavPill(b, instant){
+  if (!b) { return; }
+  if (instant) { navPill.style.transition = 'none'; }
+  navPill.style.transform = 'translateY(' + b.offsetTop + 'px)';
+  navPill.style.height = b.offsetHeight + 'px';
+  if (instant) { void navPill.offsetWidth; navPill.style.transition = ''; }
+}
+
+/* Each pane's rows arrive one after another: their order, capped so a long pane is quick. */
+function staggerRows(pane){
+  pane.querySelectorAll('.row,.bld,.hero,h2.upd-h').forEach(function(r, i){ r.style.setProperty('--i', Math.min(i, 14)); });
+}
+
 function showPane(id){
   var b = nav.querySelector('button[data-target="' + id + '"]');
   var pane = document.getElementById('pane-' + id);
   if (!b || !pane) { return; }
   nav.querySelectorAll('button[data-target]').forEach(function(x){ x.removeAttribute('aria-current'); });
   b.setAttribute('aria-current','true');
+  placeNavPill(b, false);
+  staggerRows(pane);
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
   pane.classList.add('on');
   main.scrollTop = 0;
 }
+
+staggerRows(document.querySelector('.pane.on') || document.body);
+placeNavPill(nav.querySelector('button[aria-current="true"]'), true);
+window.addEventListener('resize', function(){ placeNavPill(nav.querySelector('button[aria-current="true"]'), true); });
 
 nav.addEventListener('click', function(e){
   var b = e.target.closest('button[data-target]');

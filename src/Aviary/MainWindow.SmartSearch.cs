@@ -151,7 +151,12 @@ public sealed partial class MainWindow
 
         RenderSuggestions();
         PositionSuggestions();
-        _suggestPopup!.IsOpen = true;
+        bool unfolding = !_suggestPopup!.IsOpen;
+        _suggestPopup.IsOpen = true;
+        if (unfolding && _suggestPopup.Child is UIElement list)
+        {
+            Motion.SlideIn(list, -6f);
+        }
 
         // Ask the engine about these words (when the switch is on): its answer redraws this list.
         RequestEngineSuggestions(query);
