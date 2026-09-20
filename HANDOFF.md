@@ -1675,7 +1675,7 @@ Committed and published 14 Sep with Grant's OK, with M4 and sections 18–19.
 
 ---
 
-## 21. Alpha Build 5 M4.5 "Smooth Flight" (19 Sep 2026 — in progress)
+## 21. Alpha Build 5 M4.5 "Smooth Flight" (19–20 Sep 2026 — DONE, published)
 
 Grant's milestone between M4 and M5 (M5 still on hold): performance, bugs, motion and more. Plan:
 `C:\Users\user\.claude\plans\dont-do-m5-yet-distributed-sparkle.md`. Grant named it: **Smooth
@@ -1808,3 +1808,18 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   - **The settings audit** is a script now, not a memory: `tools/test/settings-audit.js` lists every
     keyed row, separates the badged ones, and reports any live row whose key nothing reads.
     **46 live rows, 10 badged, 0 with nothing reading them.**
+- **Stage 9 — the wrap-up.** `BuildInfo` 7 of 11, with **M4.5 "Smooth Flight"** dated 20 Sep in the
+  milestone list (labels are written, not counted, so it sits between M4 and M5 exactly as M2.5 does);
+  a What's-new section in Updates covering motion, Shields, the two new pages, accessibility and tabs,
+  plus six fixes in plain English; `Aviary.html`'s AB5 entry; and PHASE5-PLAN's own M4.5 section, with
+  M7 shrunk to what M4.5 did not do (it keeps cold start, new-tab time, memory per background tab and
+  the long-session numbers).
+  - **Committed** `9b55bb4` (stage 7) and `aa736e9` (stages 8–9), then `tools/library/sync.ps1` and a
+    publish to `publish/Aviary`. The §5 check: the published tree differs from the tested copy in
+    exactly four files — Aviary.dll/.exe/.pdb, by the commit sha the SDK stamps into ProductVersion
+    (9b55bb4 → aa736e9), and the copy of `Aviary.html` inside the Collection, which sync refreshed.
+    Smoke-tested from `publish/Aviary` on a scratch profile: 7 of 11, the Shields pane with both new
+    lists off, the Accessibility pane's new rows, Storage Usage measuring 277 MB, Performance live.
+  - **Left undone, on purpose:** a photograph of the chrome focus ring after a real Tab — Grant was at
+    the keyboard all afternoon and `guard.ps1` refused every attempt. Everything else in Stage 8 was
+    verified in the running app.
