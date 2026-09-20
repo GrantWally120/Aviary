@@ -21,6 +21,9 @@ internal sealed partial class BrowserTab
     /// <summary>Shields are down for the page on screen. Kept in step, not looked up per request.</summary>
     private bool _filterPageDown;
 
+    /// <summary>This page's site is filtered strictly - its own choice, or the default (M4.5).</summary>
+    private bool _filterPageStrict;
+
     /// <summary>
     /// The top-level document being navigated to, as a <see cref="DocumentKey"/>. A request of
     /// kind Document with this address is the page itself; any other is a frame. WebView2 reports
@@ -66,6 +69,17 @@ internal sealed partial class BrowserTab
     /// <summary>Shields are down for this page's site (in this window).</summary>
     public bool ShieldsDown => _filterPageDown;
 
+    /// <summary>How much Shields are doing on this page's site: Off, Standard or Strict (M4.5).</summary>
+    public Shields.Mode ShieldsMode => _filterPage.Host.Length == 0 ? Shields.Default : Shields.ModeFor(_filterPage.Host, IsPrivate);
+
+    /// <summary>True when this page's site has a Standard/Strict/Off choice of its own.</summary>
+    public bool ShieldsChosen => _filterPage.Host.Length > 0
+        && (_filterPageDown || SiteSettings.Get(_filterPage.Host, Shields.ModeKey).Length > 0
+            || Shields.ModeFor(_filterPage.Host, IsPrivate) != Shields.Default);
+
+    /// <summary>The last few things stopped on this page, newest first. Memory only (M4.5).</summary>
+    public IReadOnlyList<(string Url, string Rule, string List)> RecentBlocked => _recentOrder;
+
     private void AttachShields()
     {
         FilterLists.EngineChanged += OnFilterEngineChanged;
@@ -96,6 +110,7 @@ internal sealed partial class BrowserTab
     private void OnShieldsChanged(string site)
     {
         _filterPageDown = _filterPage.Host.Length > 0 && Shields.IsDown(_filterPage.Host, IsPrivate);
+        _filterPageStrict = _filterPage.Host.Length > 0 && Shields.StrictFor(_filterPage.Host, IsPrivate);
         _ = RefreshCosmeticAsync();
     }
 
@@ -115,6 +130,7 @@ internal sealed partial class BrowserTab
         {
             _filterPage = FilterEngine.Page.Empty;
             _filterPageDown = false;
+            _filterPageStrict = false;
             return;
         }
 
@@ -131,6 +147,7 @@ internal sealed partial class BrowserTab
         }
 
         _filterPageDown = _filterPage.Host.Length > 0 && Shields.IsDown(_filterPage.Host, IsPrivate);
+        _filterPageStrict = _filterPage.Host.Length > 0 && Shields.StrictFor(_filterPage.Host, IsPrivate);
     }
 
     private static bool IsWebAddress(string url) =>
@@ -223,7 +240,8 @@ internal sealed partial class BrowserTab
 
             // Strict's check comes first, before this tab's state moves to a page that may
             // never load: a stopped navigation leaves the page on screen exactly as it was.
-            if (Shields.Enabled && Shields.Strict && host.Length > 0 && !Shields.IsOwnHost(host)
+            if (Shields.Enabled && Shields.WarnsAboutSites && host.Length > 0 && !Shields.IsOwnHost(host)
+                && Shields.StrictFor(host, IsPrivate)
                 && !string.Equals(host, _openedAnyway, StringComparison.Ordinal)
                 && !Shields.IsDown(host, IsPrivate)
                 && FilterLists.Engine is { } engine
@@ -250,6 +268,7 @@ internal sealed partial class BrowserTab
                 BlockedOnPage = 0;
                 _blockedHosts.Clear();
                 _recentBlocked.Clear();
+                _recentOrder.Clear();
                 BlockedChanged?.Invoke(this);
             }
 
@@ -298,7 +317,7 @@ internal sealed partial class BrowserTab
         // A site's own requests are never stopped in Standard — by any list, Aviary's included, or
         // a tracker company's own website would load as a broken page — and never on a page the
         // person chose to open anyway after Strict's warning.
-        bool strict = Shields.Strict;
+        bool strict = _filterPageStrict;
         bool openedAnyway = _openedAnyway is not null && string.Equals(_filterPage.Host, _openedAnyway, StringComparison.Ordinal);
         if ((!strict || openedAnyway) && FilterEngine.IsSameSite(uri, _filterPage))
         {
@@ -342,11 +361,24 @@ internal sealed partial class BrowserTab
     /// </summary>
     private readonly Dictionary<string, string> _recentBlocked = new(StringComparer.Ordinal);
 
-    private void CountBlockedOnPage(string uri, string rule)
+    /// <summary>
+    /// The same blocks in the order they happened, newest first, for the popover's "Recently
+    /// blocked on this page" (M4.5). Ten is all it shows; nothing here is written down, and a
+    /// private tab keeps its own copy that goes when the tab does.
+    /// </summary>
+    private readonly List<(string Url, string Rule, string List)> _recentOrder = new();
+
+    private void CountBlockedOnPage(string uri, string rule, string list)
     {
         BlockedOnPage++;
         string host = Uri.TryCreate(uri, UriKind.Absolute, out Uri? u) ? u.Host : "?";
         _blockedHosts[host] = _blockedHosts.TryGetValue(host, out int n) ? n + 1 : 1;
+
+        _recentOrder.Insert(0, (uri, rule, list));
+        if (_recentOrder.Count > 10)
+        {
+            _recentOrder.RemoveRange(10, _recentOrder.Count - 10);
+        }
 
         if (_recentBlocked.Count >= 500)
         {

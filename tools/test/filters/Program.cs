@@ -171,13 +171,46 @@ Check("script has data", script.Contains("\"off\":[\"down.test\"]") && script.Co
 
 Console.WriteLine($"synthetic: {pass} passed, {fail} failed");
 
+// ── "My filters" (M4.5): what Aviary tells a person about a line they typed ──
+foreach ((string line, string? expected) in new (string, string?)[]
+{
+    ("||ads.example.com^", null),
+    ("||ads.example.com^$third-party", null),
+    ("@@||example.com^", null),
+    ("example.com##.banner", null),
+    ("example.com##.side .promo", null),          // a selector may contain spaces
+    ("##.everywhere", null),
+    ("!  a note", null),
+    ("", null),
+    ("[Adblock Plus 2.0]", null),
+    ("this is not a rule at all", "a rule that blocks cannot contain spaces"),
+    ("##", "there is nothing here to match"),
+    ("^^^", "there is nothing here to match"),
+    ("example.com#?#.banner:has(span)", "extended element hiding (#?#)"),
+})
+{
+    string? said = FilterEngine.Problem(line);
+    Check("my filters: " + (line.Length == 0 ? "(blank)" : line),
+        expected is null ? said is null : said == expected,
+        "said " + (said ?? "nothing") + ", expected " + (expected ?? "nothing"));
+}
+
 // ── the real lists ──
 // bin\Release\net9.0\ → tools\test\filters → the repo's src\Aviary\Filters\.
 string dir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "src", "Aviary", "Filters")) + Path.DirectorySeparatorChar;
+// M4.5: the Cookie List and Fanboy's Social ship alongside, switched off until asked for.
+// Both are measured here, because what they cost is the reason they are a choice.
 var sources = new[]
 {
     new FilterEngine.Source("EasyList", File.ReadAllText(dir + "easylist.txt")),
     new FilterEngine.Source("EasyPrivacy", File.ReadAllText(dir + "easyprivacy.txt")),
+};
+var allFour = new[]
+{
+    sources[0],
+    sources[1],
+    new FilterEngine.Source("EasyList Cookie List", File.ReadAllText(dir + "fanboy-cookiemonster.txt")),
+    new FilterEngine.Source("Fanboy's Social", File.ReadAllText(dir + "fanboy-social.txt")),
 };
 for (int warm = 0; warm < 2; warm++)
 {
@@ -285,6 +318,58 @@ foreach (bool standard in new[] { false, true })
 var sw3 = Stopwatch.StartNew();
 string realScript = real.CosmeticScript(Array.Empty<string>(), new[] { "collection.aviary" });
 Console.WriteLine($"cosmetic script: {realScript.Length / 1024} KB, built in {sw3.ElapsedMilliseconds} ms");
+
+// ── all four lists on: what the two optional ones add (M4.5) ──
+{
+    var sw4 = Stopwatch.StartNew();
+    FilterEngine four = FilterEngine.Build(allFour);
+    sw4.Stop();
+    var sw5 = Stopwatch.StartNew();
+    string fourScript = four.CosmeticScript(Array.Empty<string>(), new[] { "collection.aviary" });
+    sw5.Stop();
+    Console.WriteLine($"all four lists: built in {sw4.ElapsedMilliseconds} ms, " +
+        $"{four.Stats.Network + four.Stats.NetworkExceptions} blocking rules, " +
+        $"cosmetic script {fourScript.Length / 1024} KB in {sw5.ElapsedMilliseconds} ms " +
+        $"(two lists: {realScript.Length / 1024} KB)");
+    foreach (var pairList in four.Stats.RulesByList)
+    {
+        Console.WriteLine($"  {pairList.Key,-22} {pairList.Value,8:N0} rules, {four.Stats.SkippedByList.GetValueOrDefault(pairList.Key),6:N0} skipped");
+    }
+
+    Check("all four lists build", four.Stats.RulesByList.Count == 4, "read " + four.Stats.RulesByList.Count + " lists");
+    Check("cookie list brings rules", four.Stats.RulesByList.GetValueOrDefault("EasyList Cookie List") > 1000);
+    Check("social list brings rules", four.Stats.RulesByList.GetValueOrDefault("Fanboy's Social") > 1000);
+
+    // The cookie banner rules are the reason the list exists: one of its own hosts must be stopped.
+    var cookiePage = new FilterEngine.Page("www.news-site.com");
+    Check("cookie list blocks a consent service",
+        four.Match("https://cmp.gemius.com/cmp.js", ReqType.Script, cookiePage, true).Blocked,
+        "||cmp.gemius.com^ did not stop it");
+    Check("cookie list hides a banner", four.Cosmetic.Generic.Contains("#AF_GDPR"),
+        "###AF_GDPR is not among the things it hides");
+    Check("social list blocks a share widget",
+        four.Match("https://platform.twitter.com/js/button.4f12.js", ReqType.Script, cookiePage, true).Blocked,
+        "||platform.twitter.com/js/button. did not stop it");
+    Check("social list blocks a sharing service",
+        four.Match("https://s7.addthis.com/js/300/addthis_widget.js", ReqType.Script, cookiePage, true).Blocked,
+        "||addthis.com^ did not stop it");
+
+    // Neither optional list may change what the two standard ones already do.
+    Check("optional lists do not let ads through",
+        four.Match("https://securepubads.g.doubleclick.net/tag/js/gpt.js", ReqType.Script, cookiePage, true).Blocked,
+        "doubleclick");
+    // The script is injected into every frame of every page, so its size is the cost of the
+    // two optional lists. Both versions are written out for cosmetic-cost.ps1 to time in a
+    // real page (M4.5).
+    string outDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "shots")) + Path.DirectorySeparatorChar;
+    Directory.CreateDirectory(outDir);
+    File.WriteAllText(outDir + "cosmetic-two.js", realScript);
+    File.WriteAllText(outDir + "cosmetic-four.js", fourScript);
+
+    Check("optional lists do not let trackers through",
+        four.Match("https://www.google-analytics.com/analytics.js", ReqType.Script, cookiePage, true).Blocked,
+        "google-analytics");
+}
 // (The compiled page script can be written out here to inspect it.)
 
 Console.WriteLine($"TOTAL: {pass} passed, {fail} failed");

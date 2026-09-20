@@ -457,7 +457,7 @@ internal sealed partial class BrowserTab
         }
 
         TrackerBlocker.CountBlocked();
-        CountBlockedOnPage(uri, stop.Rule);
+        CountBlockedOnPage(uri, stop.Rule, stop.List);
         QueueCollapse(uri, args.ResourceContext);
 
         // The session counter resets when you quit, so on its own it can never say

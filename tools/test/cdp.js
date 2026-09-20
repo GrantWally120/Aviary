@@ -5,6 +5,7 @@
 //
 //   node cdp.js list
 //   node cdp.js eval  <match> "<js expression>"        -> JSON result (promises awaited)
+//   node cdp.js evalfile <match> <file.js>             -> the same, with the expression read from a file
 //   node cdp.js nav   <match> <url>                     -> Page.navigate (NOT Aviary's address bar)
 //   node cdp.js click <match> "<css selector>"          -> a TRUSTED click (Input.dispatchMouseEvent) at the element's centre
 //   node cdp.js press <match> "<css selector>"          -> the same, without scrolling it into view first (dropdown options)
@@ -75,6 +76,10 @@ async function evaluate(s, expression) {
   try {
     if (cmd === 'eval') {
       console.log(JSON.stringify(await evaluate(s, arg), null, 1));
+    } else if (cmd === 'evalfile') {
+      // The expression comes from a FILE: Windows caps a command line at ~32 KB, and some
+      // things worth measuring (the element-hiding script) are megabytes (M4.5).
+      console.log(JSON.stringify(await evaluate(s, require('fs').readFileSync(arg, 'utf8')), null, 1));
     } else if (cmd === 'nav') {
       console.log(JSON.stringify(await s.send('Page.navigate', { url: arg })));
     } else if (cmd === 'click' || cmd === 'press') {

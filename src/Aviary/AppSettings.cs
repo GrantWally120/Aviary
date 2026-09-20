@@ -59,7 +59,17 @@ internal static class AppSettings
         ["blockMode"] = "Standard",
         ["listAds"] = "true",
         ["listTrackers"] = "true",
-        ["listsAutoUpdate"] = "false",
+        // M4.5: the two lists Grant approved on 19 Sep, off until switched on.
+        ["listCookies"] = "false",
+        ["listSocial"] = "false",
+        // Off / Daily / Weekly since M4.5 (a saved "true" still reads as weekly).
+        ["listsAutoUpdate"] = "Off",
+        // Rules written by hand in Settings, compiled in as "My filters" (M4.5).
+        ["customFilters"] = "",
+        // The rest of Shields’ own switches (M4.5).
+        ["cosmeticHiding"] = "true",
+        ["shieldBadge"] = "true",
+        ["strictWarning"] = "true",
         // Phase 5 M4 — search. Read on every keystroke in the address bar, Settings opened or not.
         ["suggest"] = "false",
         // Alpha Build 5 M4.5 — how Aviary moves (Motion.cs). Read by the window at start-up.
@@ -143,6 +153,29 @@ internal static class AppSettings
     /// page and the file disagreed and the switch looked broken. There is no list now.
     /// Saving a key is what registers it.
     /// </summary>
+    /// <summary>
+    /// Settings whose VALUE is the person's own writing, not a choice Aviary offered (M4.5).
+    /// "My filters" can name any site they visit, so diagnostics gets a count of the lines and
+    /// never the lines themselves - the same rule as every other kind of browsing.
+    /// </summary>
+    public static readonly string[] PrivateKeys = { "customFilters" };
+
+    /// <summary>The snapshot diagnostics may write down: every setting, with those redacted.</summary>
+    public static Dictionary<string, string> SnapshotForReport()
+    {
+        Dictionary<string, string> all = Snapshot();
+        foreach (string key in PrivateKeys)
+        {
+            if (all.TryGetValue(key, out string? value))
+            {
+                int lines = value.Trim().Length == 0 ? 0 : value.Replace("\r\n", "\n").Split('\n').Length;
+                all[key] = lines + (lines == 1 ? " line (not recorded)" : " lines (not recorded)");
+            }
+        }
+
+        return all;
+    }
+
     public static Dictionary<string, string> Snapshot()
     {
         Load();

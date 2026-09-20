@@ -216,7 +216,7 @@ internal static partial class Diagnostics
             computer = _environment,
             window = _window,
             openTabs = TabsSnapshot(),
-            settings = AppSettings.Snapshot(),
+            settings = AppSettings.SnapshotForReport(),
             experimentsOn = ActiveExperiments(),
             collection = new
             {
@@ -1021,8 +1021,11 @@ internal static partial class Diagnostics
         Dictionary<string, string> store = AppSettings.Snapshot();
         foreach (KeyValuePair<string, string> pair in rendered)
         {
-            if (!store.TryGetValue(pair.Key, out string? stored))
+            if (!store.TryGetValue(pair.Key, out string? stored)
+                || Array.IndexOf(AppSettings.PrivateKeys, pair.Key) >= 0)
             {
+                // A redacted setting reports a summary, not its value: there is nothing to
+                // compare, and comparing would write the value into the anomaly.
                 continue;
             }
 

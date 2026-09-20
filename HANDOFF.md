@@ -1708,3 +1708,44 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   engine (31.6 → 7.9 MB; the shader caches stay — the engine only lets them go at start-up).
   Checked (`tools/test/storage-compare.ps1`): the install folder matches Get-ChildItem to the byte,
   the live profile to within one diagnostics line, and the categories sum to the total exactly.
+- **Stage 7 — Shields: much more to it.** Two more lists ship, off until switched on: **EasyList
+  Cookie List** (cookie notices) and **Fanboy's Social** (social widgets), bundled unchanged with
+  their own licences credited in Settings and in `Filters/README.txt` (the Cookie List is CC BY 3.0,
+  the others CC BY-SA 3.0 / GPL v3 — each file's own header, not a guess). Two faults found by
+  turning them on, both now fixed: their "! Last modified:" is written two ways in the same folder
+  (`2026-09-19 08:25 UTC` as well as `19 Sep 2026 13:49 UTC`), and **a list is refused outright when
+  its `! Title:` does not match**, which Fanboy's Social would have been — it calls itself "Fanboy's
+  Social Blocking List", so `ListInfo.Titled` now carries the header name where it differs from the
+  name Aviary shows.
+  - **What they cost, measured** (`tools/test/cosmetic-cost.ps1`, which times the real compiled
+    script in a real page): the element-hiding script goes from **787 KB / 2.5 ms** with the two
+    standard lists to **2,078 KB / 9 ms** with all four, per frame, before the page's own scripts.
+    The Cookie notices row says exactly that, because it is most of the difference.
+  - **Per site: Off, Standard or Strict** (`Shields.Mode`, site key `shieldsMode`). The popover's
+    on/off switch is now a three-way segmented control, with "Use the default" when the site has a
+    choice of its own; Settings lists every such site ("Sites with their own Shields") with the same
+    three buttons, a reset each, and Forget all. A site's choice survives a change to the default.
+    Strict's own page warning follows the site too: global Standard + this site Strict still warns.
+  - **My filters**: rules typed in Settings, compiled in as a list called "My filters", with a message
+    per line Aviary cannot use — `FilterEngine.Problem` runs the line through the **real** parser
+    (a one-line engine costs microseconds), plus two checks a list does not need: a blocking rule with
+    spaces, and a line with nothing to match. **What a person writes here is browsing data**:
+    `AppSettings.PrivateKeys` redacts it to "N lines (not recorded)" in the settings snapshot AND in
+    the setting-changed event (found by grepping the test profile's own improvement data for the rule
+    text — the snapshot alone was not enough), and `SettingsRendered` skips the comparison.
+  - **What Shields stopped**: this session / 7 days / all time, bytes not downloaded, the seven-day
+    bars, top trackers and top sites, all from PrivacyReport; "Start again" clears them, the session
+    figure included.
+  - Other new rows: Hide the spaces ads leave, Show the number on the shield, Warn before ad and
+    tracker sites (Strict's warning), and Off/Daily/Weekly updating (a saved `true` reads as Weekly,
+    in the page and in `AutoUpdateEvery`). List details now show each list's rules, skips, version,
+    source and licence, and "Use the shipped lists" (`FilterLists.RestoreBundled`) deletes the
+    downloaded copies. The popover gained "Recently blocked on this page" — address, rule and list,
+    ten in memory, nothing written down. Badged for later: fingerprinting and third-party scripts
+    (AB5 M6), the element picker (BB1).
+  - **Checked**: engine harness **125 passed, 0 failed** (was 101 — the new checks are the four lists
+    together, what each brings, and thirteen "My filters" lines); the two new lists update and restore
+    against `m3site.js`, which now serves all four; per-site modes set from the popover and from
+    Settings, and reset, with `sites.json` read back each time; the rules box round-trips and reports
+    its bad lines by number; statistics reset; no anomalies and no swallowed exceptions in the test
+    profile's diagnostics.

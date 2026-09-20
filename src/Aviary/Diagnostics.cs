@@ -256,7 +256,7 @@ internal static partial class Diagnostics
                         version = BuildInfo.Version,
                         channel = BuildInfo.Channel,
                         pid = Environment.ProcessId,
-                        settings = AppSettings.Snapshot(),
+                        settings = AppSettings.SnapshotForReport(),
                     },
                 };
 
@@ -1076,6 +1076,23 @@ internal static partial class Diagnostics
         Enqueue(LogFile.Events, "ui", name, data);
     }
 
+    /// <summary>How many lines a redacted setting holds - all that is ever written down of it.</summary>
+    private static string Lines(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "nothing";
+        }
+
+        int n = 1;
+        foreach (char c in value)
+        {
+            if (c == '\n') { n++; }
+        }
+
+        return n + (n == 1 ? " line (not recorded)" : " lines (not recorded)");
+    }
+
     /// <summary>6 — a setting changed. Called by AppSettings for every change.</summary>
     public static void Setting(string key, string? from, string to)
     {
@@ -1086,6 +1103,15 @@ internal static partial class Diagnostics
 
         if (_mode != 1 || string.Equals(from, to, StringComparison.Ordinal))
         {
+            return;
+        }
+
+        // A setting whose value is the person's own writing - "My filters" - is recorded as a
+        // count of lines and never as the lines: they can name any site they visit (M4.5).
+        if (Array.IndexOf(AppSettings.PrivateKeys, key) >= 0)
+        {
+            Crumb("setting", key + " changed");
+            Enqueue(LogFile.Events, "setting", key, new { from = Lines(from), to = Lines(to) });
             return;
         }
 

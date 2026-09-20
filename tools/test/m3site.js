@@ -109,7 +109,9 @@ function listCopy(file) {
   const tomorrow = new Date(Date.now() + 86400000);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const stamp = tomorrow.getUTCDate() + ' ' + months[tomorrow.getUTCMonth()] + ' ' + tomorrow.getUTCFullYear() + ' 00:00 UTC';
-  text = text.replace(/^! Last modified: .*$/m, '! Last modified: ' + stamp)
+  const iso = tomorrow.toISOString().slice(0, 10) + ' 00:00 UTC';   // the Cookie List's own format
+  const isoDated = /^! Last modified: \d{4}-\d{2}-\d{2}/m.test(text);
+  text = text.replace(/^! Last modified: .*$/m, '! Last modified: ' + (isoDated ? iso : stamp))
              .replace(/^! Version: .*$/m, '! Version: 299912310000');
   return text;
 }
@@ -126,7 +128,8 @@ http.createServer((req, res) => {
 
   if (p.startsWith('/lists/')) {
     const file = path.basename(p);
-    if (!/^easy(list|privacy)\.txt$/.test(file)) { res.writeHead(404); return res.end(); }
+    // M4.5: the Cookie List and Fanboy's Social ship too, so "Update now" must fetch four.
+    if (!/^(easy(list|privacy)|fanboy-(cookiemonster|social))\.txt$/.test(file)) { res.writeHead(404); return res.end(); }
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
     return res.end(listCopy(file));
   }

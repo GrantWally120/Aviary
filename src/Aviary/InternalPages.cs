@@ -198,6 +198,47 @@ internal static class InternalPages
   .sd button:hover{background:var(--fill-hover);}
   .sd button[disabled]{opacity:.45;}
   .sd__empty{font-size:12.5px;color:var(--ink-2);padding:4px 0;}
+  /* A list's credit sits under its counts, not run on after them (M4.5). */
+  .more__body li small{display:block;margin-top:2px;}
+
+  /* Shields, M4.5: what it stopped, each site's own setting, and your own rules. */
+  .shx{display:grid;gap:16px;}
+  .shx__n{display:flex;gap:22px;flex-wrap:wrap;}
+  .shx__n > div{min-width:120px;}
+  .shx__n b{display:block;font:600 21px/1.15 inherit;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .shx__n span{display:block;font-size:11.5px;color:var(--ink-2);}
+  .shx__n span + span{color:var(--ink-3);}
+  .shx__days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;align-items:end;height:56px;}
+  .shx__days i{display:block;border-radius:3px 3px 1px 1px;background:var(--accent);opacity:.85;min-height:2px;
+    transition:height .38s cubic-bezier(.32,.72,0,1);}
+  [data-motion="off"] .shx__days i{transition:none;}
+  .shx__lab{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;font-size:10.5px;color:var(--ink-3);text-align:center;}
+  .shx__two{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .shx h4{margin:0 0 7px;font:600 12px/1 inherit;color:var(--ink-2);}
+  .shx ol{margin:0;padding:0;list-style:none;display:grid;gap:4px;}
+  .shx ol li{display:flex;gap:10px;align-items:baseline;font-size:12px;color:var(--ink);}
+  .shx ol li span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .shx ol li i{font-style:normal;color:var(--ink-2);font-variant-numeric:tabular-nums;}
+  .shx__none{font-size:12.5px;color:var(--ink-2);}
+  @media (max-width:760px){ .shx__two{grid-template-columns:1fr;} }
+
+  .segsm{display:flex;gap:2px;background:var(--fill);border-radius:8px;padding:2px;flex:0 0 auto;}
+  .segsm button{border:0;background:transparent;color:var(--ink-2);font:500 11.5px/1 inherit;
+    padding:6px 9px;border-radius:6px;cursor:pointer;}
+  .segsm button:hover{color:var(--ink);}
+  .segsm button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14);}
+
+  .row:has(.ta){flex-wrap:wrap;}
+  .ta{flex:1 1 100%;display:grid;gap:8px;}
+  .ta textarea{width:100%;box-sizing:border-box;min-height:132px;resize:vertical;padding:10px 12px;
+    border:1px solid var(--line);border-radius:9px;background:var(--panel-2);color:var(--ink);
+    font:13px/1.55 ui-monospace,"Cascadia Mono",Consolas,monospace;}
+  .ta textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--sel);}
+  .ta__bar{display:flex;align-items:center;gap:12px;}
+  .ta__said{flex:1;min-width:0;font-size:12px;color:var(--ink-2);}
+  .mine{display:grid;gap:3px;}
+  .mine div{font-size:12px;color:var(--ink-2);}
+  .mine b{font-weight:600;color:var(--ink);font-family:ui-monospace,"Cascadia Mono",Consolas,monospace;}
   .note[hidden]{display:none;}
   .soon{
     font:600 10px/1 ui-monospace,Consolas,monospace;letter-spacing:.1em;text-transform:uppercase;
@@ -428,6 +469,10 @@ internal static class InternalPages
 /*__AVIARY_ENGINES__*/
 /*__AVIARY_SECTION__*/
 var SAVED = (typeof window.__aviarySettings === 'object' && window.__aviarySettings) || {};
+/* M4.5: "Keep the lists up to date" was a switch and is now Off/Daily/Weekly. A value saved
+   by the switch would otherwise draw as "true", which is not one of the choices. */
+if (SAVED.listsAutoUpdate === 'true') { SAVED.listsAutoUpdate = 'Weekly'; }
+else if (SAVED.listsAutoUpdate === 'false') { SAVED.listsAutoUpdate = 'Off'; }
 /* How this page moves (Motion.cs): the host re-sets it whenever the style changes. */
 document.documentElement.dataset.motion = window.__aviaryMotion || 'flight';
 /* What the running engine STARTED with, for the switches that only apply at launch. */
@@ -458,6 +503,10 @@ function esc(s){
    rendering, not a list somebody has to remember to edit. */
 var SEED = {};
 
+function lineCount(v){
+  var s = String(v == null ? '' : v);
+  return s.trim() ? s.replace(/\r\n/g, '\n').split('\n').length : 0;
+}
 function saved(key, fallback){
   if (!(key in SAVED)) { return fallback; }
   var v = SAVED[key];
@@ -727,12 +776,25 @@ var SECTIONS = [
     lede:'Aviary’s ad and tracker blocker. It stops ads and trackers before they load — so they never learn you were there — and hides the empty spaces they leave behind. The shield in the toolbar shows what it stopped on the page you are on, and turns it off for a site that doesn’t work with it.',
     rows:[
       {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
-      {t:'How much to block', d:'<b>Standard</b> stops ads and trackers that come from other companies — the ones that follow you from site to site — and leaves what a site serves itself alone. <b>Strict</b> also stops the ones a site runs itself, and warns you before opening a site the lists say exists only to serve ads or track people. Strict can break parts of some sites.', ctl:{type:'select', key:'blockMode', opts:['Standard','Strict'], value:'Standard'}},
+      {t:'How much to block', d:'<b>Standard</b> stops ads and trackers that come from other companies — the ones that follow you from site to site — and leaves what a site serves itself alone. <b>Strict</b> also stops the ones a site runs itself, and warns you before opening a site the lists say exists only to serve ads or track people. Strict can break parts of some sites. A site you give a setting of its own keeps it whatever you choose here.', ctl:{type:'select', key:'blockMode', opts:['Standard','Strict'], value:'Standard'}},
+      {t:'What Shields stopped', d:'<span id="shline">Counting…</span>', more:'shieldstats', ctl:{type:'button', cmd:'shieldsStatsReset', label:'Start again', danger:true}},
+      {t:'Sites with their own Shields', d:'Sites you gave their own setting, from the shield in the toolbar. Everything else follows <b>How much to block</b>.', more:'shieldsites', ctl:{type:'button', cmd:'shieldsSitesReset', label:'Forget all', danger:true}},
+
       {t:'Ads', d:'EasyList: stops ad servers, and hides the boxes ads sit in.', ctl:{type:'toggle', key:'listAds', value:true}},
       {t:'Trackers', d:'EasyPrivacy: stops analytics, tracking pixels and the scripts that follow you from site to site.', ctl:{type:'toggle', key:'listTrackers', value:true}},
-      {t:'Filter lists', d:'<span id="listsline"></span>', more:'lists', ctl:{type:'button', cmd:'listsUpdate', label:'Update now'}},
-      {t:'Keep the lists up to date', d:'Once a week, Aviary downloads the newest EasyList and EasyPrivacy from easylist.to. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now.', ctl:{type:'toggle', key:'listsAutoUpdate', value:false}},
-      {t:'Sites with Shields down', d:'Sites where you switched Shields off from the toolbar. Nothing on their pages is blocked or hidden.', more:'shieldsites', ctl:{type:'button', cmd:'shieldsSites', label:'Show'}}
+      {t:'Cookie notices', d:'EasyList Cookie List: hides the “we value your privacy” banners, and blocks the services that put them there. It hides the banner rather than agreeing to anything — some sites will keep asking. It is mostly hiding rules, so it is the more expensive of the two: with it and Social widgets both on, the hiding script every page runs grows from about 790 KB to 2 MB, and from about 2.5 ms to 9 ms.', ctl:{type:'toggle', key:'listCookies', value:false}},
+      {t:'Social widgets', d:'Fanboy’s Social: stops Like, Share and comment widgets, which report the page you are on to their own company whether or not you touch them. Sharing buttons and embedded posts may disappear — which is the point, and sometimes a nuisance.', ctl:{type:'toggle', key:'listSocial', value:false}},
+      {t:'Filter lists', d:'<span id="listsline"></span>', more:'lists', ctl:{type:'buttons', items:[{cmd:'listsUpdate', label:'Update now'},{cmd:'filtersRestore', label:'Use the shipped lists'}]}},
+      {t:'Keep the lists up to date', d:'Aviary downloads the newest copies of the lists that are switched on, from the people who publish them. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now.', ctl:{type:'select', key:'listsAutoUpdate', opts:['Off','Daily','Weekly'], value:'Off'}},
+      {t:'My filters', d:'Your own rules, in the same syntax as the lists: <code>||ads.example.com^</code> to stop a host, <code>example.com##.banner</code> to hide something, <code>@@||example.com^</code> to let a site through. One per line; a line starting with <code>!</code> is a note. Aviary says which lines it cannot use, and what you write here is never recorded in improvement data.', ctl:{type:'text', key:'customFilters', value:''}},
+
+      {t:'Hide the spaces ads leave', d:'After an ad is stopped, hide the empty box it sat in, so the page closes up around it. Off, the page keeps its gaps — which is sometimes the better way round, on a site whose layout depends on them.', ctl:{type:'toggle', key:'cosmeticHiding', value:true}},
+      {t:'Show the number on the shield', d:'The small count on the toolbar shield, showing how many things were stopped on the page you are on. Off, the shield is still there and still stops them.', ctl:{type:'toggle', key:'shieldBadge', value:true}},
+      {t:'Warn before ad and tracker sites', d:'In Strict only: when a site is on the lists as one that exists to serve ads or track people, Aviary shows a warning instead of opening it, with a way to open it anyway. Off, Strict blocks what those sites load but opens them.', ctl:{type:'toggle', key:'strictWarning', value:true}},
+
+      {t:'Stronger fingerprint protection', d:'Make every Aviary look alike to the scripts that identify a browser by its fonts, canvas and hardware.', phase:5, ctl:{type:'none'}},
+      {t:'Block scripts from other sites', d:'Refuse scripts a page loads from anywhere but its own site. It breaks a great many sites, which is why it is its own switch and not part of Strict.', phase:5, ctl:{type:'none'}},
+      {t:'Block this element', d:'Point at anything on a page and hide it for good, the way uBlock Origin’s picker does.', phase:6, ctl:{type:'none'}}
     ]},
 
   { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
@@ -872,7 +934,11 @@ function control(row){
 
     /* …and what the control is about to DRAW, for diagnostics' round-trip check: a switch
        shows its truthiness, a dropdown shows its text. */
-    RENDERED[c.key] = (c.type === 'toggle') ? (c.value ? 'true' : 'false') : String(c.value);
+    /* What a person writes themselves is reported as a count, never as the lines: it can
+       name any site they visit (AppSettings.PrivateKeys says the same on the host's side). */
+    RENDERED[c.key] = (c.type === 'toggle') ? (c.value ? 'true' : 'false')
+                    : (c.type === 'text') ? lineCount(c.value) + ' lines (not recorded)'
+                    : String(c.value);
   }
 
   if (c.type === 'select'){
@@ -891,6 +957,14 @@ function control(row){
   if (c.type === 'toggle'){
     return badge + '<button class="sw" data-key="' + c.key + '" role="switch" aria-checked="' +
            (c.value ? 'true' : 'false') + '"' + (pending ? ' disabled' : '') + '></button>';
+  }
+  if (c.type === 'text'){
+    /* The box is filled by script below, never by pasting the value into this markup. */
+    return badge + '<div class="ta" data-key="' + c.key + '">' +
+      '<textarea spellcheck="false" rows="7" aria-label="' + esc(row.t) + '"' + (pending ? ' disabled' : '') + '></textarea>' +
+      '<div class="ta__bar"><span class="ta__said"></span>' +
+      '<button class="btn" data-save="' + c.key + '"' + (pending ? ' disabled' : '') + '>Save</button></div>' +
+      '<div class="mine"></div></div>';
   }
   if (c.type === 'button'){
     /* data-cmd, NOT data-key. A button is not a setting, and pretending it was is exactly
@@ -1025,7 +1099,10 @@ var MORE = {
      Shields down (filled by the host on "Show", through textContent). */
   lists: '<details class="more"><summary>What the lists are, and whose they are</summary>' +
          '<div class="more__body" id="listsbox"></div></details>',
-  shieldsites: '<div class="sitedata" id="shieldsites" hidden></div>'
+  shieldsites: '<div class="sitedata" id="shieldsites" hidden></div>',
+  /* Shields' own figures (M4.5): the line is always there, the breakdown opens. */
+  shieldstats: '<details class="more"><summary>The last seven days, and what was stopped most</summary>' +
+               '<div class="more__body"><div class="shx" id="shstats"></div></div></details>'
 };
 
 var nav = document.getElementById('nav');
@@ -1146,17 +1223,27 @@ function listsLine(d){
   var el = document.getElementById('listsline');
   var btn = document.querySelector('.btn[data-cmd="listsUpdate"]');
   if (btn) { btn.disabled = !!(d && d.updating); btn.textContent = (d && d.updating) ? 'Checking…' : 'Update now'; }
+  var back = document.querySelector('.btn[data-cmd="filtersRestore"]');
+  if (back) { back.disabled = !!(d && d.updating); }
   if (!el) { return; }
   if (!d || !d.lists) { el.textContent = ''; return; }
-  if (d.updating) { el.textContent = 'Checking easylist.to for newer lists…'; return; }
-  var checked = d.checkedAt ? 'Last checked ' + d.checkedAt + (d.result ? ' — ' + d.result : '') : 'Never checked for newer ones.';
-  var off = d.lists.filter(function(l){ return l.on === false; }).length;
-  if (off === d.lists.length) {
-    el.textContent = 'Both lists are switched off, so only Aviary’s own short list of trackers is blocking, and nothing is hidden. ' + checked;
+  if (d.updating) { el.textContent = 'Checking for newer lists…'; return; }
+  var checked = d.checkedAt ? 'Last checked ' + d.checkedAt + (d.result ? ' — ' + d.result : '')
+                            : (d.result ? d.result + ' ' : '') + 'Never checked for newer ones.';
+  /* "My filters" is written here, not downloaded: it is not one of the lists this line is about. */
+  var lists = d.lists.filter(function(l){ return l.setting !== 'customFilters'; });
+  var on = lists.filter(function(l){ return l.on !== false; });
+  if (!on.length) {
+    el.textContent = 'Every list is switched off, so only Aviary’s own short list of trackers is blocking, ' +
+                     'and nothing is hidden. ' + checked;
     return;
   }
-  var have = d.lists.map(function(l){ return l.name + (l.on === false ? ' (switched off)' : l.modified ? ' of ' + l.modified : ' (missing)'); }).join(' and ');
-  el.textContent = (d.ready ? 'Using ' : 'Loading ') + have + '. ' + checked;
+  var have = on.map(function(l){
+    return l.name + (l.modified ? ' of ' + l.modified : l.source === 'missing' ? ' (missing)' : '');
+  }).join(', ');
+  var off = lists.length - on.length;
+  el.textContent = (d.ready ? 'Using ' : 'Loading ') + have + '. ' +
+    (off ? off + (off === 1 ? ' other list is' : ' others are') + ' switched off. ' : '') + checked;
 }
 function listsBox(d){
   var box = document.getElementById('listsbox');
@@ -1168,56 +1255,247 @@ function listsBox(d){
     var b = document.createElement('b');
     b.textContent = l.name;
     li.appendChild(b);
-    var about = (l.on === false ? [l.source] : [l.version ? 'Version ' + l.version : '', l.source, l.lines ? num(l.lines) + ' lines' : ''])
-      .filter(function(s){ return s; }).join(', ');
-    li.appendChild(document.createTextNode(' — ' + (l.what === 'Ads' ? 'ads' : 'trackers') + '. ' +
+
+    /* What this list is, then what it brought and where it came from (M4.5). Everything here
+       is text: a list is a file from someone else, and its name is not markup. */
+    /* "My filters" counts differently: what matters is how many of the lines Aviary can use. */
+    var about = l.setting === 'customFilters'
+      ? [num(Math.max(0, l.rules - ((d.mine || []).length))) + ' in use',
+         (d.mine || []).length ? (d.mine.length + ' ' + (d.mine.length === 1 ? 'line' : 'lines') + ' Aviary cannot use') : '']
+      : l.on === false
+      ? ['switched off']
+      : [l.version ? 'version ' + l.version : '',
+         l.source,
+         l.rules ? num(l.rules) + ' rules read' : (l.lines ? num(l.lines) + ' lines' : ''),
+         l.skipped ? num(l.skipped) + ' skipped' : ''];
+    about = about.filter(function(s){ return s; }).join(', ');
+    li.appendChild(document.createTextNode(' — ' + String(l.what || '').toLowerCase() + '. ' +
       about.charAt(0).toUpperCase() + about.slice(1) + '.'));
+
+    if (l.on !== false && l.by && l.licence){
+      var small = document.createElement('small');
+      small.textContent = 'By ' + l.by + ', used exactly as published, under the ' + l.licence + ' licence.';
+      li.appendChild(small);
+    }
     ul.appendChild(li);
   });
   box.appendChild(ul);
+
   if (d.ready) {
     var counts = document.createElement('p');
     counts.textContent = 'Aviary reads ' + num(d.network) + ' blocking rules and ' + num(d.cosmetic) +
-      ' rules that hide what ads leave behind. ' + num(d.skipped) + ' more are kinds it does not use — ' +
-      'mostly rules for pop-up windows, and rules that run scripts on pages, which Aviary never does.';
+      ' rules that hide what ads leave behind. ' + num(d.skipped) + ' more are kinds it does not use.';
     box.appendChild(counts);
+
+    if (d.skippedBy && d.skippedBy.length){
+      var why = document.createElement('p');
+      why.textContent = 'What it skips, most first: ' + d.skippedBy.map(function(x){
+        return x.why + ' (' + num(x.count) + ')';
+      }).join(', ') + '.';
+      box.appendChild(why);
+    }
   }
+
   var credit = document.createElement('p');
-  credit.textContent = 'EasyList and EasyPrivacy are made by the EasyList authors (easylist.to) and used exactly ' +
-    'as they publish them, under the Creative Commons Attribution-ShareAlike 3.0 licence (they are also ' +
-    'available under the GNU GPL 3). Aviary adds a short list of its own, kept separately.';
+  credit.textContent = 'The lists are other people’s work, bundled unchanged and credited above. ' +
+    'Aviary adds a short list of its own, kept separately. "Use the shipped lists" deletes the copies ' +
+    'downloaded since and goes back to the ones Aviary was built with.';
   box.appendChild(credit);
 }
 listsLine(LISTS);
 listsBox(LISTS);
-window.__aviaryListsStatus = function(d){ if (d) { LISTS = d; } listsLine(LISTS); listsBox(LISTS); };
+mineBox(LISTS);
+window.__aviaryListsStatus = function(d){ if (d) { LISTS = d; } listsLine(LISTS); listsBox(LISTS); mineBox(LISTS); };
 
-window.__aviaryShieldsSites = function(list){
+/* Each site with a setting of its own, and the three ways to change it (M4.5). Site names
+   come from browsing, so every one of them goes in as text. */
+window.__aviaryShieldsSites = function(d){
   var box = document.getElementById('shieldsites');
   if (!box) { return; }
+  var sites = (d && d.sites) || [];
+  var fallback = (d && d.fallback) || 'Standard';
   box.hidden = false;
   box.textContent = '';
-  if (!list || !list.length){
+
+  var forget = document.querySelector('.btn[data-cmd="shieldsSitesReset"]');
+  if (forget) { forget.disabled = !sites.length; }
+
+  if (!sites.length){
     var none = document.createElement('div');
     none.className = 'sd__empty';
-    none.textContent = 'Shields are up on every site.';
+    none.textContent = 'Every site follows the setting above (' + fallback + ').';
     box.appendChild(none);
     return;
   }
-  list.forEach(function(site){
+
+  sites.forEach(function(s){
     var row = document.createElement('div');
     row.className = 'sd';
+
     var name = document.createElement('b');
-    name.textContent = site;
-    var what = document.createElement('i');
-    what.textContent = 'Nothing blocked or hidden';
-    var up = document.createElement('button');
-    up.textContent = 'Turn Shields On';
-    up.setAttribute('data-shields-site', site);
-    row.appendChild(name); row.appendChild(what); row.appendChild(up);
+    name.textContent = s.site;
+    row.appendChild(name);
+
+    var seg = document.createElement('div');
+    seg.className = 'segsm';
+    ['Off','Standard','Strict'].forEach(function(mode){
+      var b = document.createElement('button');
+      b.textContent = mode;
+      b.setAttribute('aria-pressed', s.mode === mode ? 'true' : 'false');
+      b.setAttribute('data-site-mode', s.site + '|' + mode);
+      b.setAttribute('aria-label', mode + ' for ' + s.site);
+      seg.appendChild(b);
+    });
+    row.appendChild(seg);
+
+    var undo = document.createElement('button');
+    undo.textContent = 'Use the default';
+    undo.setAttribute('data-site-reset', s.site);
+    row.appendChild(undo);
+
     box.appendChild(row);
   });
 };
+
+/* ── What Shields stopped: this session, 7 days, all time (M4.5) ──────────── */
+function shieldStats(d){
+  var line = document.getElementById('shline');
+  if (line){
+    line.textContent = num(d.session) + ' since Aviary started · ' + num(d.week) + ' in the last 7 days · ' +
+      num(d.all) + ' all time' + (d.since ? ', since ' + d.since : '') + '.';
+  }
+
+  var box = document.getElementById('shstats');
+  if (!box) { return; }
+  box.textContent = '';
+
+  var figures = document.createElement('div');
+  figures.className = 'shx__n';
+  [['This session', num(d.session), 'requests stopped'],
+   ['Last 7 days', num(d.week), stSize(d.weekBytes) + ' not downloaded'],
+   ['All time', num(d.all), stSize(d.allBytes) + ' not downloaded'],
+   ['Time saved', Math.round(d.allSeconds) + 's', 'at about 30 ms each']].forEach(function(f){
+    var cell = document.createElement('div');
+    var b = document.createElement('b');
+    b.textContent = f[1];
+    var top = document.createElement('span');
+    top.textContent = f[0];
+    var sub = document.createElement('span');
+    sub.textContent = f[2];
+    cell.appendChild(b); cell.appendChild(top); cell.appendChild(sub);
+    figures.appendChild(cell);
+  });
+  box.appendChild(figures);
+
+  var days = (d.days || []).slice(-7);
+  if (days.length === 7){
+    var most = Math.max.apply(null, days.concat([1]));
+    var bars = document.createElement('div');
+    bars.className = 'shx__days';
+    days.forEach(function(n){
+      var i = document.createElement('i');
+      i.style.height = Math.max(2, Math.round(n / most * 100)) + '%';
+      if (!n) { i.style.opacity = '.22'; }
+      i.title = num(n) + ' blocked';
+      bars.appendChild(i);
+    });
+    var labels = document.createElement('div');
+    labels.className = 'shx__lab';
+    var names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var today = new Date().getDay();
+    for (var k = 6; k >= 0; k--){
+      var lab = document.createElement('span');
+      lab.textContent = k === 0 ? 'Today' : names[(today - k + 7) % 7];
+      labels.appendChild(lab);
+    }
+    box.appendChild(bars);
+    box.appendChild(labels);
+  }
+
+  var two = document.createElement('div');
+  two.className = 'shx__two';
+  [['Stopped most often', d.trackers, 'Nothing has been stopped yet.'],
+   ['On these sites', d.sites, 'No site has needed Shields yet.']].forEach(function(pair){
+    var col = document.createElement('div');
+    var h = document.createElement('h4');
+    h.textContent = pair[0];
+    col.appendChild(h);
+    var rows = pair[1] || [];
+    if (!rows.length){
+      var none = document.createElement('div');
+      none.className = 'shx__none';
+      none.textContent = pair[2];
+      col.appendChild(none);
+    } else {
+      var ol = document.createElement('ol');
+      rows.forEach(function(r){
+        var li = document.createElement('li');
+        var s = document.createElement('span');
+        s.textContent = r.name;
+        var i = document.createElement('i');
+        i.textContent = num(r.count);
+        li.appendChild(s); li.appendChild(i);
+        ol.appendChild(li);
+      });
+      col.appendChild(ol);
+    }
+    two.appendChild(col);
+  });
+  box.appendChild(two);
+
+  var foot = document.createElement('p');
+  foot.className = 'shx__none';
+  foot.textContent = 'These are the Privacy Report’s own counts, kept on this computer. Private windows were ' +
+    'never counted into them. "Start again" puts every figure here back to zero.';
+  box.appendChild(foot);
+}
+window.__aviaryShieldStats = function(d){ if (d) { shieldStats(d); } };
+
+/* ── My filters: the box, what it saved, and the lines it could not use ───── */
+function mineBox(d){
+  var wrap = document.querySelector('.ta[data-key="customFilters"]');
+  if (!wrap) { return; }
+  var said = wrap.querySelector('.ta__said');
+  var box = wrap.querySelector('.mine');
+  var problems = (d && d.mine) || [];
+  var mine = ((d && d.lists) || []).filter(function(l){ return l.setting === 'customFilters'; })[0];
+
+  if (said){
+    var using_ = mine ? Math.max(0, mine.rules - problems.length) : 0;
+    said.textContent = !mine ? 'No rules of your own yet.'
+      : num(using_) + (using_ === 1 ? ' rule in use' : ' rules in use') +
+        (problems.length ? ' · ' + problems.length + (problems.length === 1 ? ' line Aviary cannot use' : ' lines Aviary cannot use') : '');
+  }
+
+  if (!box) { return; }
+  box.textContent = '';
+  problems.forEach(function(p){
+    var line = document.createElement('div');
+    var b = document.createElement('b');
+    b.textContent = 'Line ' + p.line + ': ' + (p.text.length > 60 ? p.text.slice(0, 59) + '…' : p.text);
+    line.appendChild(b);
+    line.appendChild(document.createTextNode(' — ' + p.why + '.'));
+    box.appendChild(line);
+  });
+}
+
+/* The boxes are filled from the saved value directly: what a person typed is their text,
+   never markup, and never a boolean the way saved() would read "true". */
+document.querySelectorAll('.ta').forEach(function(wrap){
+  var key = wrap.getAttribute('data-key');
+  var ta = wrap.querySelector('textarea');
+  if (ta) { ta.value = (key in SAVED) ? String(SAVED[key]) : ''; }
+});
+
+/* ── The Shields pane asks for its own figures when it comes on screen ────── */
+function shieldsWatch(){
+  var pane = document.getElementById('pane-shields');
+  if (!pane || !pane.classList.contains('on')) { return; }
+  post({type:'command', name:'shieldsStats'});
+  post({type:'command', name:'shieldsSites'});
+}
+nav.addEventListener('click', function(){ setTimeout(shieldsWatch, 0); });
+setTimeout(shieldsWatch, 0);
 
 /* ── Search: the suggestions row names the engine it would send to (M4) ── */
 function engineNamed(name){
@@ -1327,6 +1605,35 @@ main.addEventListener('click', function(e){
   if (go){
     closeAllPopups(null);
     if (!go.disabled) { showPane(go.getAttribute('data-goto')); }
+    return;
+  }
+
+  var modeBtn = e.target.closest('button[data-site-mode]');
+  if (modeBtn){
+    if (modeBtn.getAttribute('aria-pressed') === 'true') { return; }
+    var seg = modeBtn.closest('.segsm');
+    if (seg) { seg.querySelectorAll('button').forEach(function(b){ b.setAttribute('aria-pressed','false'); }); }
+    modeBtn.setAttribute('aria-pressed','true');
+    post({type:'command', name:'shieldsSiteMode', arg: modeBtn.getAttribute('data-site-mode')});
+    return;
+  }
+
+  var resetSite = e.target.closest('button[data-site-reset]');
+  if (resetSite){
+    resetSite.disabled = true;
+    post({type:'command', name:'shieldsSiteReset', arg: resetSite.getAttribute('data-site-reset')});
+    return;
+  }
+
+  var save = e.target.closest('button[data-save]');
+  if (save && !save.disabled){
+    var wrap = save.closest('.ta');
+    var key = save.getAttribute('data-save');
+    var text = wrap.querySelector('textarea').value;
+    SAVED[key] = text;
+    sendSetting(key, text);
+    var said = wrap.querySelector('.ta__said');
+    if (said) { said.textContent = 'Reading the rules…'; }
     return;
   }
 

@@ -112,11 +112,26 @@ internal sealed partial class FilterEngine
         public int Skipped;
         public readonly Dictionary<string, int> SkippedBy = new(StringComparer.Ordinal);
 
+        /// <summary>Rules read from each list, by its name (M4.5: Settings shows what each list brought).</summary>
+        public readonly Dictionary<string, int> RulesByList = new(StringComparer.Ordinal);
+
+        /// <summary>Lines skipped in each list, by its name.</summary>
+        public readonly Dictionary<string, int> SkippedByList = new(StringComparer.Ordinal);
+
         /// <summary>Up to three rules per reason, so "skipped" can always be checked against real lines.</summary>
         public readonly Dictionary<string, List<string>> SkippedExamples = new(StringComparer.Ordinal);
 
+        /// <summary>The list being read, so a rule or a skip can be counted against it.</summary>
+        public string Reading = string.Empty;
+
+        public void Rule()
+        {
+            RulesByList[Reading] = RulesByList.TryGetValue(Reading, out int n) ? n + 1 : 1;
+        }
+
         public void Skip(string why, string? rule = null)
         {
+            SkippedByList[Reading] = SkippedByList.TryGetValue(Reading, out int sn) ? sn + 1 : 1;
             Skipped++;
             SkippedBy[why] = SkippedBy.TryGetValue(why, out int n) ? n + 1 : 1;
             if (rule is not null)
@@ -136,6 +151,71 @@ internal sealed partial class FilterEngine
 
     /// <summary>One filter list as it came in: its name (for diagnostics) and its lines.</summary>
     public sealed record Source(string Name, string Text);
+
+    /// <summary>The name "My filters" carries in the engine, in diagnostics and in Settings.</summary>
+    public const string MineName = "My filters";
+
+    /// <summary>
+    /// Why Aviary cannot use this line, or null when it can (M4.5, "My filters"). The line goes
+    /// through the real parser - a one-line engine costs microseconds to build - so the answer
+    /// is the same one a list gets, never a second opinion that could drift from it.
+    /// </summary>
+    public static string? Problem(string line)
+    {
+        string trimmed = line.Trim();
+        if (trimmed.Length == 0 || trimmed[0] == '!' || trimmed[0] == '[' || trimmed[0] == '#' && !trimmed.StartsWith("##", StringComparison.Ordinal))
+        {
+            // Blank, a comment, or "# note" the way hosts files write one: nothing to use, and
+            // nothing wrong either.
+            return null;
+        }
+
+        // The parser takes any text as a pattern to look for inside an address, exactly as Adblock
+        // Plus does - so a sentence typed by mistake is a "rule" that can never match anything.
+        // In a list that hardly matters; in a box a person types into, it has to be said.
+        bool hides = CosmeticBuilder.TrySplit(trimmed, out string _, out string _, out string _);
+        if (!hides)
+        {
+            if (trimmed.IndexOf(' ') >= 0)
+            {
+                return "a rule that blocks cannot contain spaces";
+            }
+
+            bool anything = false;
+            foreach (char c in trimmed)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    anything = true;
+                    break;
+                }
+            }
+
+            if (!anything)
+            {
+                return "there is nothing here to match";
+            }
+        }
+
+        ListStats s;
+        try
+        {
+            s = Build(new[] { new Source("check", trimmed) }).Stats;
+        }
+        catch (Exception)
+        {
+            return "Aviary could not read this line";
+        }
+
+        if (s.SkippedBy.Count > 0)
+        {
+            return s.SkippedBy.Keys.First();
+        }
+
+        int kept = s.Network + s.NetworkExceptions + s.CosmeticGeneric + s.CosmeticSpecific
+                 + s.CosmeticExceptions + s.PageExceptions;
+        return kept > 0 ? null : "not a rule Aviary can use";
+    }
 
     /// <summary>The result of matching one request.</summary>
     public readonly record struct Verdict(bool Blocked, string? Rule, string? List)
@@ -221,12 +301,19 @@ internal sealed partial class FilterEngine
         for (int i = 0; i < sources.Count; i++)
         {
             engine._listNames[i] = sources[i].Name;
+            engine.Stats.Reading = sources[i].Name;
             using StringReader reader = new(sources[i].Text);
             string? line;
             while ((line = reader.ReadLine()) is not null)
             {
                 engine.Stats.Lines++;
-                engine.ParseLine(line.Trim(), (byte)i, indexed, cosmetic);
+                string trimmed = line.Trim();
+                if (trimmed.Length > 0 && trimmed[0] != '!' && trimmed[0] != '[')
+                {
+                    engine.Stats.Rule();
+                }
+
+                engine.ParseLine(trimmed, (byte)i, indexed, cosmetic);
             }
         }
 

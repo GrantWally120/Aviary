@@ -186,6 +186,7 @@ internal static class PrivacyReport
             return;
         }
 
+        System.Threading.Interlocked.Increment(ref _sessionBlocked);
         string today = DateTime.Now.Date.ToString("yyyy-MM-dd");
         string tracker = PublicSuffix.RegistrableDomain(trackerHost);
         long bytes = EstimateBytes(kind);
@@ -244,6 +245,11 @@ internal static class PrivacyReport
     /// The three figures for the chosen range: requests blocked, estimated bytes not
     /// downloaded, estimated seconds not spent loading — and, for all time, since when.
     /// </summary>
+    /// <summary>Blocked since Aviary started, for Shields’ own figures (M4.5). Not saved anywhere.</summary>
+    public static long SessionBlocked => System.Threading.Interlocked.Read(ref _sessionBlocked);
+
+    private static long _sessionBlocked;
+
     public static (long Blocked, long Bytes, double Seconds, string Since) Stats(bool allTime)
     {
         lock (Gate)
@@ -297,6 +303,10 @@ internal static class PrivacyReport
         {
             _model = new Model();
         }
+
+        // "Start the count again" means every figure Shields shows, this session's included
+        // (M4.5) - otherwise the page would say 0 all time and 13 since Aviary started.
+        System.Threading.Interlocked.Exchange(ref _sessionBlocked, 0);
 
         Save();
     }

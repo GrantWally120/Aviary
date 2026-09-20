@@ -2489,10 +2489,33 @@ public sealed partial class MainWindow : Window
 
                 case "listAds":
                 case "listTrackers":
+                case "listCookies":
+                case "listSocial":
                     // A list on or off: the engine is rebuilt from the lists that are on, off this
                     // thread, and reaches every tab by itself (FilterLists.EngineChanged).
-                    Diagnostics.Shields("list", new { list = key == "listAds" ? "EasyList" : "EasyPrivacy", on = value.ValueKind == JsonValueKind.True });
+                    Diagnostics.Shields("list", new
+                    {
+                        list = FilterLists.Lists.FirstOrDefault(l => l.SettingKey == key)?.Name ?? key,
+                        on = value.ValueKind == JsonValueKind.True,
+                    });
                     _ = ReloadListsAsync();
+                    break;
+
+                case "customFilters":
+                    // Rules written by hand: the engine is rebuilt with them, and the page is
+                    // told which lines it could not use.
+                    Diagnostics.Shields("my-filters", new { lines = FilterLists.Mine.Split('\n').Length });
+                    _ = ReloadListsAsync();
+                    break;
+
+                // M4.5: hiding the spaces ads leave, and the count on the shield.
+                case "cosmeticHiding":
+                    Diagnostics.Shields("element-hiding", new { on = value.ValueKind == JsonValueKind.True });
+                    Shields.Refresh();
+                    break;
+
+                case "shieldBadge":
+                    UpdateShieldsButton();
                     break;
 
                 case Diagnostics.SettingKey:
@@ -2804,6 +2827,92 @@ public sealed partial class MainWindow : Window
 
                     await PushShieldsSitesAsync(page);
                     break;
+
+                // M4.5 — a site's own Standard/Strict/Off, from the list in Settings. The
+                // argument is "site|Mode"; anything else is ignored rather than guessed at.
+                case "shieldsSiteMode":
+                {
+                    string[] parts = (arg ?? string.Empty).Split('|');
+                    if (parts.Length == 2 && parts[0].Length > 0)
+                    {
+                        Shields.Mode mode = parts[1].ToLowerInvariant() switch
+                        {
+                            "off" => Shields.Mode.Off,
+                            "strict" => Shields.Mode.Strict,
+                            _ => Shields.Mode.Standard,
+                        };
+                        Shields.SetMode(parts[0], mode, _private);
+                        AfterShieldsChange();
+                    }
+
+                    await PushShieldsSitesAsync(page);
+                    break;
+                }
+
+                case "shieldsSiteReset":
+                    if (!string.IsNullOrWhiteSpace(arg))
+                    {
+                        Shields.ResetSite(arg, _private);
+                        AfterShieldsChange();
+                    }
+
+                    await PushShieldsSitesAsync(page);
+                    break;
+
+                case "shieldsSitesReset":
+                {
+                    if (Shields.OwnSites().Count > 0
+                        && await ConfirmAsync(
+                            "Forget every site's own Shields?",
+                            "Every site goes back to the setting on this page. Nothing else is cleared.",
+                            "Forget"))
+                    {
+                        Shields.ResetAllSites();
+                        AfterShieldsChange();
+                    }
+
+                    await PushShieldsSitesAsync(page);
+                    break;
+                }
+
+                case "shieldsStats":
+                    await PushShieldStatsAsync(page);
+                    break;
+
+                case "shieldsStatsReset":
+                {
+                    if (await ConfirmAsync(
+                            "Start the count again?",
+                            "The figures on this page, and the Privacy Report on the Start Page, go back to zero. "
+                          + "Nothing about your browsing is stored in them beyond these counts.",
+                            "Start again"))
+                    {
+                        PrivacyReport.Clear();
+                        Diagnostics.Shields("stats-reset", new { });
+                        RefreshStartPages();
+                    }
+
+                    await PushShieldStatsAsync(page);
+                    break;
+                }
+
+                // "Go back to the lists Aviary shipped with": the downloaded copies go, and the
+                // engine is rebuilt from the ones beside Aviary.exe.
+                case "filtersRestore":
+                {
+                    if (await ConfirmAsync(
+                            "Go back to the lists Aviary shipped with?",
+                            "The copies downloaded since are deleted, and Aviary reads the ones it was built with "
+                          + "until the next update.",
+                            "Go back"))
+                    {
+                        await PushListsAsync(page, updating: true);
+                        await Task.Run(FilterLists.RestoreBundled);
+                        await PushListsAsync(page, updating: false);
+                    }
+
+                    break;
+                }
 
                 case "clearPasswords":
                 {

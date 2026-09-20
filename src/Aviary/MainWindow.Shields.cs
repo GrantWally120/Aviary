@@ -63,7 +63,8 @@ public sealed partial class MainWindow
         ShieldGlyph.Opacity = off ? 0.55 : 1;
 
         int count = applies && !off ? tab!.BlockedOnPage : 0;
-        ShieldCount.Visibility = count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        bool badge = !string.Equals(AppSettings.Get("shieldBadge"), "false", StringComparison.OrdinalIgnoreCase);
+        ShieldCount.Visibility = count > 0 && badge ? Visibility.Visible : Visibility.Collapsed;
         ShieldCountText.Text = count > 99 ? "99+" : count.ToString(CultureInfo.InvariantCulture);
         NoteShieldCount(tab, count);
 
@@ -168,21 +169,29 @@ public sealed partial class MainWindow
         }
         else if (applies)
         {
-            bool down = tab!.ShieldsDown;
-            state.Text = down ? "Shields are down: nothing is blocked or hidden on this site." : "Shields are up for this site.";
-
-            ToggleSwitch toggle = new()
+            Shields.Mode mode = tab!.ShieldsMode;
+            state.Text = mode switch
             {
-                IsOn = !down,
-                OnContent = string.Empty,
-                OffContent = string.Empty,
-                MinWidth = 0,
-                VerticalAlignment = VerticalAlignment.Center,
+                Shields.Mode.Off => "Shields are down: nothing is blocked or hidden here.",
+                Shields.Mode.Strict => "Strict on this site: ads and trackers from anywhere, its own included.",
+                _ => "Standard on this site: ads and trackers from other companies.",
             };
-            AutomationProperties(toggle, "Shields for " + site);
-            toggle.Toggled += async (_, _) => await SetShieldsAsync(tab, !toggle.IsOn);
-            Grid.SetColumn(toggle, 2);
-            head.Children.Add(toggle);
+
+            if (tab.ShieldsChosen)
+            {
+                // A site whose setting differs from the default says so, and how to undo it.
+                Border chip = new()
+                {
+                    Background = ThemeBrush("AvSegmentBrush"),
+                    CornerRadius = new CornerRadius(7),
+                    Padding = new Thickness(7, 2, 7, 3),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Child = new TextBlock { Text = "Its own", FontSize = 11, Foreground = secondary },
+                };
+                ToolTipService.SetToolTip(chip, "This site has a Shields setting of its own.");
+                Grid.SetColumn(chip, 2);
+                head.Children.Add(chip);
+            }
         }
         else
         {
@@ -192,6 +201,13 @@ public sealed partial class MainWindow
         }
 
         panel.Children.Add(head);
+
+        // M4.5: how much for THIS site - Off, Standard or Strict - instead of only on and off.
+        if (applies && Shields.Enabled)
+        {
+            panel.Children.Add(ShieldsModeRow(tab!, site, accent, label, secondary));
+        }
+
         panel.Children.Add(new Border { Height = 1, Background = hairline });
 
         // ── this page ──
@@ -252,6 +268,50 @@ public sealed partial class MainWindow
                 }
 
                 panel.Children.Add(list);
+
+                IReadOnlyList<(string Url, string Rule, string List)> recent = tab.RecentBlocked;
+                if (recent.Count > 0)
+                {
+                    StackPanel latest = new() { Spacing = 4 };
+                    latest.Children.Add(new TextBlock
+                    {
+                        Text = "Recently blocked on this page",
+                        FontSize = 11,
+                        FontWeight = FontWeights.SemiBold,
+                        Foreground = secondary,
+                    });
+
+                    int i = 0;
+                    foreach ((string url, string rule, string which) in recent)
+                    {
+                        if (i++ == 4)
+                        {
+                            break;
+                        }
+
+                        StackPanel entry = new() { Spacing = 0 };
+
+                        // Addresses and rules are website- and list-controlled: text, never markup.
+                        entry.Children.Add(new TextBlock
+                        {
+                            Text = ShortAddress(url),
+                            FontSize = 11,
+                            Foreground = label,
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                        });
+                        entry.Children.Add(new TextBlock
+                        {
+                            Text = rule + "  ·  " + which,
+                            FontSize = 10,
+                            Foreground = tertiary,
+                            TextTrimming = TextTrimming.CharacterEllipsis,
+                        });
+                        latest.Children.Add(entry);
+                    }
+
+                    panel.Children.Add(new Border { Height = 1, Background = hairline });
+                    panel.Children.Add(latest);
+                }
             }
             else if (FilterLists.Engine is null)
             {
@@ -273,7 +333,7 @@ public sealed partial class MainWindow
         (long blocked, long _, double _, string _) = PrivacyReport.Stats(allTime: false);
         panel.Children.Add(new TextBlock
         {
-            Text = (Shields.Strict
+            Text = ((applies ? tab!.ShieldsMode == Shields.Mode.Strict : Shields.Strict)
                         ? "Strict: ads and trackers from every source, and a warning before sites that exist only to serve them."
                         : "Standard: ads and trackers from other companies. A site’s own content is left alone.")
                    + (blocked > 0 ? "\n" + blocked.ToString("N0", CultureInfo.InvariantCulture) + " blocked in the last 7 days." : string.Empty),
@@ -304,6 +364,91 @@ public sealed partial class MainWindow
         return panel;
     }
 
+    /// <summary>
+    /// Off / Standard / Strict for one site (M4.5). Three buttons in a capsule, the chosen one
+    /// filled; and, when the site has a setting of its own, a way back to the default.
+    /// </summary>
+    private FrameworkElement ShieldsModeRow(BrowserTab tab, string site, Brush accent, Brush label, Brush secondary)
+    {
+        StackPanel wrap = new() { Spacing = 6 };
+
+        Border capsule = new()
+        {
+            Height = 28,
+            Background = ThemeBrush("AvSegmentBrush"),
+            CornerRadius = Res("AvSegmentRadius", new CornerRadius(7)),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+        };
+
+        Grid row = new();
+        Shields.Mode current = tab.ShieldsMode;
+        (Shields.Mode Mode, string Text, string Says)[] choices =
+        {
+            (Shields.Mode.Off, "Off", "Nothing is blocked or hidden on this site."),
+            (Shields.Mode.Standard, "Standard", "Ads and trackers from other companies."),
+            (Shields.Mode.Strict, "Strict", "Ads and trackers from anywhere, this site’s own included."),
+        };
+
+        for (int i = 0; i < choices.Length; i++)
+        {
+            (Shields.Mode mode, string text, string says) = choices[i];
+            bool chosen = mode == current;
+            ToggleButton segment = new()
+            {
+                Style = (Style)RootGrid.Resources["AvSegmentButton"],
+                Content = new TextBlock { Text = text, FontSize = 12 },
+                Foreground = chosen ? label : secondary,
+                IsChecked = chosen,
+            };
+            AutomationProperties(segment, "Shields " + text + " for " + site);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(segment, says);
+            ToolTipService.SetToolTip(segment, says);
+
+            // A segment is a choice, not a switch: clicking the one already chosen must not
+            // clear it, and clicking another redraws the panel anyway.
+            segment.Click += async (_, _) =>
+            {
+                segment.IsChecked = true;
+                await SetShieldsModeAsync(tab, mode);
+            };
+
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            Grid.SetColumn(segment, i);
+            row.Children.Add(segment);
+        }
+
+        capsule.Child = row;
+        wrap.Children.Add(capsule);
+
+        if (tab.ShieldsChosen)
+        {
+            HyperlinkButton back = new()
+            {
+                Content = "Use the default (" + (Shields.Default == Shields.Mode.Strict ? "Strict" : "Standard") + ")",
+                FontSize = 11,
+                Foreground = accent,
+                Margin = new Thickness(-10, -6, 0, -6),
+            };
+            back.Click += async (_, _) => await SetShieldsModeAsync(tab, null);
+            wrap.Children.Add(back);
+        }
+
+        return wrap;
+    }
+
+    /// <summary>An address as the popover shows it: host, then a shortened path.</summary>
+    private static string ShortAddress(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? u))
+        {
+            return url.Length > 54 ? url.Substring(0, 53) + "…" : url;
+        }
+
+        string path = u.AbsolutePath;
+        string shown = u.Host + (path.Length > 1 ? path : string.Empty);
+        return shown.Length > 54 ? shown.Substring(0, 53) + "…" : shown;
+    }
+
     private static void AutomationProperties(UIElement element, string name) =>
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(element, name);
 
@@ -311,6 +456,39 @@ public sealed partial class MainWindow
     /// The popover's switch: lower or raise Shields for this page's site, then reload it — after
     /// the tab's element-hiding script has been swapped, so the reloaded page gets the new one.
     /// </summary>
+    private async Task SetShieldsModeAsync(BrowserTab tab, Shields.Mode? mode)
+    {
+        try
+        {
+            if (!tab.ShieldsApply)
+            {
+                return;
+            }
+
+            if (mode is { } chosen)
+            {
+                if (chosen == tab.ShieldsMode && tab.ShieldsChosen)
+                {
+                    return;
+                }
+
+                Shields.SetMode(tab.PageHost, chosen, _private);
+            }
+            else
+            {
+                Shields.ResetSite(tab.PageHost, _private);
+            }
+
+            await tab.RefreshCosmeticAsync();
+            AfterShieldsChange();
+            tab.View.Reload();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "shields: set how much for site");
+        }
+    }
+
     private async Task SetShieldsAsync(BrowserTab tab, bool down)
     {
         try
@@ -382,17 +560,58 @@ public sealed partial class MainWindow
         }
     }
 
-    /// <summary>The sites with Shields down, into the Settings page that asked. Names go in as text.</summary>
+    /// <summary>
+    /// The sites with a Shields setting of their own, into the Settings page that asked: each
+    /// site and whether it is Off, Standard or Strict (M4.5). Names go in as text.
+    /// </summary>
     private static async Task PushShieldsSitesAsync(Microsoft.Web.WebView2.Core.CoreWebView2 page)
     {
         try
         {
-            string json = System.Text.Json.JsonSerializer.Serialize(Shields.DownSites());
+            string json = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                fallback = Shields.Default == Shields.Mode.Strict ? "Strict" : "Standard",
+                sites = Shields.OwnSites().ConvertAll(s => new { site = s.Site, mode = s.Mode.ToString() }),
+            });
             await page.ExecuteScriptAsync("window.__aviaryShieldsSites && window.__aviaryShieldsSites(" + json + ")");
         }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "settings: push shields sites");
+        }
+    }
+
+    /// <summary>
+    /// What Shields stopped: this session, the last seven days, and all time, with the trackers
+    /// and the sites at the top of each (M4.5). Everything here is already in the Privacy Report;
+    /// a private window's pages were never counted into it.
+    /// </summary>
+    private static async Task PushShieldStatsAsync(Microsoft.Web.WebView2.Core.CoreWebView2 page)
+    {
+        try
+        {
+            (long week, long weekBytes, double weekSeconds, string _) = PrivacyReport.Stats(allTime: false);
+            (long all, long allBytes, double allSeconds, string since) = PrivacyReport.Stats(allTime: true);
+
+            string json = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                session = PrivacyReport.SessionBlocked,
+                week,
+                weekBytes,
+                weekSeconds = Math.Round(weekSeconds, 1),
+                all,
+                allBytes,
+                allSeconds = Math.Round(allSeconds, 1),
+                since,
+                days = PrivacyReport.LastWeek(),
+                trackers = PrivacyReport.TopTrackers(8).ConvertAll(t => new { name = t.Tracker, count = t.Count }),
+                sites = PrivacyReport.TopSites(8).ConvertAll(t => new { name = t.Site, count = t.Count }),
+            });
+            await page.ExecuteScriptAsync("window.__aviaryShieldStats && window.__aviaryShieldStats(" + json + ")");
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "settings: push shields statistics");
         }
     }
 

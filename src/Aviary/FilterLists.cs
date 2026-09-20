@@ -27,16 +27,55 @@ namespace Aviary;
 internal static class FilterLists
 {
     /// <param name="SettingKey">The Shields switch that turns this list on or off — the plan's "per-category switches".</param>
-    public sealed record ListInfo(string Id, string Name, string What, string Url, string File, string SettingKey);
+    public sealed record ListInfo(string Id, string Name, string What, string Url, string File, string SettingKey, string By, string Licence, string Titled = "")
+    {
+        /// <summary>What the file calls itself in its "! Title:" line, when that differs from Name.</summary>
+        public string HeaderTitle => Titled.Length > 0 ? Titled : Name;
+    }
 
-    /// <summary>The lists Grant approved (13 Sep 2026). Adding one needs his yes first.</summary>
+    /// <summary>
+    /// The lists Grant approved: EasyList and EasyPrivacy (13 Sep 2026), then the cookie-notice and
+    /// social lists (19 Sep 2026, M4.5) — those two are OFF until switched on. Adding one needs his
+    /// yes first, and so does downloading it.
+    /// </summary>
     public static readonly ListInfo[] Lists =
     {
-        new("easylist", "EasyList", "Ads", "https://easylist.to/easylist/easylist.txt", "easylist.txt", "listAds"),
-        new("easyprivacy", "EasyPrivacy", "Trackers", "https://easylist.to/easylist/easyprivacy.txt", "easyprivacy.txt", "listTrackers"),
+        new("easylist", "EasyList", "Ads", "https://easylist.to/easylist/easylist.txt", "easylist.txt", "listAds",
+            "the EasyList authors", "Creative Commons Attribution-ShareAlike 3.0, or GPL v3"),
+        new("easyprivacy", "EasyPrivacy", "Trackers", "https://easylist.to/easylist/easyprivacy.txt", "easyprivacy.txt", "listTrackers",
+            "the EasyList authors", "Creative Commons Attribution-ShareAlike 3.0, or GPL v3"),
+        new("cookies", "EasyList Cookie List", "Cookie notices", "https://secure.fanboy.co.nz/fanboy-cookiemonster.txt", "fanboy-cookiemonster.txt", "listCookies",
+            "the EasyList authors", "Creative Commons Attribution 3.0"),
+        new("social", "Fanboy’s Social", "Social widgets", "https://easylist.to/easylist/fanboy-social.txt", "fanboy-social.txt", "listSocial",
+            "the EasyList authors", "Creative Commons Attribution-ShareAlike 3.0, or GPL v3", "Fanboy's Social Blocking List"),
     };
 
     private static bool IsOn(ListInfo info) => !string.Equals(AppSettings.Get(info.SettingKey), "false", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The rules written by hand in Settings, as they were typed (M4.5).</summary>
+    public static string Mine => AppSettings.Get("customFilters");
+
+    /// <summary>Lines in "My filters" Aviary cannot use, each with the reason. Never more than 50.</summary>
+    public static List<(int Line, string Text, string Why)> MineProblems()
+    {
+        List<(int Line, string Text, string Why)> problems = new();
+        string text = Mine;
+        if (text.Length == 0)
+        {
+            return problems;
+        }
+
+        string[] lines = text.Replace("\r\n", "\n").Split('\n');
+        for (int i = 0; i < lines.Length && problems.Count < 50; i++)
+        {
+            if (FilterEngine.Problem(lines[i]) is { } why)
+            {
+                problems.Add((i + 1, lines[i].Trim(), why));
+            }
+        }
+
+        return problems;
+    }
 
     /// <summary>
     /// A list switched on or off in Settings: rebuild the engine from the lists that are on, off
@@ -131,6 +170,13 @@ internal static class FilterLists
                     sources.Add(new FilterEngine.Source(info.Name, picked.Text));
                     loaded.Add(picked.Meta);
                 }
+            }
+
+            // Hand-written rules go in last, so a person's own rule is read after the lists'.
+            string mine = Mine;
+            if (mine.Trim().Length > 0)
+            {
+                sources.Add(new FilterEngine.Source(FilterEngine.MineName, mine));
             }
 
             if (sources.Count == 0)
@@ -254,7 +300,7 @@ internal static class FilterLists
 
             if (line.StartsWith("! Title:", StringComparison.Ordinal))
             {
-                titled = string.Equals(line.Substring(8).Trim(), info.Name, StringComparison.OrdinalIgnoreCase);
+                titled = string.Equals(line.Substring(8).Trim(), info.HeaderTitle, StringComparison.OrdinalIgnoreCase);
             }
             else if (line.StartsWith("! Version:", StringComparison.Ordinal))
             {
@@ -270,9 +316,14 @@ internal static class FilterLists
         return titled && lines > 1000;
     }
 
-    /// <summary>"13 Sep 2026 05:50 UTC".</summary>
+    /// <summary>
+    /// "13 Sep 2026 05:50 UTC", and the other way the same authors write it in the same folder:
+    /// "2026-09-19 08:25 UTC" (the Cookie List). A date that will not parse is not a broken list,
+    /// only a list Aviary cannot date - see how Describe reports it.
+    /// </summary>
     private static DateTimeOffset? ParseModified(string value) =>
-        DateTimeOffset.TryParseExact(value.Replace(" UTC", string.Empty), new[] { "d MMM yyyy HH:mm", "dd MMM yyyy HH:mm" },
+        DateTimeOffset.TryParseExact(value.Replace(" UTC", string.Empty),
+            new[] { "d MMM yyyy HH:mm", "dd MMM yyyy HH:mm", "yyyy-MM-dd HH:mm", "yyyy-MM-ddTHH:mm:ssZ" },
             CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out DateTimeOffset when)
             ? when
             : null;
@@ -299,16 +350,27 @@ internal static class FilterLists
     /// </summary>
     private static string? TestBase => Environment.GetEnvironmentVariable("AVIARY_TEST_FILTER_BASE");
 
+    /// <summary>
+    /// How often to fetch the lists by itself, or null for never. "Weekly"/"Daily" since M4.5; a
+    /// saved true/false from before then still reads as weekly/never.
+    /// </summary>
+    public static TimeSpan? AutoUpdateEvery => AppSettings.Get("listsAutoUpdate").ToLowerInvariant() switch
+    {
+        "daily" => TimeSpan.FromDays(1),
+        "weekly" or "true" => TimeSpan.FromDays(7),
+        _ => null,
+    };
+
     private static void MaybeAutoUpdate()
     {
         try
         {
-            if (!AppSettings.GetBool("listsAutoUpdate"))
+            if (AutoUpdateEvery is not { } every)
             {
                 return;
             }
 
-            if (LastCheck.Checked is { } last && DateTimeOffset.UtcNow - last < TimeSpan.FromDays(7))
+            if (LastCheck.Checked is { } last && DateTimeOffset.UtcNow - last < every)
             {
                 return;
             }
@@ -347,6 +409,13 @@ internal static class FilterLists
             Directory.CreateDirectory(UpdatedFolder);
             foreach (ListInfo info in Lists)
             {
+                // A list that is switched off is not downloaded: nothing is fetched for a list
+                // nobody is using.
+                if (!IsOn(info))
+                {
+                    continue;
+                }
+
                 string url = TestBase is { Length: > 0 } b ? b.TrimEnd('/') + "/" + info.File : info.Url;
                 try
                 {
@@ -385,7 +454,7 @@ internal static class FilterLists
                 ? "Couldn't reach easylist.to — the lists you have keep working."
                 : updated.Count == 0
                     ? (failed.Count == 0 ? "Already up to date." : "Up to date, except " + string.Join(", ", failed) + ".")
-                    : "Updated " + string.Join(" and ", updated) + (failed.Count > 0 ? "; " + string.Join(", ", failed) + " failed." : ".");
+                    : "Updated " + Listed(updated) + (failed.Count > 0 ? "; " + string.Join(", ", failed) + " failed." : ".");
 
             LastCheck = new State { Checked = DateTimeOffset.UtcNow, Result = message };
             SaveState();
@@ -518,11 +587,51 @@ internal static class FilterLists
         return System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
     }
 
+    /// <summary>
+    /// Back to the lists Aviary shipped with (M4.5): the downloaded copies are deleted and the
+    /// engine is rebuilt from the ones beside Aviary.exe. Runs off the UI thread.
+    /// </summary>
+    public static void RestoreBundled()
+    {
+        int removed = 0;
+        try
+        {
+            foreach (ListInfo info in Lists)
+            {
+                string path = Path.Combine(UpdatedFolder, info.File);
+                if (File.Exists(path))
+                {
+                    File.Delete(path);
+                    removed++;
+                }
+            }
+
+            LastCheck = new State { Checked = null, Result = removed == 0 ? "Already the shipped lists." : "Back to the lists Aviary shipped with." };
+            SaveState();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "filter lists: restore bundled");
+        }
+
+        Diagnostics.Shields("lists-restored", new { removed });
+        Load("restore");
+    }
+
+    /// <summary>"EasyList", "EasyList and EasyPrivacy", "A, B and C" - four lists read badly otherwise.</summary>
+    private static string Listed(List<string> names) => names.Count switch
+    {
+        0 => string.Empty,
+        1 => names[0],
+        _ => string.Join(", ", names.Take(names.Count - 1)) + " and " + names[^1],
+    };
+
     public static object Describe(bool? updating = null)
     {
         FilterEngine? engine = Engine;
         FilterEngine.ListStats? s = engine?.Stats;
         List<object> lists = new();
+        string mine = Mine;
         foreach (ListInfo info in Lists)
         {
             Loaded? l = Current.FirstOrDefaultOf(info.Id);
@@ -535,6 +644,33 @@ internal static class FilterLists
                 on = IsOn(info),
                 source = !IsOn(info) ? "switched off" : l is null ? "missing" : l.FromUpdate ? "updated" : "shipped with Aviary",
                 lines = l?.Lines ?? 0,
+                // M4.5: what this list actually brought, and whose it is.
+                rules = s?.RulesByList.GetValueOrDefault(info.Name) ?? 0,
+                skipped = s?.SkippedByList.GetValueOrDefault(info.Name) ?? 0,
+                url = info.Url,
+                by = info.By,
+                licence = info.Licence,
+                setting = info.SettingKey,
+            });
+        }
+
+        if (mine.Trim().Length > 0)
+        {
+            lists.Add(new
+            {
+                name = FilterEngine.MineName,
+                what = "Your own rules",
+                version = string.Empty,
+                modified = string.Empty,
+                on = true,
+                source = "written here",
+                lines = mine.Replace("\r\n", "\n").Split('\n').Length,
+                rules = s?.RulesByList.GetValueOrDefault(FilterEngine.MineName) ?? 0,
+                skipped = s?.SkippedByList.GetValueOrDefault(FilterEngine.MineName) ?? 0,
+                url = string.Empty,
+                by = "you",
+                licence = string.Empty,
+                setting = "customFilters",
             });
         }
 
@@ -542,9 +678,13 @@ internal static class FilterLists
         {
             ready = engine is not null,
             lists,
+            mine = MineProblems().Select(p => new { line = p.Line, text = p.Text, why = p.Why }),
             network = (s?.Network ?? 0) + (s?.NetworkExceptions ?? 0),
             cosmetic = (s?.CosmeticGeneric ?? 0) + (s?.CosmeticSpecific ?? 0) + (s?.CosmeticExceptions ?? 0),
             skipped = s?.Skipped ?? 0,
+            // Why lines were skipped, biggest reasons first (M4.5).
+            skippedBy = (s?.SkippedBy ?? new Dictionary<string, int>()).OrderByDescending(p => p.Value).Take(6).Select(p => new { why = p.Key, count = p.Value }),
+            autoUpdate = AppSettings.Get("listsAutoUpdate"),
             checkedAt = LastCheck.Checked?.ToLocalTime().ToString("d MMM yyyy, HH:mm", CultureInfo.InvariantCulture) ?? "",
             result = LastCheck.Result ?? "",
             updating = updating ?? Updating,
