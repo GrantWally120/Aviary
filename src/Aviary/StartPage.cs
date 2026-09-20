@@ -222,8 +222,11 @@ internal static class StartPage
   /* ── Motion (Alpha Build 5 M4.5) — <html data-motion>: flight (Smooth Flight, Classic's),
      fluid (Fluid, Liquid Glass's spring) or off (Reduce motion). Set from the page's data and
      re-set by the host whenever the style changes (Motion.cs). */
-  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-dur:380ms;--m-rise:10px;}
-  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:560ms;--m-rise:18px;}
+  /* --m-x is Animation speed (M4.6) - see InternalPages for the same three lines. */
+  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-x:1;--m-dur:calc(380ms * var(--m-x));--m-rise:10px;}
+  html[data-speed="calm"]{--m-x:1.5;}
+  html[data-speed="quick"]{--m-x:.68;}
+  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:calc(560ms * var(--m-x));--m-rise:18px;}
   html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
 
   /* "Show keyboard focus clearly" (M4.5): the same ring as Settings’ own pages, and only
@@ -276,6 +279,7 @@ internal static class StartPage
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
 /* How this page moves (Motion.cs, M4.5): the host re-sets it whenever the style changes. */
 document.documentElement.dataset.motion = D.motion || 'flight';
+document.documentElement.dataset.speed = D.speed || 'standard';
 /* Show keyboard focus clearly (M4.5), the same switch as Settings' own pages. */
 if (D.focusRing) { document.documentElement.dataset.focus = 'clear'; }
 var ICONS = D.iconBase || '';

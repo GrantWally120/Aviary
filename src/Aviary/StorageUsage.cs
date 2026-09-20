@@ -42,7 +42,7 @@ internal static class StorageUsage
 
     public sealed record Category(string Key, string Name, string Plain, long Bytes, long OnDisk, int Files, IReadOnlyList<Item> Biggest);
 
-    public sealed record Result(IReadOnlyList<Category> Categories, long Bytes, long OnDisk, int Files, double Ms, string InstallFolder, string ProfileFolder, DateTimeOffset At);
+    public sealed record Result(IReadOnlyList<Category> Categories, long Bytes, long OnDisk, int Files, double Ms, string InstallFolder, string ProfileFolder, DateTimeOffset At, IReadOnlyList<Item> Sites, long SitesShared);
 
     public static Task<Result> MeasureAsync() => Task.Run(Measure);
 
@@ -73,6 +73,14 @@ internal static class StorageUsage
             tally[key] = (b + bytes, d + OnDisk(file.FullName, bytes), n + 1, parts);
         }
 
+        // M4.6: what each SITE keeps, where the engine's own layout says whose it is. Only some
+        // of it can be told apart: a site's databases sit in a folder named after its address
+        // ("https_example.com_0.indexeddb.leveldb"), while cookies and Local Storage are single
+        // shared databases with every site inside them. Both facts are reported rather than
+        // guessed at - the shared part is a figure of its own, not spread over the sites.
+        Dictionary<string, (long Bytes, int Files)> sites = new(StringComparer.OrdinalIgnoreCase);
+        long shared = 0;
+
         HashSet<string> seen = new(StringComparer.OrdinalIgnoreCase);
 
         // The profile first: when the profile lives inside the install folder (a test instance can),
@@ -81,8 +89,32 @@ internal static class StorageUsage
         {
             if (seen.Add(f.FullName))
             {
-                (string key, string part) = ClassifyProfile(Relative(profile, f.FullName));
+                string rel = Relative(profile, f.FullName);
+                (string key, string part) = ClassifyProfile(rel);
                 Add(key, part, f);
+
+                if (key == "sites")
+                {
+                    long size;
+                    try
+                    {
+                        f.Refresh();
+                        size = f.Length;
+                    }
+                    catch (Exception)
+                    {
+                        size = 0;
+                    }
+
+                    if (SiteOfPath(rel) is { Length: > 0 } site)
+                    {
+                        sites[site] = sites.TryGetValue(site, out (long B, int N) had) ? (had.B + size, had.N + 1) : (size, 1);
+                    }
+                    else
+                    {
+                        shared += size;
+                    }
+                }
             }
         }
 
@@ -106,8 +138,14 @@ internal static class StorageUsage
             return new Category(c.Key, c.Name, c.Plain, bytes, disk, files, biggest);
         }).ToList();
 
+        List<Item> bySite = sites
+            .Select(p => new Item(p.Key, p.Value.Bytes, p.Value.Files))
+            .OrderByDescending(i => i.Bytes)
+            .Take(12)
+            .ToList();
+
         return new Result(categories, categories.Sum(c => c.Bytes), categories.Sum(c => c.OnDisk), categories.Sum(c => c.Files),
-            Math.Round(timer.Elapsed.TotalMilliseconds, 1), install, profile, DateTimeOffset.Now);
+            Math.Round(timer.Elapsed.TotalMilliseconds, 1), install, profile, DateTimeOffset.Now, bySite, shared);
     }
 
     private static IEnumerable<FileInfo> Walk(string root)
@@ -126,6 +164,43 @@ internal static class StorageUsage
         };
 
         return new DirectoryInfo(root).EnumerateFiles("*", options);
+    }
+
+    /// <summary>
+    /// The site a website-data file belongs to, when the engine's own folder name says so, or null
+    /// when the file is one of the shared stores. Chromium names an origin's folder
+    /// "https_example.com_0.indexeddb.leveldb" - scheme, host, port - and uses the same shape for
+    /// a few other per-origin stores.
+    /// </summary>
+    private static string? SiteOfPath(string rel)
+    {
+        foreach (string mark in new[] { "\\IndexedDB\\", "\\File System\\", "\\WebStorage\\" })
+        {
+            int at = rel.IndexOf(mark, StringComparison.OrdinalIgnoreCase);
+            if (at < 0)
+            {
+                continue;
+            }
+
+            string rest = rel.Substring(at + mark.Length);
+            int slash = rest.IndexOf('\\');
+            string folder = slash > 0 ? rest.Substring(0, slash) : rest;
+
+            // Strip what the engine adds after the origin, then read the origin itself.
+            int dot = folder.IndexOf(".indexeddb", StringComparison.OrdinalIgnoreCase);
+            if (dot > 0)
+            {
+                folder = folder.Substring(0, dot);
+            }
+
+            string[] parts = folder.Split('_');
+            if (parts.Length >= 2 && (parts[0].Equals("https", StringComparison.OrdinalIgnoreCase) || parts[0].Equals("http", StringComparison.OrdinalIgnoreCase)))
+            {
+                return parts[1];
+            }
+        }
+
+        return null;
     }
 
     private static string Relative(string root, string full) =>

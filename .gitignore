@@ -57,3 +57,6 @@ tools/test/profiles/
 tools/test/shots/
 tools/test/pid.txt
 tools/test/lastinput.txt
+
+# The icon previews are for looking at while designing; the .ico files are what ship (M4.6).
+src/Aviary/Assets/preview-*.png

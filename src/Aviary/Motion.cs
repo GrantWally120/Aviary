@@ -33,7 +33,29 @@ internal static class Motion
     }
 
     public const string SettingKey = "animationStyle";
+    public const string SpeedKey = "animationSpeed";
     public const string MatchTheLook = "Match the look";
+
+    /// <summary>
+    /// How fast the whole browser moves (M4.6): Calm stretches every duration by half, Quick cuts
+    /// it by a third. One multiplier, read where the durations are made, so it reaches every
+    /// animation in the window AND - through <see cref="PageSpeed"/> - Settings and the Start Page.
+    /// Springs are not scaled by it: a spring's feel is its damping and period, not its length.
+    /// </summary>
+    public static double Speed => AppSettings.Get(SpeedKey) switch
+    {
+        "Calm" => 1.5,
+        "Quick" => 0.68,
+        _ => 1.0,
+    };
+
+    /// <summary>"calm", "standard" or "quick" - what Aviary's own pages key their durations off.</summary>
+    public static string PageSpeed => AppSettings.Get(SpeedKey) switch
+    {
+        "Calm" => "calm",
+        "Quick" => "quick",
+        _ => "standard",
+    };
 
     /// <summary>The style in force now, from the three settings that decide it.</summary>
     public static Style Current
@@ -75,9 +97,9 @@ internal static class Motion
     // ── The shared timing ──────────────────────────────────────────────────────
     // The Settings page's own curve, cubic-bezier(.32,.72,0,1): a fast start that settles.
 
-    public static readonly TimeSpan Quick = TimeSpan.FromMilliseconds(120);
-    public static readonly TimeSpan Standard = TimeSpan.FromMilliseconds(200);
-    public static readonly TimeSpan Slow = TimeSpan.FromMilliseconds(320);
+    public static TimeSpan Quick => TimeSpan.FromMilliseconds(120 * Speed);
+    public static TimeSpan Standard => TimeSpan.FromMilliseconds(200 * Speed);
+    public static TimeSpan Slow => TimeSpan.FromMilliseconds(320 * Speed);
 
     public static CompositionEasingFunction Ease(Compositor c) =>
         c.CreateCubicBezierEasingFunction(new Vector2(0.32f, 0.72f), new Vector2(0f, 1f));
@@ -420,6 +442,253 @@ internal static class Motion
         {
             Diagnostics.Swallowed(ex, "motion: reveal");
             element.Opacity = show ? 1 : 0;
+        }
+    }
+
+    // == FULL SCREEN (M4.6) =====================================================
+    // Full screen was the one thing left in Aviary that still snapped: the presenter changed and
+    // every row vanished in the same frame. These two move the chrome instead, and they are built
+    // around the one hard fact about the switch - the Windows App SDK's own SetPresenter holds the
+    // UI thread for 85-120 ms (M4.5 measured it; Grant's own 20 Sep log shows 92 ms with 62 ms of
+    // real work). So the motion goes where the thread is FREE: away first and then switch, or
+    // switch and then back.
+
+    /// <summary>
+    /// The chrome leaving for full screen: each row fades and slides up under the window's edge,
+    /// then <paramref name="done"/> runs - which is where the presenter actually changes. Every
+    /// row is put back exactly as it was first, so a cancelled or repeated toggle cannot leave one
+    /// half-faded. With motion off, <paramref name="done"/> runs at once.
+    /// </summary>
+    public static void LiftAway(IReadOnlyList<FrameworkElement> rows, Action done)
+    {
+        if (Current == Style.Off || rows.Count == 0)
+        {
+            done();
+            return;
+        }
+
+        try
+        {
+            Visual first = VisualOf(rows[0]);
+            Compositor c = first.Compositor;
+            CompositionScopedBatch batch = c.CreateScopedBatch(CompositionBatchTypes.Animation);
+
+            foreach (FrameworkElement row in rows)
+            {
+                if (row.Visibility != Visibility.Visible)
+                {
+                    continue;
+                }
+
+                ElementCompositionPreview.SetIsTranslationEnabled(row, true);
+                Visual v = VisualOf(row);
+                float up = -(float)Math.Max(row.ActualHeight, 1) - 8;
+
+                ScalarKeyFrameAnimation fade = c.CreateScalarKeyFrameAnimation();
+                fade.InsertKeyFrame(1f, 0f, Ease(c));
+                fade.Duration = Quick + TimeSpan.FromMilliseconds(20);
+                v.StartAnimation("Opacity", fade);
+
+                Vector3KeyFrameAnimation lift = c.CreateVector3KeyFrameAnimation();
+                lift.InsertKeyFrame(1f, new Vector3(0, up, 0), Ease(c));
+                lift.Duration = Quick + TimeSpan.FromMilliseconds(20);
+                v.StartAnimation("Translation", lift);
+            }
+
+            batch.End();
+            batch.Completed += (_, _) =>
+            {
+                try
+                {
+                    SettleNow(rows);
+                }
+                catch (Exception ex)
+                {
+                    Diagnostics.Swallowed(ex, "motion: reset after lift away");
+                }
+
+                try
+                {
+                    done();
+                }
+                catch (Exception ex)
+                {
+                    Diagnostics.Swallowed(ex, "motion: after lift away");
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "motion: lift away");
+            done();
+        }
+    }
+
+    /// <summary>
+    /// The chrome coming back from full screen: the rows start above where they belong, faded, and
+    /// settle - on a spring in Fluid, on the shared curve in Smooth Flight. Call it after the rows
+    /// are visible again and the layout has settled.
+    /// </summary>
+    public static void SettleBack(IReadOnlyList<FrameworkElement> rows)
+    {
+        Style style = Current;
+        if (style == Style.Off)
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (FrameworkElement row in rows)
+            {
+                if (row.Visibility != Visibility.Visible)
+                {
+                    continue;
+                }
+
+                ElementCompositionPreview.SetIsTranslationEnabled(row, true);
+                Visual v = VisualOf(row);
+                Compositor c = v.Compositor;
+                float up = -(float)Math.Max(row.ActualHeight, 1) - 8;
+
+                v.Opacity = 0;
+                v.Properties.InsertVector3("Translation", new Vector3(0, up, 0));
+
+                ScalarKeyFrameAnimation fade = c.CreateScalarKeyFrameAnimation();
+                fade.InsertKeyFrame(1f, 1f, Ease(c));
+                fade.Duration = Standard;
+                v.StartAnimation("Opacity", fade);
+
+                if (style == Style.Fluid)
+                {
+                    SpringVector3NaturalMotionAnimation settle = Spring3(c, 0.78f, 48);
+                    settle.FinalValue = Vector3.Zero;
+                    v.StartAnimation("Translation", settle);
+                }
+                else
+                {
+                    Vector3KeyFrameAnimation slide = c.CreateVector3KeyFrameAnimation();
+                    slide.InsertKeyFrame(1f, Vector3.Zero, Ease(c));
+                    slide.Duration = Standard;
+                    v.StartAnimation("Translation", slide);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "motion: settle back");
+            foreach (FrameworkElement row in rows)
+            {
+                VisualOf(row).Opacity = 1;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Puts one row back where it belongs, with no animation left on it.
+    ///
+    /// <b>"Translation" cannot be stopped through the Visual</b> (M4.6, bug 74): it is a property
+    /// of the visual's PROPERTY SET that SetIsTranslationEnabled adds, so StartAnimation on the
+    /// visual routes to it, but StopAnimation throws "The specified property was not found or
+    /// cannot be animated. Context: Translation". The first build of the full-screen motion threw
+    /// exactly there, inside the completion handler that changes the presenter - so F11 animated
+    /// and then did nothing at all. Stop it on the property set, and write the value afterwards
+    /// either way: an animation that has already finished has nothing to stop.
+    /// </summary>
+    private static void PutRowBack(FrameworkElement row)
+    {
+        Visual v = VisualOf(row);
+
+        try
+        {
+            v.StopAnimation("Opacity");
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "motion: stop row fade");
+        }
+
+        // ...and "Translation" cannot be stopped at all - not through the visual, not through its
+        // property set; both throw. What DOES work is starting another one: a one-millisecond
+        // animation home replaces whatever was running and lands on zero, and costs nothing when
+        // nothing was running.
+        Vector3KeyFrameAnimation home = v.Compositor.CreateVector3KeyFrameAnimation();
+        home.InsertKeyFrame(1f, Vector3.Zero);
+        home.Duration = TimeSpan.FromMilliseconds(1);
+        v.StartAnimation("Translation", home);
+
+        v.Opacity = 1;
+    }
+
+    /// <summary>Stops any full-screen animation and puts the rows back where they belong at once.</summary>
+    public static void SettleNow(IReadOnlyList<FrameworkElement> rows)
+    {
+        foreach (FrameworkElement row in rows)
+        {
+            try
+            {
+                PutRowBack(row);
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.Swallowed(ex, "motion: settle now");
+            }
+        }
+    }
+
+    /// <summary>
+    /// A menu or popover arriving (M4.6): it grows from the top edge it is anchored to, rather than
+    /// appearing in place. Every Aviary menu goes through MainWindow.Themed, so one call there
+    /// covers the app menu, the Aa menu, the tab and sidebar menus, downloads and Shields.
+    /// </summary>
+    public static void Bloom(FrameworkElement element)
+    {
+        Style style = Current;
+        if (style == Style.Off)
+        {
+            return;
+        }
+
+        try
+        {
+            Visual v = VisualOf(element);
+            Compositor c = v.Compositor;
+            float w = (float)(element.ActualWidth > 0 ? element.ActualWidth : element.Width);
+            float h = (float)(element.ActualHeight > 0 ? element.ActualHeight : element.Height);
+            if (float.IsNaN(w) || float.IsNaN(h) || w <= 0 || h <= 0)
+            {
+                return;
+            }
+
+            // Grows out of the top edge, in the middle: right for a menu under a button, and it
+            // never looks wrong for one placed elsewhere.
+            v.CenterPoint = new Vector3(w / 2, 0, 0);
+
+            ScalarKeyFrameAnimation fade = c.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0f, 0f);
+            fade.InsertKeyFrame(1f, 1f, Ease(c));
+            fade.Duration = Quick + TimeSpan.FromMilliseconds(30);
+            v.StartAnimation("Opacity", fade);
+
+            if (style == Style.Fluid)
+            {
+                v.Scale = new Vector3(0.94f, 0.9f, 1f);
+                SpringVector3NaturalMotionAnimation grow = Spring3(c, 0.68f, 42);
+                grow.FinalValue = Vector3.One;
+                v.StartAnimation("Scale", grow);
+            }
+            else
+            {
+                Vector3KeyFrameAnimation grow = c.CreateVector3KeyFrameAnimation();
+                grow.InsertKeyFrame(0f, new Vector3(0.97f, 0.94f, 1f));
+                grow.InsertKeyFrame(1f, Vector3.One, Ease(c));
+                grow.Duration = Quick + TimeSpan.FromMilliseconds(40);
+                v.StartAnimation("Scale", grow);
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "motion: bloom");
         }
     }
 

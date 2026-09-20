@@ -240,6 +240,31 @@ focus rings, the animated pane transitions, the chrome dimming when the window i
 one easing set used everywhere. M7 keeps the broader budget work — cold start, new-tab time,
 memory per background tab, and the long-session numbers.
 
+### M4.6 — Smooth Fix · **done 20 Sep 2026** (HANDOFF §22)
+
+Grant's third middle update, and the one that renamed the build: **Alpha Build 5 is "The Long
+Run"** (`BuildInfo.PhaseName`), because it has now run M0 → M4.6.
+
+- **Full screen moves** (`MainWindow.FullScreen.cs` + `Motion.LiftAway/SettleBack`): the chrome
+  lifts away and the presenter changes on the animation's last frame; coming back, the presenter
+  changes first and the chrome settles after. `presenterMs` now lands INSIDE `animateMs`.
+- **Motion**: Animation speed (Calm/Standard/Quick, one multiplier reaching the pages through
+  `--m-x`), menus and popovers bloom from their opener, and a pointer-following gleam on the glass.
+- **Liquid Glass → Window buttons** (Floating / Buttons on the glass / Bar aligned) — the bar moves
+  to Windows' buttons, since the buttons themselves cannot move (M4.5's finding).
+- **Storage Usage**: per-site stores where the engine's folders name an origin, the shared
+  databases reported as shared, the graphics caches cleared at the next launch (before the engine
+  opens them), the 650 MB cap drawn, and a re-measure every 10 s while the pane is open.
+- **Performance**: per-tab data (WebResourceResponseReceived attached only while watching), GPU by
+  engine, commit and peak memory, a per-tab sort, and a 1/2/5-second sampling choice.
+- **Tabs**: new-tab position, new tab opens with the current page, middle-click closes, and the
+  close cross always/on hover/never.
+- **The app icon**, at last: `tools/icon/build-icon.ps1` draws the birdcage dome on a blue tile and
+  on a glass tile, ten sizes each; `<ApplicationIcon>` carries the blue one and Accessibility →
+  App Icon switches the running window between them.
+- Bugs 73 (the settings round-trip Grant's own log caught) and 74 (Composition's "Translation"
+  cannot be stopped, which silently killed the first F11 animation).
+
 ### M5 — Carried from Phase 4
 - **Download ring, popover, persisted history** — straight from the recovered spec
   `scratchpad/specs/downloads-safari-progress-ring-button-po.md`: `DownloadRing.cs`,

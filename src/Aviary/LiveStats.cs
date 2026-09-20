@@ -32,7 +32,7 @@ internal static class LiveStats
     public sealed record Proc(int Pid, string Kind);
 
     /// <summary>One process, measured.</summary>
-    public sealed record Figures(int Pid, string Kind, double MemoryMB, double CpuPercent, double GpuPercent, double GpuMemoryMB, int Handles);
+    public sealed record Figures(int Pid, string Kind, double MemoryMB, double CpuPercent, double GpuPercent, double GpuMemoryMB, int Handles, double CommitMB, double PeakMB);
 
     /// <summary>One second's reading.</summary>
     public sealed record Reading(
@@ -47,7 +47,13 @@ internal static class LiveStats
         double? BlockerAverageUs,
         double? BlockerWorstUs,
         long BlockerChecks,
-        double SamplerMs);
+        double SamplerMs,
+
+        // M4.6: memory Aviary has ASKED for (commit) and the most it has ever held (peak), and
+        // what each kind of GPU engine was doing.
+        double CommitMB,
+        double PeakMB,
+        IReadOnlyDictionary<string, double> GpuByEngine);
 
     private static readonly object Gate = new();
     private static volatile IReadOnlyList<Proc> _procs = Array.Empty<Proc>();
@@ -75,7 +81,16 @@ internal static class LiveStats
             _watching = true;
             ResetBlocker();
             _uiWorst.Clear();
-            _timer = new Timer(_ => Tick(), null, 0, 1000);
+            // M4.6: 1, 2 or 5 seconds, from Settings. Slower costs less and smooths the lines;
+            // the page says which rate it is showing and what the sampling itself costs.
+            int every = AppSettings.Get("perfInterval") switch
+            {
+                "Every 2 seconds" => 2000,
+                "Every 5 seconds" => 5000,
+                _ => 1000,
+            };
+
+            _timer = new Timer(_ => Tick(), null, 0, every);
         }
     }
 
@@ -191,7 +206,9 @@ internal static class LiveStats
                     Math.Round(m.Cpu, 1),
                     Math.Round(busy.TryGetValue(p.Pid, out double g) ? g : 0, 1),
                     Math.Round((dedicated.TryGetValue(p.Pid, out long d) ? d : 0) / 1048576.0, 1),
-                    m.Handles));
+                    m.Handles,
+                    Math.Round(m.CommitBytes / 1048576.0, 1),
+                    Math.Round(m.PeakBytes / 1048576.0, 1)));
             }
 
             lock (Gate)
@@ -227,7 +244,10 @@ internal static class LiveStats
                 checks == 0 ? null : Us(ticks / checks),
                 checks == 0 ? null : Us(worst),
                 checks,
-                Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2));
+                Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2),
+                Math.Round(rows.Sum(r => r.CommitMB), 1),
+                Math.Round(rows.Sum(r => r.PeakMB), 1),
+                gpu.ByEngine.ToDictionary(p => p.Key, p => Math.Round(Math.Min(100, p.Value), 1), StringComparer.Ordinal));
 
             deliver(reading);
         }
@@ -237,7 +257,7 @@ internal static class LiveStats
         }
     }
 
-    private readonly record struct Measured(long PrivateBytes, double Cpu, int Handles);
+    private readonly record struct Measured(long PrivateBytes, double Cpu, int Handles, long CommitBytes, long PeakBytes);
 
     private static Measured? Measure(int pid, long now)
     {
@@ -288,15 +308,21 @@ internal static class LiveStats
             Seen[pid] = (handle, cpu, now);
         }
 
-        long privateBytes = 0;
+        long privateBytes = 0, commit = 0, peak = 0;
         MemoryCountersEx2 counters = new() { cb = (uint)Marshal.SizeOf<MemoryCountersEx2>() };
         if (GetProcessMemoryInfo(handle, ref counters, counters.cb))
         {
             privateBytes = (long)counters.PrivateWorkingSetSize;
+
+            // M4.6: PrivateUsage is what the process has asked Windows to commit - the figure that
+            // does not fall when memory is paged out - and PeakWorkingSetSize is the most it ever
+            // held at once. Together they say whether a tab has really given memory back.
+            commit = (long)counters.PrivateUsage;
+            peak = (long)counters.PeakWorkingSetSize;
         }
 
         GetProcessHandleCount(handle, out uint handles);
-        return new Measured(privateBytes, lastCpu >= 0 ? percent : 0, (int)handles);
+        return new Measured(privateBytes, lastCpu >= 0 ? percent : 0, (int)handles, commit, peak);
     }
 
     // ── Win32 ─────────────────────────────────────────────────────────────────

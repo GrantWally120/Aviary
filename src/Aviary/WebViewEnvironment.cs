@@ -48,11 +48,67 @@ internal static class WebViewEnvironment
     /// <summary>The settings that are engine switches — each needs a restart to change.</summary>
     public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect", "reduceMotion" };
 
+    /// <summary>The engine's compiled-shader and GPU caches, which it opens at launch and holds.</summary>
+    private static readonly string[] GpuCaches =
+    {
+        "ShaderCache", "GrShaderCache", "GraphiteDawnCache", "GPUCache", "DawnWebGPUCache", "DawnGraphiteCache",
+    };
+
+    /// <summary>
+    /// "Clear at the next launch" from Settings -> Storage Usage (M4.6). These folders cannot be
+    /// cleared while Aviary runs - the engine keeps them open from the moment it starts - so the
+    /// choice is remembered and honoured HERE, before the environment exists and therefore before
+    /// anything has opened them.
+    /// </summary>
+    private static void ClearGpuCachesIfAsked()
+    {
+        if (!AppSettings.GetBool("clearGpuCaches"))
+        {
+            return;
+        }
+
+        int removed = 0;
+        long bytes = 0;
+        try
+        {
+            foreach (string folder in Directory.EnumerateDirectories(UserDataFolder, "*", SearchOption.AllDirectories))
+            {
+                if (Array.IndexOf(GpuCaches, Path.GetFileName(folder)) < 0)
+                {
+                    continue;
+                }
+
+                foreach (string file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+                {
+                    try
+                    {
+                        bytes += new FileInfo(file).Length;
+                    }
+                    catch (Exception)
+                    {
+                        // A file that vanished between listing and measuring is one less to delete.
+                    }
+                }
+
+                Directory.Delete(folder, recursive: true);
+                removed++;
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "engine: clear graphics caches");
+        }
+
+        AppSettings.Set("clearGpuCaches", "false");
+        Diagnostics.Perf("gpu-caches-cleared", new { folders = removed, mb = Math.Round(bytes / 1048576.0, 1) });
+    }
+
     public static void EnsureUserDataFolder()
     {
         try
         {
             Directory.CreateDirectory(UserDataFolder);
+            ClearGpuCachesIfAsked();
         }
         catch (Exception ex)
         {

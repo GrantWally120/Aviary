@@ -66,6 +66,7 @@ public sealed partial class MainWindow : Window
         WatchForSessionEnd(hWnd);
         WatchForManyTabsClose();
         ApplyFocusVisuals();
+        ApplyAppIcon();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -638,7 +639,21 @@ public sealed partial class MainWindow : Window
         WireShields(tab);
         tab.BlankTabRequested = OpenBlankTabAsync;
 
-        _tabs.Add(tab);
+        // M4.6 - "New tab position": Safari opens a new tab right after the one you were on;
+        // "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the
+        // pins whichever way round it is.
+        int at = _tabs.Count;
+        if (select && _active is { } from
+            && AppSettings.Get("newTabPosition").StartsWith("After", StringComparison.OrdinalIgnoreCase))
+        {
+            int after = _tabs.IndexOf(from);
+            if (after >= 0)
+            {
+                at = Math.Max(_pinned.Count, after + 1);
+            }
+        }
+
+        _tabs.Insert(Math.Clamp(at, 0, _tabs.Count), tab);
 
         // The colour Aviary's pages sit on, from the start. The tab itself stays invisible until
         // its first page has painted (BrowserTab.Background.cs, bug 61).
@@ -710,7 +725,15 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        if (url is null)
+        // M4.6 - "New tab opens with": the Start Page, or the page you are already on. Never for
+        // one of Aviary's own pages, and never when a section of the Start Page was asked for.
+        string? carry = url is null && focus is null
+                        && AppSettings.Get("newTabShowsPage").StartsWith("The page", StringComparison.OrdinalIgnoreCase)
+                        && _active is { IsInternalPage: false, Url.Length: > 0 } from
+            ? from.Url
+            : null;
+
+        if (url is null && carry is null)
         {
             if (tab.View.CoreWebView2 is CoreWebView2 startCore)
             {
@@ -718,6 +741,10 @@ public sealed partial class MainWindow : Window
             }
 
             tab.NavigateToHtml(BuildStartPageHtml(focus), "Start Page");
+        }
+        else if (url is null)
+        {
+            tab.Navigate(carry!);
         }
         else
         {
@@ -887,6 +914,7 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
                    + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";"
+                   + " window.__aviarySpeed = " + JsonSerializer.Serialize(Motion.PageSpeed) + ";"
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
@@ -1029,6 +1057,7 @@ public sealed partial class MainWindow : Window
             token = PageToken,
             // How it moves: "flight", "fluid" or "off" (Motion.cs, M4.5) — its CSS keys off it.
             motion = Motion.PageToken,
+            speed = Motion.PageSpeed,
             focusRing = AppSettings.GetBool("focusRing"),
             isPrivate = _private,
             iconBase = Favicons.IconBase,
@@ -1178,15 +1207,41 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// Where Liquid Glass puts its bar, and what that does about Windows' three buttons (M4.6).
+    ///
+    /// Windows draws the caption buttons itself, 46x48 at the very top right - the Tall option, the
+    /// only one that matches a 48px bar (ConfigureTitleBar). Their vertical place is Windows' to
+    /// decide: an app can hide them or leave them, and M4.5 proved it cannot draw its own without
+    /// losing Snap Layouts (HANDOFF section 8). So the bar moves to them instead:
+    ///
+    ///  - <b>Floating</b> - the bar sits 8px down, and the buttons ride 8px above its centre line.
+    ///  - <b>Buttons on the glass</b> - the bar runs up and right to the window's corner, so the
+    ///    buttons sit ON the glass. They are still Windows' buttons, so Snap Layouts still work.
+    ///  - <b>Bar aligned</b> - the bar keeps its side gaps and loses the top one, so its centre
+    ///    line matches theirs.
+    ///
+    /// Classic never asks: its bar is welded to the top already, and the buttons line up there.
+    /// </summary>
+    private string WindowButtons => AppSettings.Get("windowButtons") is { Length: > 0 } choice ? choice : "Floating";
+
     private void ApplyLookGeometry(bool glass)
     {
         // Liquid Glass floats: nothing touches the window edge, and the visible gap is
         // where Mica finally shows through. Classic is welded to the top at y=0.
-        Thickness toolbarMargin = glass ? new Thickness(12, 8, 12, 0) : new Thickness(0);
+        bool onGlass = glass && WindowButtons.StartsWith("Buttons", StringComparison.OrdinalIgnoreCase);
+        bool aligned = glass && WindowButtons.StartsWith("Bar", StringComparison.OrdinalIgnoreCase);
+        double top = onGlass || aligned ? 0 : 8;
+
+        Thickness toolbarMargin = glass ? new Thickness(12, top, onGlass ? 0 : 12, 0) : new Thickness(0);
         Thickness stripMargin = glass ? new Thickness(12, 8, 12, 0) : new Thickness(0);
 
         ToolbarRow.Margin = toolbarMargin;
-        ToolbarRow.CornerRadius = new CornerRadius(glass ? 24 : 0);
+
+        // Square where it meets the window's own top-right corner; rounded everywhere it floats.
+        ToolbarRow.CornerRadius = !glass ? new CornerRadius(0)
+            : onGlass ? new CornerRadius(24, 0, 24, 24)
+            : new CornerRadius(24);
         ToolbarRow.Height = 48;
 
         TabStripRow.Margin = stripMargin;
@@ -1630,8 +1685,22 @@ public sealed partial class MainWindow : Window
         ToolTipService.SetToolTip(button, tab.Title);
         WireTabAccess(button, tab);
 
-        button.PointerEntered += (_, _) => { FadeTo(icon, 0, 150); FadeTo(close, 1, 150); };
-        button.PointerExited += (_, _) => { FadeTo(icon, 1, 120); FadeTo(close, 0, 120); };
+        // M4.6 - "Tab close button": Always keeps the cross there, Never leaves only the icon
+        // (Ctrl+W, the middle button and the tab's own menu still close it), On hover is Safari's
+        // own trick of the icon turning into the cross when you point at it.
+        button.PointerEntered += (_, _) =>
+        {
+            if (TabCloseShows == "Never") { return; }
+            FadeTo(icon, 0, 150);
+            FadeTo(close, 1, 150);
+        };
+        button.PointerExited += (_, _) =>
+        {
+            if (TabCloseShows == "Never") { return; }
+            bool always = TabCloseShows == "Always";
+            FadeTo(icon, always ? 0 : 1, 120);
+            FadeTo(close, always ? 1 : 0, 120);
+        };
 
         button.Click += (_, _) =>
         {
@@ -1676,6 +1745,20 @@ public sealed partial class MainWindow : Window
             e.Handled = true;
             CloseTab(tab);
         };
+
+        // M4.6 - the middle button closes a tab, the way every browser on this platform does.
+        button.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler((_, e) =>
+        {
+            if (!AppSettings.GetBool("middleClickCloses")
+                || !e.GetCurrentPoint(button).Properties.IsMiddleButtonPressed)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            DiagUi("tab-close-middle", new { tab = tab.Id });
+            CloseTab(tab);
+        }), true);
 
         return button;
     }
@@ -2573,6 +2656,27 @@ public sealed partial class MainWindow : Window
 
                     break;
 
+                case "appIcon":
+                    foreach (MainWindow w in OpenWindows)
+                    {
+                        w.ApplyAppIcon();
+                    }
+
+                    break;
+
+                case "tabCloseButton":
+                    ApplyTabCloseButtons();
+                    break;
+
+                case "windowButtons":
+                    ApplyLookGeometry(AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase));
+                    UpdateCaptionSpacer();
+                    break;
+
+                case "animationSpeed":
+                    PushMotionToPages();
+                    break;
+
                 case "focusRing":
                     ApplyFocusVisuals();
                     RefreshStartPages();
@@ -2850,6 +2954,16 @@ public sealed partial class MainWindow : Window
                 case "storageMeasure":
                     await StorageMeasureAsync(page);
                     break;
+
+                // M4.6 - the graphics caches, promised to (or taken back from) the next launch.
+                case "storageClearGpu":
+                {
+                    bool want = string.Equals(arg, "on", StringComparison.OrdinalIgnoreCase);
+                    AppSettings.Set("clearGpuCaches", want ? "true" : "false");
+                    Diagnostics.Perf("gpu-caches-asked", new { want });
+                    await StorageMeasureAsync(page);
+                    break;
+                }
 
                 case "storageClearCache":
                     await StorageClearCacheAsync(page);

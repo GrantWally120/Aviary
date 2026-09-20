@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated 19 September 2026: the landing page's Legacy look (section 19), the native-crash recorder, and bugs 50 and 63–66 with the section 8 loose ends (section 10).
+Last updated **20 September 2026**, at the end of **M4.6 “Smooth Fix”** — section 22, and the one to read first if you are picking this up. Alpha Build 5 is now called **The Long Run**: it has run M0, M1, M2, M2.5, M3, M4, M4.5 and M4.6, and M5 is still on hold until Grant says otherwise.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -132,7 +132,7 @@ app say is the build name — `BuildInfo.NameOf` / `CodeOf` (section 15).
 | 02 | Alpha Build 2 · AB2 | Tabs and settings | done 6 Sep 2026 |
 | 03 | Alpha Build 3 · AB3 | Theming and features | done 6 Sep 2026 |
 | 04 | Alpha Build 4 · AB4 | Safari features | done 7 Sep 2026 |
-| **05** | **Alpha Build 5 · AB5** | **Privacy that works (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3, M4 done (6 of 10); M5 on hold (Grant, 14 Sep)** |
+| **05** | **Alpha Build 5 · AB5** | **The Long Run (pre-release)** | **IN PROGRESS — M0, M1, M2, M2.5, M3, M4, M4.5, M4.6 done (8 of 12); M5 on hold (Grant, 14 Sep)** |
 | 06 | Beta Build 1 · BB1 | "Testing 1" | planned |
 | 07 | Beta Build 2 · BB2 | "Testing 2" | planned |
 
@@ -1171,6 +1171,21 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     change, rules included — and a filter rule can name any site someone visits.
     `AppSettings.PrivateKeys` is now honoured in both places, and `SettingsRendered` skips those
     keys. **Redacting one path is not redacting: grep the collected data for the value itself.**
+73. **The settings page and the store disagreed about a value the page had helpfully normalised**
+    (found 20 Sep in GRANT'S OWN diagnostics, twice: `settings-roundtrip`, "Settings shows
+    listsAutoUpdate as \"Off\" but the store holds \"false\""). M4.5 turned that switch into
+    Off/Daily/Weekly and taught the PAGE to read a legacy `false` as Off — which drew correctly and
+    still left the two disagreeing, which is exactly what the round-trip check exists to catch.
+    The value itself is migrated in `AppSettings.Load` now. **When a control's shape changes,
+    migrate the stored value; do not teach the page to read the old one.**
+74. **A Composition "Translation" animation cannot be stopped** (found 20 Sep, the first build of
+    M4.6's full-screen motion). `SetIsTranslationEnabled` puts Translation in the visual's PROPERTY
+    SET; `visual.StartAnimation("Translation", ...)` routes to it, but `StopAnimation("Translation")`
+    throws "The specified property was not found or cannot be animated" — on the visual AND on the
+    property set. It threw inside the batch-completed handler that changes the presenter, so F11
+    animated and then did nothing at all, and only the crash log said why. To land Translation
+    somewhere, start a one-millisecond animation to that value instead (`Motion.PutRowBack`).
+    **Anything that must happen after an animation goes before the cleanup, or in its own try.**
 
 ---
 
@@ -1823,3 +1838,55 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   - **Left undone, on purpose:** a photograph of the chrome focus ring after a real Tab — Grant was at
     the keyboard all afternoon and `guard.ps1` refused every attempt. Everything else in Stage 8 was
     verified in the running app.
+
+## 22. Alpha Build 5 M4.6 "Smooth Fix" (20 Sep 2026 — DONE)
+
+Grant's third middle update, and the one that renamed the build. Plan:
+`C:\Users\user\.claude\plans\dont-do-m5-yet-distributed-sparkle.md` (it holds M4.6 now; M4.5's
+record is §21). His asks, in his words: *"fix the f11 full screen … the animation is bad its just
+not there for me"*, *"smoothen up the animations"*, *"add a couple more options"*, *"improve
+storage and performance sections"*, *"change AB5's name to The Long Run"*, *"improve the liquid
+glass a bit"*, *"add the alinement of the windows thingy … as an option"*, and *"add a icon for our
+Browser"*.
+
+- **Full screen moves now** (`MainWindow.FullScreen.cs`, `Motion.LiftAway/SettleBack/SettleNow`).
+  The switch itself cannot be animated — `AppWindow.SetPresenter` holds the UI thread 85–120 ms —
+  so the motion goes where the thread is free: **in**, the chrome lifts away and the presenter
+  changes on the animation's last frame; **out**, the presenter changes while the page still fills
+  the screen and the chrome settles afterwards. The perf line proves it: `on: presenterMs 45.5,
+  animateMs 166` — the switch lands inside the motion — and `off: presenterMs 119.6`, spent with
+  nothing on screen to stutter. Filmed both ways with `frames.ps1`.
+- **Motion**: **Animation speed** (Calm ×1.5 / Standard / Quick ×0.68) is one multiplier on
+  `Motion.Quick/Standard/Slow` and, through `--m-x` on `<html data-speed>`, on Settings and the
+  Start Page too. Menus and popovers **bloom** from their opener — one call in `ThemeOpenPopups`,
+  which every Aviary menu already passes through. A **gleam** follows the pointer along the glass
+  (Fluid only; a RadialGradientBrush moved on PointerMoved, ignored below 2 px of travel).
+- **Liquid Glass → Window buttons** (`ApplyLookGeometry`): *Floating* (today), *Buttons on the
+  glass* (margin 12,0,0,0 and a square top-right corner, so Windows' three buttons sit on the bar
+  — still Windows' buttons, so Snap Layouts keep working), *Bar aligned* (12,0,12,0). Checked by
+  probing the pixels: at y=6 the window background reads #1B1B1B floating and the bar's own
+  #080808 in the other two. **The buttons themselves still cannot move (M4.5, §8) — the bar moves.**
+- **Storage Usage**: per-site stores where the engine's own folder names carry an origin
+  (`https_example.com_0.indexeddb.leveldb`), with the cookie and local-storage databases reported
+  as shared rather than split by guesswork; **"Clear graphics caches at the next launch"**, honoured
+  in `WebViewEnvironment.EnsureUserDataFolder` before the engine exists (proved: 6 folders, 6.8 MB,
+  logged as `gpu-caches-cleared`, and the setting resets itself); the 650 MB cap drawn as a bar; and
+  a re-measure every 10 s while the pane is on screen.
+- **Performance**: **data per tab**, counted from `WebResourceResponseReceived` attached ONLY while
+  the pane is watching (this is what M4.5 could not afford); **GPU by engine** (Drawing / Playing
+  video / Moving data — the headline stays the busiest engine, never the sum); **commit and peak
+  memory** beside the working set; a **per-tab sort**; and a **1/2/5-second** sampling choice.
+- **Tabs**: new-tab position (proved by the ids: `[1, 6, 2, 3, 4, 5]`), "new tab opens with the page
+  I'm on", middle-click to close, and the close cross always/on hover/never.
+- **The app icon**: `tools/icon/build-icon.ps1` draws Aviary's own birdcage dome on a blue tile and
+  on a glass tile at ten sizes and writes both `.ico` files by hand (PNG entries; no new
+  dependency). `<ApplicationIcon>` carries the blue one — that is what Explorer shows, and it
+  cannot change while Aviary runs — and **Accessibility → App Icon** switches the running window,
+  taskbar and Alt-Tab through `AppWindow.SetIcon`.
+- **The build is "The Long Run"** — `BuildInfo.PhaseName`, the phase-5 entry in `UPDATES`,
+  `Aviary.html`, and the table in §1 of this file.
+- **Bugs 73 and 74** (§10). 73 came from Grant's own diagnostics; 74 came from Aviary's crash log
+  catching its own broken animation.
+- **Checked**: engine harness 125/125 · `settings-audit.js` **54 live rows, 10 badged, 0 inert** ·
+  the new panes read back in the running app · no anomalies in the test profile beyond one
+  unclean-exit caused by the tester force-closing it.

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -61,7 +62,79 @@ public sealed partial class MainWindow
         }
     }
 
+    /// <summary>The rows that leave and come back, in the order they sit down the window.</summary>
+    private IReadOnlyList<FrameworkElement> FullScreenRows => new FrameworkElement[]
+    {
+        ToolbarRow,
+        TabStripRow,
+        BookmarksBar,
+    };
+
+    /// <summary>An animated switch is in flight; a second F11 finishes it rather than fighting it.</summary>
+    private bool _fullScreenMoving;
+
+    /// <summary>
+    /// F11, with the motion M4.6 gave it (Grant: "the animation is bad its just not there for me").
+    ///
+    /// The switch itself cannot be animated: <see cref="AppWindow.SetPresenter"/> holds the UI
+    /// thread for 85-120 ms, which is 5 to 7 frames of nothing moving whatever we ask for. So the
+    /// motion is put where the thread is free, and the switch is hidden inside it:
+    ///
+    ///  - <b>Going in</b> the chrome lifts away first, and the presenter changes on the last frame
+    ///    of that animation - by which point there is nothing left on screen for the stall to
+    ///    interrupt.
+    ///  - <b>Coming out</b> the presenter changes while the page still fills the screen, and the
+    ///    chrome settles back down afterwards.
+    ///
+    /// Reduce motion, or Animation style Off, takes the old instant path.
+    /// </summary>
     private void SetFullScreen(bool on, bool byPage)
+    {
+        if (_appWindow is null || on == _fullScreen)
+        {
+            return;
+        }
+
+        if (_fullScreenMoving)
+        {
+            // Mid-flight: put the rows down where they belong and switch without ceremony, so a
+            // fast double press cannot leave the chrome hanging above the window.
+            Motion.SettleNow(FullScreenRows);
+            _fullScreenMoving = false;
+            SwitchFullScreen(on, byPage);
+            return;
+        }
+
+        if (!Motion.On)
+        {
+            SwitchFullScreen(on, byPage);
+            return;
+        }
+
+        long moveStart = System.Diagnostics.Stopwatch.GetTimestamp();
+        _fullScreenMoving = true;
+
+        if (on)
+        {
+            Motion.LiftAway(FullScreenRows, () =>
+            {
+                _fullScreenMoving = false;
+                SwitchFullScreen(true, byPage,
+                    Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(moveStart).TotalMilliseconds, 1));
+            });
+
+            return;
+        }
+
+        SwitchFullScreen(false, byPage,
+            Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(moveStart).TotalMilliseconds, 1));
+
+        // The rows are visible and laid out again by now; start them above and let them settle.
+        _fullScreenMoving = false;
+        Motion.SettleBack(FullScreenRows);
+    }
+
+    private void SwitchFullScreen(bool on, bool byPage, double animateMs = 0)
     {
         if (_appWindow is null || on == _fullScreen)
         {
@@ -104,7 +177,16 @@ public sealed partial class MainWindow
 
         long chromeStart = System.Diagnostics.Stopwatch.GetTimestamp();
         ApplyFullScreenChrome();
-        DiagPerf("full-screen", new { on, presenterMs, chromeMs = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(chromeStart).TotalMilliseconds, 1) });
+        DiagPerf("full-screen", new
+        {
+            on,
+            presenterMs,
+            chromeMs = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(chromeStart).TotalMilliseconds, 1),
+
+            // M4.6: how long the motion ran before the switch (going in) or before the rows came
+            // back (coming out). presenterMs landing inside animateMs is the whole point.
+            animateMs,
+        });
 
         if (on)
         {
@@ -156,6 +238,7 @@ public sealed partial class MainWindow
     {
         FullScreenHintText.Text = text;
         FullScreenHint.Visibility = Visibility.Visible;
+        Motion.SlideIn(FullScreenHint, 14);
         FadeTo(FullScreenHint, 1, 180);
 
         _hintTimer?.Stop();

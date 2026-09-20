@@ -53,6 +53,15 @@ internal sealed class GlassCapsule
     private readonly Panel _layerPanel;
     private readonly Func<string, object?> _theme;
     private readonly Border _sheen, _ring, _edgeTop, _edgeBottom;
+
+    /// <summary>
+    /// The gleam (M4.6): a soft light that follows the pointer along the capsule, the way a real
+    /// pane of glass catches a moving light. Fluid only - it is the gel look's own flourish, and
+    /// Smooth Flight is meant to be calm. Off with Reduce motion, like everything else.
+    /// </summary>
+    private readonly Border _gleam;
+    private readonly RadialGradientBrush _gleamBrush;
+    private double _gleamAt = -1;
     private readonly Canvas _shadowHost;
     private readonly SpriteVisual _shadow;
     private readonly LinearGradientBrush _ringBrush = new() { MappingMode = BrushMappingMode.Absolute };
@@ -95,6 +104,21 @@ internal sealed class GlassCapsule
         _theme = theme;
 
         _sheen = Layer();
+        _gleam = Layer();
+        _gleamBrush = new RadialGradientBrush
+        {
+            Center = new Windows.Foundation.Point(0.5, 0.5),
+            GradientOrigin = new Windows.Foundation.Point(0.5, 0.5),
+
+            // Wide and shallow: a highlight that runs along the bar rather than a spotlight on it.
+            RadiusX = 0.22,
+            RadiusY = 1.4,
+        };
+        _gleamBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x26, 0xFF, 0xFF, 0xFF), Offset = 0 });
+        _gleamBrush.GradientStops.Add(new GradientStop { Color = Windows.UI.Color.FromArgb(0x00, 0xFF, 0xFF, 0xFF), Offset = 1 });
+        _gleam.Background = _gleamBrush;
+        _gleam.Opacity = 0;
+
         _ring = Layer();
         _ring.BorderThickness = new Thickness(1);
         _ring.BorderBrush = _ringBrush;
@@ -107,6 +131,7 @@ internal sealed class GlassCapsule
         layerPanel.Children.Insert(0, _ring);
         layerPanel.Children.Insert(0, _edgeBottom);
         layerPanel.Children.Insert(0, _edgeTop);
+        layerPanel.Children.Insert(0, _gleam);
         layerPanel.Children.Insert(0, _sheen);
 
         // The shadow's host shares the bar's cell and sits under it in z-order. It measures to
@@ -122,6 +147,11 @@ internal sealed class GlassCapsule
         _shadow = Compositor.CreateSpriteVisual();
         ElementCompositionPreview.SetElementChildVisual(_shadowHost, _shadow);
 
+        // The gleam follows the pointer across the bar, and goes out when it leaves.
+        capsule.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnGleamPointer), true);
+        capsule.AddHandler(UIElement.PointerExitedEvent, new PointerEventHandler((_, _) => ShowGleam(false)), true);
+        capsule.AddHandler(UIElement.PointerCanceledEvent, new PointerEventHandler((_, _) => ShowGleam(false)), true);
+
         capsule.SizeChanged += (_, _) => Settle();
         _settle = capsule.DispatcherQueue.CreateTimer();
         _settle.Interval = TimeSpan.FromMilliseconds(80);
@@ -132,6 +162,62 @@ internal sealed class GlassCapsule
 
     private static Compositor? _compositor;
     private static Compositor Compositor => _compositor ?? throw new InvalidOperationException("GlassCapsule used before any capsule was made.");
+
+    /// <summary>
+    /// Moves the gleam to the pointer. The brush's centre is in the capsule's own 0-1 space, so
+    /// nothing here depends on the window's size or scale; it is two property writes, and only
+    /// when the pointer has actually moved a couple of pixels along the bar.
+    /// </summary>
+    private void OnGleamPointer(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_enabled || Motion.Current != Motion.Style.Fluid)
+        {
+            if (_gleam.Opacity > 0)
+            {
+                ShowGleam(false);
+            }
+
+            return;
+        }
+
+        try
+        {
+            double width = _capsule.ActualWidth;
+            if (width <= 1)
+            {
+                return;
+            }
+
+            double x = e.GetCurrentPoint(_capsule).Position.X / width;
+            if (_gleamAt >= 0 && Math.Abs(x - _gleamAt) * width < 2)
+            {
+                return;
+            }
+
+            _gleamAt = Math.Clamp(x, 0, 1);
+            _gleamBrush.Center = new Windows.Foundation.Point(_gleamAt, 0.5);
+            _gleamBrush.GradientOrigin = new Windows.Foundation.Point(_gleamAt, 0.42);
+            ShowGleam(true);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "glass: gleam");
+        }
+    }
+
+    private void ShowGleam(bool on)
+    {
+        if (on && _gleam.Opacity >= 1)
+        {
+            return;
+        }
+
+        Motion.FadeTo(_gleam, on ? 1f : 0f, TimeSpan.FromMilliseconds(on ? 180 : 260));
+        if (!on)
+        {
+            _gleamAt = -1;
+        }
+    }
 
     private static Border Layer() => new()
     {
@@ -144,7 +230,12 @@ internal sealed class GlassCapsule
     {
         _enabled = glass;
         Visibility v = glass ? Visibility.Visible : Visibility.Collapsed;
-        _sheen.Visibility = _ring.Visibility = _edgeTop.Visibility = _edgeBottom.Visibility = v;
+        _sheen.Visibility = _gleam.Visibility = _ring.Visibility = _edgeTop.Visibility = _edgeBottom.Visibility = v;
+        if (!glass)
+        {
+            _gleam.Opacity = 0;
+            _gleamAt = -1;
+        }
         _shadowHost.Visibility = v;
         _drawn = string.Empty;
         Refresh();
@@ -167,7 +258,7 @@ internal sealed class GlassCapsule
             CornerRadius radius = CornerOf(_capsule);
             Thickness inset = PaddingOf(_capsule);
 
-            foreach (Border layer in new[] { _sheen, _ring, _edgeTop, _edgeBottom })
+            foreach (Border layer in new[] { _sheen, _gleam, _ring, _edgeTop, _edgeBottom })
             {
                 layer.CornerRadius = radius;
 

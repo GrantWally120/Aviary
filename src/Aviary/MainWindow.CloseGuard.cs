@@ -84,6 +84,37 @@ public sealed partial class MainWindow
     }
 
     /// <summary>
+    /// The icon on the window, in the taskbar and in Alt-Tab (M4.6). Two are shipped - the blue
+    /// tile and the glass one - and Settings -> Accessibility -> App Icon chooses between them
+    /// while Aviary runs. The icon INSIDE Aviary.exe cannot change while it runs, which is why
+    /// the row says Explorer keeps showing the built-in one.
+    /// </summary>
+    private void ApplyAppIcon()
+    {
+        try
+        {
+            if (_appWindow is null)
+            {
+                return;
+            }
+
+            bool glass = AppSettings.Get("appIcon").StartsWith("Glass", StringComparison.OrdinalIgnoreCase);
+            string file = glass ? "Aviary-Glass.ico" : "Aviary.ico";
+            string path = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", file);
+
+            if (System.IO.File.Exists(path))
+            {
+                _appWindow.SetIcon(path);
+            }
+        }
+        catch (Exception ex)
+        {
+            // An icon that will not load leaves the one the exe carries, which is the same mark.
+            Diagnostics.Swallowed(ex, "window: app icon");
+        }
+    }
+
+    /// <summary>
     /// "Show keyboard focus clearly" for Aviary's own interface (M4.5). WinUI draws a focus
     /// visual around whatever the keyboard is on: a white ring with a thin dark one inside it,
     /// the same in every app. This makes it thicker and paints it in the accent colour.

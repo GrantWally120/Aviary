@@ -360,6 +360,8 @@ internal static class InternalPages
           --st-yours:#d55181;--st-diagnostics:#008300;--st-secrets:#9085e9;--st-other:#e66767;}
   }
   .st-hero{padding:18px 18px 16px;position:relative;}
+  .st-cap{height:8px;border-radius:5px;background:var(--fill);overflow:hidden;margin:8px 0 2px;}
+  .st-cap i{display:block;height:100%;border-radius:5px;background:var(--st-diagnostics,var(--accent));}
   .st-total{font-size:28px;font-weight:650;letter-spacing:-.022em;font-variant-numeric:tabular-nums;}
   .st-total small{font-size:14px;font-weight:500;color:var(--ink-2);margin-left:4px;}
   .st-sub{font-size:12.5px;color:var(--ink-2);margin-top:2px;}
@@ -408,6 +410,10 @@ internal static class InternalPages
   .pf-spark polygon{fill:color-mix(in srgb,var(--accent) 14%,transparent);stroke:none;}
   .pf-table{padding:4px 0;}
   .pf-row{display:grid;grid-template-columns:minmax(0,1fr) 78px 62px 56px auto;align-items:center;gap:10px;padding:8px 18px;font-size:13px;}
+  /* M4.6: the tabs table carries one more figure - what each tab has loaded. */
+  #pf-tabs .pf-row{grid-template-columns:minmax(0,1fr) 78px 62px 56px 72px auto;}
+  #pf-tabs .pf-head .pf-num[data-sort]{cursor:pointer;}
+  #pf-tabs .pf-head .pf-num[data-sort]:hover{color:var(--ink);}
   .pf-row + .pf-row{border-top:1px solid var(--line-soft);}
   .pf-row.pf-head{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);padding-top:10px;padding-bottom:6px;}
   .pf-row .pf-n{min-width:0;}
@@ -425,8 +431,12 @@ internal static class InternalPages
      <html data-motion> is "flight" (Smooth Flight — Classic's: quick ease-outs, no overshoot),
      "fluid" (Fluid — Liquid Glass's: a spring, drawn with linear()) or "off" (Reduce motion).
      The host sets it on load and again whenever the style changes (Motion.cs). */
-  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-dur:200ms;--m-pane:240ms;--m-rise:8px;interpolate-size:allow-keywords;}
-  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:360ms;--m-pane:420ms;--m-rise:14px;}
+  /* --m-x is Animation speed (M4.6): Calm stretches, Quick shortens, and every duration below
+     is written through it, so one attribute on <html> changes the whole page's pace. */
+  :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-x:1;--m-dur:calc(200ms * var(--m-x));--m-pane:calc(240ms * var(--m-x));--m-rise:8px;interpolate-size:allow-keywords;}
+  html[data-speed="calm"]{--m-x:1.5;}
+  html[data-speed="quick"]{--m-x:.68;}
+  html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:calc(360ms * var(--m-x));--m-pane:calc(420ms * var(--m-x));--m-rise:14px;}
   html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;}}
   /* The selection in the side menu is ONE pill that travels to the item you pick. */
@@ -489,6 +499,7 @@ if (SAVED.listsAutoUpdate === 'true') { SAVED.listsAutoUpdate = 'Weekly'; }
 else if (SAVED.listsAutoUpdate === 'false') { SAVED.listsAutoUpdate = 'Off'; }
 /* How this page moves (Motion.cs): the host re-sets it whenever the style changes. */
 document.documentElement.dataset.motion = window.__aviaryMotion || 'flight';
+document.documentElement.dataset.speed = window.__aviarySpeed || 'standard';
 /* Show keyboard focus clearly (M4.5): the host sets this, and the ring below follows it. */
 if (window.__aviaryFocusRing) { document.documentElement.dataset.focus = 'clear'; }
 /* What the running engine STARTED with, for the switches that only apply at launch. */
@@ -622,7 +633,7 @@ var UPDATES = [
         'The download progress ring and tab groups, rather than shipping either half-built'
       ]}
     ]},
-  { phase:5, name:'Privacy that works',
+  { phase:5, name:'The Long Run',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
     short:'Shields, a real ad blocker you control site by site, joins privacy switches that really do what they say — Grant’s own projects live inside Aviary, in the Collection — and with Smooth Flight the whole browser moves, measures itself, and hands you the controls.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
@@ -642,6 +653,8 @@ var UPDATES = [
        d:'Brave Search, Mojeek and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
       {n:'M4.5', t:'Smooth Flight', when:'20 Sep',
        d:'The second middle update: Aviary learns to move. Classic gets Smooth Flight and Liquid Glass gets Fluid, each look with its own way of moving; the ad blocker gets four lists, a setting of its own for every site and rules you can write yourself; and Settings gains live Performance and Storage Usage pages, more accessibility, and the two idle freezes explained.'},
+      {n:'M4.6', t:'Smooth Fix', when:'20 Sep',
+       d:'The third middle update: full screen learns to move, every animation gets a speed of its own, Liquid Glass decides where the window buttons sit, Storage and Performance go deeper, tabs gain four choices of their own — and Aviary finally has an icon.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -699,7 +712,35 @@ var UPDATES = [
       ]},
       {h:'Tabs and windows', items:[
         '<b>Aviary asks before closing a window with several tabs</b>, and says how many are open. Private windows never ask',
-        '<b>When the last tab closes</b> you can keep the window and get the Start Page, instead of the window closing'
+        '<b>When the last tab closes</b> you can keep the window and get the Start Page, instead of the window closing',
+        '<b>Where a new tab goes</b> — right after the one you are on, as Safari does, or at the end',
+        '<b>A new tab can start on the page you are already looking at</b>, which is the quick way to open two of something side by side',
+        '<b>The middle mouse button closes a tab</b>',
+        '<b>The close cross</b> can be always there, only when you point at a tab, or never'
+      ]},
+      {h:'Smooth Fix — the last things that did not move', items:[
+        '<b>Full screen moves now.</b> Going in, the toolbar and tabs lift away and the window changes on the last frame of that; coming out, the page stays while the chrome settles back down. Windows’ own presenter still takes about a tenth of a second in the middle, and Aviary now spends that time where nothing is on screen to stutter',
+        '<b>Animation speed</b> — Calm, Standard or Quick — one choice that changes the pace of the whole browser, its own pages included',
+        '<b>Menus and popovers grow out of the button</b> that opened them',
+        '<b>A gleam follows your pointer</b> along the glass, in Liquid Glass with Fluid motion',
+        '<b>Window buttons</b>, for Liquid Glass: leave the bar floating, run it up into the corner so Windows’ three buttons sit on the glass, or line the bar up with them. Snap Layouts keep working either way — they stay Windows’ own buttons'
+      ]},
+      {h:'Storage Usage, deeper', items:[
+        '<b>Which sites keep their own store</b>, and how much of what sites keep is in the databases they all share — said plainly rather than split by guesswork',
+        '<b>The compiled graphics shaders can be cleared</b>, at the next launch: the engine holds them open from the moment it starts, so that is the only honest moment to do it',
+        '<b>Improvement data against its 650 MB</b>, drawn as a bar',
+        'The page keeps itself current while you are looking at it'
+      ]},
+      {h:'Performance, more exactly', items:[
+        '<b>What each tab has loaded</b> — counted only while this page is open, and only what the sites declared',
+        '<b>The graphics card by the kind of work</b>: drawing, video, moving data',
+        '<b>Memory in full</b>: what is in use, what Aviary has asked Windows for, and the most it has ever held at once',
+        '<b>Sort the tabs</b> by memory, processor or data, and <b>choose how often</b> Aviary measures — every 1, 2 or 5 seconds'
+      ]},
+      {h:'Aviary has an icon', items:[
+        '<b>A birdcage dome</b>, the same mark that is on the Start Page and in Settings — on a blue tile, or on a Liquid Glass one',
+        'Accessibility → <b>App Icon</b> switches the window, the taskbar and Alt-Tab between them while Aviary runs',
+        'This build is now called <b>The Long Run</b> — Alpha Build 5 has run further than any build before it'
       ]},
       {h:'The Collection', items:[
         '<b>The Collection</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
@@ -742,6 +783,8 @@ var UPDATES = [
         'Blocking now reaches trackers inside frames from other sites'
       ]},
       {h:'Fixes', items:[
+        'Full screen went from window to page in one jump, with a freeze in the middle. It moves now, and the freeze is spent where nothing is on screen',
+        'Settings and the store disagreed about “Keep the lists up to date” — the page read a switch saved before M4.5 as Off while the store still held the old value. The value itself is brought forward now',
         'Aviary seemed to freeze for up to a second while you were doing nothing. It was Windows’ own move-and-resize hold — dragging or holding the window’s edge stops every app the same way. Aviary now knows the difference and says which it was',
         'With tabs set to the top bar, the sidebar still listed them, and at start-up it could say “0 Tabs” beside an open page',
         'The ad blocker’s slowest check was 3.5–7.4 ms on long video addresses, felt as a stutter. Now under 1 ms',
@@ -813,9 +856,19 @@ var SECTIONS = [
          asks and never stays open: its whole point is that it leaves nothing behind. */
       {t:'Ask before closing a window with several tabs', d:'One stray click on the × should not take six pages with it. Aviary asks first, and says how many are open. Private windows never ask.', ctl:{type:'toggle', key:'warnManyTabs', value:true}},
       {t:'When the last tab closes', d:'Close the window, the way every browser on Windows does — or keep it open and show the Start Page.', ctl:{type:'select', key:'lastTabCloses', opts:['Close the window','Show the Start Page'], value:'Close the window'}},
+      /* Alpha Build 5 M4.6 — four small tab choices, all live. */
+      {t:'New tab position', d:'<b>After the current tab</b> is Safari’s way — a tab you open from a page sits beside it. <b>At the end</b> is Chrome’s. Pinned tabs always keep the front of the strip.', ctl:{type:'select', key:'newTabPosition', opts:['After the current tab','At the end'], value:'After the current tab'}},
+      {t:'New tab opens with', d:'A new tab starts on the Start Page, or on the page you are already looking at — which is the quick way to open two of something side by side. Aviary’s own pages are never carried over.', ctl:{type:'select', key:'newTabShowsPage', opts:['The Start Page','The page I’m on'], value:'The Start Page'}},
+      {t:'Middle-click closes a tab', d:'Press the mouse wheel on a tab to close it, the way every browser on Windows does.', ctl:{type:'toggle', key:'middleClickCloses', value:true}},
+      {t:'Tab close button', d:'<b>On hover</b> is Safari’s: a tab’s icon turns into a cross when you point at it. <b>Always</b> keeps the cross there, and <b>Never</b> leaves the icon alone — Ctrl+W, the middle button and the tab’s own menu still close it.', ctl:{type:'select', key:'tabCloseButton', opts:['On hover','Always','Never'], value:'On hover'}},
       /* Alpha Build 5 M4.5 — Motion.cs. Grant’s names: Smooth Flight is Classic’s way of moving,
          Fluid is Liquid Glass’s. Reduce motion (Accessibility) turns both off. */
       {t:'Animation style', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick, like Safari on the Mac. <b>Fluid</b> is springy and gel-like, like Safari 26 — tabs stretch toward where they are going and buttons squish when pressed. Each look has its own, or choose one for both.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
+      /* Alpha Build 5 M4.6 — one multiplier on every duration, in the window and in these pages. */
+      {t:'Animation speed', d:'How fast all of that moves. <b>Calm</b> stretches every animation by half, <b>Quick</b> cuts it by a third. Springs keep their bounce either way — a spring’s feel is its give, not its length.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick'], value:'Standard'}},
+      /* M4.6 — MainWindow.ApplyLookGeometry. Windows draws the three buttons itself and decides
+         where they sit; the bar is what moves. Classic is already aligned, so this does nothing there. */
+      {t:'Window buttons', d:'Where Liquid Glass puts its bar, and what that does about Windows’ three buttons. <b>Floating</b> leaves the bar 8&nbsp;px down, so the buttons ride a little above its middle. <b>Buttons on the glass</b> runs the bar up into the corner so they sit on it — they are still Windows’ own buttons, so Snap Layouts keep working. <b>Bar aligned</b> keeps the side gaps and drops the top one. Classic is already lined up, and ignores this.', ctl:{type:'select', key:'windowButtons', opts:['Floating','Buttons on the glass','Bar aligned'], value:'Floating'}},
       {t:'Show site icons', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
       {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
       {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}},
@@ -939,6 +992,9 @@ var SECTIONS = [
       {t:'Underline links on websites', d:'A great many sites mark their links with colour alone, which does not show at all if you cannot tell those colours apart. This puts the line back, on every site.', ctl:{type:'toggle', key:'underlineLinks', value:false}},
       {t:'Show keyboard focus clearly', d:'A thick ring in the accent colour around whatever the keyboard is on — in Aviary’s toolbar and menus, and on its own pages. Only for the keyboard: clicking something never draws it.', ctl:{type:'toggle', key:'focusRing', value:false}},
       {t:'Reduce motion', d:'Turns off Aviary’s own animations — tabs, the sidebar, panels, Settings and the Start Page — so things appear in place instead of moving there. Aviary reads your Windows animation setting the first time it runs, so this usually starts where you want it. Since M4.5 it tells websites too, which stops their own animations where they honour it; that half needs a restart.', restart:true, ctl:{type:'toggle', key:'reduceMotion', value:false}},
+      /* Alpha Build 5 M4.6 — Grant asked for this here, by this name. Both icons ship; the one
+         inside the .exe is the blue tile, which is why Explorer keeps showing that one. */
+      {t:'App Icon', d:'Which of Aviary’s two icons the window, the taskbar and Alt-Tab wear. <b>Blue tile</b> is the birdcage dome in white on Aviary’s blue; <b>Glass tile</b> is the same dome in blue on a Liquid Glass capsule. Windows’ own file list keeps showing the blue one — that icon lives inside the program file itself.', ctl:{type:'select', key:'appIcon', opts:['Blue tile','Glass tile'], value:'Blue tile'}},
       {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. They work on a page as well as in the browser: Aviary reads them before a website can swallow them.', more:'keys', ctl:{type:'none'}},
       {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
       {t:'Read pages aloud', d:'Have Aviary read an article out, with the words marked as it goes.', phase:6, ctl:{type:'none'}},
@@ -976,8 +1032,12 @@ var SECTIONS = [
   /* Alpha Build 5 M4.5 — live figures from LiveStats.cs, pushed once a second, only while this
      pane is on screen in the visible Settings tab. Nothing here is recorded. */
   { id:'perf', icon:'perf', name:'Performance', title:'Performance', perf:true,
-    lede:'What Aviary is using right now, updated every second while this page is open: memory, processor and graphics card, for Aviary itself and every part of its browser engine. The same figures Windows’ Task Manager shows. Nothing here is recorded.',
-    rows:[] },
+    lede:'What Aviary is using right now, while this page is open: memory, processor and graphics card, for Aviary itself and every part of its browser engine. The same figures Windows’ Task Manager shows. Nothing here is recorded.',
+    rows:[
+      /* M4.6 — LiveStats reads this when it starts, so the choice takes effect the next time
+         you open this page. The foot of the page says which rate it is showing. */
+      {t:'How often to measure', d:'Slower costs Aviary less and steadies the lines; faster catches a spike you would otherwise miss. The figures at the bottom of this page say what the measuring itself costs.', ctl:{type:'select', key:'perfInterval', opts:['Every second','Every 2 seconds','Every 5 seconds'], value:'Every second'}}
+    ] },
 
   { id:'about', icon:'about', name:'About Aviary', title:'About Aviary', about:true,
     lede:'A Safari-inspired browser for Windows 11.', rows:[] }
@@ -1212,6 +1272,8 @@ SECTIONS.forEach(function(s, i){
     body += renderStorage();
   } else if (s.perf){
     body += renderPerf();
+    /* M4.6: the Performance pane has a row of its own now - how often it measures. */
+    if (s.rows.length) { body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
   } else if (s.updates){
     body += renderUpdates(s);
   } else {
@@ -1896,9 +1958,25 @@ function storageMeasure(){
   stRequested = true;
   post({type:'command', name:'storageMeasure'});
 }
+var stTimer = 0;
 function storageWatch(){
   var pane = document.getElementById('pane-storage');
-  if (pane && pane.classList.contains('on') && !stRequested) { storageMeasure(); }
+  var on = !!(pane && pane.classList.contains('on'));
+  if (on && !stRequested) { storageMeasure(); }
+
+  /* M4.6: while the page is the one on screen it measures again every ten seconds, so a
+     download or a cleared cache shows up without being asked. It stops the moment you leave. */
+  if (on && !stTimer) {
+    stTimer = setInterval(function(){
+      if (document.hidden) { return; }
+      var p = document.getElementById('pane-storage');
+      if (!p || !p.classList.contains('on')) { clearInterval(stTimer); stTimer = 0; return; }
+      stRequested = false;
+      storageMeasure();
+    }, 10000);
+  } else if (!on && stTimer) {
+    clearInterval(stTimer); stTimer = 0;
+  }
 }
 nav.addEventListener('click', function(){ setTimeout(storageWatch, 0); });
 
@@ -1959,8 +2037,38 @@ window.__aviaryStorage = function(d){
     var p = document.createElement('p'); p.textContent = c.plain; body.appendChild(p);
     if (c.key === 'diagnostics') {
       var capP = document.createElement('p');
-      capP.textContent = 'The improvement data is kept to ' + stSize(d.capBytes) + ' at most — the oldest goes first.';
+      var used = Math.min(1, c.bytes / Math.max(d.capBytes, 1));
+      capP.textContent = stSize(c.bytes) + ' of ' + stSize(d.capBytes) + ' used — ' + (100 * used).toFixed(1) +
+        '% of what improvement data may keep. The oldest goes first when it fills.';
       body.appendChild(capP);
+
+      /* M4.6: the cap drawn, not just described. */
+      var capBar = document.createElement('div'); capBar.className = 'st-cap';
+      var capFill = document.createElement('i'); capFill.style.width = Math.max(0.6, 100 * used) + '%';
+      capBar.appendChild(capFill);
+      body.appendChild(capBar);
+    }
+
+    /* M4.6 — which sites keep something of their own, and how much is in the shared stores. */
+    if (c.key === 'sites') {
+      var siteP = document.createElement('p');
+      siteP.textContent = (d.sites && d.sites.length)
+        ? 'Sites with a store of their own, biggest first. The rest — ' + stSize(d.sitesShared || 0) +
+          ' — is in the cookie and local-storage databases, which every site shares, so it cannot be split by site here.'
+        : 'No site has a store of its own yet. What sites keep so far — ' + stSize(d.sitesShared || 0) +
+          ' — is in the cookie and local-storage databases they all share.';
+      body.appendChild(siteP);
+
+      if (d.sites && d.sites.length) {
+        var siteBox = document.createElement('div'); siteBox.className = 'st-parts';
+        d.sites.forEach(function(it){
+          var row = document.createElement('div');
+          var lb = document.createElement('b'); lb.textContent = it.label;   /* a site's name: text, never markup */
+          var sz = document.createElement('i'); sz.textContent = stSize(it.bytes) + ' · ' + it.files.toLocaleString() + (it.files === 1 ? ' file' : ' files');
+          row.appendChild(lb); row.appendChild(sz); siteBox.appendChild(row);
+        });
+        body.appendChild(siteBox);
+      }
     }
     if (c.biggest.length) {
       var parts = document.createElement('div'); parts.className = 'st-parts';
@@ -1976,6 +2084,18 @@ window.__aviaryStorage = function(d){
     function act(label, fn){ var b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.addEventListener('click', function(e){ e.stopPropagation(); fn(b); }); acts.appendChild(b); }
     if (c.key === 'cache' && c.bytes > 0) {
       act('Clear cached files', function(b){ b.disabled = true; b.textContent = 'Clearing…'; post({type:'command', name:'storageClearCache'}); });
+
+      /* M4.6: the compiled-shader caches are open from the moment the engine starts, so they
+         can only go before it does - at the next launch. The button says exactly that. */
+      var pending = document.createElement('p');
+      pending.textContent = d.gpuPending
+        ? 'The graphics caches will be cleared the next time Aviary starts.'
+        : 'The compiled graphics shaders cannot be cleared while Aviary is running — the engine holds them open from the moment it starts.';
+      body.appendChild(pending);
+      act(d.gpuPending ? 'Don’t clear them' : 'Clear graphics caches at the next launch', function(b){
+        b.disabled = true;
+        post({type:'command', name:'storageClearGpu', arg: d.gpuPending ? 'off' : 'on'});
+      });
     }
     if (c.key === 'sites' || c.key === 'secrets') { act('Manage in Privacy', function(){ showPane(c.key === 'sites' ? 'privacy' : 'autofill'); }); }
     if (c.key === 'diagnostics') { act('Manage in Privacy', function(){ showPane('privacy'); }); }
@@ -2011,6 +2131,9 @@ function renderPerf(){
       '<div class="row"><div class="row__t"><b>How quickly Aviary answers</b><span id="pf-ui">Measuring…</span></div></div>' +
       '<div class="row"><div class="row__t"><b>Shields’ work</b><span id="pf-blocker">Measuring…</span></div></div>' +
       '<div class="row"><div class="row__t"><b>This session</b><span id="pf-session">Measuring…</span></div></div>' +
+      /* M4.6 */
+      '<div class="row"><div class="row__t"><b>Memory, in full</b><span id="pf-mem2">Measuring…</span></div></div>' +
+      '<div class="row"><div class="row__t"><b>What the graphics card was doing</b><span id="pf-gpuwork">Measuring…</span></div></div>' +
     '</div>' +
     '<h2 class="upd-h">Tabs</h2><div class="group pf-table" id="pf-tabs"><div class="pf-empty">Measuring…</div></div>' +
     '<h2 class="upd-h">Aviary’s processes</h2><div class="group pf-table" id="pf-procs"><div class="pf-empty">Measuring…</div></div>' +
@@ -2063,7 +2186,10 @@ function pfRow(name, sub, nums, buttons, head){
   return row;
 }
 
+var PF_SORT = 'memory';
+var PF_LAST = null;
 window.__aviaryPerf = function(d){
+  PF_LAST = d;
   function set(id, html, v, arr){
     var card = document.getElementById('pf-' + id);
     if (card) { card.querySelector('.pf-v').innerHTML = html; }
@@ -2099,12 +2225,51 @@ window.__aviaryPerf = function(d){
       ' · ' + (d.session.rules || 0).toLocaleString() + ' Shields rules loaded.';
   }
 
+  /* M4.6 — memory Aviary has asked Windows for, and the most it has ever held at once. */
+  var m2 = document.getElementById('pf-mem2');
+  if (m2) {
+    m2.textContent = 'In use now ' + pfSizeText(d.memory) + ' · asked for ' + pfSizeText(d.commit || 0) +
+      ' · the most held at once ' + pfSizeText(d.peak || 0) +
+      '. "Asked for" does not fall when Windows pages memory out, so a tab that really gave memory back shows it here.';
+  }
+
+  var gw = document.getElementById('pf-gpuwork');
+  if (gw) {
+    var eng = d.gpuEngines || [];
+    gw.textContent = !eng.length
+      ? 'Nothing measurable in the last second.'
+      : eng.map(function(e){ return e.name + ' ' + pfPctText(e.percent); }).join(' · ') +
+        '. Aviary\'s headline figure is its busiest part, not the sum — the card runs them at once.';
+  }
+
   var tabs = document.getElementById('pf-tabs');
   if (tabs) {
     tabs.textContent = '';
-    tabs.appendChild(pfRow('Tab', '', ['Memory', 'Processor', 'Graphics'], [], true));
+
+    /* M4.6 — sorted by what you choose; the heading cells say so and can be clicked. */
+    var order = PF_SORT;
+    var list = d.tabs.slice().sort(function(a, b){
+      if (order === 'cpu') { return (b.cpu || 0) - (a.cpu || 0); }
+      if (order === 'data') { return (b.data || 0) - (a.data || 0); }
+      if (order === 'memory') { return (b.memory || 0) - (a.memory || 0); }
+      return 0;
+    });
+
+    var head = pfRow('Tab' + (order === 'none' ? '' : ' · sorted by ' + (order === 'cpu' ? 'processor' : order === 'data' ? 'data' : 'memory')),
+      '', ['Memory', 'Processor', 'Graphics', 'Data'], [], true);
+    head.querySelectorAll('.pf-num').forEach(function(cell, i){
+      var key = ['memory', 'cpu', null, 'data'][i];
+      if (!key) { return; }
+      cell.setAttribute('data-sort', key);
+      cell.title = 'Sort by this';
+      cell.addEventListener('click', function(){
+        PF_SORT = (PF_SORT === key) ? 'none' : key;
+        if (PF_LAST) { window.__aviaryPerf(PF_LAST); }
+      });
+    });
+    tabs.appendChild(head);
     var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it'};
-    d.tabs.forEach(function(tb){
+    list.forEach(function(tb){
       var name = tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled');
       var note = PF_NOTES[tb.id];
       var sub = (note && note.until > Date.now()) ? note.text
@@ -2115,7 +2280,8 @@ window.__aviaryPerf = function(d){
       if (tb.canSleep) { buttons.push({label:'Sleep', cmd:'sleep:' + tb.id}); }
       buttons.push({label:'Close', cmd:'close:' + tb.id});
       tabs.appendChild(pfRow(name, sub,
-        [tb.memory == null ? '—' : pfSizeText(tb.memory), tb.cpu == null ? '—' : pfPctText(tb.cpu), tb.gpu == null ? '—' : pfPctText(tb.gpu)],
+        [tb.memory == null ? '—' : pfSizeText(tb.memory), tb.cpu == null ? '—' : pfPctText(tb.cpu), tb.gpu == null ? '—' : pfPctText(tb.gpu),
+         tb.data ? stSize(tb.data) : '—'],
         buttons));
     });
   }
@@ -2131,10 +2297,13 @@ window.__aviaryPerf = function(d){
     });
   }
 
+  var every = d.everySeconds || 1;
   var foot = document.getElementById('pf-foot');
   if (foot) {
-    foot.textContent = 'Measuring takes Aviary ' + d.samplerMs.toFixed(1) + ' ms a second, and stops the moment you leave this page. ' +
-      'Memory is each part’s private working set and processor is its share of the whole processor — the figures Task Manager shows.';
+    foot.textContent = 'Measured ' + (every === 1 ? 'every second' : 'every ' + every + ' seconds') +
+      ', which takes Aviary ' + d.samplerMs.toFixed(1) + ' ms each time, and stops the moment you leave this page. ' +
+      'Memory is each part’s private working set and processor is its share of the whole processor — the figures Task Manager shows. ' +
+      'Data is what the sites said they were sending, counted only while this page is open; anything streamed without a length is not counted.';
   }
 };
 

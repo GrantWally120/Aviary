@@ -68,6 +68,15 @@ internal sealed class GpuCounters : IDisposable
     }
 
     /// <summary>One reading: GPU busy % and dedicated memory (bytes), per process id.</summary>
+    /// <summary>
+    /// What each kind of GPU engine was doing, across every process, as a share of the card:
+    /// "3D", "VideoDecode", "Copy", "Compute". Task Manager shows the same split. Filled by the
+    /// last <see cref="Sample"/>; M4.6 shows it under the headline figure.
+    /// </summary>
+    public IReadOnlyDictionary<string, double> ByEngine => _byEngine;
+
+    private Dictionary<string, double> _byEngine = new(StringComparer.Ordinal);
+
     public (Dictionary<int, double> Busy, Dictionary<int, long> Dedicated) Sample()
     {
         Dictionary<int, double> busy = new();
@@ -103,16 +112,22 @@ internal sealed class GpuCounters : IDisposable
                 types[type] = (types.TryGetValue(type, out double sum) ? sum : 0) + value;
             }
 
+            // The headline for a process is its busiest engine, not the sum: two engines running
+            // at once are working in parallel on the same card, and adding them would report 140%.
+            Dictionary<string, double> engines = new(StringComparer.Ordinal);
             foreach ((int pid, Dictionary<string, double> types) in byType)
             {
                 double max = 0;
-                foreach (double v in types.Values)
+                foreach ((string type, double v) in types)
                 {
                     max = Math.Max(max, v);
+                    engines[type] = (engines.TryGetValue(type, out double had) ? had : 0) + v;
                 }
 
                 busy[pid] = Math.Min(100, max);
             }
+
+            _byEngine = engines;
 
             if (_memory != IntPtr.Zero)
             {

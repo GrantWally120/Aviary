@@ -60,9 +60,19 @@
          launch away before anything writes the profile (Phase 5 M2, bug 51). -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 
-    <!-- Phase 1 has no icon asset yet. Adding <ApplicationIcon> before the .ico exists
-         is a hard build error, so it lands with the branding work instead. -->
+    <!-- Alpha Build 5 M4.6: the icon, at last (Grant: "it just pops up as that a square with
+         blue middle"). Drawn by tools\icon\build-icon.ps1 - change a number there and run it
+         rather than editing the .ico. This one is baked into the exe, so it is what Explorer and
+         the taskbar shortcut show; Settings -> Accessibility -> App Icon switches the RUNNING
+         window between this and the glass one through AppWindow.SetIcon. -->
+    <ApplicationIcon>Assets\Aviary.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Both icons travel with the build: the glass one is only reachable at runtime. -->
+    <Content Include="Assets\Aviary.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Assets\Aviary-Glass.ico" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- VERSION IS DELIBERATELY FLOATING WITHIN A MINOR BAND.

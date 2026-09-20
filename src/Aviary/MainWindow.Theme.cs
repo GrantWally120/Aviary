@@ -239,6 +239,9 @@ public sealed partial class MainWindow
     private void OnSubmenuItemLoaded(object sender, RoutedEventArgs e) => ThemeOpenPopups();
 
     /// <summary>Hands the shown theme to every popup currently open in this window.</summary>
+    /// <summary>Popups already given their arrival, so a redraw cannot bloom one twice (M4.6).</summary>
+    private readonly HashSet<FrameworkElement> _bloomed = new();
+
     private void ThemeOpenPopups()
     {
         try
@@ -253,6 +256,20 @@ public sealed partial class MainWindow
                 if (popup.Child is FrameworkElement child && child.RequestedTheme != RootGrid.ActualTheme)
                 {
                     child.RequestedTheme = RootGrid.ActualTheme;
+                }
+
+                // M4.6: and while we are here, let it grow out of the edge it is anchored to.
+                // Every menu and popover in Aviary opens through this walk, so this is the one
+                // place that can give them all the same arrival.
+                if (popup.Child is FrameworkElement arriving && _bloomed.Add(arriving))
+                {
+                    arriving.Loaded += (_, _) => Motion.Bloom(arriving);
+                    if (arriving.ActualHeight > 0)
+                    {
+                        Motion.Bloom(arriving);
+                    }
+
+                    popup.Closed += (_, _) => _bloomed.Remove(arriving);
                 }
             }
         }

@@ -278,9 +278,32 @@ public sealed partial class MainWindow
     /// their CSS keys off &lt;html data-motion="flight|fluid|off"&gt;. Only internal pages are ever
     /// told — a host push reaching a website is bug 62.
     /// </summary>
+    /// <summary>Always / On hover / Never - what the tab strip does with its close crosses (M4.6).</summary>
+    private static string TabCloseShows => AppSettings.Get("tabCloseButton") is { Length: > 0 } how ? how : "On hover";
+
+    /// <summary>
+    /// Puts every tab's icon and cross where the current choice says they belong, without waiting
+    /// for the pointer. Called when the setting changes and after a rebuild.
+    /// </summary>
+    private void ApplyTabCloseButtons()
+    {
+        bool always = TabCloseShows == "Always";
+        foreach (BrowserTab tab in _tabs)
+        {
+            if (!_tabButtons.TryGetValue(tab, out ToggleButton? button) || button.Tag is not TabChrome chrome)
+            {
+                continue;
+            }
+
+            FadeTo(chrome.Icon, always ? 0 : 1, 120);
+            FadeTo(chrome.ClosePad, always ? 1 : 0, 120);
+        }
+    }
+
     private void PushMotionToPages()
     {
-        string script = "document.documentElement.dataset.motion=" + System.Text.Json.JsonSerializer.Serialize(Motion.PageToken);
+        string script = "document.documentElement.dataset.motion=" + System.Text.Json.JsonSerializer.Serialize(Motion.PageToken)
+                      + ";document.documentElement.dataset.speed=" + System.Text.Json.JsonSerializer.Serialize(Motion.PageSpeed);
         foreach (BrowserTab tab in _tabs)
         {
             if (!tab.IsInternalPage || tab.View.CoreWebView2 is not Microsoft.Web.WebView2.Core.CoreWebView2 core)

@@ -43,6 +43,12 @@ public sealed partial class MainWindow
                 install = r.InstallFolder,
                 profile = r.ProfileFolder,
                 capBytes = Diagnostics.CapBytes,
+
+                // M4.6: what each site keeps, what is shared between them, and whether the
+                // graphics caches are already promised to the next launch.
+                sites = r.Sites.Select(i => new { label = i.Label, bytes = i.Bytes, files = i.Files }),
+                sitesShared = r.SitesShared,
+                gpuPending = AppSettings.GetBool("clearGpuCaches"),
                 categories = r.Categories.Select(c => new
                 {
                     key = c.Key,

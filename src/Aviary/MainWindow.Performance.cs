@@ -35,6 +35,15 @@ public sealed partial class MainWindow
         }
 
         _perfPage = page;
+
+        // M4.6: count what each tab loads, but only while somebody is looking at the figures.
+        foreach (MainWindow window in OpenWindows)
+        {
+            foreach (BrowserTab t in window._tabs)
+            {
+                t.WatchData(true);
+            }
+        }
         try
         {
             if (_perfEnvironment is null)
@@ -63,10 +72,30 @@ public sealed partial class MainWindow
         });
     }
 
+    /// <summary>Windows' engine names, in Aviary's words: what that part of the card was doing.</summary>
+    private static string EngineName(string engine) => engine switch
+    {
+        "3D" => "Drawing",
+        "VideoDecode" => "Playing video",
+        "VideoEncode" => "Recording video",
+        "VideoProcessing" => "Video",
+        "Copy" => "Moving data",
+        "Compute" => "Computing",
+        _ => engine,
+    };
+
     private void StopPerf()
     {
         _perfPage = null;
         LiveStats.Stop();
+
+        foreach (MainWindow window in OpenWindows)
+        {
+            foreach (BrowserTab t in window._tabs)
+            {
+                t.WatchData(false);
+            }
+        }
         if (_perfEnvironment is not null)
         {
             _perfEnvironment.ProcessInfosChanged -= OnPerfProcessesChanged;
@@ -203,6 +232,11 @@ public sealed partial class MainWindow
                     gpu = f?.GpuPercent,
                     shared = sharing > 1 ? sharing : 0,
                     blocked = t.ShieldsApply ? t.BlockedOnPage : 0,
+
+                    // M4.6 — what this tab has loaded since the pane was opened, as the sites
+                    // declared it, and how many responses never said.
+                    data = t.DataBytes,
+                    dataUnknown = t.DataUnknown,
                     canSleep = !active && !asleep && !t.IsInternalPage,
                 });
             }
@@ -239,6 +273,21 @@ public sealed partial class MainWindow
                 rules = FilterLists.Engine is { } engine ? engine.Stats.Network + engine.Stats.HostOnly : 0,
             },
             samplerMs = r.SamplerMs,
+
+            // M4.6 — memory Aviary has asked for and the most it has held, the GPU split by the
+            // kind of work, and how often all of this is measured.
+            commit = r.CommitMB,
+            peak = r.PeakMB,
+            gpuEngines = r.GpuByEngine
+                .Where(p => p.Value >= 0.05)
+                .OrderByDescending(p => p.Value)
+                .Select(p => new { name = EngineName(p.Key), percent = p.Value }),
+            everySeconds = AppSettings.Get("perfInterval") switch
+            {
+                "Every 2 seconds" => 2,
+                "Every 5 seconds" => 5,
+                _ => 1,
+            },
         };
 
         try

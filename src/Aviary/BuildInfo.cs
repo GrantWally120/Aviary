@@ -30,7 +30,11 @@ internal static class BuildInfo
     public const int PhaseNumber = 5;
 
     /// <summary>This build's headline. Each build has one, the way a named update does.</summary>
-    public const string PhaseName = "Privacy that works";
+    /// <summary>
+    /// Grant renamed it on 20 September 2026, at M4.6: Alpha Build 5 began on 10 September and has
+    /// run M0, M1, M2, M2.5, M3, M4, M4.5 and M4.6 - far more than any build before it.
+    /// </summary>
+    public const string PhaseName = "The Long Run";
 
     /// <summary>
     /// The last phase actually FINISHED, which is what gates the settings rows.
@@ -48,9 +52,9 @@ internal static class BuildInfo
     /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
     /// </summary>
-    public const int MilestonesDone = 7;
+    public const int MilestonesDone = 8;
 
-    public const int Milestones = 11;
+    public const int Milestones = 12;
 
     /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
     private const int LastAlphaPhase = 5;

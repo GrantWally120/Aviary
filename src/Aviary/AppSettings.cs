@@ -74,6 +74,20 @@ internal static class AppSettings
         ["suggest"] = "false",
         // Alpha Build 5 M4.5 — how Aviary moves (Motion.cs). Read by the window at start-up.
         ["animationStyle"] = "Match the look",
+        // M4.6 — which of the two icons the window wears.
+        ["appIcon"] = "Blue tile",
+        // M4.6 — the tab choices.
+        ["newTabPosition"] = "After the current tab",
+        ["middleClickCloses"] = "true",
+        ["tabCloseButton"] = "On hover",
+        ["newTabShowsPage"] = "The Start Page",
+        // M4.6 — how often Settings -> Performance measures while you watch it.
+        ["perfInterval"] = "Every second",
+        // M4.6 — the graphics caches, which can only go at the next launch.
+        ["clearGpuCaches"] = "false",
+        // M4.6 — how fast all of that moves, and where Liquid Glass puts its bar.
+        ["animationSpeed"] = "Standard",
+        ["windowButtons"] = "Floating",
         // Alpha Build 5 M4.5 — accessibility, and the tab rows beside it.
         ["pageTextSize"] = "Default",
         ["underlineLinks"] = "false",
@@ -138,6 +152,24 @@ internal static class AppSettings
                 if (_values.Remove("dnt", out string? dnt) && !doc.RootElement.TryGetProperty("gpc", out _))
                 {
                     _values["gpc"] = dnt;
+                }
+
+                // M4.6 (bug 73, from Grant's own 20 Sep log): "Keep the lists up to date" was a
+                // switch until M4.5 and is now Off / Daily / Weekly. The page drew a saved "true"
+                // as Weekly and a "false" as Off, which read correctly - but the STORE still held
+                // the boolean, so diagnostics' round-trip check reported the page and the store
+                // disagreeing, twice, on a row that was working. Migrate the value itself: one
+                // place, and nothing downstream has to know the old shape.
+                if (_values.TryGetValue("listsAutoUpdate", out string? schedule))
+                {
+                    if (schedule.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["listsAutoUpdate"] = "Weekly";
+                    }
+                    else if (schedule.Equals("false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["listsAutoUpdate"] = "Off";
+                    }
                 }
             }
             catch (Exception ex)
