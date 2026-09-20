@@ -74,6 +74,12 @@ internal static class AppSettings
         ["suggest"] = "false",
         // Alpha Build 5 M4.5 — how Aviary moves (Motion.cs). Read by the window at start-up.
         ["animationStyle"] = "Match the look",
+        // Alpha Build 5 M4.5 — accessibility, and the tab rows beside it.
+        ["pageTextSize"] = "Default",
+        ["underlineLinks"] = "false",
+        ["focusRing"] = "false",
+        ["warnManyTabs"] = "true",
+        ["lastTabCloses"] = "Close the window",
     };
 
     public static void Load()

@@ -13,7 +13,7 @@
 #       text through its ValuePattern — raises TextChanged like typing, no keyboard. The box must already
 #       have focus for Aviary to treat it as typing (Ctrl+L over DevTools gives it focus without fronting).
 #   uia.ps1 -ProcessId <pid> -Id AddressBox -Action Value      # read a text box's text, and whether it has focus
-param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help", "SetValue", "Value")][string]$Action = "Invoke", [string]$Window = "", [string]$Value = "")
+param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help", "SetValue", "Value", "Focus")][string]$Action = "Invoke", [string]$Window = "", [string]$Value = "")
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $A = [System.Windows.Automation.AutomationElement]
@@ -70,6 +70,13 @@ switch ($Action) {
         while ($hit -and -not [bool]$hit.GetCurrentPropertyValue($A::IsTogglePatternAvailableProperty)) { $hit = $walker.GetParent($hit) }
         if (-not $hit) { Write-Output "NOT TOGGLEABLE '$($target.Current.Name)'"; exit 1 }
         $p = $hit.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern); $p.Toggle(); Write-Output "TOGGLED '$($target.Current.Name)' -> $($p.Current.ToggleState)"
+    }
+    "Focus"  {
+        # Gives a control the keyboard focus without any keystroke - for checking the focus ring
+        # while Grant is at the PC (M4.5). UI Automation's SetFocus is how a screen reader does it.
+        $target.SetFocus()
+        Start-Sleep -Milliseconds 250
+        Write-Output ("FOCUS '{0}' hasKeyboardFocus={1}" -f $target.Current.Name, $target.Current.HasKeyboardFocus)
     }
     "Help"   { Write-Output ("HELP '{0}': {1}" -f $target.Current.Name, $target.Current.HelpText) }
     "SetValue" { $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Write-Output "SET '$($target.Current.AutomationId)' = '$Value'" }

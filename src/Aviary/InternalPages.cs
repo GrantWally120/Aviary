@@ -198,6 +198,20 @@ internal static class InternalPages
   .sd button:hover{background:var(--fill-hover);}
   .sd button[disabled]{opacity:.45;}
   .sd__empty{font-size:12.5px;color:var(--ink-2);padding:4px 0;}
+
+  /* The keyboard shortcuts list (M4.5). */
+  .keys{display:grid;gap:14px;}
+  .keys h4{margin:0 0 6px;font:600 12px/1 inherit;color:var(--ink-2);}
+  .keys dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 14px;align-items:baseline;}
+  .keys dt{margin:0;white-space:nowrap;}
+  .keys dd{margin:0;font-size:12.5px;color:var(--ink);}
+  .keys kbd{display:inline-block;padding:2px 6px;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:5px;background:var(--panel-2);color:var(--ink);font:500 11px/1.4 ui-monospace,"Cascadia Mono",Consolas,monospace;}
+
+  /* "Show keyboard focus clearly" (M4.5). :focus-visible only, so a mouse click never draws
+     it; !important because several controls here paint their own focus. */
+  html[data-focus="clear"] :focus-visible{outline:3px solid var(--accent)!important;outline-offset:2px!important;}
+  html[data-focus="clear"] .sw:focus-visible,html[data-focus="clear"] .btn:focus-visible{border-radius:8px;}
   /* A list's credit sits under its counts, not run on after them (M4.5). */
   .more__body li small{display:block;margin-top:2px;}
 
@@ -475,6 +489,8 @@ if (SAVED.listsAutoUpdate === 'true') { SAVED.listsAutoUpdate = 'Weekly'; }
 else if (SAVED.listsAutoUpdate === 'false') { SAVED.listsAutoUpdate = 'Off'; }
 /* How this page moves (Motion.cs): the host re-sets it whenever the style changes. */
 document.documentElement.dataset.motion = window.__aviaryMotion || 'flight';
+/* Show keyboard focus clearly (M4.5): the host sets this, and the ring below follows it. */
+if (window.__aviaryFocusRing) { document.documentElement.dataset.focus = 'clear'; }
 /* What the running engine STARTED with, for the switches that only apply at launch. */
 var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
@@ -608,7 +624,7 @@ var UPDATES = [
     ]},
   { phase:5, name:'Privacy that works',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
-    short:'Shields, a real ad blocker you control site by site, joins privacy switches that really do what they say — and Grant’s own projects now live inside Aviary, in the Collection.',
+    short:'Shields, a real ad blocker you control site by site, joins privacy switches that really do what they say — Grant’s own projects live inside Aviary, in the Collection — and with Smooth Flight the whole browser moves, measures itself, and hands you the controls.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
        "middle update"), so labels are written, not counted. `d` says what it is in plain words. */
     milestones:[
@@ -624,6 +640,8 @@ var UPDATES = [
        d:'A real filter-list blocker built on EasyList and EasyPrivacy, with a shield for every site so you decide where it steps back.'},
       {n:'M4', t:'Brave Search and more safe search engines', when:'14 Sep',
        d:'Brave Search, Mojeek and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
+      {n:'M4.5', t:'Smooth Flight', when:'20 Sep',
+       d:'The second middle update: Aviary learns to move. Classic gets Smooth Flight and Liquid Glass gets Fluid, each look with its own way of moving; the ad blocker gets four lists, a setting of its own for every site and rules you can write yourself; and Settings gains live Performance and Storage Usage pages, more accessibility, and the two idle freezes explained.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -647,6 +665,41 @@ var UPDATES = [
         'The empty spaces ads leave are hidden too — inside frames as well',
         '“Update now” fetches the newest lists; a weekly refresh can do it for you, off until you switch it on',
         'A new <b>Shields</b> page in Settings, with every site you’ve switched Shields off for'
+      ]},
+      {h:'Smooth Flight — the way Aviary moves', items:[
+        '<b>Each look moves its own way.</b> Classic gets <b>Smooth Flight</b>: quick, straight and calm, in the manner of Safari 15–18. Liquid Glass gets <b>Fluid</b>: springy and gel-like, in the manner of Safari 26. Appearance → <b>Animation style</b> can pin either one to both looks',
+        '<b>Tabs move now.</b> The selected tab’s background glides to the one you pick — or stretches toward it and settles, in Fluid. Opening and closing a tab grows and shrinks it, and the rest close the gap instead of jumping',
+        'The sidebar glides open, panes cross-fade, menus and popovers arrive with a short fade and scale, and Aviary’s panels slide in',
+        'A thin line runs along the address bar while a page loads, the reload icon turns into stop, and the shield’s number pops when something is stopped',
+        'The bars dim a little when Aviary is not the window you are using, as Safari’s do',
+        'Settings and the Start Page move too: panes slide, the selection pill glides down the menu, rows arrive one after another, sections unfold, and the Privacy Report’s numbers count up',
+        '<b>Reduce motion</b> in Accessibility turns every one of these off — and now tells websites as well, so their own animations stop',
+        'None of it is drawn by the part of Aviary that handles your clicks, so nothing here can make the browser slower to answer'
+      ]},
+      {h:'Shields — more of it, and more of it yours', items:[
+        '<b>Two more lists</b>, off until you switch them on: <b>Cookie notices</b>, which hides the “we value your privacy” banners, and <b>Social widgets</b>, which stops Like and Share buttons reporting the page you are on',
+        '<b>Every site can have its own setting</b> — Off, Standard or Strict — from the shield in the toolbar, with the whole list of them in Settings and a way back to the default',
+        '<b>My filters</b>: write your own rules, in the same syntax as the lists. Aviary says which lines it cannot use, and what you write is never recorded in improvement data',
+        '<b>What Shields stopped</b>: this session, the last seven days and all time, with the trackers and sites at the top of each, and a way to start the count again',
+        'The shield’s popover now lists <b>what it stopped on this page</b>, address by address, with the rule that caught each one',
+        'New switches: hide the spaces ads leave, show the number on the shield, and Strict’s warning page — each its own choice. Updating can be Off, Daily or Weekly, and “Use the shipped lists” puts the downloads back',
+        'Each list now says how many rules it brought, how many lines Aviary skipped, whose list it is and under which licence'
+      ]},
+      {h:'Settings — two new pages', items:[
+        '<b>Storage Usage</b>, under Updates: everything Aviary keeps on this computer, sorted into what it is — the program, the Collection, website data, cached files, your Aviary data, filter lists, improvement data and crash reports — measured from the files themselves, so the parts add up to the whole',
+        '<b>Performance</b>: what Aviary is using right now — memory, processor and graphics card, for the browser and every part of its engine, with a line per tab, the same figures Windows’ Task Manager shows. It only measures while you are looking at it, and records nothing',
+        'Both pages say what measuring itself costs, so watching cannot quietly hide its own weight'
+      ]},
+      {h:'Accessibility', items:[
+        '<b>Text size for Aviary’s own pages</b> — Settings and the Start Page — apart from the zoom you set for websites',
+        '<b>Underline links on websites</b>, for the many sites that mark links with colour alone',
+        '<b>Show keyboard focus clearly</b>: a thick ring in the accent colour around whatever the keyboard is on, in Aviary and on its own pages, and never when you click',
+        '<b>Every keyboard shortcut</b>, listed in one place — the same list the browser itself reads',
+        'Named for later, with the build each is due in: a minimum font size, reading pages aloud, a larger toolbar, and colour filters'
+      ]},
+      {h:'Tabs and windows', items:[
+        '<b>Aviary asks before closing a window with several tabs</b>, and says how many are open. Private windows never ask',
+        '<b>When the last tab closes</b> you can keep the window and get the Start Page, instead of the window closing'
       ]},
       {h:'The Collection', items:[
         '<b>The Collection</b> — 49 of Grant’s projects inside Aviary, running with no internet: every Wally2TTD from v1.8 to 2.4.2, the Silver prequel, Jurassic Empire, EMBER, The Lost and the rest',
@@ -689,6 +742,12 @@ var UPDATES = [
         'Blocking now reaches trackers inside frames from other sites'
       ]},
       {h:'Fixes', items:[
+        'Aviary seemed to freeze for up to a second while you were doing nothing. It was Windows’ own move-and-resize hold — dragging or holding the window’s edge stops every app the same way. Aviary now knows the difference and says which it was',
+        'With tabs set to the top bar, the sidebar still listed them, and at start-up it could say “0 Tabs” beside an open page',
+        'The ad blocker’s slowest check was 3.5–7.4 ms on long video addresses, felt as a stutter. Now under 1 ms',
+        'Reset settings, Clear browsing data and Clear site icons did their work but left the Settings page showing the old values',
+        'Tabs could lose their titles and icons while the sidebar was open',
+        'A tab opened by a screen reader had no name until you clicked it',
         'In the dark theme, websites with no colours of their own came out as black text on dark grey. They now sit on white, as they do in Safari and Chrome, and a new tab shows nothing until its page has drawn',
         'A private window went on searching with the old engine after you changed it in Settings',
         'Visiting an ad or tracking company’s own website showed a blank page instead of the site',
@@ -750,6 +809,10 @@ var SECTIONS = [
       {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
       {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
       {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
+      /* Alpha Build 5 M4.5 — both live (MainWindow.CloseGuard.cs). A private window never
+         asks and never stays open: its whole point is that it leaves nothing behind. */
+      {t:'Ask before closing a window with several tabs', d:'One stray click on the × should not take six pages with it. Aviary asks first, and says how many are open. Private windows never ask.', ctl:{type:'toggle', key:'warnManyTabs', value:true}},
+      {t:'When the last tab closes', d:'Close the window, the way every browser on Windows does — or keep it open and show the Start Page.', ctl:{type:'select', key:'lastTabCloses', opts:['Close the window','Show the Start Page'], value:'Close the window'}},
       /* Alpha Build 5 M4.5 — Motion.cs. Grant’s names: Smooth Flight is Classic’s way of moving,
          Fluid is Liquid Glass’s. Reduce motion (Accessibility) turns both off. */
       {t:'Animation style', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick, like Safari on the Mac. <b>Fluid</b> is springy and gel-like, like Safari 26 — tabs stretch toward where they are going and buttons squish when pressed. Each look has its own, or choose one for both.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
@@ -866,12 +929,21 @@ var SECTIONS = [
     ]},
 
   { id:'access', icon:'access', name:'Accessibility', title:'Accessibility',
-    lede:'Aviary follows the Windows contrast themes; both Safari looks have a high-contrast palette built in.',
+    lede:'Aviary follows the Windows contrast themes; both Safari looks have a high-contrast palette built in. Windows’ own scrollbars are always visible in Aviary — the thin overlay kind is not used, so there is nothing here to switch.',
     rows:[
+      /* Alpha Build 5 M4.5 — all four of these are live. Text size goes through the same CSS
+         zoom the website zoom uses (BrowserTab.ApplyZoom), so Reader and the error pages get it
+         too; underlined links are one adopted stylesheet (ReadingAids.cs); the focus ring is a
+         data attribute on Aviary’s own pages and the focus-visual resources in its interface. */
+      {t:'Text size for Aviary’s own pages', d:'Settings and the Start Page — the two pages Aviary writes itself. Reader has its own size in the <b>Aa</b> menu, and websites keep the zoom you set for them in Appearance.', ctl:{type:'select', key:'pageTextSize', opts:['Default','Large','Larger','Largest'], value:'Default'}},
+      {t:'Underline links on websites', d:'A great many sites mark their links with colour alone, which does not show at all if you cannot tell those colours apart. This puts the line back, on every site.', ctl:{type:'toggle', key:'underlineLinks', value:false}},
+      {t:'Show keyboard focus clearly', d:'A thick ring in the accent colour around whatever the keyboard is on — in Aviary’s toolbar and menus, and on its own pages. Only for the keyboard: clicking something never draws it.', ctl:{type:'toggle', key:'focusRing', value:false}},
+      {t:'Reduce motion', d:'Turns off Aviary’s own animations — tabs, the sidebar, panels, Settings and the Start Page — so things appear in place instead of moving there. Aviary reads your Windows animation setting the first time it runs, so this usually starts where you want it. Since M4.5 it tells websites too, which stops their own animations where they honour it; that half needs a restart.', restart:true, ctl:{type:'toggle', key:'reduceMotion', value:false}},
+      {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. They work on a page as well as in the browser: Aviary reads them before a website can swallow them.', more:'keys', ctl:{type:'none'}},
       {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
-      {t:'Always show scrollbars', d:'Instead of the thin overlay ones.', phase:5, ctl:{type:'toggle', key:'scrollbars', value:false}},
-      /* Live since M4.5: every animation Aviary draws checks it (Motion.cs, and the pages’ data-motion). */
-      {t:'Reduce motion', d:'Turns off Aviary’s own animations — tabs, the sidebar, panels, Settings and the Start Page — so things appear in place instead of moving there. Aviary reads your Windows animation setting the first time it runs, so this usually starts where you want it.', ctl:{type:'toggle', key:'reduceMotion', value:false}}
+      {t:'Read pages aloud', d:'Have Aviary read an article out, with the words marked as it goes.', phase:6, ctl:{type:'none'}},
+      {t:'Larger toolbar and tabs', d:'Bigger buttons and taller tabs, for touch and for anyone who finds them small.', phase:6, ctl:{type:'none'}},
+      {t:'Colour filters for web pages', d:'Adjust the colours of every page for colour blindness.', phase:7, ctl:{type:'none'}}
     ]},
 
   { id:'system', icon:'system', name:'System', title:'System',
@@ -1100,6 +1172,9 @@ var MORE = {
   lists: '<details class="more"><summary>What the lists are, and whose they are</summary>' +
          '<div class="more__body" id="listsbox"></div></details>',
   shieldsites: '<div class="sitedata" id="shieldsites" hidden></div>',
+  /* Every shortcut, from the one table the browser itself reads (M4.5). */
+  keys: '<details class="more"><summary>Show every shortcut</summary>' +
+        '<div class="more__body"><div class="keys" id="keylist"></div></div></details>',
   /* Shields' own figures (M4.5): the line is always there, the breakdown opens. */
   shieldstats: '<details class="more"><summary>The last seven days, and what was stopped most</summary>' +
                '<div class="more__body"><div class="shx" id="shstats"></div></div></details>'
@@ -1496,6 +1571,74 @@ function shieldsWatch(){
 }
 nav.addEventListener('click', function(){ setTimeout(shieldsWatch, 0); });
 setTimeout(shieldsWatch, 0);
+
+/* ── Every keyboard shortcut (M4.5) ──────────────────────────────────── */
+/* The same list the browser itself acts on: MainWindow's accelerators and the page-side MAP in
+   BrowserTab.cs, which is why a shortcut works on a website too. Kept in this order on purpose -
+   tabs, then the page, then windows - rather than alphabetically. */
+var KEYS = [
+  {h:'Tabs and windows', rows:[
+    ['Ctrl T', 'New tab'],
+    ['Ctrl W', 'Close this tab'],
+    ['Ctrl Tab', 'Next tab'],
+    ['Ctrl Shift Tab', 'Previous tab'],
+    ['Ctrl 1 – 8', 'Go to that tab'],
+    ['Ctrl 9', 'Go to the last tab'],
+    ['Ctrl Shift N', 'New private window']
+  ]},
+  {h:'Getting about', rows:[
+    ['Ctrl L', 'Type an address or search'],
+    ['Ctrl R', 'Reload — or stop, while a page is loading'],
+    ['Ctrl Shift R', 'Reader'],
+    ['Ctrl F', 'Find on this page'],
+    ['Esc', 'Close the find bar'],
+    ['F11', 'Full screen']
+  ]},
+  {h:'Keeping things', rows:[
+    ['Ctrl D', 'Add to Favourites'],
+    ['Ctrl Shift D', 'Add to Reading List'],
+    ['Ctrl H', 'History'],
+    ['Ctrl J', 'Downloads'],
+    ['Ctrl Shift L', 'Show or hide the sidebar']
+  ]},
+  {h:'Size', rows:[
+    ['Ctrl +', 'Zoom in'],
+    ['Ctrl -', 'Zoom out'],
+    ['Ctrl 0', 'Back to 100%']
+  ]},
+  {h:'Settings', rows:[
+    ['Ctrl ,', 'Open Settings']
+  ]}
+];
+
+function keyList(){
+  var box = document.getElementById('keylist');
+  if (!box) { return; }
+  box.textContent = '';
+  KEYS.forEach(function(group){
+    var section = document.createElement('div');
+    var h = document.createElement('h4');
+    h.textContent = group.h;
+    section.appendChild(h);
+    var dl = document.createElement('dl');
+    group.rows.forEach(function(row){
+      var dt = document.createElement('dt');
+      row[0].split(' ').forEach(function(key, i){
+        if (i) { dt.appendChild(document.createTextNode(' ')); }
+        var k = document.createElement('kbd');
+        k.textContent = key;
+        dt.appendChild(k);
+      });
+      var dd = document.createElement('dd');
+      dd.textContent = row[1];
+      dl.appendChild(dt);
+      dl.appendChild(dd);
+    });
+    section.appendChild(dl);
+    box.appendChild(section);
+  });
+}
+keyList();
 
 /* ── Search: the suggestions row names the engine it would send to (M4) ── */
 function engineNamed(name){

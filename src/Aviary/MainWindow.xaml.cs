@@ -64,6 +64,8 @@ public sealed partial class MainWindow : Window
         IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         _appWindow = GetAppWindow(hWnd);
         WatchForSessionEnd(hWnd);
+        WatchForManyTabsClose();
+        ApplyFocusVisuals();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -79,7 +81,9 @@ public sealed partial class MainWindow : Window
 
         AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control, (_, _) => OpenNewTab(null));
         AddAccelerator(VirtualKey.W, VirtualKeyModifiers.Control, (_, _) => { if (_active is not null) CloseTab(_active); });
-        AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control, (_, _) => AddressBox.Focus(FocusState.Programmatic));
+        // FocusState.Keyboard, not Programmatic: Ctrl+L came from the keyboard, so the focus ring
+        // should show - especially with "Show keyboard focus clearly" on (M4.5).
+        AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control, (_, _) => AddressBox.Focus(FocusState.Keyboard));
         AddAccelerator(VirtualKey.Tab, VirtualKeyModifiers.Control, (_, _) => CycleTab(1));
         AddAccelerator(VirtualKey.F, VirtualKeyModifiers.Control, (_, _) => OpenFindBar());
         AddAccelerator(VirtualKey.Escape, VirtualKeyModifiers.None, (_, _) => CloseFindBar());
@@ -229,6 +233,10 @@ public sealed partial class MainWindow : Window
     {
         RootGrid.Loaded -= RootGrid_Loaded;
         Diagnostics.Mark("window-loaded");
+
+        // Now that the chrome exists, the focus ring can reach the controls already in it
+        // (the constructor's call only set the resources new controls read). M4.5.
+        ApplyFocusVisuals();
         RootGrid.XamlRoot.Changed += OnXamlRootChangedForFocus;
         UpdateCaptionSpacer();
         WebViewEnvironment.EnsureUserDataFolder();
@@ -878,7 +886,8 @@ public sealed partial class MainWindow : Window
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
-                   + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";")
+                   + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";"
+                   + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
@@ -1020,6 +1029,7 @@ public sealed partial class MainWindow : Window
             token = PageToken,
             // How it moves: "flight", "fluid" or "off" (Motion.cs, M4.5) — its CSS keys off it.
             motion = Motion.PageToken,
+            focusRing = AppSettings.GetBool("focusRing"),
             isPrivate = _private,
             iconBase = Favicons.IconBase,
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
@@ -1262,9 +1272,23 @@ public sealed partial class MainWindow : Window
 
         DiagUi("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
 
-        // Closing the last tab closes the window, the way every browser behaves.
+        // Closing the last tab closes the window, the way every browser behaves - unless the
+        // person asked for the window to stay with a fresh Start Page (M4.5).
         if (_tabs.Count == 1)
         {
+            if (KeepWindowAfterLastTab())
+            {
+                OpenNewTab(null);
+
+                // The new tab is now in the list and selected; this one can go the ordinary way.
+                _tabs.Remove(tab);
+                _pinned.Remove(tab);
+                ContentHost.Children.Remove(tab.View);
+                tab.Dispose();
+                RebuildTabStrip();
+                return;
+            }
+
             Close();
             return;
         }
@@ -1302,7 +1326,7 @@ public sealed partial class MainWindow : Window
         {
             case "newtab": OpenNewTab(null); break;
             case "closetab": if (_active is not null) { CloseTab(_active); } break;
-            case "address": AddressBox.Focus(FocusState.Programmatic); break;
+            case "address": AddressBox.Focus(FocusState.Keyboard); break;
             case "nexttab": CycleTab(1); break;
             case "find": OpenFindBar(); break;
             case "bookmark": AddBookmark(); break;
@@ -2525,6 +2549,34 @@ public sealed partial class MainWindow : Window
 
                 case "bookmarksBar":
                     RefreshBookmarksBar();
+                    break;
+
+                // M4.5 accessibility. Each of these does its work now, in every open tab and
+                // window; only "Reduce motion" has a half that waits for a restart (the engine
+                // switch that tells websites), and its row says so.
+                case "pageTextSize":
+                    foreach (BrowserTab t in _tabs)
+                    {
+                        if (t.IsInternalPage)
+                        {
+                            t.ApplyZoom();
+                        }
+                    }
+
+                    break;
+
+                case "underlineLinks":
+                    foreach (BrowserTab t in _tabs)
+                    {
+                        _ = t.RefreshAidsAsync();
+                    }
+
+                    break;
+
+                case "focusRing":
+                    ApplyFocusVisuals();
+                    RefreshStartPages();
+                    PushFocusRingToPages();
                     break;
 
                 case "memorySaver":

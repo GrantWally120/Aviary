@@ -225,6 +225,10 @@ internal static class StartPage
   :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-dur:380ms;--m-rise:10px;}
   html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:560ms;--m-rise:18px;}
   html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
+
+  /* "Show keyboard focus clearly" (M4.5): the same ring as Settings’ own pages, and only
+     for :focus-visible, so a click on a tile never draws it. */
+  html[data-focus="clear"] :focus-visible{outline:3px solid var(--accent)!important;outline-offset:3px!important;}
   /* The sections arrive one after another. backwards: nothing is left behind once done. */
   #panes > section{animation:sec-in var(--m-dur) var(--m-ease) backwards;animation-delay:calc(var(--i,0) * 60ms + 40ms);}
   @keyframes sec-in{from{opacity:0;transform:translateY(var(--m-rise));}to{opacity:1;transform:none;}}
@@ -272,6 +276,8 @@ internal static class StartPage
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
 /* How this page moves (Motion.cs, M4.5): the host re-sets it whenever the style changes. */
 document.documentElement.dataset.motion = D.motion || 'flight';
+/* Show keyboard focus clearly (M4.5), the same switch as Settings' own pages. */
+if (D.focusRing) { document.documentElement.dataset.focus = 'clear'; }
 var ICONS = D.iconBase || '';
 var SHOW = D.sections || {favourites:true, menagerie:true, frequent:true, reading:true, privacy:true};
 /* Opened to show one section (the Shields popover's "Privacy Report"): shown on this page even

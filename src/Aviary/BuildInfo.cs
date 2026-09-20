@@ -48,9 +48,9 @@ internal static class BuildInfo
     /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
     /// </summary>
-    public const int MilestonesDone = 6;
+    public const int MilestonesDone = 7;
 
-    public const int Milestones = 10;
+    public const int Milestones = 11;
 
     /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
     private const int LastAlphaPhase = 5;

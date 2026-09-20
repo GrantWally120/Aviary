@@ -1108,7 +1108,20 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            string text = AppSettings.Get("zoom").TrimEnd('%');
+            // M4.5: Aviary's own pages follow "Text size" in Accessibility, not the zoom people
+            // set for websites. Those pages are Settings and the Start Page - the two Aviary
+            // writes itself and navigates to with NavigateToHtml. Reader is a website Aviary has
+            // restyled, so it keeps the zoom and its own size in the Aa menu.
+            string text = IsInternalPage
+                ? AppSettings.Get("pageTextSize") switch
+                {
+                    "Large" => "115",
+                    "Larger" => "130",
+                    "Largest" => "150",
+                    _ => "100",
+                }
+                : AppSettings.Get("zoom").TrimEnd('%');
+
             if (!double.TryParse(text, System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out double percent)
                 || percent < 25 || percent > 500)

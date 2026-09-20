@@ -336,6 +336,16 @@ Grant's rule is *verify by playing*. Green builds have hidden real defects here 
 >   then `uia.ps1 -Id AddressBox -Action SetValue`. When DevTools keys stop landing (the test
 >   window has gone behind), press toolbar controls through UIA instead — the "Aa" menu's Zoom In
 >   is how bug 62 was reproduced.
+>   - **M4.5 additions (19–20 Sep).** `launch-quiet.ps1` (a test instance that never takes the
+>     foreground), `motion-session.ps1`, `frames.ps1`, `hit-probe.ps1`, `drag-window.ps1`,
+>     `fullscreen-bench.ps1`, `perf-compare.ps1`, `storage-compare.ps1`; and from Stages 7–8:
+>     **`cosmetic-cost.ps1`** (times the real element-hiding script in a real page — 787 KB / 2.5 ms
+>     with two lists, 2,078 KB / 9 ms with four) and **`settings-audit.js`** (every live row, and any
+>     whose key nothing reads: 46 / 10 / 0 on 20 Sep). `cdp.js` gained **`evalfile <tab> <file.js>`**
+>     — a Windows command line stops at about 32 KB, and the things worth measuring are megabytes —
+>     and knows `Tab` and `F7`; `uia.ps1` gained **`-Action Focus`** (UIA SetFocus: it sets keyboard
+>     focus but NOT WinUI's keyboard focus STATE, so it cannot prove a focus ring — that still needs
+>     a real Tab, under `guard.ps1`).
 >   - **Searching over and over from one address trips the engines' bot checks**: after the harness
 >     and a dozen DevTools searches, Google answered "unusual traffic" for a few minutes, Startpage
 >     ran its ~10 s proof-of-work, and Mojeek asked for its ALTCHA tick. Not Aviary: the same
@@ -1147,6 +1157,20 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     `TabFor(page)?.NavigateToHtml(...)` silently did nothing and the page went on showing old values.
     TabFor now falls back to the main frame's id (`CoreWebView2.FrameId`). **Never find a tab by
     reference to an event's CoreWebView2.**
+71. **A filter list whose `! Title:` does not match the name Aviary shows is refused outright**
+    (found 20 Sep switching M4.5's new lists on). `LooksLike` compared the header title with
+    `ListInfo.Name`, so Fanboy's Social — which calls itself "Fanboy's Social Blocking List" —
+    would have been dropped with an anomaly and no visible sign in Settings beyond "(missing)".
+    `ListInfo.Titled` now carries the header name where it differs. The same day: its sibling
+    list dates itself `2026-09-19 08:25 UTC` while the others write `19 Sep 2026 13:49 UTC`, so
+    `ParseModified` takes both. **A list Aviary bundles must be loaded once and seen in Settings
+    before it is called shipped.**
+72. **A setting whose value is the person's own writing leaked into improvement data**
+    (found 20 Sep, M4.5 "My filters", by grepping the test profile's own logs for the rule text).
+    The settings SNAPSHOT was redacted but `Diagnostics.Setting` still wrote `from`/`to` for every
+    change, rules included — and a filter rule can name any site someone visits.
+    `AppSettings.PrivateKeys` is now honoured in both places, and `SettingsRendered` skips those
+    keys. **Redacting one path is not redacting: grep the collected data for the value itself.**
 
 ---
 
@@ -1749,3 +1773,38 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
     Settings, and reset, with `sites.json` read back each time; the rules box round-trips and reports
     its bad lines by number; statistics reset; no anomalies and no swallowed exceptions in the test
     profile's diagnostics.
+- **Stage 8 — accessibility, and the settings around it.** Everything here is live; nothing was
+  shipped that does nothing.
+  - **Tested before it was written, and cut when it failed.** `--force-prefers-reduced-motion`
+    works (a page reports `matchMedia('(prefers-reduced-motion: reduce)')` true), so Reduce motion
+    now tells websites as well — `reduceMotion` joined `WebViewEnvironment.RestartKeys` and the row
+    says which half waits for a restart. **Always show scrollbars was dropped**: WebView2 already
+    reserves 15 px for a classic scrollbar, page and inner scrollers alike, so the row could only
+    ever have done nothing; the Accessibility lede says so. **Caret browsing was dropped**:
+    `--enable-blink-features=CaretBrowsing`, then F7 and a Down arrow, leaves no selection at all —
+    Chromium's caret browsing lives in the browser above the engine, so Aviary would have to write
+    it itself.
+  - **Text size for Aviary's own pages** rides the existing CSS zoom (`BrowserTab.ApplyZoom`), which
+    is re-applied after every navigation. Aviary's own pages are exactly the two it writes and
+    navigates to with `NavigateToHtml` — Settings and the Start Page — so the row says that and not
+    "and Reader", which is a website Aviary restyles.
+  - **Underline links on websites** (`ReadingAids.cs`): one adopted stylesheet, one rule, marked
+    important, added and removed live (proved on a link with `text-decoration:none` of its own —
+    underlined with the switch on, back to none with it off, no reload).
+  - **Show keyboard focus clearly**: on Aviary's own pages a `data-focus` attribute and a
+    `:focus-visible` ring; in the interface, the focus-visual **properties**. The resources alone
+    were not enough — a screenshot after Shift+Tab showed the ring still white — because every
+    control resolves its own when its template is applied, so `ApplyFocusVisuals` sets the
+    app-level resources AND walks the tree for what already exists, and runs again on load and on
+    a theme change. Ctrl+L now focuses the address bar with `FocusState.Keyboard`, not
+    `Programmatic`, so a keyboard person sees where the focus went.
+  - **Every keyboard shortcut**, in one list in Accessibility, written from the two places the
+    browser itself reads (MainWindow's accelerators and `BrowserTab`'s page-side MAP).
+  - **Two tab choices** (`MainWindow.CloseGuard.cs`): ask before closing a window with several tabs
+    — the window's own close is cancelled once and asked about, never in a private window — and
+    what the last tab closing does (close the window, or keep it and show the Start Page).
+  - Badged for later, each with its build: minimum font size (AB5 M6), read aloud and a larger
+    toolbar (BB1), colour filters (BB2).
+  - **The settings audit** is a script now, not a memory: `tools/test/settings-audit.js` lists every
+    keyed row, separates the badged ones, and reports any live row whose key nothing reads.
+    **46 live rows, 10 badged, 0 with nothing reading them.**

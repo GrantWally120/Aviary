@@ -1,0 +1,200 @@
+using System;
+using System.Threading.Tasks;
+using Microsoft.UI.Windowing;
+
+namespace Aviary;
+
+/// <summary>
+/// Two small tab choices from Alpha Build 5 M4.5, both off the Content page in Settings:
+///
+/// <list type="bullet">
+/// <item><b>Ask before closing a window with several tabs</b> (<c>warnManyTabs</c>) — the
+/// window's own close is cancelled once, the question is asked, and only an answer of yes
+/// closes it. Safari asks the same question, and for the same reason: one stray click on the
+/// × should not take six pages with it.</item>
+/// <item><b>When the last tab closes</b> (<c>lastTabCloses</c>) — close the window, as every
+/// browser on this platform does and as Aviary always has, or keep the window and show the
+/// Start Page, which is what Firefox and Edge can do.</item>
+/// </list>
+///
+/// A private window never asks: its tabs are meant to be thrown away, and the question would
+/// be a prompt to think again about a window whose whole point is that it leaves nothing.
+/// </summary>
+public sealed partial class MainWindow
+{
+    /// <summary>The question has been asked and answered; the next close goes straight through.</summary>
+    private bool _closeConfirmed;
+
+    private void WatchForManyTabsClose()
+    {
+        if (_appWindow is not null)
+        {
+            _appWindow.Closing += OnAppWindowClosing;
+        }
+    }
+
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        try
+        {
+            if (_closeConfirmed || _private || _tabs.Count < 2
+                || !AppSettings.GetBool("warnManyTabs"))
+            {
+                return;
+            }
+
+            // Cancel THIS close and ask; a dialog cannot be awaited from inside the event, and
+            // a window that closed while the question was on screen would answer it itself.
+            args.Cancel = true;
+            _ = AskBeforeClosingAsync();
+        }
+        catch (Exception ex)
+        {
+            // Never let this stop a window from closing: the fallback is the old behaviour.
+            Diagnostics.Swallowed(ex, "close: several tabs question");
+        }
+    }
+
+    private async Task AskBeforeClosingAsync()
+    {
+        try
+        {
+            int count = _tabs.Count;
+            DiagUi("close-asked", new { tabs = count });
+
+            bool close = await ConfirmAsync(
+                "Close this window?",
+                count + " tabs are open. Closing the window closes all of them. Your history and "
+                      + "favourites are kept; anything you have typed into a page is not.",
+                "Close " + count + " Tabs");
+
+            if (!close)
+            {
+                DiagUi("close-cancelled", new { tabs = count });
+                return;
+            }
+
+            _closeConfirmed = true;
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "close: several tabs answer");
+        }
+    }
+
+    /// <summary>
+    /// "Show keyboard focus clearly" for Aviary's own interface (M4.5). WinUI draws a focus
+    /// visual around whatever the keyboard is on: a white ring with a thin dark one inside it,
+    /// the same in every app. This makes it thicker and paints it in the accent colour.
+    ///
+    /// These are PROPERTIES on every FrameworkElement, not only theme resources, and each
+    /// control resolves its own when its template is applied — so putting the keys in a
+    /// dictionary after the chrome was built changed nothing (checked with a screenshot: the
+    /// ring stayed white). Both halves are needed: the app-level resources, which every control
+    /// built from here on reads, and a walk over the controls that already exist.
+    /// </summary>
+    private void ApplyFocusVisuals()
+    {
+        try
+        {
+            bool clear = AppSettings.GetBool("focusRing");
+            Microsoft.UI.Xaml.ResourceDictionary app = Microsoft.UI.Xaml.Application.Current.Resources;
+
+            if (clear)
+            {
+                app["FocusVisualPrimaryThickness"] = new Microsoft.UI.Xaml.Thickness(3);
+                app["FocusVisualSecondaryThickness"] = new Microsoft.UI.Xaml.Thickness(1);
+                app["FocusVisualPrimaryBrush"] = ThemeBrush("AvAccentBrush");
+                app["FocusVisualSecondaryBrush"] = ThemeBrush("AvPageBrush");
+            }
+            else
+            {
+                // Off: the keys go, and WinUI falls back to its own — not to a copy of them kept
+                // here, which would drift the first time the framework changed its own default.
+                foreach (string key in new[]
+                         {
+                             "FocusVisualPrimaryThickness", "FocusVisualSecondaryThickness",
+                             "FocusVisualPrimaryBrush", "FocusVisualSecondaryBrush",
+                         })
+                {
+                    app.Remove(key);
+                }
+            }
+
+            StampFocusVisuals(RootGrid, clear);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "accessibility: focus visuals");
+        }
+    }
+
+    /// <summary>
+    /// The controls already on screen, which resolved their focus visual before the switch moved.
+    /// Setting the property locally beats the template's value; clearing it puts the element back
+    /// to whatever the resources now say.
+    /// </summary>
+    private void StampFocusVisuals(Microsoft.UI.Xaml.DependencyObject root, bool clear)
+    {
+        int count = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(root);
+        for (int i = 0; i < count; i++)
+        {
+            Microsoft.UI.Xaml.DependencyObject child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is Microsoft.UI.Xaml.FrameworkElement element)
+            {
+                if (clear)
+                {
+                    element.FocusVisualPrimaryThickness = new Microsoft.UI.Xaml.Thickness(3);
+                    element.FocusVisualSecondaryThickness = new Microsoft.UI.Xaml.Thickness(1);
+                    element.FocusVisualPrimaryBrush = ThemeBrush("AvAccentBrush");
+                    element.FocusVisualSecondaryBrush = ThemeBrush("AvPageBrush");
+                }
+                else
+                {
+                    element.ClearValue(Microsoft.UI.Xaml.FrameworkElement.FocusVisualPrimaryThicknessProperty);
+                    element.ClearValue(Microsoft.UI.Xaml.FrameworkElement.FocusVisualSecondaryThicknessProperty);
+                    element.ClearValue(Microsoft.UI.Xaml.FrameworkElement.FocusVisualPrimaryBrushProperty);
+                    element.ClearValue(Microsoft.UI.Xaml.FrameworkElement.FocusVisualSecondaryBrushProperty);
+                }
+            }
+
+            StampFocusVisuals(child, clear);
+        }
+    }
+
+    /// <summary>Tells Aviary's own pages the focus ring changed, the way motion is told.</summary>
+    private void PushFocusRingToPages()
+    {
+        bool clear = AppSettings.GetBool("focusRing");
+        string script = clear
+            ? "document.documentElement.dataset.focus='clear'"
+            : "delete document.documentElement.dataset.focus";
+
+        foreach (BrowserTab tab in _tabs)
+        {
+            if (!tab.IsInternalPage || tab.View.CoreWebView2 is not Microsoft.Web.WebView2.Core.CoreWebView2 core)
+            {
+                continue;
+            }
+
+            try
+            {
+                _ = core.ExecuteScriptAsync(script);
+            }
+            catch (Exception ex)
+            {
+                Diagnostics.Swallowed(ex, "accessibility: tell page about the focus ring");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The last tab in the window has been closed. True when the window should stay open with a
+    /// fresh Start Page instead — the person's choice, and never in a private window, where an
+    /// empty window left behind would look like the private session is still going.
+    /// </summary>
+    private bool KeepWindowAfterLastTab()
+        => !_private
+        && string.Equals(AppSettings.Get("lastTabCloses"), "Show the Start Page", StringComparison.OrdinalIgnoreCase);
+}

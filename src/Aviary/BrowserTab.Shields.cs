@@ -35,6 +35,10 @@ internal sealed partial class BrowserTab
     private string? _cosmeticScriptId;
     private Task _cosmeticPending = Task.CompletedTask;
 
+    /// <summary>The accessibility stylesheet for websites (M4.5): its script, and its id.</summary>
+    private string? _aidsScript;
+    private string? _aidsScriptId;
+
     /// <summary>A host the person chose to open anyway after Strict's warning — this tab, until it leaves that host.</summary>
     private string? _openedAnyway;
 
@@ -85,6 +89,13 @@ internal sealed partial class BrowserTab
         FilterLists.EngineChanged += OnFilterEngineChanged;
         Shields.Changed += OnShieldsChanged;
         _ = RefreshCosmeticAsync();
+
+        // The accessibility stylesheet rides the same mechanism (M4.5), and is nothing at all
+        // when its switches are off.
+        if (!ReadingAids.Nothing)
+        {
+            _ = RefreshAidsAsync();
+        }
     }
 
     private void DetachShields()
@@ -185,6 +196,69 @@ internal sealed partial class BrowserTab
         _cosmeticScript = script;
         _cosmeticPending = SwapCosmeticAsync(script);
         return _cosmeticPending;
+    }
+
+    /// <summary>
+    /// Registers this tab's accessibility stylesheet for websites (underlined links), replacing
+    /// the one before, and applies it to the page already on screen so nothing has to be
+    /// reloaded. Aviary's own pages are left alone: they have their own text size and focus ring.
+    /// </summary>
+    public async Task RefreshAidsAsync()
+    {
+        try
+        {
+            if (View.CoreWebView2 is not CoreWebView2 core)
+            {
+                return;
+            }
+
+            string? script = ReadingAids.Nothing && _aidsScriptId is null ? null : ReadingAids.Script();
+            if (string.Equals(script, _aidsScript, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _aidsScript = script;
+            if (_aidsScriptId is not null)
+            {
+                core.RemoveScriptToExecuteOnDocumentCreated(_aidsScriptId);
+                _aidsScriptId = null;
+            }
+
+            if (script is null)
+            {
+                return;
+            }
+
+            // The page on screen first (it is already past document-created), then every page
+            // after it. The script takes its own last stylesheet off, so running it twice on one
+            // document leaves exactly one.
+            if (!IsInternalPage)
+            {
+                await core.ExecuteScriptAsync(script);
+            }
+
+            if (ReadingAids.Nothing)
+            {
+                // Nothing left to apply: no script is registered, and the id stays null so the
+                // next switch-on registers one again.
+                _aidsScript = null;
+                return;
+            }
+
+            string id = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
+            if (!string.Equals(script, _aidsScript, StringComparison.Ordinal))
+            {
+                core.RemoveScriptToExecuteOnDocumentCreated(id);
+                return;
+            }
+
+            _aidsScriptId = id;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: accessibility stylesheet");
+        }
     }
 
     private async Task SwapCosmeticAsync(string? script)

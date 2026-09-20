@@ -211,6 +211,35 @@ The original M4 plan:
 - Network suggestions (`suggest`): off by default, per-engine, and the row says it sends
   each keystroke to that engine.
 
+### M4.5 — Smooth Flight · **done 20 Sep 2026** (HANDOFF §21)
+
+Grant's second middle update, between M4 and M5: performance, bugs, motion and a great deal
+more. He named it, and the name carries twice over — **Smooth Flight** is the milestone and
+Classic's way of moving; **Fluid** is Liquid Glass's.
+
+- **Motion** (`Motion.cs`, `MainWindow.TabMotion.cs`, `MainWindow.ChromeMotion.cs`): each look
+  moves its own way, all of it on the compositor thread; Appearance → Animation style; Reduce
+  motion turns every animation off and now tells websites too.
+- **Bugs**: 67 (the idle freezes were Windows' move/size loop — stalls are now measured as busy,
+  waiting, machine paused or window held), 68 (tabs listed in the sidebar in Top bar layout),
+  69 (a tab with no name for a screen reader), 70 (`TabFor` never matching, so Settings kept
+  showing stale values).
+- **Speed, measured**: the blocker's worst check 3.5–7.4 ms → under 1 ms (run-time JIT, not the
+  rules); the tab strip reuses its buttons; leaving full screen is 85–120 ms inside the SDK's own
+  `SetPresenter` and is now timed permanently rather than guessed at.
+- **Settings → Performance** (`LiveStats.cs`, `GpuCounters.cs`) and **Settings → Storage Usage**
+  (`StorageUsage.cs`), both checked against Windows' own figures.
+- **Shields**: two more lists (Cookie notices, Social widgets), per-site Off/Standard/Strict,
+  My filters, what Shields stopped, per-list detail and "Use the shipped lists".
+- **Accessibility**: text size for Aviary's own pages, underlined links, a clear keyboard focus
+  ring, every shortcut listed; and two tab choices (ask before closing several, what the last
+  tab does). Diagnostics cap 500 → 650 MB.
+
+**What this takes off M7's list**: the blocker's per-request cost, the tab strip rebuild, the
+focus rings, the animated pane transitions, the chrome dimming when the window is inactive, and
+one easing set used everywhere. M7 keeps the broader budget work — cold start, new-tab time,
+memory per background tab, and the long-session numbers.
+
 ### M5 — Carried from Phase 4
 - **Download ring, popover, persisted history** — straight from the recovered spec
   `scratchpad/specs/downloads-safari-progress-ring-button-po.md`: `DownloadRing.cs`,
@@ -302,10 +331,10 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
 - Likely work: the `"*"` WebResourceRequested filter on every context (narrow it, keep the
   handler allocation-free); startup ordering (pinned tabs, favicon index, filter index all
   off the critical path); Start Page build cost; long-session memory.
-- **Polish — "cleaner, smoother, more dynamic"**: chrome desaturates when the window loses
-  focus (Safari does); favicon becomes a loading indicator; tab audio indicator and per-tab
-  mute; one easing curve and duration set used everywhere; focus rings; empty states;
-  animated sidebar pane transitions. Real Liquid Glass blur still needs Win2D — **ask first.**
+- **Polish — "cleaner, smoother, more dynamic"**: what is left after M4.5 (which did the
+  chrome dimming, one easing set, focus rings and the animated pane transitions): the favicon
+  as a loading indicator, a tab audio indicator and per-tab mute, and empty states. Real Liquid
+  Glass blur still needs Win2D — **ask first.**
 
 ### M8 — Beta preparation
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the

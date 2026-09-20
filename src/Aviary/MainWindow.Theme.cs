@@ -306,6 +306,9 @@ public sealed partial class MainWindow
         ApplyCaptionColors();
         RefreshPillBrush();
         RestampSegments();
+
+        // The focus ring is painted in the accent colour, which the theme decides (M4.5).
+        ApplyFocusVisuals();
         RefreshSidebar();
         RefreshGlass();
 

@@ -46,7 +46,7 @@ internal static class WebViewEnvironment
     public static string Arguments { get; private set; } = string.Empty;
 
     /// <summary>The settings that are engine switches — each needs a restart to change.</summary>
-    public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect" };
+    public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect", "reduceMotion" };
 
     public static void EnsureUserDataFolder()
     {
@@ -132,6 +132,14 @@ internal static class WebViewEnvironment
         if (_launchedWith["webrtcProtect"])
         {
             args.Add("--force-webrtc-ip-handling-policy=default_public_interface_only");
+        }
+
+        // M4.5: Reduce motion stops Aviary's own animations at once (Motion.cs); this is the
+        // other half - every page sees "prefers-reduced-motion: reduce" and drops its own.
+        // Checked on this engine before the row was written: matchMedia says reduce.
+        if (_launchedWith["reduceMotion"])
+        {
+            args.Add("--force-prefers-reduced-motion");
         }
 
         string? test = Environment.GetEnvironmentVariable("AVIARY_TEST_BROWSER_ARGS");
