@@ -609,6 +609,7 @@ var ICON = {
   reset:'<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 2.4v3.2H9.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   updates:'<svg viewBox="0 0 16 16" fill="none"><path d="M7.2 2.4c.5 3 2 4.5 5 5-3 .5-4.5 2-5 5-.5-3-2-4.5-5-5 3-.5 4.5-2 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.6 1.8v2.6M11.3 3.1h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
   storage:'<svg viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4.4" rx="5.2" ry="1.9" stroke="currentColor" stroke-width="1.3"/><path d="M2.8 4.4v7.2c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9V4.4M2.8 8c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9" stroke="currentColor" stroke-width="1.3"/></svg>',
+  news:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M4.6 8.6h6.8M4.6 10.8h6.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="4.4" y="5" width="4.2" height="1.9" rx=".5" fill="currentColor"/></svg>',
   perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
@@ -745,7 +746,7 @@ var UPDATES = [
       {h:'Shields — more of it, and more of it yours', items:[
         '<b>Two more lists</b>, off until you switch them on: <b>Cookie notices</b>, which hides the “we value your privacy” banners, and <b>Social widgets</b>, which stops Like and Share buttons reporting the page you are on',
         '<b>Every site can have its own setting</b> — Off, Standard or Strict — from the shield in the toolbar, with the whole list of them in Settings and a way back to the default',
-        '<b>My filters</b>: write your own rules, in the same syntax as the lists. Aviary says which lines it cannot use, and what you write is never recorded in improvement data',
+        '<b>My filters</b>: write your own rules, in the same syntax as the lists. Aviary says which lines it cannot use, and — until M4.9 — what you wrote was never recorded in improvement data',
         '<b>What Shields stopped</b>: this session, the last seven days and all time, with the trackers and sites at the top of each, and a way to start the count again',
         'The shield’s popover now lists <b>what it stopped on this page</b>, address by address, with the rule that caught each one',
         'New switches: hide the spaces ads leave, show the number on the shield, and Strict’s warning page — each its own choice. Updating can be Off, Daily or Weekly, and “Use the shipped lists” puts the downloads back',
@@ -789,6 +790,14 @@ var UPDATES = [
         '<b>The graphics card by the kind of work</b>: drawing, video, moving data',
         '<b>Memory in full</b>: what is in use, what Aviary has asked Windows for, and the most it has ever held at once',
         '<b>Sort the tabs</b> by memory, processor or data, and <b>choose how often</b> Aviary measures — every 1, 2 or 5 seconds'
+      ]},
+      {h:'Birds News', items:[
+        '<b>Live news on your Start Page</b>, right under Favourites: <b>The World</b> from BBC News, Al Jazeera and The Guardian, and <b>The Philippines</b> from Inquirer, Rappler and GMA News, side by side. Each publisher gets a turn, newest first',
+        '<b>Every headline exactly as its site wrote it</b>, with who wrote it and when. Aviary never rewrites, summarises or ranks anything — press a story and you are on the publisher’s own page',
+        '<b>It keeps itself up to date</b> — every 15 minutes by default, or every 30, every hour, or only when you open the Start Page. A site with nothing new answers in a few bytes',
+        '<b>All the stories in Birds News</b> opens the full list; Settings → <b>Birds News</b> has a switch for every publisher, room for any other news feed you like, and a <b>Right now</b> line saying what each site answered last time',
+        'Aviary asks each site as itself, sends no cookies, and never fetches from a private window. <b>Switch Birds News off and nothing is fetched at all</b>',
+        'One of the six stamps its stories with the wrong time zone; Aviary corrects it from that site’s own clock and says so, rather than showing its news as eight hours in the future'
       ]},
       {h:'Birds News, part one — memory saver and improvement data', items:[
         '<b>Memory saver has four modes.</b> <b>Chill</b> sleeps a tab you have left alone for an hour; <b>Balanced</b>, the default, after half an hour; <b>Aggressive</b> after five minutes, and it lets go of every background tab the moment you minimise the window. <b>Off</b> sleeps nothing. The same rules keep every mode safe: never a tab playing sound or video, never the tab you are on',
@@ -944,10 +953,30 @@ var SECTIONS = [
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
       {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
       {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},
+      {t:'Birds News', d:'Live headlines from the world and the Philippines, right under Favourites. Its own page has every switch.', ctl:{type:'goto', target:'news', label:'Birds News settings'}},
       /* Was "What works today", hand-written in Alpha Build 3 and still promising Alpha Build
          4's features two builds later. Now it is the current build's own line from UPDATES. */
       {t: CURRENT ? 'What’s new in ' + nameOf(CURRENT.phase) : 'What’s new', d: CURRENT ? CURRENT.short : '', ctl:{type:'goto', target:'updates', label:'See updates'}}
     ]},
+
+  /* M4.9 — Birds News (BirdsNews.cs). The one part of Aviary that goes online by itself, so this
+     page says exactly what it fetches, from whom, how often, and what it sends. */
+  { id:'news', icon:'news', name:'Birds News', title:'Birds News',
+    lede:'Live headlines on your Start Page, straight from the people who publish them. Aviary asks each site for its own news feed — as Aviary, not dressed up as a person’s browser — sends no cookies, and shows every headline exactly as its site wrote it. Nothing about what you read is sent anywhere.',
+    rows:[
+      {t:'Birds News', d:'Show the latest stories on the Start Page. <b>While this is off Aviary fetches nothing at all</b> — nobody is reading it. The same switch as <b>Birds News</b> in the Start Page’s Customise button.', ctl:{type:'toggle', key:'startNews', value:true}},
+      {t:'Check for new stories', d:'How often Aviary asks the news sites for anything new, while it is open. A site that has nothing new answers in a few bytes, so checking often costs almost nothing. <b>Only when I open the Start Page</b> never checks in the background.', ctl:{type:'select', key:'newsRefresh', opts:['Every 15 minutes','Every 30 minutes','Every hour','Only when I open the Start Page'], value:'Every 15 minutes'}},
+      {t:'The World', d:'', ctl:{type:'none'}},
+      {t:'BBC News', d:'World news from the BBC, London.', ctl:{type:'toggle', key:'newsBbc', value:true}},
+      {t:'Al Jazeera', d:'Al Jazeera English, Doha.', ctl:{type:'toggle', key:'newsAljazeera', value:true}},
+      {t:'The Guardian', d:'The Guardian’s world desk, London.', ctl:{type:'toggle', key:'newsGuardian', value:true}},
+      {t:'The Philippines', d:'', ctl:{type:'none'}},
+      {t:'Inquirer', d:'The Philippine Daily Inquirer’s news desk.', ctl:{type:'toggle', key:'newsInquirer', value:true}},
+      {t:'Rappler', d:'Rappler, Manila.', ctl:{type:'toggle', key:'newsRappler', value:true}},
+      {t:'GMA News', d:'GMA News Online.', ctl:{type:'toggle', key:'newsGma', value:true}},
+      {t:'Your own feeds', d:'Any other news site’s RSS or Atom feed, one address per line — they appear as a column of their own. A line starting with <code>!</code> is a note. Aviary says below which lines it cannot use.', ctl:{type:'text', key:'newsCustom', value:''}},
+      {t:'Right now', d:'<span id="newsstatus">Not checked yet.</span>', ctl:{type:'buttons', items:[{cmd:'newsCheck', label:'Check now'}]}}
+    ] },
 
   { id:'look', icon:'look', name:'Appearance', title:'Appearance',
     lede:'How Aviary looks. Both Safari looks switch while the browser is running, and whichever you leave it on is the one it opens with next time.',
@@ -1005,7 +1034,7 @@ var SECTIONS = [
       {t:'Social widgets', d:'Fanboy’s Social: stops Like, Share and comment widgets, which report the page you are on to their own company whether or not you touch them. Sharing buttons and embedded posts may disappear — which is the point, and sometimes a nuisance.', ctl:{type:'toggle', key:'listSocial', value:false}},
       {t:'Filter lists', d:'<span id="listsline"></span>', more:'lists', ctl:{type:'buttons', items:[{cmd:'listsUpdate', label:'Update now'},{cmd:'filtersRestore', label:'Use the shipped lists'}]}},
       {t:'Keep the lists up to date', d:'Aviary downloads the newest copies of the lists that are switched on, from the people who publish them. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now.', ctl:{type:'select', key:'listsAutoUpdate', opts:['Off','Daily','Weekly'], value:'Off'}},
-      {t:'My filters', d:'Your own rules, in the same syntax as the lists: <code>||ads.example.com^</code> to stop a host, <code>example.com##.banner</code> to hide something, <code>@@||example.com^</code> to let a site through. One per line; a line starting with <code>!</code> is a note. Aviary says which lines it cannot use, and what you write here is never recorded in improvement data.', ctl:{type:'text', key:'customFilters', value:''}},
+      {t:'My filters', d:'Your own rules, in the same syntax as the lists: <code>||ads.example.com^</code> to stop a host, <code>example.com##.banner</code> to hide something, <code>@@||example.com^</code> to let a site through. One per line; a line starting with <code>!</code> is a note. Aviary says which lines it cannot use. If <b>Allow data collection for improvements</b> is on, what you write here is recorded as you wrote it — you chose that in M4.9; it never leaves this computer.', ctl:{type:'text', key:'customFilters', value:''}},
 
       {t:'Hide the spaces ads leave', d:'After an ad is stopped, hide the empty box it sat in, so the page closes up around it. Off, the page keeps its gaps — which is sometimes the better way round, on a site whose layout depends on them.', ctl:{type:'toggle', key:'cosmeticHiding', value:true}},
       {t:'Show the number on the shield', d:'The small count on the toolbar shield, showing how many things were stopped on the page you are on. Off, the shield is still there and still stops them.', ctl:{type:'toggle', key:'shieldBadge', value:true}},
@@ -1834,6 +1863,41 @@ suggestRow();
 
 /* M4.8 (bug 77) — ring whichever tile is in force. Reads the row rather than a stored copy, so
    it is right whether the value came from the store, from a Reset, or from a click just now. */
+/* M4.9 — Birds News, "Right now": what each feed answered the last time it was asked. Built
+   with DOM text, never markup — a feed's name for one of your own addresses is its host name,
+   which came off the internet. */
+function nwAgo(ms){
+  if (!ms) { return ''; }
+  var s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 90) { return 'just now'; }
+  if (s < 3600) { return Math.round(s / 60) + ' min ago'; }
+  var h = Math.round(s / 3600); return h < 48 ? h + (h === 1 ? ' hour ago' : ' hours ago') : Math.round(h / 24) + ' days ago';
+}
+window.__aviaryNewsStatus = function(n){
+  var el = document.getElementById('newsstatus');
+  if (!el || !n) { return; }
+  el.textContent = '';
+  function line(name, text){
+    var s = document.createElement('span');
+    if (name) { var b = document.createElement('b'); b.textContent = name; s.appendChild(b); s.appendChild(document.createTextNode(' — ')); }
+    s.appendChild(document.createTextNode(text));
+    el.appendChild(s);
+  }
+  if (!n.on) { line('', 'Birds News is switched off, so nothing is being fetched.'); return; }
+  var feeds = n.feeds || [];
+  if (!feeds.length) { line('', 'Every feed is switched off, so nothing is being fetched.'); }
+  feeds.forEach(function(f){
+    var when = f.at ? ' · ' + nwAgo(f.at) : '';
+    line(f.name,
+      f.state === 'ok' ? f.stories + (f.stories === 1 ? ' story' : ' stories') + when + (f.note ? ' · ' + f.note : '')
+    : f.state === 'unchanged' ? 'nothing new, ' + f.stories + ' held' + when + (f.note ? ' · ' + f.note : '')
+    : f.state === 'failed' ? (f.why || 'no answer') + when + (f.stories ? ' — ' + f.stories + ' stories kept from before' : '')
+    : 'waiting for the first check');
+  });
+  (n.problems || []).forEach(function(p){ line('Not used', p.line + ' — ' + p.why); });
+};
+window.__aviaryNewsStatus(window.__aviaryNews);
+
 function iconTiles(){
   var sel = document.querySelector('.sel[data-key="appIcon"] .sel__btn span');
   var now = sel ? sel.textContent.trim() : saved('appIcon', 'Blue tile');

@@ -81,6 +81,11 @@ public sealed partial class MainWindow : Window
         RootGrid.ActualThemeChanged += (_, _) => OnEffectiveThemeChanged();
         Closed += MainWindow_Closed;
 
+        // M4.9: Birds News. Each window hears when the stories change and pushes them into its own
+        // Start Pages; the schedule itself is started once, by whichever window comes first.
+        BirdsNews.Changed += OnNewsChanged;
+        BirdsNews.EnsureStarted();
+
         AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control, (_, _) => OpenNewTab(null));
         AddAccelerator(VirtualKey.W, VirtualKeyModifiers.Control, (_, _) => { if (_active is not null) CloseTab(_active); });
         // FocusState.Keyboard, not Programmatic: Ctrl+L came from the keyboard, so the focus ring
@@ -919,7 +924,9 @@ public sealed partial class MainWindow : Window
                    + " window.__aviarySpeed = " + JsonSerializer.Serialize(Motion.PageSpeed) + ";"
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"
                    // M4.9 (bug 80): the page redacts exactly the keys the host does, from ONE list.
-                   + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";")
+                   + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";"
+                   // M4.9: Birds News' "Right now" row.
+                   + " window.__aviaryNews = " + JsonSerializer.Serialize(BirdsNews.Snapshot()) + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
@@ -1069,6 +1076,7 @@ public sealed partial class MainWindow : Window
             sections = new
             {
                 favourites = AppSettings.Get("startFavourites") != "false",
+                news = BirdsNews.On,
                 menagerie = AppSettings.Get("startMenagerie") != "false",
                 frequent = AppSettings.Get("startFrequent") != "false",
                 reading = AppSettings.Get("startReading") != "false",
@@ -1079,8 +1087,13 @@ public sealed partial class MainWindow : Window
             frequent,
             reading,
             privacy = BuildPrivacyPayload(),
+            // M4.9: whatever Birds News is holding right now. The page never waits for a fetch.
+            news = BirdsNews.Snapshot(),
             focus,
         };
+
+        // Fetch if what is held has gone stale - never from a private window.
+        BirdsNews.StartPageOpened(_private);
 
         return StartPage.Html
             .Replace("/*__AVIARY_START__*/",
@@ -2255,7 +2268,7 @@ public sealed partial class MainWindow : Window
             // same event; only the Start Page's own types are refused, and only those recorded.
             if (!trusted)
             {
-                if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange")
+                if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange" or "newsAll")
                 {
                     RefuseMessage("Start Page", type, args);
                 }
@@ -2295,8 +2308,23 @@ public sealed partial class MainWindow : Window
                     AppSettings.Set(
                         "start" + char.ToUpperInvariant(name[0]) + name.Substring(1),
                         on ? "true" : "false");
+
+                    // M4.9: the Start Page switch IS Birds News' master switch - off stops fetching.
+                    if (name == "news")
+                    {
+                        BirdsNews.SettingsChanged();
+                        PushToSettingsPage(BirdsNews.ShowKey, on ? "true" : "false");
+                    }
+
                     break;
                 }
+
+                // M4.9: "All the stories in Birds News" - this page, opened on the news alone.
+                case "newsAll":
+                    DiagFeature("birds-news-all", new { from = "start page" });
+                    _active?.NavigateToHtml(BuildStartPageHtml("news"), "Birds News");
+                    UpdateChrome();
+                    break;
 
                 case "privacyRange":
                 {
@@ -2363,8 +2391,46 @@ public sealed partial class MainWindow : Window
             {
                 tab.NavigateToHtml(BuildStartPageHtml(), "Start Page");
             }
+            else if (tab.IsInternalPage && tab.Title == "Birds News")
+            {
+                tab.NavigateToHtml(BuildStartPageHtml("news"), "Birds News");
+            }
         }
     }
+
+    /// <summary>
+    /// Birds News has new stories, or a feed's status changed (M4.9). Raised on a worker thread.
+    /// Pushed IN to every Start Page, the Birds News page and Settings rather than redrawing them,
+    /// so a page someone is reading does not jump every fifteen minutes. Only Aviary's own pages
+    /// hear it — the rule since bug 62: a host push must never reach a website.
+    /// </summary>
+    private void OnNewsChanged() => DispatcherQueue.TryEnqueue(() =>
+    {
+        try
+        {
+            string json = JsonSerializer.Serialize(BirdsNews.Snapshot());
+            foreach (BrowserTab tab in _tabs)
+            {
+                if (!tab.IsInternalPage || tab.View.CoreWebView2 is not CoreWebView2 core)
+                {
+                    continue;
+                }
+
+                if (tab.Title is "Start Page" or "Birds News")
+                {
+                    _ = core.ExecuteScriptAsync("window.__aviaryNews && window.__aviaryNews(" + json + ")");
+                }
+                else if (tab.Title == "Settings")
+                {
+                    _ = core.ExecuteScriptAsync("window.__aviaryNewsStatus && window.__aviaryNewsStatus(" + json + ")");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "birds news: push to pages");
+        }
+    });
 
     private void NewTabButton_Click(object sender, RoutedEventArgs e)
     {
@@ -2640,6 +2706,24 @@ public sealed partial class MainWindow : Window
 
                 case Diagnostics.FramesKey:
                     Diagnostics.ApplyFrameTiming();
+                    break;
+
+                // M4.9: Birds News - its master switch, how often it checks, and which feeds.
+                case BirdsNews.ShowKey:
+                case BirdsNews.RefreshKey:
+                case BirdsNews.CustomKey:
+                case "newsBbc":
+                case "newsAljazeera":
+                case "newsGuardian":
+                case "newsInquirer":
+                case "newsRappler":
+                case "newsGma":
+                    BirdsNews.SettingsChanged();
+                    if (key == BirdsNews.ShowKey)
+                    {
+                        RefreshStartPages();
+                    }
+
                     break;
 
                 case "bookmarksBar":
@@ -2968,6 +3052,12 @@ public sealed partial class MainWindow : Window
 
                 case "perfTab":
                     await PerfTabAsync(arg ?? string.Empty);
+                    break;
+
+                // ── Birds News (M4.9): "Check now" ──
+                case "newsCheck":
+                    DiagFeature("birds-news-check", new { from = "settings" });
+                    await BirdsNews.RefreshAsync(force: true);
                     break;
 
                 // ── Storage Usage (M4.5) ──
@@ -3487,6 +3577,7 @@ public sealed partial class MainWindow : Window
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         Favicons.Updated -= OnFaviconUpdated;
+        BirdsNews.Changed -= OnNewsChanged;
         Bookmarks.Changed -= RefreshBookmarksBar;
         OpenWindows.Remove(this);
 

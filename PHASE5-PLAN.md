@@ -305,7 +305,7 @@ Also unplanned, and named by Grant: four asks while he was testing M4.7.
 - **Storage Usage** — every category row draws its share as a bar in its own colour.
 - Kit: `window-icon.ps1`, `sleep-test.ps1`, and `AVIARY_SLEEP_TEST=<seconds>` (environment only).
 
-### M4.9 — Birds News · **Stage 1 of 3 done 21 Sep 2026** (HANDOFF §25)
+### M4.9 — Birds News · **Stages 1–2 of 3 done 21 Sep 2026** (HANDOFF §25)
 
 Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
 
@@ -313,9 +313,12 @@ Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingl
   which also lets go on minimise); M4.8's `sleepIdleTabs` folded in before it ever shipped;
   diagnostics cap 700 MB; My filters text collected (bug 72 reversed at his word); frame timing as
   an opt-in that is off even while collection is on; bugs 79 and 80.
-- **Stage 2 — Birds News.** World + Philippines RSS on the Start Page and at `birds.aviary`, fetched
-  as Aviary itself (not the Safari UA), never from a private window, headlines never rewritten.
-  The exact feed addresses need Grant's OK before the first fetch.
+- **Stage 2 — Birds News — done.** Six approved feeds (BBC, Al Jazeera, The Guardian, Inquirer, Rappler,
+  GMA) on the Start Page under Favourites and on a Birds News page of its own (the Start Page opened on
+  the news alone, rather than a separate `birds.aviary`), pushed live, fetched as Aviary itself, never
+  from a private window, headlines never rewritten. The first real fetch found Inquirer mislabelling
+  its time zone (corrected from its own build date) and one publisher filling a column (now dealt
+  round). Bug 81.
 - **Stage 3 — his five picks.** Search open tabs (Ctrl+Shift+A), Forgetful browsing with a time
   (on close / 5 min / 1 h / 1 day), Safety Check, Start Page backgrounds, Picture-in-picture (verified
   against the engine first, badged rather than shipped dead if it cannot).

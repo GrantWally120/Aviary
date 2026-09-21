@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **21 September 2026**, partway through **M4.9 “Birds News”** — section 25 (Stage 1 of 3 done), with §23 (M4.7) and §24 (M4.8) before it; read those three first. Alpha Build 5 is called **The Long Run**: it has run M0 to M4.8, M4.9 is under way, and M5 is still on hold until Grant says otherwise.
+Last updated **21 September 2026**, partway through **M4.9 “Birds News”** — section 25 (Stages 1–2 of 3 done), with §23 (M4.7) and §24 (M4.8) before it; read those three first. Alpha Build 5 is called **The Long Run**: it has run M0 to M4.8, M4.9 is under way, and M5 is still on hold until Grant says otherwise.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -45,18 +45,16 @@ run, the sidebar and Classic included).
 
 > **WHERE THINGS STAND (21 Sep 2026 — read this first in a new chat)**
 > - Alpha Build 5 **"The Long Run"**: **10 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
->   M4.6, M4.7, M4.8). **M4.9 "Birds News" is in progress — Stage 1 of 3 done** (§25). Then M5
+>   M4.6, M4.7, M4.8). **M4.9 "Birds News" is in progress — Stages 1–2 of 3 done** (§25). Then M5
 >   (download ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **Read §25 first**, then §23–24. Bugs **75–80** (§10). Next bug number **81**.
-> - **M4.9 Stages 2–3 still to do:** Birds News (needs Grant's OK on the exact feed addresses — they
->   are downloads), then Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
+> - **Read §25 first**, then §23–24. Bugs **75–81** (§10). Next bug number **82**.
+> - **M4.9 Stage 3 still to do:** Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
 >   backgrounds, Picture-in-picture. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
 > - **Owed from M4.8: Grant must confirm the taskbar icon** follows App Icon (bug 77 — Windows 11's
 >   taskbar cannot be read from here).
 > - **Grant said NOT to start M5 yet (14, 18, 20 Sep).** M4.9 is what he asked for instead.
-> - Git: everything through M4.7 is committed (`29f2b17`) and `publish/Aviary` is that build.
->   **M4.8 and M4.9 Stage 1 are NOT committed and NOT published** — they go together; ask first,
->   and run `tools/library/sync.ps1` before any publish.
+> - Git: M4.8 + M4.9 Stage 1 are committed and published (`ea08c94`). **M4.9 Stage 2 (Birds News) is
+>   NOT committed and NOT published yet** — ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -1314,6 +1312,14 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     `__aviarySettings`). Checked with real rules in the box, not an empty one: zero anomalies, and the
     rule text appears in the settings snapshot. **Un-redacting one path is not un-redacting — the
     mirror image of bug 72. One list, read everywhere.**
+81. **A settings row went on describing behaviour that had stopped being true** (found 21 Sep while
+    building Birds News — shipped in `ea08c94`). Stage 1 made My filters collected, at Grant's word;
+    the My filters row still said *"what you write here is never recorded in improvement data"*.
+    Nothing checked it, because `settings-audit.js` asks whether a live row is READ, not whether its
+    words are still true. The row now says what happens (recorded if collection is on, never leaves
+    the computer), and the M4.5 Updates line that promised the opposite now says "until M4.9", so
+    history stays true without misleading. **When a behaviour changes, grep for every sentence that
+    describes it — the row, the Updates notes, the collection list — not just the code.**
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2103,7 +2109,7 @@ so M4.7 is intact · `motion-session.ps1` Classic: no stall over 50 ms, no crash
 swallowed error · sleeping and waking proved from the diagnostics log · **thirteen scratch profiles:
 no issues, no crashes**.
 
-## 25. Alpha Build 5 M4.9 "Birds News" (21 Sep 2026 — STAGE 1 DONE, Stages 2–3 to come)
+## 25. Alpha Build 5 M4.9 "Birds News" (21 Sep 2026 — STAGES 1–2 DONE, Stage 3 to come)
 
 Grant, while testing M4.8: *"fix one more thing M4.9 small fix lang … Memory saver add more options
 for it such as aggressive … and balanced(Default) … update our data collection to everything … add
@@ -2151,5 +2157,49 @@ flyout geometry **(10,2)** both looks · `motion-session.ps1` clean · 20 scratc
 issues were three stalls during my own builds (labelled correctly as other programs having the
 processor) and bug 80, since fixed and re-run clean with real rules in My filters.
 
-**Stages 2 and 3 are not started.** Birds News needs Grant's OK on the exact feed addresses before
-the first fetch — they are downloads. M4.8 is still uncommitted; it ships with Stage 1.
+**Stage 1 was committed and published with M4.8 as `ea08c94`** (21 Sep, Grant's OK).
+**Stage 2 — Birds News (done).** `BirdsNews.cs` (new), `StartPage.cs` (the section, the live push,
+the Birds News page), a Settings pane of its own, and `MainWindow` wiring.
+- **The six feeds Grant approved** (21 Sep): BBC World, Al Jazeera, The Guardian World (AP has no
+  public RSS — Guardian in its place, his word), Inquirer, Rappler, GMA News. **All six answered on the
+  first real fetch**, 10–20 stories each, 120–320 ms each, and all accept Aviary's honest reader
+  user-agent (`Mozilla/5.0 (compatible; Aviary/0.5.0; Birds News)`).
+- **Rules:** RSS/Atom straight from each publisher; no cookies sent or kept (the test server set one
+  on every response and it never came back); DTDs ignored, never processed (a billion-laughs feed
+  fails in milliseconds); 5 MB cap per feed; 15 s timeout, feeds side by side; only http/https story
+  links (a `javascript:` link is dropped); titles de-tagged and entity-decoded, then escaped again by
+  the page. ETag/Last-Modified kept, so an unchanged feed is a 304. **Headlines are never rewritten.**
+- **Off means off:** `startNews` is the master switch — off, the timer is disposed and nothing is
+  fetched (measured: zero requests in 22 s). Never fetched from a private window.
+- **Start-up grace, found by measuring:** a new process has never fetched, so the first Start Page
+  looked stale and fetched DURING start-up, straight past the six-second grace. Inside the grace the
+  page now leaves it to the timer's first tick — measured 0 requests at +3 s, 7 at +10 s.
+- **Live, not reloaded:** new stories are pushed into open Start Pages, the Birds News page and
+  Settings (`window.__aviaryNews` / `__aviaryNewsStatus`). A feed toggle removes its stories at once;
+  a marker planted in the Start Page survived a toggle, so it is a push, not a reload.
+- **Two things the first REAL fetch caught that no test feed had:** (1) **Inquirer stamps Manila
+  local time with `+0000`** while its own `lastBuildDate` says `+0800` — read as written every story
+  was eight hours in the future, all "just now", and they pushed Rappler and GMA out of the column.
+  `CorrectMislabelledTimes` re-reads such times in the feed's OWN build-date zone (Philippine time as
+  the fallback for a PH feed; otherwise the time is dropped, never shown wrong), and Settings says so.
+  (2) **Strictly newest-first let one busy desk take every slot** — four Guardian stories. The Start
+  Page now deals its few slots round the publishers (`mixSources`); the Birds News page keeps the
+  plain timeline.
+- **A bad feed is not an Aviary fault:** parse failures were being logged as hidden errors under
+  *Needs attention* — bug 79's mistake again. They are in Birds News' own status and the
+  `news-fetch` perf lines only now.
+- **Bug 81** (§10): the My filters row still promised "never recorded" after Stage 1 made it recorded.
+- Test kit: `newssite.js` (good RSS, good Atom, ETag/304, entity bomb, 403, 20-second hang, broken
+  XML, hostile title, `javascript:` link, two mislabelled-time feeds, `/hits`), `news-check.js`, and
+  `AVIARY_TEST_NEWS_BASE`.
+- **A trap hit while building it:** a `perl -pi` edit containing `\x{2019}` re-encoded the whole of
+  BirdsNews.cs (every — became â€”), strings included. Repaired exactly in Node; every edited file then
+  scanned clean. Use the Edit tool or Node for any text with typographic characters.
+
+**Checked (Stage 2):** audit **64 live, 10 badged, 0 inert** (nine new rows, all live) · flyout geometry
+(10,2) both looks · motion sweep clean with Birds News on · every Stage 2 profile on the final build:
+no issues, no crashes · the real fetch: six of six, no future-dated story left, zero issues.
+
+**Stage 3 is not started:** Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
+backgrounds, Picture-in-picture.
+

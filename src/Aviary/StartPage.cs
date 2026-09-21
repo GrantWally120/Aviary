@@ -132,6 +132,33 @@ internal static class StartPage
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .rl__age{font-size:11px;color:var(--ink-3);}
 
+  /* ── Birds News (M4.9) ─────────────────────────────────────────────────────
+     Columns by where the news is from; cards in the Reading List's own shape so the page reads
+     as one design. The publisher's name leads each card, because whose words these are matters
+     more than anything Aviary could add. */
+  .nw__meta{font-size:12px;color:var(--ink-3);margin:-6px 0 12px;}
+  .nw__meta b{font-weight:500;color:var(--ink-2);}
+  .nw__cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
+  .nw__col h3{margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
+  .nw__list{display:flex;flex-direction:column;gap:8px;}
+  .nw__item{
+    border:1px solid var(--line);border-radius:12px;background:var(--card);
+    padding:10px 12px;display:flex;flex-direction:column;gap:4px;cursor:default;
+    text-align:left;font:inherit;color:inherit;
+    transition:transform 150ms cubic-bezier(.32,.72,0,1),box-shadow 150ms;
+  }
+  .nw__item:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.1);}
+  .nw__src{display:flex;gap:8px;font-size:11.5px;}
+  .nw__src b{font-weight:600;color:var(--accent);}
+  .nw__src span{color:var(--ink-3);}
+  .nw__title{font-size:13.5px;font-weight:500;line-height:1.35;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .nw__all{margin-top:12px;border:0;background:transparent;color:var(--accent);font:inherit;font-size:13px;cursor:default;padding:4px 0;}
+  .nw__all:hover{text-decoration:underline;}
+  .nw__down{color:var(--ink-3);font-size:12px;margin-top:10px;}
+  /* A live update replaces the section in place and must not replay its arrival. */
+  #panes > section[data-live]{animation:none;}
+
   /* Privacy report. */
   .privacy{
     border:1px solid var(--line);border-radius:14px;background:var(--card);
@@ -283,7 +310,7 @@ document.documentElement.dataset.speed = D.speed || 'standard';
 /* Show keyboard focus clearly (M4.5), the same switch as Settings' own pages. */
 if (D.focusRing) { document.documentElement.dataset.focus = 'clear'; }
 var ICONS = D.iconBase || '';
-var SHOW = D.sections || {favourites:true, menagerie:true, frequent:true, reading:true, privacy:true};
+var SHOW = D.sections || {favourites:true, news:true, menagerie:true, frequent:true, reading:true, privacy:true};
 /* Opened to show one section (the Shields popover's "Privacy Report"): shown on this page even
    if Customise hides it — the saved choice is untouched — and scrolled to below. */
 if (D.focus && (D.focus in SHOW)) { SHOW[D.focus] = true; }
@@ -355,8 +382,133 @@ function section(id, heading, body){
   return '<section data-sec="' + id + '"><h2>' + esc(heading) + '</h2>' + body + '</section>';
 }
 
+/* ── Birds News (M4.9) ───────────────────────────────────────────────────────
+   Everything here came off the internet: every string goes through esc(), and every address was
+   checked to be http or https by the host before it got here. */
+var NEWS_FULL = D.focus === 'news';
+if (NEWS_FULL) { document.title = 'Birds News'; }
+
+function ago(ms){
+  if (!ms) { return ''; }
+  var s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 90) { return 'just now'; }
+  if (s < 3600) { return Math.round(s / 60) + ' min ago'; }
+  if (s < 86400) { var h = Math.round(s / 3600); return h + (h === 1 ? ' hour ago' : ' hours ago'); }
+  var d = Math.round(s / 86400); return d + (d === 1 ? ' day ago' : ' days ago');
+}
+
+/* The Start Page's few slots are dealt round the publishers — each one's newest, then each one's
+   next — and then shown newest first. Strictly newest-first let one busy desk take every slot:
+   on the first real fetch (21 Sep) the World column was four stories from The Guardian while BBC
+   and Al Jazeera had news an hour old. The Birds News page keeps the plain timeline. */
+function mixSources(items, per){
+  var bySource = {}, order = [];
+  items.forEach(function(s){
+    if (!bySource[s.source]) { bySource[s.source] = []; order.push(s.source); }
+    bySource[s.source].push(s);
+  });
+  var picked = [];
+  for (var round = 0; picked.length < per; round++) {
+    var any = false;
+    for (var i = 0; i < order.length && picked.length < per; i++) {
+      var s = bySource[order[i]][round];
+      if (s) { picked.push(s); any = true; }
+    }
+    if (!any) { break; }
+  }
+  return picked.sort(function(a, b){ return (b.at || 0) - (a.at || 0); });
+}
+
+function newsHtml(){
+  var n = D.news;
+  if (!n || !n.on) { return ''; }
+  var per = NEWS_FULL ? 40 : 4;
+  var cols = [['world', 'The World'], ['ph', 'The Philippines'], ['more', 'Your feeds']];
+  var feeds = n.feeds || [];
+  var total = 0;
+
+  var body = cols.map(function(c){
+    var items = NEWS_FULL ? (n[c[0]] || []).slice(0, per) : mixSources(n[c[0]] || [], per);
+    total += items.length;
+    if (!items.length) { return ''; }
+    return '<div class="nw__col"><h3>' + esc(c[1]) + '</h3><div class="nw__list">' +
+      items.map(function(s){
+        return '<button class="nw__item" data-url="' + esc(s.url) + '" title="' + esc(s.title) + '">' +
+                 '<span class="nw__src"><b>' + esc(s.source) + '</b><span>' + esc(ago(s.at)) + '</span></span>' +
+                 '<span class="nw__title">' + esc(s.title) + '</span>' +
+               '</button>';
+      }).join('') + '</div></div>';
+  }).join('');
+
+  var down = feeds.filter(function(f){ return f.state === 'failed'; });
+  var waiting = feeds.some(function(f){ return f.state === 'never'; });
+
+  if (!total) {
+    body = '<p class="empty">' + (waiting && !down.length
+      ? 'Fetching the latest stories…'
+      : feeds.length
+        ? 'Birds News couldn’t reach any news sites just now. It will try again on its own.'
+        : 'Every feed is switched off. Settings → Birds News turns them on.') + '</p>';
+  } else {
+    body = '<div class="nw__cols">' + body + '</div>';
+  }
+
+  var meta = n.checkedAt ? 'Updated <b>' + esc(ago(n.checkedAt)) + '</b>' : '';
+  if (n.every) { meta += (meta ? ' · ' : '') + 'checks every ' + (n.every >= 60 ? 'hour' : n.every + ' minutes'); }
+  meta += (meta ? ' · ' : '') + 'headlines exactly as each site wrote them';
+
+  var foot = '';
+  if (down.length) {
+    foot += '<div class="nw__down">Not updating right now — ' +
+            down.map(function(f){ return esc(f.name) + ': ' + esc(f.why || 'no answer'); }).join(' · ') +
+            '. Anything already here stays until ' + (down.length === 1 ? 'it answers' : 'they answer') + '.</div>';
+  }
+  if (!NEWS_FULL && total) { foot += '<button class="nw__all" data-news-all="1">All the stories in Birds News &rarr;</button>'; }
+
+  return section('news', 'Birds News', '<div class="nw__meta">' + meta + '</div>' + body + foot);
+}
+
+/* The host pushes fresh stories in; only this section is redrawn, so a page you are reading
+   does not jump or replay its arrival every time the news is checked. */
+window.__aviaryNews = function(n){
+  D.news = n;
+  var panes = document.getElementById('panes');
+  var old = document.querySelector('#panes > section[data-sec="news"]');
+  var html = newsHtml();
+
+  /* On the Birds News page the news IS the page: switched off, it says so rather than going blank;
+     switched back on, it fills the page rather than calling the Start Page's full render. */
+  if (NEWS_FULL && !html) {
+    panes.innerHTML = '<p class="empty">Birds News is switched off. Settings → Birds News turns it on.</p>';
+    return;
+  }
+  if (NEWS_FULL && !old) { panes.innerHTML = html; return; }
+
+  if (old) {
+    if (!html) { old.remove(); return; }
+    var holder = document.createElement('div');
+    holder.innerHTML = html;
+    var fresh = holder.firstElementChild;
+    fresh.setAttribute('data-live', '1');
+    old.replaceWith(fresh);
+  } else if (html) {
+    render();
+  }
+};
+
+document.addEventListener('click', function(e){
+  if (e.target.closest('[data-news-all]')) { e.stopPropagation(); post({type:'newsAll'}); }
+}, true);
+
 function render(){
   var out = '';
+
+  /* The Birds News page is this same page opened on the news alone, every story shown. */
+  if (NEWS_FULL) {
+    document.getElementById('panes').innerHTML = newsHtml() ||
+      '<p class="empty">Birds News is switched off. Settings → Birds News turns it on.</p>';
+    return;
+  }
 
   if (D.isPrivate){
     out += '<div class="private"><svg viewBox="0 0 22 22" fill="none" aria-hidden="true">' +
@@ -372,6 +524,9 @@ function render(){
   out += section('favourites', 'Favourites',
     favs.length ? '<div class="grid">' + favs.map(tile).join('') + '</div>'
                 : '<p class="empty">Press Ctrl+D on a page to keep it here.</p>');
+
+  /* Birds News sits right under Favourites: the news is what changes between visits. */
+  out += newsHtml();
 
   /* Grant's projects, offline, from Aviary's own folder — absent in a build without them. */
   var mg = D.menagerie;
@@ -530,7 +685,7 @@ document.addEventListener('click', function(e){
 /* ── customise ─────────────────────────────────────────────────────────── */
 /* `menagerie` is the Collection's section id and settings key (startMenagerie) from before its
    rename — kept so a saved choice survives. Only the words changed. */
-var LABELS = {favourites:'Favourites', menagerie:'The Collection', frequent:'Frequently Visited',
+var LABELS = {favourites:'Favourites', news:'Birds News', menagerie:'The Collection', frequent:'Frequently Visited',
               reading:'Reading List', privacy:'Privacy Report'};
 if (!D.menagerie) { delete LABELS.menagerie; }
 

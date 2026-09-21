@@ -94,6 +94,17 @@ internal static class AppSettings
         // M4.9 — frame timing, the one measurement that costs what it measures, so it is off even
         // while collection is on (Diagnostics.Frames.cs).
         ["frameTiming"] = "false",
+        // M4.9 — Birds News (BirdsNews.cs). The Start Page section is its master switch: nothing
+        // is fetched while nobody is reading it. The six feeds Grant approved on 21 Sep, each on.
+        ["startNews"] = "true",
+        ["newsRefresh"] = "Every 15 minutes",
+        ["newsBbc"] = "true",
+        ["newsAljazeera"] = "true",
+        ["newsGuardian"] = "true",
+        ["newsInquirer"] = "true",
+        ["newsRappler"] = "true",
+        ["newsGma"] = "true",
+        ["newsCustom"] = "",
         // Alpha Build 5 M4.5 — accessibility, and the tab rows beside it.
         ["pageTextSize"] = "Default",
         ["underlineLinks"] = "false",
