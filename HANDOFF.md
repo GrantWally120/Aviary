@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **21 September 2026**, at the end of **M4.7 “Immediate Fix”** — section 23, and the one to read first if you are picking this up. Alpha Build 5 is called **The Long Run**: it has run M0, M1, M2, M2.5, M3, M4, M4.5, M4.6 and M4.7, and M5 is still on hold until Grant says otherwise. M4.7 undid the one thing M4.6 broke: every menu in Aviary drew correctly and ignored every click (bug 75).
+Last updated **21 September 2026**, partway through **M4.9 “Birds News”** — section 25 (Stage 1 of 3 done), with §23 (M4.7) and §24 (M4.8) before it; read those three first. Alpha Build 5 is called **The Long Run**: it has run M0 to M4.8, M4.9 is under way, and M5 is still on hold until Grant says otherwise.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -44,29 +44,31 @@ Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section
 run, the sidebar and Classic included).
 
 > **WHERE THINGS STAND (21 Sep 2026 — read this first in a new chat)**
-> - Alpha Build 5 **"The Long Run"**: **9 of 13 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5
->   "Smooth Flight", M4.6 "Smooth Fix", M4.7 "Immediate Fix"). Remaining: M5 (download ring + tab
->   groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **M4.7 (§23) is the one to read first.** M4.6 shipped on the night of 20 Sep with every menu in
->   Aviary dead — they drew correctly and ignored every click — and Grant hit it within a minute of
->   installing it. Found in HIS OWN diagnostics the next morning, reproduced, fixed and proved with
->   a real-click A/B. Bugs **75** and **76** (§10). Next bug number **77**.
-> - **Grant said NOT to start M5 yet (14 Sep, again 18 Sep, again 20 Sep).** Ask him what he wants
->   next.
-> - Git: everything through M4.6 is committed — `bec7a57` M4.6 "Smooth Fix" is the newest, and
->   `publish/Aviary` (Grant's shortcut) is that build. **M4.7's changes are NOT committed and NOT
->   published yet** — ask him first, and run `tools/library/sync.ps1` before any publish.
-> - **The lesson M4.7 paid for, twice over:** a composition transform written through
+> - Alpha Build 5 **"The Long Run"**: **10 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
+>   M4.6, M4.7, M4.8). **M4.9 "Birds News" is in progress — Stage 1 of 3 done** (§25). Then M5
+>   (download ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
+> - **Read §25 first**, then §23–24. Bugs **75–80** (§10). Next bug number **81**.
+> - **M4.9 Stages 2–3 still to do:** Birds News (needs Grant's OK on the exact feed addresses — they
+>   are downloads), then Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
+>   backgrounds, Picture-in-picture. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
+> - **Owed from M4.8: Grant must confirm the taskbar icon** follows App Icon (bug 77 — Windows 11's
+>   taskbar cannot be read from here).
+> - **Grant said NOT to start M5 yet (14, 18, 20 Sep).** M4.9 is what he asked for instead.
+> - Git: everything through M4.7 is committed (`29f2b17`) and `publish/Aviary` is that build.
+>   **M4.8 and M4.9 Stage 1 are NOT committed and NOT published** — they go together; ask first,
+>   and run `tools/library/sync.ps1` before any publish.
+> - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
+>   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
+> - **The two rules these three milestones paid for:** a composition transform through
 >   `ElementCompositionPreview` is render-only on an ordinary element and is NOT on a popup's own
->   root child, where it moves the content's input geometry with it. And: four separate tests
->   "showed" the bug before one of them was honest — each failed the same way on the control.
->   **Always run the control.** `tools/test/flyout-geometry.ps1` and `menu-click.ps1` are the two
->   that settled it; run them after touching anything in `Motion.cs` or `ThemeOpenPopups`.
+>   root child (M4.7) · **a setting that works but shows you nothing is indistinguishable from a
+>   broken one** (M4.8) — before calling a row live, ask where its effect is visible.
+>   And always run the control: four tests "proved" M4.7's bug before one of them was honest.
 > - Standing orders: read his diagnostics folder each turn (section 13) — it has now caught three
->   real bugs, including this one; ask before every commit, every download, every NuGet package,
->   every new filter list; test only on scratch profiles and never drive the desktop while he is
->   using it (`guard.ps1` — it refused on 21 Sep and was right to); run `tools/library/sync.ps1`
->   before any publish; never publish `Aviary.html` as an Artifact.
+>   real bugs; ask before every commit, every download, every NuGet package, every new filter list;
+>   test only on scratch profiles and never drive the desktop while he is using it (`guard.ps1` —
+>   it refused on 21 Sep and was right to); run `tools/library/sync.ps1` before any publish; never
+>   publish `Aviary.html` as an Artifact.
 > - **Worth knowing:** a native crash now leaves a full report in crash.log and crashes/
 >   (`NativeCrash.cs`); Aviary's panels belong to their tab (`MainWindow.Notices.cs`); Windows
 >   ending the session is handled
@@ -1180,6 +1182,11 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     change, rules included — and a filter rule can name any site someone visits.
     `AppSettings.PrivateKeys` is now honoured in both places, and `SettingsRendered` skips those
     keys. **Redacting one path is not redacting: grep the collected data for the value itself.**
+    **REVERSED ON PURPOSE, 21 Sep (M4.9) — do not "fix" it back.** Asked directly whether "collect
+    everything" should include My filters, Grant said yes: it is his own writing, on his own machine,
+    in a folder that never leaves it. `AppSettings.PrivateKeys` is now EMPTY, and the mechanism stays
+    in place so a key can be redacted again by adding it back. Emptying it exposed bug 80 — the
+    Settings page had its OWN hard-coded redaction — which now reads the host's list.
 73. **The settings page and the store disagreed about a value the page had helpfully normalised**
     (found 20 Sep in GRANT'S OWN diagnostics, twice: `settings-roundtrip`, "Settings shows
     listsAutoUpdate as \"Off\" but the store holds \"false\""). M4.5 turned that switch into
@@ -1226,8 +1233,10 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
       the cursor put back, `lastinput.txt` stamped). Identical click, identical coordinates,
       identically sized popup: reduce-motion **opened Settings**, M4.6 **opened nothing**, fixed
       **opens Settings**. That A/B is the whole proof.
-    - `bloom-frames.ps1` — 52 distinct frames as the menu arrives, so the arrival Grant asked for in
-      M4.6 is still there.
+    - ~~`bloom-frames.ps1` — 52 distinct frames as the menu arrives, so the arrival Grant asked for in
+      M4.6 is still there.~~ **WITHDRAWN 21 Sep (M4.9): that tool was never run against a control, and
+      when it finally was, the reduce-motion control scored HIGHER (26) than motion (14) — it counts
+      every repaint, hover and focus included, not the bloom. See §25 for what does prove it.**
     **What did NOT work, so nobody repeats it:** `AutomationElement.FromPoint` answers `PopupHost`
     over a menu in BOTH builds; `PostMessage(WM_LBUTTONDOWN)` activates nothing in WinUI 3 in
     EITHER build; `peek.ps1` cannot see the app menu at all, because it is drawn in its own
@@ -1246,6 +1255,65 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     so this fired on his F11.** `PutRowBack` now enables Translation itself (free when it is already
     on), wraps the animation, and sets Opacity after everything that can throw. Five full-screen
     round trips with the bar hidden: **zero swallowed errors**, where M4.6 logged them.
+77. **Settings → App Icon appeared to do nothing** (Grant, 21 Sep: *"the app icon it seems to have
+    no effect like blue tile it is but glass tile there is no change"*). It was doing exactly what
+    it said — and he could not see it, which is the same thing.
+    **What was actually true, measured before anything was changed** (`tools/test/window-icon.ps1`,
+    WM_GETICON on the top-level window, both ICON_BIG and ICON_SMALL, averaged so the two tiles
+    can be told apart without eyes): seeded Blue tile → `#4490EE`, seeded Glass tile → `#D7E5F5`,
+    and switching it LIVE in the running app moved it from one to the other and back. So
+    `ApplyAppIcon`, `AppWindow.SetIcon` and the setting's handler were all correct.
+    **The two reasons it was invisible anyway.** (1) Aviary sets `ExtendsContentIntoTitleBar`, so
+    it draws its own title bar and **there is no window icon anywhere inside Aviary** — the only
+    surfaces the setting can reach are the taskbar button and Alt-Tab, neither of which is on the
+    page you changed it on. (2) Grant was watching the taskbar (he said so when asked), and an
+    unpackaged app with **no explicit AppUserModelID has no shell identity**: Windows derives one
+    from the .exe and the taskbar button draws the icon baked into the .exe, never looking at the
+    window's. `Program.TellTheShellWhoWeAre` now calls `SetCurrentProcessExplicitAppUserModelID`
+    before any window exists, keyed per profile so two profiles stay two buttons (bug 51).
+    **And the row now shows it**: both tiles drawn in the row, the one in force ringed in the
+    accent (`icoTile` / `iconTiles`), so the choice is visible on the page that offers it whatever
+    Windows does with the button. The description says plainly where it shows and that Explorer
+    and the Desktop shortcut keep the blue one, because that icon is inside the .exe.
+    **The lesson:** *a setting that works but shows you nothing is indistinguishable from a broken
+    one.* Before calling a row live, ask where its effect is visible — and if the answer is "not
+    on this page and not in this window", put it on the page.
+    **Windows 11's taskbar cannot be screen-read** to check this from here: its buttons are not in
+    `Shell_TrayWnd`'s UIA tree, `MSTaskListWClass` is a stub, PrintWindow on the tray returns black,
+    and Grant's taskbar auto-hides (its window sits at y=1438 on a 1440-tall screen). Grant is the
+    instrument for that half — ask him to look.
+78. **Nothing ever woke a sleeping tab** (found 21 Sep building M4.8's memory saver, by reading for
+    it rather than by being bitten). `CoreWebView2.Resume()` appeared nowhere in the app, while the
+    Performance page's Sleep button has promised "wakes when you click it" since M4.5 — resting a
+    tab's liveness on WebView2 resuming a hidden-then-shown view by itself. It mattered the moment
+    M4.8 started suspending tabs **on a timer**, where nobody chose the sleep and so nobody would
+    connect a dead tab to having pressed anything. `BrowserTab.Wake()` resumes explicitly, and
+    `SetBackgrounded(false)` calls it FIRST, before touching the memory level — so a tab is awake
+    before anything else is asked of it and before anyone looks at it.
+    **Proved from the log's own logic**, not by eye: `TrySleepAsync` returns false without logging
+    when a tab is already suspended, so a SECOND `memory-saver-slept` for the same tab can only
+    happen if it woke in between. The run has tab 1 slept 08:41:21, switched to at 08:42:41, slept
+    again 08:42:47. **A feature that puts something to sleep must be tested for waking, and the
+    test must be one the log can settle.**
+79. **A tab closing was reported as a hidden error** (found 21 Sep in GRANT'S OWN diagnostics, twice:
+    `window: tab for a webview — COMException 0x8007139F`, at 08:15 and 11:09). At 11:09 he was
+    stress-testing — ten new tabs in three seconds — and `TabFor` asked a WebView that was being torn
+    down for its `FrameId`, which answers ERROR_INVALID_STATE. Returning null was always right: there
+    is no tab to find, the tab is going. What was wrong is that it went to *Needs attention* in his
+    summary as a fault. `TabFor` now catches exactly that HRESULT (`IsClosingWebView`) silently and
+    still reports anything else. The same burst logged twelve 110–380 ms stalls, all `ui-waiting` with
+    `uiThreadCpuMs 0` — Aviary waiting on disk and GPU while ten engine processes started, correctly
+    labelled, and not a defect. **A log line under Needs attention must mean something needs
+    attention.**
+80. **The Settings page had its own copy of the redaction list** (found 21 Sep, by the M4.9 profile
+    sweep that is run before calling anything done). Emptying `AppSettings.PrivateKeys` (bug 72,
+    reversed on purpose) made the host start comparing My filters — while the PAGE still reported every
+    text box as `"N lines (not recorded)"`, a rule of its own that nothing tied to the host's. So the
+    round-trip check flagged `customFilters` as mismatched on every visit: three anomalies in one motion
+    sweep. The page now takes the list from the host (`window.__aviaryPrivateKeys`, injected beside
+    `__aviarySettings`). Checked with real rules in the box, not an empty one: zero anomalies, and the
+    rule text appears in the settings snapshot. **Un-redacting one path is not un-redacting — the
+    mirror image of bug 72. One list, read everywhere.**
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -1984,11 +2052,104 @@ that — it was reproduced, and then proved with an A/B real click.
 
 **Checked:** `flyout-geometry.ps1` — M4.6 app menu (867,44) and Aa menu (285,41) DETACHED, after
 the fix both (10,2), in Classic and in Liquid Glass · the real-click A/B above · the Help submenu
-opens its own popup at (15,7) and **About Aviary really opens** · `bloom-frames.ps1` 52 frames, so
-the arrival is intact · engine harness **125/125** · `settings-audit.js` **54 live rows, 10 badged,
+opens its own popup at (15,7) and **About Aviary really opens** · ~~`bloom-frames.ps1` 52 frames, so the arrival is intact~~ (withdrawn — §25) · engine harness **125/125** · `settings-audit.js` **54 live rows, 10 badged,
 0 inert** — all three unchanged from M4.6 · `motion-session.ps1` Classic: no stall over 50 ms, no
 crash, no swallowed error · `fullscreen-bench.ps1` five round trips with the bookmarks bar hidden:
 zero swallowed errors · **twelve scratch profiles from the day's runs: no issues, no crashes**.
 
 **Not changed:** M5 is still on hold. The menu still blooms; only what the bloom is applied to
 moved.
+
+## 24. Alpha Build 5 M4.8 "A Iconic Fix" (21 Sep 2026 — DONE)
+
+Grant, the same day, while testing M4.7: *"improve the performance to be you can see each one and
+make it like task manager youj know? and storage improve there and the app icon it seems to have no
+effect like blue tile it is but glass tile there is no change so fix that and memory saver improve
+that"*. He named it **M4.8 "A Iconic Fix"**. Four asks, all done.
+
+- **The app icon (bug 77).** It was working and invisible. Measured first: the window's own icon
+  really did change, live and at start-up. Two reasons nobody could see it — Aviary draws its own
+  title bar, so there is **no icon inside Aviary at all**, and with no `AppUserModelID` the taskbar
+  drew the icon baked into the .exe instead of the window's. `Program.TellTheShellWhoWeAre` gives
+  Aviary a shell identity before the first window; the row now **draws both tiles and rings the one
+  in force**, so the choice is visible where it is made. **Grant must confirm the taskbar half** —
+  Windows 11's taskbar cannot be read from here (bug 77 says why).
+- **Performance, like Task Manager.** The processes table was a name, three numbers, and the PID,
+  handles and graphics memory buried in prose. Now every part of Aviary is a line with its own
+  columns — Process, Memory, Processor, Graphics, GPU mem, Handles — **sortable by any of them**,
+  with the tabs a page process draws nested under it and a total at the foot. Cells are shaded
+  **against the busiest row** rather than fixed thresholds: absolute ones were tried first and every
+  cell came back blank on an idle machine, which is the same "seems to have no effect" this
+  milestone exists to kill.
+- **Memory saver, which now saves memory (bug 78).** It was one line — background tabs dropped to
+  `MemoryUsageTargetLevel.Low`, a hint the engine may ignore, and the Performance page could show a
+  background tab holding hundreds of megabytes with "memory saver" written under it. That hint is
+  now the floor; **`sleepIdleTabs`** suspends a tab nobody has looked at (Never / 5 / 15 / 30 min /
+  an hour, default 30). Never the active tab, a private tab, or one of Aviary's own pages — and the
+  ENGINE refuses for anything playing sound or video, which is what makes a timer safe.
+  `MainWindow.MemorySaver.cs`. Measured: a background page went **40 MB → 9 MB → 1 MB**.
+  Finding bug 78 on the way — nothing ever called `Resume()` — is the part that mattered.
+- **Storage Usage.** Every category row draws its **share as a bar in its own colour**, so which of
+  the eight is big is a glance down the column rather than a hover over the stacked bar.
+
+**New in the kit:** `window-icon.ps1` (what icon the window is really wearing, by WM_GETICON, with
+the average colour so the two tiles are told apart by number), `sleep-test.ps1` and the
+**`AVIARY_SLEEP_TEST=<seconds>`** environment hook (environment only, like `AVIARY_CRASH_TEST`) —
+without it this feature takes five minutes to see once.
+
+**Checked:** engine harness **125/125** · `settings-audit.js` **55 live rows, 10 badged, 0 inert**
+(the one new row is live) · flyout geometry still (10,2) in **both looks** (~~and the bloom still 59 frames~~ — withdrawn, §25),
+so M4.7 is intact · `motion-session.ps1` Classic: no stall over 50 ms, no crash, no
+swallowed error · sleeping and waking proved from the diagnostics log · **thirteen scratch profiles:
+no issues, no crashes**.
+
+## 25. Alpha Build 5 M4.9 "Birds News" (21 Sep 2026 — STAGE 1 DONE, Stages 2–3 to come)
+
+Grant, while testing M4.8: *"fix one more thing M4.9 small fix lang … Memory saver add more options
+for it such as aggressive … and balanced(Default) … update our data collection to everything … add
+more stuff from Brave and safari google and ask me questions … add a news call it Birds News … and
+increase the data collection space to 700mb"*. He withdrew the YouTube item himself — it was his
+own 200% zoom. **It is not small**: the approved plan (`~/.claude/plans/fix-one-more-thing-tingly-elephant.md`)
+splits it into three stages, each its own commit with his OK. What he chose when asked: news from a
+**World + Philippines** mix; from Brave/Safari/Chrome — **Search open tabs, Forgetful browsing
+"but add a time thingy", Safety Check, Start Page backgrounds, Picture-in-picture**; collection —
+**My filters text in, frame timing in, the secrets line stays**.
+
+**Stage 1 (done):**
+- **Memory saver is one row, four modes** — Off / Chill (1 h) / **Balanced** (30 min, default) /
+  Aggressive (5 min, and sleeps every background tab the moment the window is minimised, via
+  `WM_SIZE`/`SIZE_MINIMIZED` in the existing window subclass). M4.8's `sleepIdleTabs` was folded in
+  before it ever shipped and is dropped on load; `memorySaver` "true"/"false" migrate to
+  Balanced/Off in `AppSettings.Load` (bug 73's rule). **Two readers still called `GetBool` on it** —
+  which is false for "Balanced" and would have silently switched the priority hint off for
+  everyone; both fixed. Proved: `saver-modes.ps1` (Off stays off even with `AVIARY_SLEEP_TEST` set;
+  both migrations land in the STORE) and `minimise-sleep.ps1` (no test hook, so the idle timer is a
+  real 5 minutes and cannot be what sleeps the tab: Aggressive slept on minimise, Balanced did not).
+- **700 MB** (`Diagnostics.CapMB`). The Updates page's history entries keep their old numbers.
+- **My filters text collected** — bug 72 reversed on purpose (amended there), which exposed bug 80.
+- **Frame timing** (`Diagnostics.Frames.cs`, row `frameTiming`, OFF even while collection is on):
+  `CompositionTarget.Rendering` forces a continuous redraw, so it costs what it measures, and every
+  line says `costsWhatItMeasures: true`. Measured: ~940 frames per 4 s with a 4.17 ms median gap —
+  **exactly 240 fps, Grant's display**; the off control recorded nothing. `AVIARY_FRAMES_TEST=<s>`
+  reports every few seconds instead of every minute.
+- **Bugs 79 and 80** (§10).
+
+**The bloom, honestly.** M4.7 and M4.8 both reported "the bloom is intact" from `bloom-frames.ps1`.
+Run against a control for the first time on 21 Sep, the reduce-motion build — which never blooms —
+scored HIGHER (26 distinct frames) than motion (14). A brightness-ramp test (`bloom-ramp.ps1`)
+failed the same way: **WinUI fades every flyout in by itself**, so any capture of a menu ramps
+whether Aviary's bloom ran or not. Pixels from outside the process cannot isolate it. What CAN be
+proved: `AVIARY_MOTION_TEST=1` makes every `Motion.Bloom` write one perf line. Three opens → three
+lines, each on a `Border` (the presenter's template root, so M4.7's fix holds) with a real size, in
+`SmoothFlight` for Classic and `Fluid` for Liquid Glass, and exactly one per open (no handler
+build-up). **The bloom runs, on the right element; how visible its extra scale is on top of WinUI's
+own fade is a question for Grant's eyes, not for a tool.** Both earlier claims are struck through
+where they were made.
+
+**Checked (Stage 1):** harness **125/125** · `settings-audit.js` **55 live, 10 badged, 0 inert** ·
+flyout geometry **(10,2)** both looks · `motion-session.ps1` clean · 20 scratch profiles: the only
+issues were three stalls during my own builds (labelled correctly as other programs having the
+processor) and bug 80, since fixed and re-run clean with real rules in My filters.
+
+**Stages 2 and 3 are not started.** Birds News needs Grant's OK on the exact feed addresses before
+the first fetch — they are downloads. M4.8 is still uncommitted; it ships with Stage 1.

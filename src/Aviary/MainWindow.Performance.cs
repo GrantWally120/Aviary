@@ -225,7 +225,7 @@ public sealed partial class MainWindow
                     title = t.IsPrivate ? null : ShownTitle(t),
                     isPrivate = t.IsPrivate,
                     own = t.IsInternalPage,
-                    state = asleep ? "asleep" : active ? "active" : AppSettings.GetBool("memorySaver") ? "saver" : "background",
+                    state = asleep ? "asleep" : active ? "active" : Saver != Mode.Off ? "saver" : "background",
                     pid = pid == 0 ? (int?)null : pid,
                     memory = f?.MemoryMB,
                     cpu = f?.CpuPercent,

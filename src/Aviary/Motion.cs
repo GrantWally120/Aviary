@@ -659,9 +659,29 @@ internal static class Motion
     /// appearing in place. Every Aviary menu goes through MainWindow.Themed, so one call there
     /// covers the app menu, the Aa menu, the tab and sidebar menus, downloads and Shields.
     /// </summary>
+    /// <summary>
+    /// Test only (M4.9): when set, every Bloom writes one perf line saying it ran and on what.
+    /// Environment only, like AVIARY_CRASH_TEST — nothing inside the browser can set it, and unset
+    /// it costs one static read. It exists because a bloom cannot be told apart from outside the
+    /// process: WinUI fades every flyout in by itself, so a capture of the menu ramps whether
+    /// Aviary's bloom ran or not (measured 21 Sep — the reduce-motion control ramped too).
+    /// </summary>
+    private static readonly bool TraceBlooms = Environment.GetEnvironmentVariable("AVIARY_MOTION_TEST") == "1";
+
     public static void Bloom(FrameworkElement element)
     {
         Style style = Current;
+        if (TraceBlooms)
+        {
+            Diagnostics.Perf("bloom", new
+            {
+                style = style.ToString(),
+                target = element.GetType().Name,
+                width = Math.Round(element.ActualWidth),
+                height = Math.Round(element.ActualHeight),
+            });
+        }
+
         if (style == Style.Off)
         {
             return;

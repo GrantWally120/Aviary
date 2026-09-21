@@ -43,12 +43,14 @@ internal static partial class Diagnostics
     public const string SettingKey = "improvementCollection";
 
     /// <summary>
-    /// The whole folder never grows past this; the oldest archives go first. 650 MB since Alpha
-    /// Build 5 M4.5 (Grant, 19 Sep 2026: "expand storage by 150mb"); 500 MB from M2.5 (13 Sep:
-    /// more room means longer, richer history to learn from); 200 MB before that. Every sentence
-    /// that states the cap is built from this number.
+    /// The whole folder never grows past this; the oldest archives go first. 700 MB since Alpha
+    /// Build 5 M4.9 (Grant, 21 Sep 2026: "increase the data collection space to 700mb"); 650 MB
+    /// from M4.5 (19 Sep: "expand storage by 150mb"); 500 MB from M2.5 (13 Sep: more room means
+    /// longer, richer history to learn from); 200 MB before that. Every sentence that states the
+    /// cap is built from this number — the only places a figure is written by hand are the
+    /// Updates page's HISTORY entries, which must keep saying what was true at the time.
     /// </summary>
-    public const int CapMB = 650;
+    public const int CapMB = 700;
 
     public const long CapBytes = CapMB * 1024L * 1024;
     public const int RetentionDays = 30;

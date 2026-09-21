@@ -708,10 +708,36 @@ internal sealed partial class BrowserTab
     }
 
     /// <summary>
+    /// When this tab was last the one being looked at (M4.8). Memory saver sleeps a background
+    /// tab only after it has been left alone for a while, so it needs to know how long.
+    /// </summary>
+    public DateTime LastActiveUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Whether the engine has this tab suspended right now.</summary>
+    public bool IsAsleep
+    {
+        get
+        {
+            try
+            {
+                return View.CoreWebView2?.IsSuspended ?? false;
+            }
+            catch (Exception)
+            {
+                // Not started yet, or mid-teardown.
+                return false;
+            }
+        }
+    }
+
+    /// <summary>
     /// Gentle memory saving: a background tab is told it may release caches and drop its
     /// memory priority. Deliberately NOT TrySuspendAsync — suspension stops timers and
     /// audio, so music in a background tab would die, and the docs are explicit that the
     /// two approaches must not be mixed.
+    ///
+    /// M4.8: which is why waking comes FIRST. A suspended tab must be resumed before its
+    /// memory level is touched again, and before anyone looks at it.
     /// </summary>
     public void SetBackgrounded(bool backgrounded)
     {
@@ -722,7 +748,14 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            core.MemoryUsageTargetLevel = backgrounded && AppSettings.GetBool("memorySaver")
+            if (!backgrounded)
+            {
+                Wake();
+            }
+
+            // M4.9: memorySaver is a MODE now, not a switch — GetBool on "Balanced" is false, so
+            // reading it the old way would have quietly turned the hint off for everyone.
+            core.MemoryUsageTargetLevel = backgrounded && MainWindow.Saver != MainWindow.Mode.Off
                 ? CoreWebView2MemoryUsageTargetLevel.Low
                 : CoreWebView2MemoryUsageTargetLevel.Normal;
         }
@@ -730,6 +763,51 @@ internal sealed partial class BrowserTab
         {
             // Best effort by design — the API can decline.
             Diagnostics.Swallowed(ex, "tab: memory target level");
+        }
+    }
+
+    /// <summary>
+    /// Wakes a sleeping tab (M4.8). Nothing called Resume before this: the Performance page's
+    /// Sleep button has said "wakes when you click it" since M4.5 on the strength of WebView2
+    /// resuming a hidden-then-shown view by itself, which is not something to leave a tab's
+    /// liveness resting on — and M4.8 puts tabs to sleep on a timer, so it now happens to tabs
+    /// nobody chose. Resuming one that is already awake is a no-op.
+    /// </summary>
+    public void Wake()
+    {
+        try
+        {
+            if (View.CoreWebView2 is CoreWebView2 core && core.IsSuspended)
+            {
+                core.Resume();
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: wake");
+        }
+    }
+
+    /// <summary>
+    /// Puts this tab to sleep if the engine agrees (M4.8). It refuses for a page that is playing
+    /// sound or video, or is in the middle of something — that refusal is the safety net that
+    /// makes sleeping background tabs on a timer reasonable at all.
+    /// </summary>
+    public async Task<bool> TrySleepAsync()
+    {
+        try
+        {
+            if (View.CoreWebView2 is not CoreWebView2 core || core.IsSuspended)
+            {
+                return false;
+            }
+
+            return await core.TrySuspendAsync();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: sleep");
+            return false;
         }
     }
 

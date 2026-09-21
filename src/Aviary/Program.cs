@@ -40,6 +40,37 @@ public static class Program
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool AllowSetForegroundWindow(uint processId);
 
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
+    private static extern void SetCurrentProcessExplicitAppUserModelID([MarshalAs(UnmanagedType.LPWStr)] string id);
+
+    /// <summary>
+    /// Who Aviary is to the shell (M4.8, bug 77). Without this, an unpackaged app has no identity
+    /// of its own, so Windows derives one from the .exe and the taskbar button draws the icon baked
+    /// INTO the .exe — which is why Settings → App Icon appeared to do nothing: the window's icon
+    /// really did change (measured through WM_GETICON, both sizes, at start-up and live), but the
+    /// taskbar was never looking at it. With an explicit id the button is Aviary's own and follows
+    /// the window's icon.
+    ///
+    /// It must be set BEFORE any window exists, which is why it lives here and not in MainWindow.
+    /// The id is per profile: two Aviarys on different profiles are already two instances (bug 51),
+    /// and giving them one identity would group them under a single taskbar button.
+    /// </summary>
+    private static void TellTheShellWhoWeAre()
+    {
+        try
+        {
+            string profile = AppPaths.Root;
+            string tag = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(profile.ToLowerInvariant()))).Substring(0, 8);
+            SetCurrentProcessExplicitAppUserModelID("Aviary.Browser." + tag);
+        }
+        catch (Exception ex)
+        {
+            // No identity means the taskbar falls back to the .exe's icon - the old behaviour,
+            // not a broken one.
+            Diagnostics.Swallowed(ex, "shell: app id");
+        }
+    }
+
     private enum InstanceState { Running, Closing, Released }
 
     private static readonly object Gate = new();
@@ -64,6 +95,9 @@ public static class Program
         {
             return;
         }
+
+        // Before the first window: the taskbar decides which icon a button wears from this.
+        TellTheShellWhoWeAre();
 
         Application.Start(p =>
         {

@@ -142,6 +142,22 @@ internal static class InternalPages
   .sel__opt i{width:12px;flex:0 0 auto;font-style:normal;opacity:0;}
   .sel__opt[aria-selected="true"] i{opacity:1;}
   .sel[data-disabled="true"]{opacity:.4;pointer-events:none;}
+
+  /* M4.8 (bug 77) — the App Icon row shows both tiles, so picking one is visibly something.
+     The taskbar and Alt-Tab are the only other places it shows, and neither is on this page.
+     Selectors carry `.row__t` for the same reason as the rule above: `.row__t span` sets
+     display:block and would otherwise win on specificity and stack these. */
+  .row__t .icotiles{display:flex;gap:14px;margin-top:10px;}
+  .row__t .icotile{display:flex;flex-direction:column;align-items:center;gap:5px;width:auto;}
+  .row__t .icotile svg{
+    width:44px;height:44px;border-radius:13px;
+    box-shadow:0 1px 3px rgba(0,0,0,.28);
+    outline:2px solid transparent;outline-offset:3px;
+    transition:outline-color var(--m-std) var(--m-ease);
+  }
+  .row__t .icotile i{display:block;font-style:normal;font-size:11px;color:var(--ink-3);margin:0;}
+  .row__t .icotile[data-on="true"] svg{outline-color:var(--accent);}
+  .row__t .icotile[data-on="true"] i{color:var(--accent);font-weight:600;}
   .sw{
     width:40px;height:24px;border-radius:99px;background:var(--fill-hover);position:relative;
     flex:0 0 auto;cursor:default;border:0;padding:0;
@@ -377,7 +393,8 @@ internal static class InternalPages
   .st-tip b{display:block;font-weight:600;color:var(--ink);}
   .st-tip span{color:var(--ink-2);font-variant-numeric:tabular-nums;}
   .st-tip[hidden]{display:none;}
-  .st-cat > summary{display:grid;grid-template-columns:12px minmax(0,1fr) auto 52px 10px;align-items:center;gap:12px;
+  /* M4.8: the share column is wider than it was — it carries a bar under the number now. */
+  .st-cat > summary{display:grid;grid-template-columns:12px minmax(0,1fr) auto 68px 10px;align-items:center;gap:12px;
     padding:12px 18px;list-style:none;cursor:default;}
   .st-cat > summary::-webkit-details-marker{display:none;}
   .st-cat > summary:hover{background:var(--fill);}
@@ -387,6 +404,10 @@ internal static class InternalPages
   .st-name span{display:block;font-size:12px;color:var(--ink-2);margin-top:1px;}
   .st-size{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;white-space:nowrap;}
   .st-pct{font-variant-numeric:tabular-nums;color:var(--ink-2);font-size:12.5px;text-align:right;}
+  /* M4.8 — the share as a bar under its own number, in that category's colour. */
+  .st-pct b{display:block;font-weight:inherit;}
+  .st-share{display:block;height:3px;border-radius:2px;margin-top:4px;background:var(--line-soft);overflow:hidden;}
+  .st-share::after{content:"";display:block;height:100%;width:var(--w,0);background:var(--c,var(--accent));border-radius:2px;}
   .st-cat[open] .bld__chev{transform:rotate(180deg);}
   .st-body{padding:0 18px 14px 42px;font-size:12.5px;color:var(--ink-2);}
   .st-body p{margin:0 0 8px;}
@@ -412,8 +433,34 @@ internal static class InternalPages
   .pf-row{display:grid;grid-template-columns:minmax(0,1fr) 78px 62px 56px auto;align-items:center;gap:10px;padding:8px 18px;font-size:13px;}
   /* M4.6: the tabs table carries one more figure - what each tab has loaded. */
   #pf-tabs .pf-row{grid-template-columns:minmax(0,1fr) 78px 62px 56px 72px auto;}
-  #pf-tabs .pf-head .pf-num[data-sort]{cursor:pointer;}
-  #pf-tabs .pf-head .pf-num[data-sort]:hover{color:var(--ink);}
+  .pf-head .pf-num[data-sort]{cursor:pointer;}
+  .pf-head .pf-num[data-sort]:hover{color:var(--ink);}
+  .pf-head .pf-num[data-sort][data-on="true"]{color:var(--accent);}
+  .pf-head .pf-num[data-sort][data-on="true"]::after{content:" ↓";font-size:10px;}
+
+  /* ── M4.8: the processes table reads like Task Manager ───────────────────
+     Every part of Aviary on its own line with its own figures, the tabs a page process is
+     drawing nested under it, sortable by any column, and each number shaded by how busy it
+     is - so the one that is working is the one that catches your eye. */
+  #pf-procs .pf-row{grid-template-columns:minmax(0,1fr) 62px 78px 62px 56px 76px 64px;}
+  #pf-procs .pf-row .btns{display:none;}
+  /* The two extra columns go first when there is no room. The panel is much narrower than the
+     window, so this breakpoint is deliberately low — at Grant's 1280 the full table fits. */
+  @media (max-width:860px){
+    #pf-procs .pf-row{grid-template-columns:minmax(0,1fr) 62px 78px 62px 56px;}
+    #pf-procs .pf-row .pf-num.pf-opt{display:none;}
+  }
+  .pf-row.pf-kid{padding-left:40px;background:var(--fill);}
+  .pf-row.pf-kid .pf-n b{font-weight:450;color:var(--ink-2);font-size:12.5px;}
+  .pf-row.pf-kid .pf-n b::before{content:"└ ";color:var(--ink-3);}
+  .pf-row.pf-tot{font-weight:650;}
+  .pf-row.pf-tot .pf-n b{font-weight:650;}
+
+  /* Task Manager's heat, in Aviary's palette: nothing until it is worth noticing. */
+  .pf-num[data-heat="1"]{background:color-mix(in srgb,var(--accent) 10%,transparent);}
+  .pf-num[data-heat="2"]{background:color-mix(in srgb,var(--accent) 20%,transparent);}
+  .pf-num[data-heat="3"]{background:color-mix(in srgb,#e8833a 30%,transparent);}
+  .pf-num[data-heat]{border-radius:5px;padding:2px 5px;margin:-2px -5px -2px 0;}
   .pf-row + .pf-row{border-top:1px solid var(--line-soft);}
   .pf-row.pf-head{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);padding-top:10px;padding-bottom:6px;}
   .pf-row .pf-n{min-width:0;}
@@ -657,6 +704,10 @@ var UPDATES = [
        d:'The third middle update: full screen learns to move, every animation gets a speed of its own, Liquid Glass decides where the window buttons sit, Storage and Performance go deeper, tabs gain four choices of their own — and Aviary finally has an icon.'},
       {n:'M4.7', t:'Immediate Fix', when:'21 Sep',
        d:'The menus work again. The arrival M4.6 gave every menu was landing on the wrong part of it, so a menu looked right and answered nothing you clicked — the app menu, Settings and the Collection with it.'},
+      {n:'M4.8', t:'A Iconic Fix', when:'21 Sep',
+       d:'The app icon really changes the taskbar now, and the row shows you which tile you are on. Performance reads like Task Manager — every part of Aviary on its own line, with the tabs it draws under it. Memory saver stops hinting and starts handing memory back: an idle tab goes to sleep and wakes when you click it.'},
+      {n:'M4.9', t:'Birds News',
+       d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome: search your open tabs, forgetful browsing on a timer, Safety Check, Start Page backgrounds and picture-in-picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -738,6 +789,23 @@ var UPDATES = [
         '<b>The graphics card by the kind of work</b>: drawing, video, moving data',
         '<b>Memory in full</b>: what is in use, what Aviary has asked Windows for, and the most it has ever held at once',
         '<b>Sort the tabs</b> by memory, processor or data, and <b>choose how often</b> Aviary measures — every 1, 2 or 5 seconds'
+      ]},
+      {h:'Birds News, part one — memory saver and improvement data', items:[
+        '<b>Memory saver has four modes.</b> <b>Chill</b> sleeps a tab you have left alone for an hour; <b>Balanced</b>, the default, after half an hour; <b>Aggressive</b> after five minutes, and it lets go of every background tab the moment you minimise the window. <b>Off</b> sleeps nothing. The same rules keep every mode safe: never a tab playing sound or video, never the tab you are on',
+        'If memory saver was on before, it is Balanced now; if it was off, it stays off',
+        '<b>Improvement data can keep 700 MB</b> — it was 650',
+        '<b>It collects everything but secrets now.</b> The rules you write in My filters are recorded as you wrote them, not just counted. Passwords, what you type into websites, cookie values, login tokens and card numbers are still never collected',
+        '<b>Frame timing</b>, if you want it: how smoothly Aviary draws, once a minute. It is a separate switch and stays off — asking Windows for every frame keeps the graphics card redrawing, so it is the one measurement that costs what it measures',
+        'A tab closing during a busy moment no longer shows up as a problem in the improvement data. Nothing was wrong; it was being reported as if something was'
+      ]},
+      {h:'A Iconic Fix — the icon, and what Aviary is doing', items:[
+        '<b>The app icon really changes the taskbar now.</b> It always changed the window’s own icon — but Aviary had no identity of its own as far as Windows was concerned, so the taskbar button drew the icon baked into the program file and never looked at the window’s. Aviary introduces itself properly now',
+        '<b>The row shows you which tile you are on</b>, drawn: choosing one is something you can see, on the page where you chose it',
+        '<b>Performance reads like Task Manager.</b> Every part of Aviary on its own line with its own columns — which process, memory, processor, graphics, graphics memory and handles — <b>sortable by any of them</b>, with the tabs a page process is drawing listed underneath it and a total at the foot',
+        '<b>The busiest is shaded</b>, against the busiest row rather than a fixed number, so the one doing the work is the one that catches your eye',
+        '<b>Memory saver now actually saves memory.</b> It only ever asked background tabs to drop their priority — a hint the engine could ignore, which left a background tab sitting on hundreds of megabytes. Now <b>a tab you have not looked at for a while is put to sleep</b> and really does hand it back; it wakes on the page you left the moment you click it',
+        'Nothing is slept that should not be: never a tab playing sound or video (the engine itself refuses), never the tab you are on, never one of Aviary’s own pages, and never anything in a private window. How soon is up to you — M4.9 turned it into four modes',
+        '<b>Storage Usage draws every share</b>, so which of the eight is actually big is a glance rather than a hover'
       ]},
       {h:'Immediate Fix — the menus answer again', items:[
         '<b>Every menu works again.</b> The arrival M4.6 gave menus was applied to the part of a menu that decides where it is, not to the part that is drawn — so a menu appeared exactly where it should and then answered your clicks somewhere else entirely. Clicking anything in it counted as clicking outside: the menu simply closed and nothing happened',
@@ -837,6 +905,33 @@ var PROLOGUE = 'Before Alpha Build 1 there was the interface study, on 4 Septemb
    against the injected build, so nobody writes a build name by hand and no badge can
    outlive the build it names: "Later in AB5" while Alpha Build 5 is a pre-release, "Beta
    Build 1" beyond it. Something deliberately never coming carries `never:'…'`. */
+/* M4.8 (bug 77): the App Icon row draws both tiles and rings the one you are on.
+   The setting always worked - the window's icon really did change - but the only places it
+   shows are the taskbar button and Alt-Tab, so choosing one looked like it did nothing. The
+   same dome as the real .ico files (tools/icon/build-icon.ps1), drawn rather than embedded so
+   it costs no bytes and follows the accent. */
+function icoTile(kind){
+  var glass = kind === 'glass';
+  var tile = glass ? 'url(#icoGlass' + kind + ')' : 'url(#icoBlue' + kind + ')';
+  var ink = glass ? '#0a70e0' : '#ffffff';
+  return '<span class="icotile" data-tile="' + (glass ? 'Glass tile' : 'Blue tile') + '">' +
+    '<svg viewBox="0 0 48 48" aria-hidden="true">' +
+      '<defs>' +
+        '<linearGradient id="icoBlue' + kind + '" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#4c9bff"/><stop offset="1" stop-color="#0a5fd6"/></linearGradient>' +
+        '<linearGradient id="icoGlass' + kind + '" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#fdfdfe"/><stop offset="1" stop-color="#dfe7f1"/></linearGradient>' +
+      '</defs>' +
+      '<rect x="2" y="2" width="44" height="44" rx="12" fill="' + tile + '"/>' +
+      '<g stroke="' + ink + '" fill="none" stroke-linecap="round">' +
+        '<path d="M12 36V23.4A12 12 0 0 1 36 23.4V36" stroke-width="2.6"/>' +
+        '<path d="M24 12.6V36M18 14.4V36M30 14.4V36" stroke-width="1.5"/>' +
+        '<path d="M11 36h26" stroke-width="2.6"/>' +
+      '</g>' +
+    '</svg><i>' + (glass ? 'Glass tile' : 'Blue tile') + '</i></span>';
+}
+var ICON_TILES = '<span class="icotiles">' + icoTile('blue') + icoTile('glass') + '</span>';
+
 var SECTIONS = [
   { id:'start', icon:'start', name:'Get started', title:'Get started',
     lede:'Aviary is a Safari-inspired browser for Windows 11, built one release at a time. You are on <span style="white-space:nowrap">__AV_CHANNEL__</span>.',
@@ -944,6 +1039,7 @@ var SECTIONS = [
          words. Live, not phase-gated: it works now, and every later milestone is measured by it. */
       {t:'Allow data collection for improvements', d:'Records everything Aviary does \u2014 every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash \u2014 into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
       {t:'What Aviary collects', d:'One switch, all or nothing. While it is on, all sixteen of these are recorded; passwords, what you type into websites, cookies, login tokens, card numbers and your clipboard never are.', more:'diag', ctl:{type:'none'}},
+      {t:'Also measure frame timing', d:'How smoothly Aviary draws, once a minute: how many frames, the usual gap between them, and how many were slow. <b>Off even while collection is on, and it should stay off unless you are chasing a stutter.</b> Windows only offers per-frame times to a program that asks the graphics card to redraw <i>continuously</i> — so measuring smoothness this way is the one measurement in Aviary that costs the very thing it is measuring. Everything else here is free. The figures are marked, so a session measured this way is never compared against a normal one.', ctl:{type:'toggle', key:'frameTiming', value:false}},
       {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
     ]},
 
@@ -1002,7 +1098,7 @@ var SECTIONS = [
       {t:'Reduce motion', d:'Turns off Aviary’s own animations — tabs, the sidebar, panels, Settings and the Start Page — so things appear in place instead of moving there. Aviary reads your Windows animation setting the first time it runs, so this usually starts where you want it. Since M4.5 it tells websites too, which stops their own animations where they honour it; that half needs a restart.', restart:true, ctl:{type:'toggle', key:'reduceMotion', value:false}},
       /* Alpha Build 5 M4.6 — Grant asked for this here, by this name. Both icons ship; the one
          inside the .exe is the blue tile, which is why Explorer keeps showing that one. */
-      {t:'App Icon', d:'Which of Aviary’s two icons the window, the taskbar and Alt-Tab wear. <b>Blue tile</b> is the birdcage dome in white on Aviary’s blue; <b>Glass tile</b> is the same dome in blue on a Liquid Glass capsule. Windows’ own file list keeps showing the blue one — that icon lives inside the program file itself.', ctl:{type:'select', key:'appIcon', opts:['Blue tile','Glass tile'], value:'Blue tile'}},
+      {t:'App Icon', d:'Which of Aviary’s two icons the <b>taskbar button</b> and <b>Alt-Tab</b> wear — the change is immediate, and the tile below shows which you are on. Aviary draws its own title bar, so there is no icon inside the window itself. The <b>Desktop shortcut and Explorer keep the blue one</b>: that icon lives inside the program file and cannot change while Aviary is running.' + ICON_TILES, ctl:{type:'select', key:'appIcon', opts:['Blue tile','Glass tile'], value:'Blue tile'}},
       {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. They work on a page as well as in the browser: Aviary reads them before a website can swallow them.', more:'keys', ctl:{type:'none'}},
       {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
       {t:'Read pages aloud', d:'Have Aviary read an article out, with the words marked as it goes.', phase:6, ctl:{type:'none'}},
@@ -1015,7 +1111,7 @@ var SECTIONS = [
     rows:[
       {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', phase:5, ctl:{type:'toggle', key:'gpu', value:true}},
       {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', phase:5, ctl:{type:'toggle', key:'background', value:false}},
-      {t:'Memory saver', d:'Let background tabs release caches and drop their memory priority. Music and timers in background tabs keep running — nothing is suspended.', ctl:{type:'toggle', key:'memorySaver', value:true}},
+      {t:'Memory saver', d:'How hard Aviary works to give memory back. Background tabs always drop their memory priority, and a tab you have not looked at for a while is <b>put to sleep</b> — which really does hand its memory back, a heavy page can be holding hundreds of megabytes. A sleeping tab wakes the moment you click it, on the page you left.<br><b>Chill</b> sleeps a tab after an hour. <b>Balanced</b> after half an hour. <b>Aggressive</b> after five minutes, and lets go of every background tab as soon as you minimise the window. <b>Off</b> never sleeps anything.<br>A tab <b>playing sound or video is never put to sleep</b> — the engine itself refuses — and neither is the tab you are on, one of Aviary’s own pages, or anything in a private window. Performance lists which tabs are asleep.', ctl:{type:'select', key:'memorySaver', opts:['Off','Chill','Balanced','Aggressive'], value:'Balanced'}},
       {t:'Experimental features', d:'Opt-in switches that are not ready to be defaults — including the frame-rate ceiling.', phase:5, ctl:{type:'none'}}
     ]},
 
@@ -1074,10 +1170,14 @@ function control(row){
 
     /* …and what the control is about to DRAW, for diagnostics' round-trip check: a switch
        shows its truthiness, a dropdown shows its text. */
-    /* What a person writes themselves is reported as a count, never as the lines: it can
-       name any site they visit (AppSettings.PrivateKeys says the same on the host's side). */
+    /* A key the host keeps private is reported as a count, never as its lines. M4.9 (bug 80):
+       the page used to decide that for itself — every text box, whatever the host said — so
+       when Grant chose to have "My filters" collected and the host's list went empty, the page
+       still sent "0 lines (not recorded)", the host compared it with the real value, and the
+       round-trip check flagged a mismatch on every visit. One list now, from the host. */
+    var privateKeys = window.__aviaryPrivateKeys || [];
     RENDERED[c.key] = (c.type === 'toggle') ? (c.value ? 'true' : 'false')
-                    : (c.type === 'text') ? lineCount(c.value) + ' lines (not recorded)'
+                    : (privateKeys.indexOf(c.key) >= 0) ? lineCount(c.value) + ' lines (not recorded)'
                     : String(c.value);
   }
 
@@ -1136,6 +1236,7 @@ function rowHtml(r){
          (r.d ? '<span>' + r.d + '</span>' : '') + note + (r.more ? (MORE[r.more] || '') : '') +
          '</div>' + control(r) + '</div>';
 }
+
 
 /* ── The Updates pane ─────────────────────────────────────────────────────── */
 var DOME = '<svg class="hero__mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
@@ -1731,6 +1832,17 @@ function suggestRow(){
 }
 suggestRow();
 
+/* M4.8 (bug 77) — ring whichever tile is in force. Reads the row rather than a stored copy, so
+   it is right whether the value came from the store, from a Reset, or from a click just now. */
+function iconTiles(){
+  var sel = document.querySelector('.sel[data-key="appIcon"] .sel__btn span');
+  var now = sel ? sel.textContent.trim() : saved('appIcon', 'Blue tile');
+  [].forEach.call(document.querySelectorAll('.icotile'), function(t){
+    t.setAttribute('data-on', t.getAttribute('data-tile') === now ? 'true' : 'false');
+  });
+}
+iconTiles();
+
 var diagList = document.getElementById('diaglist');
 if (diagList && DIAG.categories){
   var ol = document.createElement('ol');
@@ -1888,6 +2000,7 @@ main.addEventListener('click', function(e){
     if (unchanged) { return; }
     sendSetting(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     if (host.getAttribute('data-key') === 'searchEngine') { suggestRow(); }
+    if (host.getAttribute('data-key') === 'appIcon') { iconTiles(); }
     return;
   }
 
@@ -2036,7 +2149,20 @@ window.__aviaryStorage = function(d){
     var ns = document.createElement('span'); ns.textContent = c.files.toLocaleString() + (c.files === 1 ? ' file' : ' files') + ' · ' + stSize(c.onDisk) + ' on disk';
     name.appendChild(nb); name.appendChild(ns);
     var size = document.createElement('span'); size.className = 'st-size'; size.textContent = stSize(c.bytes);
-    var pct = document.createElement('span'); pct.className = 'st-pct'; pct.textContent = (100 * c.bytes / Math.max(d.bytes, 1)).toFixed(1) + '%';
+
+    /* M4.8: the share drawn as well as written. The stacked bar at the top of the page shows
+       the split, but only on hover and only if you go looking for it — a bar on the row itself
+       makes "which of these is actually big" answerable by running your eye down the list. */
+    var share = 100 * c.bytes / Math.max(d.bytes, 1);
+    var pct = document.createElement('span'); pct.className = 'st-pct';
+    var pctBar = document.createElement('i');
+    pctBar.className = 'st-share';
+    pctBar.style.setProperty('--w', Math.max(share, share > 0 ? 1.5 : 0) + '%');
+    pctBar.style.setProperty('--c', 'var(--st-' + c.key + ')');
+    var pctNum = document.createElement('b');
+    pctNum.textContent = share.toFixed(1) + '%';
+    pct.appendChild(pctNum); pct.appendChild(pctBar);
+
     sum.appendChild(chip); sum.appendChild(name); sum.appendChild(size); sum.appendChild(pct);
     sum.insertAdjacentHTML('beforeend', CHEV);
     det.appendChild(sum);
@@ -2181,7 +2307,19 @@ function pfRow(name, sub, nums, buttons, head){
   n.appendChild(b);
   if (sub) { var s = document.createElement('span'); s.textContent = sub; n.appendChild(s); }
   row.appendChild(n);
-  nums.forEach(function(v){ var c = document.createElement('div'); c.className = 'pf-num'; c.textContent = v; row.appendChild(c); });
+  nums.forEach(function(v){
+    var c = document.createElement('div');
+    c.className = 'pf-num';
+    /* A cell may be {v:'12.4 MB', heat:2} - the text, and how hard that part is working. */
+    if (v && typeof v === 'object') {
+      c.textContent = v.v;
+      if (v.heat) { c.setAttribute('data-heat', v.heat); }
+      if (v.opt) { c.className += ' pf-opt'; }
+    } else {
+      c.textContent = v;
+    }
+    row.appendChild(c);
+  });
   var btns = document.createElement('div');
   btns.className = 'btns';
   (buttons || []).forEach(function(bt){
@@ -2195,7 +2333,24 @@ function pfRow(name, sub, nums, buttons, head){
 }
 
 var PF_SORT = 'memory';
+var PF_PSORT = 'none';
 var PF_LAST = null;
+
+/* How busy is this, on a scale a colour can show? (M4.8.)
+   Shaded against the BUSIEST row rather than against fixed numbers: absolute thresholds meant a
+   quiet browser had no shading at all (measured — every cell came back blank on an idle machine),
+   which is exactly the "it seems to have no effect" that M4.8 exists to stop. `floor` keeps a
+   genuinely idle table plain: nothing is shaded until it is worth looking at, and then the
+   heaviest part always is. Three steps, not a gradient — a tint that is always slightly on reads
+   as noise. */
+function pfHeat(v, max, floor){
+  if (v == null || max == null || max <= 0 || v < floor) { return 0; }
+  var share = v / max;
+  return share >= 0.66 ? 3 : share >= 0.33 ? 2 : share >= 0.12 ? 1 : 0;
+}
+function pfMax(list, key){
+  return list.reduce(function(m, x){ return Math.max(m, x[key] || 0); }, 0);
+}
 window.__aviaryPerf = function(d){
   PF_LAST = d;
   function set(id, html, v, arr){
@@ -2263,12 +2418,14 @@ window.__aviaryPerf = function(d){
       return 0;
     });
 
-    var head = pfRow('Tab' + (order === 'none' ? '' : ' · sorted by ' + (order === 'cpu' ? 'processor' : order === 'data' ? 'data' : 'memory')),
-      '', ['Memory', 'Processor', 'Graphics', 'Data'], [], true);
+    var head = pfRow('Tab', '', ['Memory', 'Processor', 'Graphics', 'Data'], [], true);
     head.querySelectorAll('.pf-num').forEach(function(cell, i){
       var key = ['memory', 'cpu', null, 'data'][i];
       if (!key) { return; }
       cell.setAttribute('data-sort', key);
+      /* M4.8: the column that is sorting says so with an arrow, as a table should, instead of
+         the heading spelling it out in words beside "Tab". */
+      cell.setAttribute('data-on', order === key ? 'true' : 'false');
       cell.title = 'Sort by this';
       cell.addEventListener('click', function(){
         PF_SORT = (PF_SORT === key) ? 'none' : key;
@@ -2277,6 +2434,7 @@ window.__aviaryPerf = function(d){
     });
     tabs.appendChild(head);
     var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it'};
+    var tMaxMem = pfMax(list, 'memory'), tMaxCpu = pfMax(list, 'cpu'), tMaxGpu = pfMax(list, 'gpu');
     list.forEach(function(tb){
       var name = tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled');
       var note = PF_NOTES[tb.id];
@@ -2288,21 +2446,82 @@ window.__aviaryPerf = function(d){
       if (tb.canSleep) { buttons.push({label:'Sleep', cmd:'sleep:' + tb.id}); }
       buttons.push({label:'Close', cmd:'close:' + tb.id});
       tabs.appendChild(pfRow(name, sub,
-        [tb.memory == null ? '—' : pfSizeText(tb.memory), tb.cpu == null ? '—' : pfPctText(tb.cpu), tb.gpu == null ? '—' : pfPctText(tb.gpu),
+        [tb.memory == null ? '—' : {v: pfSizeText(tb.memory), heat: pfHeat(tb.memory, tMaxMem, 20)},
+         tb.cpu == null ? '—' : {v: pfPctText(tb.cpu), heat: pfHeat(tb.cpu, tMaxCpu, 0.5)},
+         tb.gpu == null ? '—' : {v: pfPctText(tb.gpu), heat: pfHeat(tb.gpu, tMaxGpu, 0.5)},
          tb.data ? stSize(tb.data) : '—'],
         buttons));
     });
   }
 
+  /* ── M4.8: Aviary's processes, the way Task Manager lists them ─────────────
+     Every part on its own line with its own figures in their own columns, sortable by any of
+     them, the tabs a page process draws nested underneath it, and a total at the foot. Before
+     this the PID, the handles and the graphics memory were prose in a subtitle, which is the
+     one thing you cannot scan down. */
   var procs = document.getElementById('pf-procs');
   if (procs) {
     procs.textContent = '';
-    procs.appendChild(pfRow('Process', '', ['Memory', 'Processor', 'Graphics'], [], true));
-    d.processes.forEach(function(p){
-      var sub = 'Process ' + p.pid + (p.tabs ? ' · draws ' + p.tabs + (p.tabs === 1 ? ' tab' : ' tabs') : '') +
-        ' · ' + p.handles + ' handles' + (p.gpuMemory ? ' · ' + pfSizeText(p.gpuMemory) + ' of graphics memory' : '');
-      procs.appendChild(pfRow(p.kind, sub, [pfSizeText(p.memory), pfPctText(p.cpu), pfPctText(p.gpu)], []));
+
+    var keys = [null, 'memory', 'cpu', 'gpu', 'gpuMemory', 'handles'];
+    var head = pfRow('Part of Aviary', '', ['Process', 'Memory', 'Processor', 'Graphics',
+                                            {v:'GPU mem', opt:true}, {v:'Handles', opt:true}], [], true);
+    head.querySelectorAll('.pf-num').forEach(function(cell, i){
+      var key = keys[i];
+      if (!key) { return; }
+      cell.setAttribute('data-sort', key);
+      cell.setAttribute('data-on', PF_PSORT === key ? 'true' : 'false');
+      cell.title = 'Sort by this';
+      cell.addEventListener('click', function(){
+        PF_PSORT = (PF_PSORT === key) ? 'none' : key;
+        if (PF_LAST) { window.__aviaryPerf(PF_LAST); }
+      });
     });
+    procs.appendChild(head);
+
+    /* Sorting keeps Aviary's own order when nothing is chosen — the host already sends the
+       parts in the order they matter (Aviary, engine, graphics, helpers, then pages). */
+    var plist = d.processes.slice();
+    if (PF_PSORT !== 'none') {
+      plist.sort(function(a, b){ return (b[PF_PSORT] || 0) - (a[PF_PSORT] || 0); });
+    }
+
+    /* Which tabs each page process is drawing, so they can hang under it. */
+    var kidsOf = {};
+    d.tabs.forEach(function(tb){
+      if (tb.pid == null) { return; }
+      (kidsOf[tb.pid] = kidsOf[tb.pid] || []).push(tb);
+    });
+
+    var pMaxMem = pfMax(plist, 'memory'), pMaxCpu = pfMax(plist, 'cpu'), pMaxGpu = pfMax(plist, 'gpu');
+    var totMem = 0, totCpu = 0, totGpu = 0;
+    plist.forEach(function(p){
+      totMem += p.memory || 0; totCpu += p.cpu || 0; totGpu += p.gpu || 0;
+      var kids = kidsOf[p.pid] || [];
+      var sub = kids.length
+        ? (kids.length === 1 ? 'draws 1 tab' : 'draws ' + kids.length + ' tabs')
+        : '';
+      procs.appendChild(pfRow(p.kind, sub, [
+        String(p.pid),
+        {v: pfSizeText(p.memory), heat: pfHeat(p.memory, pMaxMem, 20)},
+        {v: pfPctText(p.cpu),    heat: pfHeat(p.cpu, pMaxCpu, 0.5)},
+        {v: pfPctText(p.gpu),    heat: pfHeat(p.gpu, pMaxGpu, 0.5)},
+        {v: p.gpuMemory ? pfSizeText(p.gpuMemory) : '—', opt:true},
+        {v: String(p.handles), opt:true}
+      ], []));
+
+      kids.forEach(function(tb){
+        var kid = pfRow(tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled'), '',
+          ['', '', '', '', {v:'', opt:true}, {v:'', opt:true}], []);
+        kid.className += ' pf-kid';
+        procs.appendChild(kid);
+      });
+    });
+
+    var tot = pfRow('All of Aviary', plist.length + (plist.length === 1 ? ' process' : ' processes'),
+      ['', pfSizeText(totMem), pfPctText(totCpu), pfPctText(totGpu), {v:'', opt:true}, {v:'', opt:true}], []);
+    tot.className += ' pf-tot';
+    procs.appendChild(tot);
   }
 
   var every = d.everySeconds || 1;

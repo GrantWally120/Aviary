@@ -67,6 +67,7 @@ public sealed partial class MainWindow : Window
         WatchForManyTabsClose();
         ApplyFocusVisuals();
         ApplyAppIcon();
+        ApplyMemorySaver();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -482,6 +483,7 @@ public sealed partial class MainWindow : Window
     {
         // After "Reset settings" this is what switches collection back off — its default.
         Diagnostics.SetEnabled(AppSettings.GetBool(Diagnostics.SettingKey));
+        Diagnostics.ApplyFrameTiming();
 
         TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
         _showFullUrl = AppSettings.GetBool("fullUrl");
@@ -915,7 +917,9 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
                    + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";"
                    + " window.__aviarySpeed = " + JsonSerializer.Serialize(Motion.PageSpeed) + ";"
-                   + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";")
+                   + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"
+                   // M4.9 (bug 80): the page redacts exactly the keys the host does, from ONE list.
+                   + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
             .Replace("/*__AVIARY_SECTION__*/", section is null
@@ -1295,6 +1299,7 @@ public sealed partial class MainWindow : Window
         }
 
         _active = tab;
+        tab.LastActiveUtc = DateTime.UtcNow;
         Diagnostics.TabActive(tab.Id);
 
         // Gentle memory saving: only the tab you are looking at keeps normal priority.
@@ -2627,7 +2632,14 @@ public sealed partial class MainWindow : Window
 
                 case Diagnostics.SettingKey:
                     Diagnostics.SetEnabled(value.ValueKind == JsonValueKind.True);
+
+                    // M4.9: frame timing only ever runs while collection does.
+                    Diagnostics.ApplyFrameTiming();
                     _ = PushDiagnosticsStatusAsync();
+                    break;
+
+                case Diagnostics.FramesKey:
+                    Diagnostics.ApplyFrameTiming();
                     break;
 
                 case "bookmarksBar":
@@ -2684,10 +2696,18 @@ public sealed partial class MainWindow : Window
                     break;
 
                 case "memorySaver":
-                    foreach (BrowserTab t in _tabs)
+                    // M4.9: one row decides both halves — the priority hint on every tab, and
+                    // each window's idle-sleep timer.
+                    foreach (MainWindow w in OpenWindows)
                     {
-                        t.SetBackgrounded(!ReferenceEquals(t, _active));
+                        foreach (BrowserTab t in w._tabs)
+                        {
+                            t.SetBackgrounded(!ReferenceEquals(t, w._active));
+                        }
+
+                        w.ApplyMemorySaver();
                     }
+
                     break;
 
                 case "theme":
@@ -3204,6 +3224,16 @@ public sealed partial class MainWindow : Window
         {
             frame = core.FrameId;
         }
+        catch (Exception ex) when (IsClosingWebView(ex))
+        {
+            // M4.9 (bug 79, from Grant's own diagnostics): asking a WebView that is being torn
+            // down for its FrameId answers ERROR_INVALID_STATE. There is no tab to find — the tab
+            // is going — so null is the right answer and always was. What was wrong is that it was
+            // reported as a hidden error, which put "tab for a webview — COMException" under
+            // *Needs attention* in his summary every time a tab closed during a busy moment.
+            // A tab closing is not a fault. Anything OTHER than this state is still reported.
+            return null;
+        }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "window: tab for a webview");
@@ -3222,6 +3252,14 @@ public sealed partial class MainWindow : Window
             }
         });
     }
+
+    /// <summary>
+    /// Is this the engine saying "that WebView is going away" rather than something wrong? (M4.9,
+    /// bug 79.) WebView2 answers ERROR_INVALID_STATE (0x8007139F) for a CoreWebView2 whose host is
+    /// being torn down. Matched on the HRESULT and nothing else, so a real failure still reports.
+    /// </summary>
+    private static bool IsClosingWebView(Exception ex) =>
+        ex is System.Runtime.InteropServices.COMException com && unchecked((uint)com.HResult) == 0x8007139FU;
 
     /// <summary>
     /// ContentDialog in WinUI 3 desktop throws a COMException without an explicit XamlRoot,

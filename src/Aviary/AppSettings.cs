@@ -38,7 +38,10 @@ internal static class AppSettings
         ["fullUrl"] = "false",
         ["bookmarksBar"] = "false",
         ["blockTrackers"] = "true",
-        ["memorySaver"] = "true",
+        // M4.9 — one row, four modes (Grant: "aggressive which will save and offload the tab
+        // fastest and most Chill will do it slower and less offload and balanced(Default) is well
+        // balanced"). It was a switch until M4.9; a saved "true" still reads as Balanced.
+        ["memorySaver"] = "Balanced",
         ["startup"] = "Start Page",
         ["zoom"] = "100%",
         // Phase 5 M2 — privacy that actually works. Every one of these is live and real.
@@ -88,6 +91,9 @@ internal static class AppSettings
         // M4.6 — how fast all of that moves, and where Liquid Glass puts its bar.
         ["animationSpeed"] = "Standard",
         ["windowButtons"] = "Floating",
+        // M4.9 — frame timing, the one measurement that costs what it measures, so it is off even
+        // while collection is on (Diagnostics.Frames.cs).
+        ["frameTiming"] = "false",
         // Alpha Build 5 M4.5 — accessibility, and the tab rows beside it.
         ["pageTextSize"] = "Default",
         ["underlineLinks"] = "false",
@@ -171,6 +177,25 @@ internal static class AppSettings
                         _values["listsAutoUpdate"] = "Off";
                     }
                 }
+
+                // M4.9: "Memory saver" was a switch and is now Off / Chill / Balanced / Aggressive.
+                // Same rule as bug 73 — migrate the VALUE here, in one place, so nothing downstream
+                // has to know the old shape and the store never disagrees with the page.
+                if (_values.TryGetValue("memorySaver", out string? saver))
+                {
+                    if (saver.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["memorySaver"] = "Balanced";
+                    }
+                    else if (saver.Equals("false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["memorySaver"] = "Off";
+                    }
+                }
+
+                // M4.9: sleepIdleTabs was M4.8's separate row, folded into the mode above before it
+                // ever shipped. Drop it on sight so it cannot sit in the file meaning nothing.
+                _values.Remove("sleepIdleTabs");
             }
             catch (Exception ex)
             {
@@ -193,10 +218,18 @@ internal static class AppSettings
     /// </summary>
     /// <summary>
     /// Settings whose VALUE is the person's own writing, not a choice Aviary offered (M4.5).
-    /// "My filters" can name any site they visit, so diagnostics gets a count of the lines and
-    /// never the lines themselves - the same rule as every other kind of browsing.
+    /// "My filters" can name any site they visit, so diagnostics got a count of the lines and
+    /// never the lines themselves (bug 72).
+    ///
+    /// <para><b>EMPTY SINCE M4.9, AND DELIBERATELY SO.</b> Grant asked on 21 Sep 2026 to "update
+    /// our data collection to everything … for the betterment of our browser", and when asked
+    /// specifically about this one he chose to include it. It is his own writing, on his own
+    /// machine, in a folder that never leaves it. <b>This is not bug 72 coming back</b> — the
+    /// mechanism is intact and still honoured in both places, there is simply nothing in the
+    /// list. Do not "fix" it back; if a key ever needs redacting again, adding it here is all it
+    /// takes. The secrets filter (Diagnostics.Scrub) is untouched and still the real line.</para>
     /// </summary>
-    public static readonly string[] PrivateKeys = { "customFilters" };
+    public static readonly string[] PrivateKeys = Array.Empty<string>();
 
     /// <summary>The snapshot diagnostics may write down: every setting, with those redacted.</summary>
     public static Dictionary<string, string> SnapshotForReport()

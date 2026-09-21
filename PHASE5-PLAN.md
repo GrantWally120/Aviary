@@ -280,9 +280,45 @@ Not planned: M4.6 shipped that same night with **every menu in Aviary dead**, an
   hidden when the chrome lifted away), which threw and skipped the `Opacity = 1` after it. Grant
   runs with the bookmarks bar off, so it fired on his F11.
 - **Three tools added to the kit**, because four earlier attempts could not tell the broken build
-  from the good one: `flyout-geometry.ps1`, `menu-click.ps1`, `bloom-frames.ps1`.
+  from the good one: `flyout-geometry.ps1`, `menu-click.ps1` (and `bloom-frames.ps1`, which was later
+  found not to measure the bloom at all — HANDOFF §25).
 - **The rule this cost:** a composition transform through `ElementCompositionPreview` is render-only
   on an ordinary element and is NOT on a popup's root child. And always run the control.
+
+### M4.8 — A Iconic Fix · **done 21 Sep 2026** (HANDOFF §24)
+
+Also unplanned, and named by Grant: four asks while he was testing M4.7.
+
+- **The app icon (bug 77)** — it worked and was invisible. Aviary draws its own title bar, so it has
+  no icon inside itself, and with no `AppUserModelID` the taskbar drew the .exe's icon instead of
+  the window's. `Program.TellTheShellWhoWeAre` gives Aviary a shell identity before the first
+  window; the row draws both tiles and rings the one in force. **Grant owes the taskbar check** —
+  Windows 11's taskbar cannot be read from a tool here.
+- **Performance, like Task Manager** — every part of Aviary a line with its own columns (Process,
+  Memory, Processor, Graphics, GPU mem, Handles), sortable by any of them, each page process's tabs
+  nested under it, a total at the foot, and cells shaded against the busiest row rather than fixed
+  thresholds (fixed ones left every cell blank on an idle machine).
+- **Memory saver that saves memory (bug 78)** — `sleepIdleTabs` suspends a tab nobody has looked at
+  (Never / 5 / 15 / 30 min / an hour; 30 by default). Never the active tab, a private tab or one of
+  Aviary's own pages, and the engine refuses for anything playing sound or video. 40 MB → 1 MB
+  measured. Bug 78 on the way: nothing had ever called `Resume()`.
+- **Storage Usage** — every category row draws its share as a bar in its own colour.
+- Kit: `window-icon.ps1`, `sleep-test.ps1`, and `AVIARY_SLEEP_TEST=<seconds>` (environment only).
+
+### M4.9 — Birds News · **Stage 1 of 3 done 21 Sep 2026** (HANDOFF §25)
+
+Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
+
+- **Stage 1 — done.** Memory saver as one row of four modes (Off / Chill / Balanced / Aggressive,
+  which also lets go on minimise); M4.8's `sleepIdleTabs` folded in before it ever shipped;
+  diagnostics cap 700 MB; My filters text collected (bug 72 reversed at his word); frame timing as
+  an opt-in that is off even while collection is on; bugs 79 and 80.
+- **Stage 2 — Birds News.** World + Philippines RSS on the Start Page and at `birds.aviary`, fetched
+  as Aviary itself (not the Safari UA), never from a private window, headlines never rewritten.
+  The exact feed addresses need Grant's OK before the first fetch.
+- **Stage 3 — his five picks.** Search open tabs (Ctrl+Shift+A), Forgetful browsing with a time
+  (on close / 5 min / 1 h / 1 day), Safety Check, Start Page backgrounds, Picture-in-picture (verified
+  against the engine first, badged rather than shipped dead if it cannot).
 
 ### M5 — Carried from Phase 4
 - **Download ring, popover, persisted history** — straight from the recovered spec

@@ -43,7 +43,7 @@ internal static partial class Diagnostics
         new(10, "Hidden errors", "Problems Aviary used to recover from silently, with exactly where in Aviary they happened.", "issues.jsonl"),
         new(11, "Things that look wrong", "Settings that do not come back the way they were saved, site icons that will not load, tabs that fail to start, and moments the window stops responding for more than a twentieth of a second.", "issues.jsonl"),
         new(12, "Crashes", "What went wrong, the last hundred or so things that happened before it, and the address of every open tab.", "crashes/"),
-        new(13, "Speed", "How long starting up, new tabs and pages take; how hard the ad blocker works; how much memory and processor each part of Aviary uses; how quickly the window responds.", "perf.jsonl"),
+        new(13, "Speed", "How long starting up, new tabs and pages take; how hard the ad blocker works; how much memory and processor each part of Aviary uses; how quickly the window responds — and, if you switch that row on as well, how smoothly it draws.", "perf.jsonl"),
         new(14, "Features", "Which features you use — Reader, the sidebar, pinned tabs, Start Page sections — and whether Reader could read each page.", "events.jsonl"),
         new(15, "Downloads", "Each file's name, where it came from, its size, and whether it finished.", "events.jsonl"),
         new(16, "Your computer", "Windows version, browser engine version, processor, memory, graphics, every screen's size, scaling and refresh rate, the window's size and how many tabs are open.", "session.json"),

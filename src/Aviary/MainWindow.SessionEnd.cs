@@ -63,6 +63,10 @@ public sealed partial class MainWindow
     private const uint WmEnterMenuLoop = 0x0211;
     private const uint WmExitMenuLoop = 0x0212;
 
+    /// <summary>WM_SIZE, and the wParam that means the window has just been minimised (M4.9).</summary>
+    private const uint WmSize = 0x0005;
+    private const int SizeMinimized = 1;
+
     private IntPtr OnWindowMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam, UIntPtr id, UIntPtr refData)
     {
         switch (msg)
@@ -86,6 +90,14 @@ public sealed partial class MainWindow
                 break;
             case WmExitMenuLoop:
                 Diagnostics.NoteModalLoop("a window menu", entering: false);
+                break;
+
+            // M4.9: memory saver on Aggressive lets go the moment the window is minimised —
+            // nothing on screen is being looked at. Posted to the queue rather than done here:
+            // this is inside Windows' own window procedure, and suspending a WebView from it
+            // would run engine work inside a message Windows is waiting on.
+            case WmSize when wParam.ToInt32() == SizeMinimized:
+                DispatcherQueue.TryEnqueue(OnWindowMinimised);
                 break;
         }
 
