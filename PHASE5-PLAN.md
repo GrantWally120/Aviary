@@ -265,6 +265,25 @@ Run"** (`BuildInfo.PhaseName`), because it has now run M0 → M4.6.
 - Bugs 73 (the settings round-trip Grant's own log caught) and 74 (Composition's "Translation"
   cannot be stopped, which silently killed the first F11 animation).
 
+### M4.7 — Immediate Fix · **done 21 Sep 2026** (HANDOFF §23)
+
+Not planned: M4.6 shipped that same night with **every menu in Aviary dead**, and Grant asked for
+"a immediate bug fix and patch now" the next morning. The milestone exists because the bug did.
+
+- **Bug 75** — the arrival M4.6 gave menus was written onto `popup.Child`, the popup's own root
+  child, whose visual is how the popup site places AND hit-tests the content. Menus drew where they
+  belonged and answered the mouse ~860 px away, so every click on one read as a click outside it:
+  the menu dismissed and chose nothing. `ThemeOpenPopups` is the walk every Aviary menu passes
+  through, so the app menu (Settings, The Collection, Downloads), the Aa menu, the tab menus and the
+  sidebar's all went at once. `BloomInto` now blooms the presenter's template root, one level in.
+- **Bug 76** — `PutRowBack` animated `Translation` on rows that never had it enabled (the ones
+  hidden when the chrome lifted away), which threw and skipped the `Opacity = 1` after it. Grant
+  runs with the bookmarks bar off, so it fired on his F11.
+- **Three tools added to the kit**, because four earlier attempts could not tell the broken build
+  from the good one: `flyout-geometry.ps1`, `menu-click.ps1`, `bloom-frames.ps1`.
+- **The rule this cost:** a composition transform through `ElementCompositionPreview` is render-only
+  on an ordinary element and is NOT on a popup's root child. And always run the control.
+
 ### M5 — Carried from Phase 4
 - **Download ring, popover, persisted history** — straight from the recovered spec
   `scratchpad/specs/downloads-safari-progress-ring-button-po.md`: `DownloadRing.cs`,

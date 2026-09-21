@@ -261,21 +261,71 @@ public sealed partial class MainWindow
                 // M4.6: and while we are here, let it grow out of the edge it is anchored to.
                 // Every menu and popover in Aviary opens through this walk, so this is the one
                 // place that can give them all the same arrival.
+                //
+                // M4.7 (bug 75): the arrival goes on the presenter's template root, one level IN,
+                // never on popup.Child itself. The popup site places AND hit-tests its content
+                // through that child's own visual, so a CenterPoint/Scale written there moved the
+                // menu's input geometry ~860 px from where it was drawn: the menu looked right and
+                // every click on it read as a click outside, dismissing it and choosing nothing.
                 if (popup.Child is FrameworkElement arriving && _bloomed.Add(arriving))
                 {
-                    arriving.Loaded += (_, _) => Motion.Bloom(arriving);
-                    if (arriving.ActualHeight > 0)
-                    {
-                        Motion.Bloom(arriving);
-                    }
+                    // Opened can arrive before the presenter's template exists, and then there is
+                    // nothing safe to animate yet; Loaded comes back when there is. The handler is
+                    // kept so it can be taken off again — a reused presenter would otherwise
+                    // collect one more on every open.
+                    void OnArrived(object? s, RoutedEventArgs e) => BloomInto(arriving);
 
-                    popup.Closed += (_, _) => _bloomed.Remove(arriving);
+                    _blooming[arriving] = OnArrived;
+                    arriving.Loaded += OnArrived;
+                    BloomInto(arriving);
+
+                    popup.Closed += (_, _) =>
+                    {
+                        if (_blooming.Remove(arriving, out RoutedEventHandler? handler))
+                        {
+                            arriving.Loaded -= handler;
+                        }
+
+                        _bloomed.Remove(arriving);
+                    };
                 }
             }
         }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "theme: open popups");
+        }
+    }
+
+    /// <summary>The Loaded handler each arriving popup is carrying, so it can be taken off again.</summary>
+    private readonly Dictionary<FrameworkElement, RoutedEventHandler> _blooming = new();
+
+    /// <summary>
+    /// Blooms a popup's CONTENT, never the popup's own root child (M4.7, bug 75).
+    ///
+    /// A composition transform written through <c>ElementCompositionPreview</c> is render-only for
+    /// an ordinary element — the pixels move, hit-testing does not — which is exactly what an
+    /// arrival wants. On a popup's own root child it is not: that visual is how the popup site
+    /// places AND hit-tests the whole content, so the CenterPoint and Scale M4.6 wrote there took
+    /// the menu's input geometry ~860 px with it. The menu looked perfect and answered nothing:
+    /// every click on it counted as a click outside, which dismissed it and chose no item. That is
+    /// what made the app menu — Settings, The Collection, Downloads — useless in M4.6.
+    ///
+    /// One level in, the presenter's template root fills the presenter exactly, so it looks the
+    /// same and is render-only again. Until that template exists there is nothing safe to animate,
+    /// so the arrival waits for Loaded rather than falling back to the root.
+    /// </summary>
+    private static void BloomInto(FrameworkElement popupChild)
+    {
+        if (popupChild.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        if (VisualTreeHelper.GetChildrenCount(popupChild) > 0
+            && VisualTreeHelper.GetChild(popupChild, 0) is FrameworkElement inner)
+        {
+            Motion.Bloom(inner);
         }
     }
 

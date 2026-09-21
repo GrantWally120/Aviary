@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **20 September 2026**, at the end of **M4.6 “Smooth Fix”** — section 22, and the one to read first if you are picking this up. Alpha Build 5 is now called **The Long Run**: it has run M0, M1, M2, M2.5, M3, M4, M4.5 and M4.6, and M5 is still on hold until Grant says otherwise.
+Last updated **21 September 2026**, at the end of **M4.7 “Immediate Fix”** — section 23, and the one to read first if you are picking this up. Alpha Build 5 is called **The Long Run**: it has run M0, M1, M2, M2.5, M3, M4, M4.5, M4.6 and M4.7, and M5 is still on hold until Grant says otherwise. M4.7 undid the one thing M4.6 broke: every menu in Aviary drew correctly and ignored every click (bug 75).
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -43,24 +43,33 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (19 Sep 2026 — read this first in a new chat)**
-> - Git: everything is committed. 14–19 Sep, each with Grant's OK ("everything tested"):
->   `133f61c` landing page Legacy look (§19) · `fe5220f` NativeCrash, the native-crash recorder ·
->   `60d2339` bug 63 · `5bb88ac` bugs 50, 64, 66 · `5cba53e` bug 65 + the §8 loose ends — then this
->   docs commit. **NOT published yet:** `publish/Aviary` (Grant's shortcut) is still `a5bb690`'s build.
->   Ask before publishing; run `tools/library/sync.ps1` first.
-> - Alpha Build 5: **6 of 10 milestones done** (M0, M1, M2, M2.5, M3, M4). Remaining: M5 (download
->   ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **Grant said NOT to start M5 yet (14 Sep, again 18 Sep).** Ask him what he wants next.
-> - Bugs 63–66 fixed (section 10). **No known open bug** — bug 50 is fixed at last. Next bug number
->   **67**.
-> - Standing orders: read his diagnostics folder each turn (section 13); ask before every commit,
->   every download, every NuGet package, every new filter list; test only on scratch profiles and
->   never drive the desktop while he is using it (`guard.ps1`); run `tools/library/sync.ps1` before
->   any publish; never publish `Aviary.html` as an Artifact.
-> - **New since 14 Sep, worth knowing:** a native crash (a C++ exception nothing caught, ending in
->   abort()) now leaves a full report in crash.log and crashes/ (`NativeCrash.cs`); Aviary's panels
->   belong to their tab (`MainWindow.Notices.cs`); Windows ending the session is handled
+> **WHERE THINGS STAND (21 Sep 2026 — read this first in a new chat)**
+> - Alpha Build 5 **"The Long Run"**: **9 of 13 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5
+>   "Smooth Flight", M4.6 "Smooth Fix", M4.7 "Immediate Fix"). Remaining: M5 (download ring + tab
+>   groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
+> - **M4.7 (§23) is the one to read first.** M4.6 shipped on the night of 20 Sep with every menu in
+>   Aviary dead — they drew correctly and ignored every click — and Grant hit it within a minute of
+>   installing it. Found in HIS OWN diagnostics the next morning, reproduced, fixed and proved with
+>   a real-click A/B. Bugs **75** and **76** (§10). Next bug number **77**.
+> - **Grant said NOT to start M5 yet (14 Sep, again 18 Sep, again 20 Sep).** Ask him what he wants
+>   next.
+> - Git: everything through M4.6 is committed — `bec7a57` M4.6 "Smooth Fix" is the newest, and
+>   `publish/Aviary` (Grant's shortcut) is that build. **M4.7's changes are NOT committed and NOT
+>   published yet** — ask him first, and run `tools/library/sync.ps1` before any publish.
+> - **The lesson M4.7 paid for, twice over:** a composition transform written through
+>   `ElementCompositionPreview` is render-only on an ordinary element and is NOT on a popup's own
+>   root child, where it moves the content's input geometry with it. And: four separate tests
+>   "showed" the bug before one of them was honest — each failed the same way on the control.
+>   **Always run the control.** `tools/test/flyout-geometry.ps1` and `menu-click.ps1` are the two
+>   that settled it; run them after touching anything in `Motion.cs` or `ThemeOpenPopups`.
+> - Standing orders: read his diagnostics folder each turn (section 13) — it has now caught three
+>   real bugs, including this one; ask before every commit, every download, every NuGet package,
+>   every new filter list; test only on scratch profiles and never drive the desktop while he is
+>   using it (`guard.ps1` — it refused on 21 Sep and was right to); run `tools/library/sync.ps1`
+>   before any publish; never publish `Aviary.html` as an Artifact.
+> - **Worth knowing:** a native crash now leaves a full report in crash.log and crashes/
+>   (`NativeCrash.cs`); Aviary's panels belong to their tab (`MainWindow.Notices.cs`); Windows
+>   ending the session is handled
 >   (`MainWindow.SessionEnd.cs`); a second copy of the exe on the same profile says so and ends.
 >   WinUI's own WebView2 source is readable at github.com/microsoft/microsoft-ui-xaml,
 >   `controls/dev/WebView2/WebView2.cpp` — it is how bug 50 was understood.
@@ -1187,6 +1196,56 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     somewhere, start a one-millisecond animation to that value instead (`Motion.PutRowBack`).
     **Anything that must happen after an animation goes before the cleanup, or in its own try.**
 
+75. **Every menu in Aviary looked right and answered nothing you clicked** (found 21 Sep in GRANT'S
+    OWN diagnostics; it is the reason M4.7 exists). His 20 Sep evening reads as one sentence:
+    `menu-open` five times across three launches from 22:48 — the first launches of the M4.6 build,
+    published 22:47 — and not one `menu` item event after any of them, where the 21:37 and 21:44
+    sessions on the build before it went `menu-open` → `menu item:Settings` in about a second. In
+    between he toggled the sidebar six times in a second and a half, then quit. He was clicking
+    Settings and nothing was happening.
+    **Cause:** M4.6's arrival (§22) called `Motion.Bloom(popup.Child)` — the popup's own root child.
+    A composition transform written through `ElementCompositionPreview` is render-only on an
+    ordinary element, which is exactly what an arrival wants; on a popup's root child it is not,
+    because that visual is how the popup site places AND hit-tests the whole content. `CenterPoint`
+    and `Scale` on it left the menu drawn correctly inside its own `PopupWindowSiteBridge` window
+    while its input geometry sat ~860 px to the right, so every click on the menu counted as a click
+    OUTSIDE it: the menu dismissed and chose nothing. `ThemeOpenPopups` is the one walk every Aviary
+    menu and popover passes through, so this was the app menu (Settings, The Collection, Downloads,
+    New Tab, Help), the Aa menu, the tab menus and the sidebar's — all of them.
+    **Fix:** `BloomInto` animates the presenter's TEMPLATE ROOT, one level in, where a composition
+    transform is render-only again and which fills the presenter, so it looks identical. Until that
+    template exists there is nothing safe to animate, so the arrival waits for `Loaded` rather than
+    falling back to the root; the `Loaded` handler is taken off again on `Closed` instead of one
+    more being added on every open.
+    **Proved, not argued** — three tools now in the kit, because four earlier attempts could not
+    tell the two builds apart:
+    - `flyout-geometry.ps1` — how far each flyout's content sits from its own popup window. Healthy
+      is the drop shadow's (10,2). Against `publish/Aviary` (M4.6, `bec7a57` — the build Grant had):
+      app menu **(867,44)**, Aa menu **(285,41)**, both `*** DETACHED ***`. After the fix: (10,2).
+    - `menu-click.ps1` — one REAL mouse click (guarded; the popup lifted topmost without activating,
+      the cursor put back, `lastinput.txt` stamped). Identical click, identical coordinates,
+      identically sized popup: reduce-motion **opened Settings**, M4.6 **opened nothing**, fixed
+      **opens Settings**. That A/B is the whole proof.
+    - `bloom-frames.ps1` — 52 distinct frames as the menu arrives, so the arrival Grant asked for in
+      M4.6 is still there.
+    **What did NOT work, so nobody repeats it:** `AutomationElement.FromPoint` answers `PopupHost`
+    over a menu in BOTH builds; `PostMessage(WM_LBUTTONDOWN)` activates nothing in WinUI 3 in
+    EITHER build; `peek.ps1` cannot see the app menu at all, because it is drawn in its own
+    top-level window and PrintWindow on the main one misses it. Each looked like proof and was not.
+    **A test that fails the same way on the control proves nothing — always run the control.**
+    **And: a UIA rect is not where a thing is drawn.** The menu was drawn perfectly while UIA
+    reported it 867 px away. When geometry and pixels disagree, capture the popup's OWN HWND.
+76. **Leaving full screen threw on any row that had been hidden when it started** (found the same
+    day in the M4.6 test profiles — `motion: settle now`, `Motion.PutRowBack`, logged 22:42, four
+    minutes before M4.6 was committed). `LiftAway` and `SettleBack` both skip a row whose
+    `Visibility` is not `Visible`, so that row never gets `SetIsTranslationEnabled` — but
+    `SettleNow` walks EVERY row, and `PutRowBack` started a `Translation` animation on it, which
+    throws when the property was never put in the visual's property set. It is caught one row at a
+    time, so nothing crashed; what it cost is the line after it, `v.Opacity = 1`, which never ran —
+    bug 74's shape exactly, one function later. **Grant's own settings have the bookmarks bar off,
+    so this fired on his F11.** `PutRowBack` now enables Translation itself (free when it is already
+    on), wraps the animation, and sets Opacity after everything that can throw. Five full-screen
+    round trips with the bar hidden: **zero swallowed errors**, where M4.6 logged them.
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -1890,3 +1949,46 @@ Browser"*.
 - **Checked**: engine harness 125/125 · `settings-audit.js` **54 live rows, 10 badged, 0 inert** ·
   the new panes read back in the running app · no anomalies in the test profile beyond one
   unclean-exit caused by the tester force-closing it.
+
+## 23. Alpha Build 5 M4.7 "Immediate Fix" (21 Sep 2026 — DONE)
+
+Grant's words, the morning after M4.6 shipped: *"i need a immediate bug fix and patch now"* and
+*"fix all bugs espically with the 3 lines that open and show the settings collection and more its
+bugged i think 4.6 brokje it"*. The three lines are the ☰ app menu. He was right about the cause
+and right about which build did it.
+
+**What had happened.** M4.6 gave every menu an arrival — one call in `ThemeOpenPopups`, §22 — and
+put it on `popup.Child`, the popup's own root child. That element's visual is not just what gets
+drawn; it is how the popup site places and hit-tests the whole content. The menus therefore drew
+exactly where they belonged and answered the mouse ~860 px away, so every click on one counted as
+a click outside it: the menu closed, nothing was chosen. **Every menu and popover in Aviary goes
+through that walk**, so the app menu (Settings, The Collection, Downloads, New Tab, Help), the Aa
+menu, the tab menus and the sidebar's were all dead at once, in the build published at 22:47 the
+night before. Bug 75 has the full account.
+
+**How it was found.** His own diagnostics, on the standing instruction to read them each turn
+(§13): five `menu-open` events across three launches from 22:48 with no `menu` item after any of
+them, against `menu-open` → `menu item:Settings` on the build before. Nothing was guessed from
+that — it was reproduced, and then proved with an A/B real click.
+
+- **The fix** (`MainWindow.Theme.cs`): `BloomInto` blooms the presenter's template root, one level
+  in, where a composition transform is render-only again and which fills the presenter, so it looks
+  the same. It waits for `Loaded` when the template does not exist yet rather than falling back to
+  the root, and the `Loaded` handler comes off again on `Closed`.
+- **Bug 76 as well** (`Motion.cs`): `PutRowBack` animated `Translation` on rows that had never had
+  it enabled — the ones hidden when the chrome lifted away — which threw and skipped the
+  `v.Opacity = 1` after it. Grant browses with the bookmarks bar off, so this fired on his F11.
+- **Three new tools**, written because four earlier attempts could not tell the broken build from
+  the good one: `flyout-geometry.ps1` (content vs its own popup window), `menu-click.ps1` (one
+  guarded real click), `bloom-frames.ps1` (does it still animate).
+
+**Checked:** `flyout-geometry.ps1` — M4.6 app menu (867,44) and Aa menu (285,41) DETACHED, after
+the fix both (10,2), in Classic and in Liquid Glass · the real-click A/B above · the Help submenu
+opens its own popup at (15,7) and **About Aviary really opens** · `bloom-frames.ps1` 52 frames, so
+the arrival is intact · engine harness **125/125** · `settings-audit.js` **54 live rows, 10 badged,
+0 inert** — all three unchanged from M4.6 · `motion-session.ps1` Classic: no stall over 50 ms, no
+crash, no swallowed error · `fullscreen-bench.ps1` five round trips with the bookmarks bar hidden:
+zero swallowed errors · **twelve scratch profiles from the day's runs: no issues, no crashes**.
+
+**Not changed:** M5 is still on hold. The menu still blooms; only what the bloom is applied to
+moved.

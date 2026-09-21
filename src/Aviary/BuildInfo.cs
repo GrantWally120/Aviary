@@ -51,10 +51,11 @@ internal static class BuildInfo
     /// How many of this build's milestones are finished, counted in order (PHASE5-PLAN.md: M0,
     /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
+    /// M4.7 "Immediate Fix" (21 Sep) is the ninth: the menus M4.6 broke, put right.
     /// </summary>
-    public const int MilestonesDone = 8;
+    public const int MilestonesDone = 9;
 
-    public const int Milestones = 12;
+    public const int Milestones = 13;
 
     /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
     private const int LastAlphaPhase = 5;

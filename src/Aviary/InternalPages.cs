@@ -655,6 +655,8 @@ var UPDATES = [
        d:'The second middle update: Aviary learns to move. Classic gets Smooth Flight and Liquid Glass gets Fluid, each look with its own way of moving; the ad blocker gets four lists, a setting of its own for every site and rules you can write yourself; and Settings gains live Performance and Storage Usage pages, more accessibility, and the two idle freezes explained.'},
       {n:'M4.6', t:'Smooth Fix', when:'20 Sep',
        d:'The third middle update: full screen learns to move, every animation gets a speed of its own, Liquid Glass decides where the window buttons sit, Storage and Performance go deeper, tabs gain four choices of their own — and Aviary finally has an icon.'},
+      {n:'M4.7', t:'Immediate Fix', when:'21 Sep',
+       d:'The menus work again. The arrival M4.6 gave every menu was landing on the wrong part of it, so a menu looked right and answered nothing you clicked — the app menu, Settings and the Collection with it.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -736,6 +738,12 @@ var UPDATES = [
         '<b>The graphics card by the kind of work</b>: drawing, video, moving data',
         '<b>Memory in full</b>: what is in use, what Aviary has asked Windows for, and the most it has ever held at once',
         '<b>Sort the tabs</b> by memory, processor or data, and <b>choose how often</b> Aviary measures — every 1, 2 or 5 seconds'
+      ]},
+      {h:'Immediate Fix — the menus answer again', items:[
+        '<b>Every menu works again.</b> The arrival M4.6 gave menus was applied to the part of a menu that decides where it is, not to the part that is drawn — so a menu appeared exactly where it should and then answered your clicks somewhere else entirely. Clicking anything in it counted as clicking outside: the menu simply closed and nothing happened',
+        'That took the <b>app menu</b> with it — Settings, the Collection, Downloads, New Tab, Help — and the <b>Aa</b> menu, the tab menus and the sidebar’s',
+        'The menus still grow out of the button that opened them; only what the growing is applied to has changed',
+        '<b>Leaving full screen</b> no longer leaves a hidden bar behind: a row that was not on screen when the chrome lifted away is now put back properly instead of being skipped'
       ]},
       {h:'Aviary has an icon', items:[
         '<b>A birdcage dome</b>, the same mark that is on the Start Page and in Settings — on a blue tile, or on a Liquid Glass one',

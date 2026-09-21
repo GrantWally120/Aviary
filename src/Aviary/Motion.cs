@@ -612,11 +612,29 @@ internal static class Motion
         // property set; both throw. What DOES work is starting another one: a one-millisecond
         // animation home replaces whatever was running and lands on zero, and costs nothing when
         // nothing was running.
-        Vector3KeyFrameAnimation home = v.Compositor.CreateVector3KeyFrameAnimation();
-        home.InsertKeyFrame(1f, Vector3.Zero);
-        home.Duration = TimeSpan.FromMilliseconds(1);
-        v.StartAnimation("Translation", home);
+        try
+        {
+            // M4.7 (bug 76): and it has to EXIST first. LiftAway and SettleBack both skip a row
+            // that is not visible, so a row hidden when the chrome left - the bookmarks bar, most
+            // often - never had Translation put in its property set, and StartAnimation throws on
+            // it instead of creating one. SettleNow walks every row, visible or not, so it threw
+            // on exactly those: caught one row at a time, but the Opacity line below it never ran
+            // and the row stayed however the last animation left it. Enabling it here is free when
+            // it is already on. (Seen in the 20 Sep test logs as "motion: settle now".)
+            ElementCompositionPreview.SetIsTranslationEnabled(row, true);
 
+            Vector3KeyFrameAnimation home = v.Compositor.CreateVector3KeyFrameAnimation();
+            home.InsertKeyFrame(1f, Vector3.Zero);
+            home.Duration = TimeSpan.FromMilliseconds(1);
+            v.StartAnimation("Translation", home);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "motion: stop row slide");
+        }
+
+        // Whatever happened above, a row that is being put back is a row that must be visible:
+        // this is the line bug 74 was about, and it goes after everything that can throw.
         v.Opacity = 1;
     }
 
