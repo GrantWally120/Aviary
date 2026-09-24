@@ -1126,14 +1126,19 @@ var SECTIONS = [
     ]},
 
   { id:'down', icon:'down', name:'Downloads', title:'Downloads',
-    lede:'Where files land.',
+    lede:'Where files land, and how long the list in the Downloads button remembers them.',
     rows:[
       /* The path is filled in by script, NOT substituted into this string. A Windows path
          dropped into a JS string literal loses its separators the moment the escape parser
          sees \F or \D or \t, and no amount of HTML-encoding helps — backslashes are not an
          HTML problem. Set as textContent below, from a JSON-encoded global. */
-      {t:'Location', d:'<span class="path" id="dlpath"></span>', phase:5, ctl:{type:'button', cmd:'downloadDir', label:'Change…'}},
-      {t:'Ask where to save each file', d:'Otherwise everything goes to the folder above.', phase:5, ctl:{type:'toggle', key:'askDownload', value:false}}
+      {t:'Location', d:'<span class="path" id="dlpath"></span>', ctl:{type:'button', cmd:'downloadDir', label:'Change…'}},
+      {t:'Ask where to save each file', d:'Otherwise everything goes to the folder above.', phase:5, ctl:{type:'toggle', key:'askDownload', value:false}},
+      /* Alpha Build 5 M5 - Safari's own preference, with Safari's own default (Downloads.cs). */
+      {t:'Remove download list items', d:'When a finished download leaves the list. <b>Only the list</b> — the file itself stays where it is, whichever you choose.', ctl:{type:'select', key:'downloadHistory', opts:['After one day','When Aviary quits','Upon successful download','Manually'], value:'After one day'}},
+      {t:'Ask before opening a downloaded program', d:'Programs, installers, scripts and disk images opened from the Downloads list ask first. Windows has nothing like the Mac’s Gatekeeper; this is the closest a browser can come.', ctl:{type:'toggle', key:'warnExecutables', value:true}},
+      {t:'Clear the download list', d:'Takes every finished download off the list. The files are not touched, and nothing still downloading is stopped.', ctl:{type:'button', cmd:'clearDownloads', label:'Clear'}},
+      {t:'Open “safe” files after downloading', d:'Aviary never opens a file by itself. Safari once had a switch for this, on by default — it is how a browser turns a download into something that runs. It is not offered.', ctl:{type:'none'}}
     ]},
 
   { id:'access', icon:'access', name:'Accessibility', title:'Accessibility',
@@ -1503,6 +1508,8 @@ fillText('ab-built', BUILD.builtOn || '—');
 /* textContent, not innerHTML: a folder name is user data and can contain anything. */
 var dlPath = document.getElementById('dlpath');
 if (dlPath) dlPath.textContent = PATHS.downloads || '';
+/* M5: the host says where downloads go after "Change…" - as text, like the line above. */
+window.__aviaryDownloadDir = function(p){ var el = document.getElementById('dlpath'); if (el) { el.textContent = p || ''; } };
 
 /* The collection row: its live status and folder, and the full list of what is collected —
    built from the same C# list as manifest.json and summary.md, so the three cannot drift. */
@@ -1825,6 +1832,7 @@ var KEYS = [
     ['Ctrl Shift D', 'Add to Reading List'],
     ['Ctrl H', 'History'],
     ['Ctrl J', 'Downloads'],
+    ['Ctrl Alt L', 'Downloads, as in Safari'],
     ['Ctrl Shift L', 'Show or hide the sidebar']
   ]},
   {h:'Size', rows:[

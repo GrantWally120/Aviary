@@ -37,6 +37,15 @@ public sealed partial class MainWindow
     {
         try
         {
+            // M5: closing the last window closes Aviary, and that stops every download still
+            // running - Safari asks first, and so does this, whatever the tabs setting says.
+            if (!_closeConfirmed && RunningDownloadsHere() > 0)
+            {
+                args.Cancel = true;
+                _ = AskBeforeStoppingDownloadsAsync();
+                return;
+            }
+
             if (_closeConfirmed || _private || _tabs.Count < 2
                 || !AppSettings.GetBool("warnManyTabs"))
             {
@@ -52,6 +61,35 @@ public sealed partial class MainWindow
         {
             // Never let this stop a window from closing: the fallback is the old behaviour.
             Diagnostics.Swallowed(ex, "close: several tabs question");
+        }
+    }
+
+    private async Task AskBeforeStoppingDownloadsAsync()
+    {
+        try
+        {
+            int running = RunningDownloadsHere();
+            string closing = OpenWindows.Count == 1 ? "Closing Aviary" : "Closing this window";
+            DiagUi("close-asked", new { downloads = running });
+
+            bool close = await ConfirmAsync(
+                running == 1 ? "A download is still in progress" : running + " downloads are still in progress",
+                closing + " stops " + (running == 1 ? "it" : "them") + ". The list keeps "
+                    + (running == 1 ? "it" : "them") + ", with a button to download " + (running == 1 ? "it" : "them") + " again.",
+                "Close and Stop");
+
+            if (!close)
+            {
+                DiagUi("close-cancelled", new { downloads = running });
+                return;
+            }
+
+            _closeConfirmed = true;
+            Close();
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "close: downloads question");
         }
     }
 

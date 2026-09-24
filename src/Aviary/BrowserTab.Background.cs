@@ -114,6 +114,8 @@ internal sealed partial class BrowserTab
     /// <summary>A new document committed: the page it replaced is gone, so its colour can go too.</summary>
     private void OnContentLoading(CoreWebView2 sender, CoreWebView2ContentLoadingEventArgs args)
     {
+        // M5: a document committed, so this tab has shown a page of its own (a download never does).
+        AwaitingFirstPage = false;
         _canvas = _internalTitle is null ? Canvas.Website : Canvas.Aviary;
         _websiteComing = null;
         ApplyCanvasColour();

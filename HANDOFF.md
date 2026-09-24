@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **21 September 2026**, partway through **M4.9 “Birds News”** — section 25 (Stages 1–2 of 3 done), with §23 (M4.7) and §24 (M4.8) before it; read those three first. Alpha Build 5 is called **The Long Run**: it has run M0 to M4.8, M4.9 is under way, and M5 is still on hold until Grant says otherwise.
+Last updated **24 September 2026 (night)**, with **M5 under way** — section 26 (Stage 1 of 5 built, not yet committed), after M4.9 “Birds News” was finished (§25) and then re-checked from a clean build (§25’s last part). Alpha Build 5 is called **The Long Run**.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -45,9 +45,14 @@ run, the sidebar and Classic included).
 
 > **WHERE THINGS STAND (24 Sep 2026 — read this first in a new chat)**
 > - Alpha Build 5 **"The Long Run"**: **11 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
->   M4.6, M4.7, M4.8, M4.9). **M4.9 "Birds News" is complete — all three stages** (§25). Then M5
->   (download ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **Read §25 first**, then §23–24. Bugs **75–84** (§10). Next bug number **85**.
+>   M4.6, M4.7, M4.8, M4.9). **M5 STARTED 24 Sep at Grant’s word** (“officially go start M5 … you
+>   have the greenlight”) — §26. Then M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
+> - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — BUILT, 49/49,
+>   NOT COMMITTED** · 2 download settings (Ask where to save) · 3 LinkScript (Ctrl/middle/Shift/Alt-
+>   click) · 4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
+> - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
+>   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
+>   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
 > - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
 >   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
 > - **⚠ DOUBLE-CHECK M4.9 BEFORE BUILDING ON IT (Grant's instruction, 24 Sep).** The session that
@@ -69,6 +74,12 @@ run, the sidebar and Classic included).
 >   `MainWindow.PictureInPicture.cs`, `StartBackground.cs`, `MainWindow.TabSearch.cs`,
 >   `SafetyCheck.cs` — and check the prose against the code, which is how bug 81 was found.
 >   **If a harness disagrees with §25, believe the harness and fix §25.**
+>   **DONE 24 Sep (night), from a clean build:** every number above reproduced exactly, plus Stage 1–2
+>   (saver modes and both migrations, minimise-sleep with its Balanced control, Birds News grace 6.4 s
+>   and a real 304, frame timing 4.17 ms and nothing when off, flyout (10,2), one bloom line per open,
+>   motion sweep clean in both looks). The harnesses were RIGHT but BLIND in three places, each found
+>   with a control: bugs 85, 86, 87. Tab search and Safety Check, which have no harness, were driven by
+>   hand and hold. Keep re-running this list after any compacted session.
 > - **A quiet diagnostics folder is NOT a clean bill of health right now.** Grant said on 24 Sep he
 >   has barely used Aviary since the 21st — *"I haven't been using the browser since I got kind of
 >   busy… that's why it's been a lack of diagnostics data"*. So "no new issues since 21 Sep" means
@@ -77,10 +88,9 @@ run, the sidebar and Classic included).
 >   and by nobody's real browsing yet.
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
-> - **Grant said NOT to start M5 yet (14, 18, 20 Sep).** M4.9 is what he asked for instead.
-> - Git: M4.8 + M4.9 Stage 1 (`ea08c94`) and M4.9 Stage 2, Birds News (`683b8ca`), are committed and
->   published. **M4.9 Stage 3 is NOT committed and NOT published yet** — ask first, and run
->   `tools/library/sync.ps1` before any publish.
+> - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
+>   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stage 1 is NOT committed** —
+>   ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -1373,6 +1383,52 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     the only reason this was caught is that the test counted, instead of asking whether it worked.**
     (And a caution about reading: the count was first misread from a four-line tail as "it forgot
     twice". Tail a log to see what happened LAST, never to count.)
+85. **OPEN — Picture in picture never reaches a video under a player's control layer** (found 24 Sep,
+    the M4.9 re-check). A bare video gets the item; the same video under a transparent div — which is
+    how YouTube, Vimeo and most sites build their players — gets NONE: the engine reports the target
+    as Page, not Video, so the "fall back to the page's videos" code in `PipScript` is never reached.
+    Proved with a control in one instance (bare → item, overlay → no item, `pointer-events:none`
+    overlay → item). The Updates line "Right-click any video for picture in picture" overclaims.
+    Fix when Grant says: on a plain page right-click, ask `elementsFromPoint` (plural) for a video
+    under the point. `pip-test.ps1` only ever right-clicks a bare video — add the overlay case.
+86. **OPEN — the Start Page background row in SETTINGS takes a different path from the popover**
+    (found 24 Sep, the re-check; `startbg-test.ps1` drives only the Customise popover). (a) choosing
+    a drawn background in Settings keeps the copied photograph in the profile — the popover deletes
+    it (control run: popover → copy gone; Settings → copy stays); (b) cancelling the picker from
+    Settings leaves the row saying "Your picture" while the store holds the old value until the page
+    reloads. Fix: route the Settings row through `ChooseStartBackgroundAsync` for every choice, and
+    push the real value back to Settings on cancel/refuse.
+87. **OPEN — an open Settings page's "Forgetful sites" list never learns what the sweep did** (found
+    24 Sep, the re-check). Store went due → forgotten, exactly once; the open page kept saying only
+    "5 minutes after"; a freshly opened Settings page shows "closed, and forgotten" (the control).
+    `PushForgetToSettings` is called from the Shields popover and Stop, never from `ForgetSweepAsync`.
+    M4.8's rule: a setting that works and shows nothing looks broken.
+88. **FIXED in M5 stage 1 — Safety Check reported a protection nothing provided.** "Aviary warns
+    before opening downloaded programs" was an `ok` line read from `warnExecutables` — a key with no
+    Settings row that NOTHING read, in a build that never opened a downloaded file at all. Found 24
+    Sep reading the code before building M5 (`downloadHistory` was the same: a stored key, no row,
+    no reader). Both are live rows now, and the warning is real (§26). `settings-audit.js` could not
+    see it: it audits ROWS, and this key had none. **A Safety Check line is a promise; grep for the
+    reader of every key it names.**
+89. **FIXED in M5 stage 1 — Edge's own "Downloads" panel popped up over Aviary** for every download
+    started from a `target="_blank"` link. It is a separate top-level window of the ENGINE process
+    (`Chrome_WidgetWin_1`, 388x157), so no PrintWindow of Aviary's own window ever showed it — it was
+    found by listing every visible window the engine owned. `Handled = true` in DownloadStarting
+    does not stop it for a tab the engine opened itself; a download in a user-opened second tab does
+    not open it (control). Every tab now closes it whenever `IsDefaultDownloadDialogOpenChanged`
+    says it opened. Almost certainly as old as target=_blank downloads — NOT measured on the old
+    build, because that build would have saved the test file into Grant's real Downloads folder.
+    **When a capture looks clean, ask whose window the thing would be in.**
+90. **FIXED BY RULE, NOT REPRODUCED — a closing tab reported as a hidden error in the navigation log**
+    (found 24 Sep in GRANT’S OWN diagnostics, 22:15:19: `tab: log navigation`, COMException
+    0x8007139F reading DocumentTitle). His session: links opened in new tabs, closed by middle-click
+    within a second. `LogNavigationAsync` awaits a timing script (up to 3 s) and then reads the title;
+    a tab closed in that wait answers ERROR_INVALID_STATE — bug 79’s "going away", which had been
+    taught to ONE call site. The rule now lives in `BrowserTab.IsClosingWebView` and the navigation
+    log uses it; anything else it catches still reports. **Not proven:** a repro (a page that blocks its
+    main thread after load, closed through DevTools 0.7 s in) gave ZERO errors on the committed build
+    as well — the control failed, so it proves nothing either way. If it recurs in his folder, the
+    repro is wrong, not the rule.
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2337,3 +2393,88 @@ stall over 50 ms, no crash, no swallowed error · every scratch profile clean ap
 unclean exits the harnesses cause on purpose · Grant's own diagnostics read at the start of the
 session: nothing new since 21 Sep.
 
+
+---
+
+## 26. Alpha Build 5 M5 — downloads, links, tab groups (started 24 Sep 2026)
+
+Grant, 24 Sep: *"now officially go start M5 … you have the greenlight"* — the plan's M5, carried from
+Phase 4 (PHASE5-PLAN.md): the download ring, popover and a list that remembers; LinkScript; tab
+groups. He chose M5 over fixing bugs 85–87 first; they stay OPEN in §10 until he says. Built from
+the recovered downloads spec (§12) — whose settings half had already landed in Phase 4/5 — adapted to
+today's code rather than pasted: no new theme keys (the ring uses `AvIconBrush`/`AvAccentBrush`,
+because a key in one theme file and not the other throws on the look switch), `Motion.Pop` for the
+bounce, the one `ThemeOpenPopups` walk for the popover.
+
+**Stages, each its own commit with Grant's OK:** 1 the download surface · 2 download settings (Ask
+where to save — the FileSavePicker) · 3 LinkScript (Ctrl/middle-click → background tab, Ctrl+Shift →
+foreground, Shift → new window, Alt → download) · 4 tab groups (Safari's: named, saved, switched from
+the sidebar) · 5 wrap-up (Updates, `MilestonesDone` 12, Aviary.html PHASES, this section).
+
+### Stage 1 — the download surface (24 Sep, BUILT, NOT COMMITTED)
+
+- **The list is kept** (`DownloadItem.cs`: `DownloadRecord`, `DownloadItem`, `Downloads`) in
+  `downloads.json`, temp-then-move, written at once on start/stop/finish and at most every 2 s while
+  bytes arrive. **Safari's "Remove download list items"** is a live row: After one day (default) /
+  When Aviary quits / Upon successful download / Manually — only the LIST, never a file. "When Aviary
+  quits" also runs at the next launch if the quit never did (a crash). A download running when Aviary
+  closed comes back as "Stopped — Aviary was closed" with ↻, which fetches it again.
+- **The ring** (`DownloadRing.cs`, `MainWindow.xaml`): one glyph — the circle is the arrow's outline
+  AND the track; the accent arc sweeps from twelve for every running download together, eases on a
+  100 ms tick, spins (a 28% arc) when no server gave a size, still arc under Reduce motion, one bounce
+  when the last one lands. Hidden while the list is empty, as Safari's is.
+- **The popover** (`MainWindow.Downloads.cs`): Windows' own file-type icon per row (`FileIcons.cs`,
+  SHGetFileInfo by EXTENSION — nothing a site named is ever opened), Safari's second line ("2.2 MB of 6
+  MB — 8 seconds remaining", "812 KB", "Failed — the connection was lost", "Removed" for a file moved
+  away, greyed, no reveal button), Stop / ↻ / magnifier (fades in on hover), **double-click opens —
+  a single click does nothing**, Enter opens, Delete removes, right-click Open · Show in Folder · Copy
+  Address · Remove From List, Clear, Show Downloads Folder. Opens by itself when a download starts —
+  at most every 4 s, only for the window in front, never over another menu. **A row is a control of its
+  own with a UI Automation Invoke that opens it** — for screen readers, and so the tests can open files
+  without the mouse. Ctrl+J and Ctrl+Alt+L (Safari's) from the chrome and from inside pages.
+- **"Ask before opening a downloaded program"** (live row, on): programs, installers, scripts and disk
+  images ask first (`Downloads.IsProgram`). Bug 88. `AVIARY_OPEN_TEST=1` records instead of launching.
+- **Location** is live: Windows' folder picker, stored as "" for the Windows Downloads folder so it
+  follows a moved one, handed to the engine's PROFILE on every tab (`BrowserTab.ApplyDownloadFolder`) —
+  also what lets every test download into a scratch folder. "Ask where to save each file" stays badged
+  for stage 2. After "Reset settings" the folder is re-applied (reasoned, not measured: proving it would
+  mean a download into Grant's real Downloads folder).
+- **Private windows** have their own list, never written anywhere, gone with the last private window.
+- **Closing Aviary (or a window) with a download running asks first** (`MainWindow.CloseGuard.cs`).
+
+**Three things the engine does that nothing documents — measured, and each shaped the code:**
+1. **A download dies with the WebView that started it** (a `target="_blank"` download's tab closed
+   itself and the file froze at 0 bytes — and the operation never said so). So a closed tab with a
+   running download is PARKED (`BrowserTab.Park`, `MainWindow.DisposeOrPark`): out of the strip, muted,
+   collapsed but still in the tree, released when its downloads end. And any download whose engine
+   does go away is marked "Stopped" (`Downloads.OwnerGone`), never left "running" for ever.
+2. **Chromium reconnects a dropped download by itself** ~0.3 s later (`Range: bytes=1440000-`) — and
+   WebView2 reports that as a NEW download (new operation, new file name) while the old operation goes
+   quiet for good, InProgress with an interrupt reason set. The continuation is recognised by where it
+   STARTS (a new download starts at 0 bytes; this one at 1,440,000) and takes over the old row
+   (`Downloads.Start`). The engine announces no stall, so running downloads are asked once a second
+   (`Downloads.Poll`, on the ring's tick). "Reconnecting" is shown only while bytes have stopped: the
+   carried-on operation KEEPS the old interrupt reason while it runs.
+3. **Bug 89** — Edge's own Downloads panel for target=_blank downloads, in the engine's own window.
+
+**Also fixed in stage 1:** bug 88 (the Safety Check line), and **bug 90 from Grant’s own diagnostics** (his first real browsing in days, 24 Sep 22:12–22:17: a closing tab logged as a hidden error — fixed by bug 79’s rule, not reproduced; §10).
+
+**Checked (Stage 1):** `downloads-test.ps1` **44/44 on the final build**, and its `-Picker` step **5/5 twice** on the build before it (bug 90’s one-line change came between) — **49 checks** (every check with its control: the
+ring's arc counted in pixels against none before; parked-not-closed and released; bug 89 by listing
+the engine's windows; one row through a drop and reconnect, sampled 4×/s; Stop and Download Again with
+no tab left behind; the program question and a text file's absence of one; Clear; the close question;
+restart; all four retention rules with a planted 2-day-old row; private window, with the normal
+window as control; the real folder picker) · `settings-audit.js` **67 live, 10 badged, 0 inert** ·
+`forget-test` 17/17 · `pip-test` 14/14 · `motion-session` Classic and Liquid Glass: no stall over 50
+ms · popover photographed in Classic/Liquid Glass × light/dark · one guarded REAL click: no focus
+ring on open (the ring in the UIA-driven shots is WinUI marking keyboard-style input, not a bug).
+**Known, not new:** opening a private window stalls the UI 70–105 ms (105 ms on the committed build,
+71 ms on this one) — an M7 item.
+
+**Kit:** `dlsite.js` (port 8793: slow, sizeless, dropped-and-resumable, a program, target=_blank,
+`/hits` with Range), `downloads-test.ps1 [-Picker]` (UTF-8 WITH BOM — it matches Aviary's "—" and
+curly quotes, and PowerShell 5.1 reads a BOM-less script as ANSI), `popup-shot.ps1` (a MENU's own
+window; a Flyout like this popover draws inside the main window, so `peek.ps1` shows it),
+`real-click.ps1` (one guarded real click + capture). **The folder picker, driven:** Enter on a typed path NAVIGATES into it (and leaves the folder’s own name in the box) — it does not choose it; and the picker opens inside the last folder chosen, so a second Enter behaves differently from run to run (it passed once and then failed twice before this was seen). The choice is the **Select Folder** button — a DirectUI pane with NO Invoke pattern (measured), so it is clicked, 179 px from the right and 39 from the bottom. **Never pipe a harness into `Select-Object
+-First N`**: it stops the script at line N, before it closes its instance — the next harness on the
+same port then drives the wrong Aviary.

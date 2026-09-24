@@ -280,6 +280,8 @@ internal sealed partial class BrowserTab
         await core.AddScriptToExecuteOnDocumentCreatedAsync(Reader.Script);
 
         core.DownloadStarting += OnDownloadStarting;
+        core.IsDefaultDownloadDialogOpenChanged += OnDefaultDownloadDialog;
+        ApplyDownloadFolder();
 
         ApplyColorScheme();
         ApplyAutofill();
@@ -689,8 +691,66 @@ internal sealed partial class BrowserTab
     }
 
     /// <summary>
+    /// M5: true for a tab that was opened to fetch something and has not shown a page yet - a link
+    /// with target="_blank", or "Download again". If what arrives is a download, the tab has
+    /// nothing to show and the window closes it; the first document that commits clears this.
+    /// </summary>
+    public bool AwaitingFirstPage { get; set; }
+
+    /// <summary>
+    /// M5: where downloads land - Settings → Downloads → Location, or the Windows Downloads folder.
+    /// It is a property of the engine's PROFILE (the normal windows share one, private windows have
+    /// their own), reachable only once this tab's engine exists, so every tab sets it; it costs a
+    /// property write.
+    /// </summary>
+    public void ApplyDownloadFolder()
+    {
+        try
+        {
+            if (View.CoreWebView2?.Profile is CoreWebView2Profile profile)
+            {
+                string folder = MainWindow.DownloadFolder();
+                if (!string.Equals(profile.DefaultDownloadFolderPath, folder, StringComparison.OrdinalIgnoreCase))
+                {
+                    profile.DefaultDownloadFolderPath = folder;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: download folder");
+        }
+    }
+
+    /// <summary>
+    /// Bug 89 (M5): Edge's own "Downloads" panel opened over Aviary for every download started from a
+    /// link with target="_blank" - a separate window of the engine's, so no capture of Aviary's own
+    /// window ever showed it; it was found by listing every visible window the engine owned. Handled
+    /// in DownloadStarting does not stop it for a tab the engine opened itself. Aviary has its own
+    /// list, so whenever the engine opens its panel, it is closed again at once.
+    /// </summary>
+    private void OnDefaultDownloadDialog(CoreWebView2 sender, object args)
+    {
+        try
+        {
+            if (sender.IsDefaultDownloadDialogOpen)
+            {
+                sender.CloseDefaultDownloadDialog();
+                if (Records)
+                {
+                    Diagnostics.Feature("engine-download-panel-closed", new { tab = Id });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: close the engine's download panel");
+        }
+    }
+
+    /// <summary>
     /// Handled = true suppresses WebView2's own download bar, so ours is the only one the
-    /// user sees. The download itself still proceeds to the default folder.
+    /// user sees. The download itself goes to the folder <see cref="ApplyDownloadFolder"/> set.
     /// </summary>
     private void OnDownloadStarting(CoreWebView2 sender, CoreWebView2DownloadStartingEventArgs args)
     {
@@ -1179,6 +1239,7 @@ internal sealed partial class BrowserTab
     'ctrl+shift+l': 'sidebar',
     'ctrl+r': 'reload',
     'ctrl+j': 'downloads',
+    'ctrl+alt+l': 'downloads',
     'ctrl+shift+r': 'reader',
     'ctrl+=': 'zoomin',
     'ctrl++': 'zoomin',
@@ -1853,6 +1914,13 @@ internal sealed partial class BrowserTab
                 });
             }
         }
+        catch (Exception ex) when (IsClosingWebView(ex))
+        {
+            // Bug 90 (M5, from Grant's own diagnostics, 24 Sep 22:15): the tab closed while its
+            // finished navigation was being written down, so the engine answered "going away" for
+            // the page title. Bug 79's rule - a tab closing is not a fault - had one call site; the
+            // navigation log is the second. The navigation was real; its record is simply not made.
+        }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "tab: log navigation");
@@ -1924,6 +1992,15 @@ internal sealed partial class BrowserTab
 
     private void OnWindowCloseRequested(CoreWebView2 sender, object args) => CloseRequested?.Invoke(this);
 
+    /// <summary>
+    /// Is this the engine saying "that WebView is going away" rather than something wrong? (M4.9
+    /// bug 79, shared since M5 bug 90.) WebView2 answers ERROR_INVALID_STATE (0x8007139F) for a
+    /// CoreWebView2 whose host is being torn down. Matched on that HRESULT and nothing else, so a
+    /// real failure still reports - and used only where a closing tab is the whole explanation.
+    /// </summary>
+    internal static bool IsClosingWebView(Exception ex) =>
+        ex is System.Runtime.InteropServices.COMException com && unchecked((uint)com.HResult) == 0x8007139FU;
+
     public static string HostOf(string url)
     {
         if (string.IsNullOrWhiteSpace(url)
@@ -1946,8 +2023,39 @@ internal sealed partial class BrowserTab
     /// Unsubscribe, then close. Relying on collection leaves the renderer process alive —
     /// close ten tabs without this and ten renderers stay resident.
     /// </summary>
+    /// <summary>
+    /// M5: the tab was closed while a download it started is still running. In WebView2 a
+    /// download belongs to the engine of the page that started it and dies the moment that engine
+    /// is closed (measured: frozen at 0 bytes, and the engine never said so) - so the tab leaves
+    /// the strip but its engine is kept, hidden and muted, until the download ends. Chrome closes
+    /// such a tab at once and the download carries on; this is how that looks from outside.
+    /// Everything the window listened to is let go, so a parked page cannot open tabs or panels.
+    /// </summary>
+    public void Park()
+    {
+        try
+        {
+            if (View.CoreWebView2 is CoreWebView2 core)
+            {
+                core.IsMuted = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: park");
+        }
+
+        View.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        BlankTabRequested = null;
+        ReleaseHostEvents();
+    }
+
     public void Dispose()
     {
+        // M5: a download this tab was running dies with its engine. Say so in the list, rather
+        // than leave a row that claims to be downloading for ever.
+        Downloads.OwnerGone(Id);
+
         try
         {
             if (View.CoreWebView2 is CoreWebView2 core)
@@ -1964,6 +2072,7 @@ internal sealed partial class BrowserTab
                 core.WebMessageReceived -= OnWebMessageReceived;
                 core.WebResourceRequested -= OnWebResourceRequested;
                 core.DownloadStarting -= OnDownloadStarting;
+                core.IsDefaultDownloadDialogOpenChanged -= OnDefaultDownloadDialog;
                 core.ProcessFailed -= OnProcessFailed;
                 core.ContainsFullScreenElementChanged -= OnContainsFullScreenElementChanged;
                 core.WebResourceResponseReceived -= OnWebResourceResponseReceived;
@@ -1984,7 +2093,12 @@ internal sealed partial class BrowserTab
         DetachShields();
         Diagnostics.TabClosed(Id);
         _inFlight.Clear();
+        ReleaseHostEvents();
+        IsReady = false;
+    }
 
+    private void ReleaseHostEvents()
+    {
         Changed = null;
         CloseRequested = null;
         ShortcutPressed = null;
@@ -1992,6 +2106,5 @@ internal sealed partial class BrowserTab
         NavigationFailed = null;
         Navigated = null;
         FullScreenChanged = null;
-        IsReady = false;
     }
 }

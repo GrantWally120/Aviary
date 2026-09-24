@@ -654,15 +654,29 @@
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                 </Button>
                 <Border Width="4" />
+                <!-- M5: Safari's arrow.down.circle. The circle is the glyph's outline AND the
+                     progress track; RingProgress is the accent arc DownloadRing.cs sweeps over it.
+                     Hidden until the list has something in it, as Safari's is. -->
                 <Button x:Name="DownloadsButton" Style="{StaticResource AvToolButton}"
                         Visibility="Collapsed"
+                        AutomationProperties.Name="Downloads"
                         Click="DownloadsButton_Click" ToolTipService.ToolTip="Downloads">
-                    <Path Width="17" Height="17"
-                          Data="M8.5,2.8 V10.4 M5.6,7.8 L8.5,10.7 L11.4,7.8 M3.4,12.4 v0.6 a1.4,1.4 0 0 0 1.4,1.4 h7.4 a1.4,1.4 0 0 0 1.4,-1.4 v-0.6"
-                          Stroke="{ThemeResource AvIconBrush}"
-                          StrokeThickness="1.5"
-                          StrokeLineJoin="Round"
-                          StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    <Grid Width="17" Height="17">
+                        <Ellipse x:Name="RingTrack" Margin="1"
+                                 Stroke="{ThemeResource AvIconBrush}" StrokeThickness="1.5" />
+                        <Ellipse x:Name="RingProgress" Margin="1" Opacity="0"
+                                 Stroke="{ThemeResource AvAccentBrush}" StrokeThickness="1.5"
+                                 StrokeDashCap="Round" RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform x:Name="RingSpin" Angle="-90" />
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                        <Path Data="M8.5,4.9 V11.7 M6,9.3 L8.5,11.8 L11,9.3"
+                              Stroke="{ThemeResource AvIconBrush}"
+                              StrokeThickness="1.5"
+                              StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                    </Grid>
                 </Button>
                 <Border Width="4" />
                 <Button x:Name="MenuButton" Style="{StaticResource AvToolButton}"

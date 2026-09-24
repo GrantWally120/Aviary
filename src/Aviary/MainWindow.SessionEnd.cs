@@ -114,6 +114,9 @@ public sealed partial class MainWindow
         // M4.9: Windows ending the session closes Aviary too - forgetful sites get their due times.
         MarkForgetfulOnExit();
 
+        // M5: and the download list gets its quit rule and its last write.
+        Downloads.OnQuit();
+
         string reason = (flags & EndSessionLogoff) != 0 ? "Windows signed out"
             : (flags & EndSessionCloseApp) != 0 ? "closed by Windows for an installer or update"
             : "Windows shut down or restarted";

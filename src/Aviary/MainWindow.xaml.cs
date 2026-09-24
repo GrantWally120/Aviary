@@ -69,6 +69,7 @@ public sealed partial class MainWindow : Window
         ApplyAppIcon();
         ApplyMemorySaver();
         StartForgetting();
+        WireDownloads();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -107,8 +108,10 @@ public sealed partial class MainWindow : Window
         AddAccelerator(VirtualKey.R, VirtualKeyModifiers.Control, (_, _) => ReloadOrStop());
         AddAccelerator(VirtualKey.R, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift,
             (_, _) => ToggleReader());
-        AddAccelerator(VirtualKey.J, VirtualKeyModifiers.Control,
-            (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs()));
+        // Downloads: Ctrl+J, which every Windows browser has trained, and Ctrl+Alt+L - Safari for
+        // Windows’ own binding, and the transliteration of the Mac’s ⌘⌥L (M5).
+        AddAccelerator(VirtualKey.J, VirtualKeyModifiers.Control, (_, _) => OpenDownloads());
+        AddAccelerator(VirtualKey.L, VirtualKeyModifiers.Control | VirtualKeyModifiers.Menu, (_, _) => OpenDownloads());
 
         // Ctrl+1..8 select that tab; Ctrl+9 is the LAST one, which is what every browser
         // on this platform does and what the muscle memory expects.
@@ -495,6 +498,11 @@ public sealed partial class MainWindow : Window
 
         TrackerBlocker.Enabled = AppSettings.GetBool("blockTrackers");
         _showFullUrl = AppSettings.GetBool("fullUrl");
+
+        // M5: after "Reset settings" the engine must stop saving to a folder the settings no longer
+        // name - it keeps the last one it was given until it is told otherwise.
+        ApplyDownloadFolderEverywhere();
+        Downloads.PolicyChanged();
         HomeButton.Visibility = AppSettings.GetBool("homeButton") ? Visibility.Visible : Visibility.Collapsed;
 
         RootGrid.RequestedTheme = AppSettings.Get("theme") switch
@@ -639,7 +647,7 @@ public sealed partial class MainWindow : Window
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
-        tab.DownloadStarted += OnDownloadStarted;
+        tab.DownloadStarted += operation => OnDownloadStarted(tab, operation);
         tab.NavigationFailed += OnNavigationFailed;
         tab.Navigated += OnTabNavigated;
         tab.FullScreenChanged += OnTabFullScreenChanged;
@@ -721,6 +729,10 @@ public sealed partial class MainWindow : Window
         {
             return null;
         }
+
+        // M5: if what the link opens turns out to be a download, this tab has nothing to show and
+        // closes itself when the download starts (OnDownloadStarted) - Chrome’s behaviour.
+        tab.AwaitingFirstPage = true;
 
         UpdateChrome();
         return tab.View.CoreWebView2;
@@ -915,9 +927,7 @@ public sealed partial class MainWindow : Window
     private static string BuildSettingsHtml(string? section = null)
     {
         string values = JsonSerializer.Serialize(AppSettings.Snapshot());
-        string folder = AppSettings.Get("downloadDir") is { Length: > 0 } dir
-            ? dir
-            : KnownFolders.Downloads;
+        string folder = DownloadFolder();
 
         return InternalPages.Settings
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
@@ -1366,8 +1376,7 @@ public sealed partial class MainWindow : Window
                 // The new tab is now in the list and selected; this one can go the ordinary way.
                 _tabs.Remove(tab);
                 _pinned.Remove(tab);
-                ContentHost.Children.Remove(tab.View);
-                tab.Dispose();
+                DisposeOrPark(tab);
                 RebuildTabStrip();
                 return;
             }
@@ -1378,8 +1387,7 @@ public sealed partial class MainWindow : Window
 
         _tabs.RemoveAt(index);
         _pinned.Remove(tab);
-        ContentHost.Children.Remove(tab.View);
-        tab.Dispose();
+        DisposeOrPark(tab);
 
         if (ReferenceEquals(_active, tab))
         {
@@ -1422,7 +1430,7 @@ public sealed partial class MainWindow : Window
             case "sidebar": ToggleSidebar(null); break;
             case "reload": ReloadOrStop(); break;
             case "reader": ToggleReader(); break;
-            case "downloads": DownloadsButton_Click(DownloadsButton, new RoutedEventArgs()); break;
+            case "downloads": OpenDownloads(); break;
             case "zoomin": Zoom(+1); break;
             case "zoomout": Zoom(-1); break;
             case "zoomreset": Zoom(0); break;
@@ -1555,53 +1563,6 @@ public sealed partial class MainWindow : Window
 
         // Also for a tab in the background: switching to it must not show Chromium's page (bug 65).
         ShowNotice(tab, new TabNotice { Kind = "failed", Title = "This page didn't load", Detail = detail });
-    }
-
-    private void OnDownloadStarted(CoreWebView2DownloadOperation operation)
-    {
-        Downloads.Add(new DownloadItem(operation, _private));
-        DownloadsButton.Visibility = Visibility.Visible;
-    }
-
-    private void DownloadsButton_Click(object sender, RoutedEventArgs e)
-    {
-        MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedRight };
-        Themed(menu, "downloads");
-
-        if (Downloads.Items.Count == 0)
-        {
-            menu.Items.Add(new MenuFlyoutItem { Text = "No downloads yet", IsEnabled = false });
-        }
-        else
-        {
-            foreach (DownloadItem item in Downloads.Items)
-            {
-                MenuFlyoutItem entry = new()
-                {
-                    Text = item.FileName,
-                    // The status line rides in the tooltip so the menu stays one line per
-                    // file rather than becoming a panel of its own this phase.
-                    Tag = item
-                };
-                ToolTipService.SetToolTip(entry, item.Status);
-                entry.Click += (_, _) => Downloads.Reveal(item);
-                menu.Items.Add(entry);
-            }
-
-            menu.Items.Add(new MenuFlyoutSeparator());
-            MenuFlyoutItem folder = new() { Text = "Open Downloads folder" };
-            folder.Click += (_, _) =>
-            {
-                DownloadItem? first = Downloads.Items.Count > 0 ? Downloads.Items[0] : null;
-                if (first is not null)
-                {
-                    Downloads.Reveal(first);
-                }
-            };
-            menu.Items.Add(folder);
-        }
-
-        menu.ShowAt(DownloadsButton);
     }
 
     private void OnTabChanged(BrowserTab tab)
@@ -2509,8 +2470,8 @@ public sealed partial class MainWindow : Window
         fullScreen.Click += (_, _) => ToggleFullScreen();
         menu.Items.Add(fullScreen);
 
-        MenuFlyoutItem downloads = new() { Text = "Downloads" };
-        downloads.Click += (_, _) => DownloadsButton_Click(DownloadsButton, new RoutedEventArgs());
+        MenuFlyoutItem downloads = new() { Text = "Downloads", KeyboardAcceleratorTextOverride = "Ctrl+J" };
+        downloads.Click += (_, _) => OpenDownloads();
         menu.Items.Add(downloads);
 
         // Grant's own projects, bundled and offline (Library.cs). Absent from a build without them.
@@ -2695,6 +2656,11 @@ public sealed partial class MainWindow : Window
                 // M4.9: every open Start Page redraws with the background just chosen.
                 case "startBackground":
                     RefreshStartPages();
+                    break;
+
+                // M5: "Remove download list items" - whatever the new rule means, it means now.
+                case Downloads.PolicyKey:
+                    Downloads.PolicyChanged();
                     break;
 
                 case "blockTrackers":
@@ -3080,6 +3046,18 @@ public sealed partial class MainWindow : Window
                     break;
                 }
 
+                // ── Downloads (M5) ──
+                case "downloadDir":
+                    await ChooseDownloadFolderAsync(page);
+                    break;
+
+                case "clearDownloads":
+                {
+                    int removed = Downloads.Clear(_private);
+                    DiagFeature("downloads-clear", new { removed, from = "settings" });
+                    break;
+                }
+
                 case "privateWindow":
                     OpenPrivateWindow();
                     break;
@@ -3431,8 +3409,7 @@ public sealed partial class MainWindow : Window
     /// bug 79.) WebView2 answers ERROR_INVALID_STATE (0x8007139F) for a CoreWebView2 whose host is
     /// being torn down. Matched on the HRESULT and nothing else, so a real failure still reports.
     /// </summary>
-    private static bool IsClosingWebView(Exception ex) =>
-        ex is System.Runtime.InteropServices.COMException com && unchecked((uint)com.HResult) == 0x8007139FU;
+    private static bool IsClosingWebView(Exception ex) => BrowserTab.IsClosingWebView(ex);
 
     /// <summary>
     /// ContentDialog in WinUI 3 desktop throws a COMException without an explicit XamlRoot,
@@ -3718,7 +3695,14 @@ public sealed partial class MainWindow : Window
         Favicons.Updated -= OnFaviconUpdated;
         BirdsNews.Changed -= OnNewsChanged;
         Bookmarks.Changed -= RefreshBookmarksBar;
+        UnwireDownloads();
         OpenWindows.Remove(this);
+
+        // M5: a private window’s download list lives exactly as long as the private windows do.
+        if (_private && !OpenWindows.Exists(w => w._private))
+        {
+            Downloads.ForgetPrivate();
+        }
 
         if (OpenWindows.Count > 0)
         {
@@ -3729,7 +3713,14 @@ public sealed partial class MainWindow : Window
                 t.Dispose();
             }
 
+            // M5: and the tabs kept only for their downloads - the close was asked about first.
+            foreach (BrowserTab t in _parked)
+            {
+                t.Dispose();
+            }
+
             _tabs.Clear();
+            _parked.Clear();
             _tabButtons.Clear();
             return;
         }
@@ -3748,12 +3739,21 @@ public sealed partial class MainWindow : Window
         try { History.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: history"); }
         try { AppSettings.SaveIfUnsaved(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "close: settings"); }
 
+        // M5: "Remove download list items: When Aviary quits", and the list’s last write.
+        Downloads.OnQuit();
+
         foreach (BrowserTab tab in _tabs)
         {
             tab.Dispose();
         }
 
+        foreach (BrowserTab tab in _parked)
+        {
+            tab.Dispose();
+        }
+
         _tabs.Clear();
+        _parked.Clear();
         _tabButtons.Clear();
 
         // Last: the final summary.md and a session.json that says this session ended
