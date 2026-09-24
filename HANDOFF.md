@@ -50,6 +50,31 @@ run, the sidebar and Classic included).
 > - **Read §25 first**, then §23–24. Bugs **75–84** (§10). Next bug number **85**.
 > - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
 >   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
+> - **⚠ DOUBLE-CHECK M4.9 BEFORE BUILDING ON IT (Grant's instruction, 24 Sep).** The session that
+>   built Stages 1–3 was **compacted once or twice**, and he is right that work either side of a
+>   compaction deserves a second look: what survives is a summary, and a summary can be confidently
+>   wrong in a way the original never was. **Nothing here is known to be broken** — every claim in
+>   §25 was measured, and the harnesses below are the measurements, kept so they can be re-run rather
+>   than re-trusted. Before adding anything to M4.9, spend ten minutes re-running them from a clean
+>   build (`dotnet publish … -o tools/test/pub`):
+>   ```
+>   cd tools/test
+>   node settings-audit.js                 # 65 live, 10 badged, 0 inert
+>   .\forget-test.ps1  -Profile fgX -Port 9333   # 17/17  (needs the machine idle: it sends Ctrl+W)
+>   .\pip-test.ps1     -Profile pipX -Port 9343  # 14/14  (no desktop input at all)
+>   .\startbg-test.ps1 -Profile sbgX -Port 9355  # 19/19  (add -Picker for the file-dialog half)
+>   cd filters; dotnet run -c Release      # 125/125
+>   ```
+>   Then read the five features' own files with fresh eyes — `MainWindow.Forget.cs`,
+>   `MainWindow.PictureInPicture.cs`, `StartBackground.cs`, `MainWindow.TabSearch.cs`,
+>   `SafetyCheck.cs` — and check the prose against the code, which is how bug 81 was found.
+>   **If a harness disagrees with §25, believe the harness and fix §25.**
+> - **A quiet diagnostics folder is NOT a clean bill of health right now.** Grant said on 24 Sep he
+>   has barely used Aviary since the 21st — *"I haven't been using the browser since I got kind of
+>   busy… that's why it's been a lack of diagnostics data"*. So "no new issues since 21 Sep" means
+>   **not exercised**, not **working**. Keep reading the folder every turn (§13), but do not report
+>   its silence as evidence that anything works; M4.9's five features have been driven by harnesses
+>   and by nobody's real browsing yet.
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
 > - **Grant said NOT to start M5 yet (14, 18, 20 Sep).** M4.9 is what he asked for instead.
@@ -2138,6 +2163,21 @@ swallowed error · sleeping and waking proved from the diagnostics log · **thir
 no issues, no crashes**.
 
 ## 25. Alpha Build 5 M4.9 "Birds News" (21–24 Sep 2026 — ALL THREE STAGES DONE)
+
+> **Read this section as a claim to be checked, not a record to be trusted.** Grant asked for that
+> in as many words on 24 Sep: the session that built all three stages was **compacted once or twice**,
+> and work that crosses a compaction deserves a second pass, because what carries over is a summary —
+> and a summary can be confidently wrong where the original was careful. Every statement below WAS
+> measured when it was written, and the harnesses are kept precisely so a later session can re-run
+> them instead of taking this section's word for it (the commands are in the standing box at the top
+> of this file). **If a harness and this section disagree, the harness is right.**
+>
+> Two things in particular are worth a fresh pair of eyes, because they are the places where a
+> summary is most likely to have smoothed something over:
+> - **Forgetful browsing** deletes people's data. Bug 84 was found only because a test counted how
+>   OFTEN it ran rather than whether it worked; ask the same question of the rest of it.
+> - **The prose against the code.** Bug 81 was a settings row still describing behaviour that had
+>   changed. Every feature here added rows, Updates lines and collection wording in one pass.
 
 Grant, while testing M4.8: *"fix one more thing M4.9 small fix lang … Memory saver add more options
 for it such as aggressive … and balanced(Default) … update our data collection to everything … add
