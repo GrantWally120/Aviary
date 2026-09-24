@@ -656,6 +656,7 @@ public sealed partial class MainWindow : Window
         tab.PageGone += OnPageGone;
         WireShields(tab);
         tab.BlankTabRequested = OpenBlankTabAsync;
+        tab.AskWhereToSave = AskWhereToSaveAsync;
 
         // M4.6 - "New tab position": Safari opens a new tab right after the one you were on;
         // "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the

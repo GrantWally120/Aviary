@@ -1133,7 +1133,7 @@ var SECTIONS = [
          sees \F or \D or \t, and no amount of HTML-encoding helps — backslashes are not an
          HTML problem. Set as textContent below, from a JSON-encoded global. */
       {t:'Location', d:'<span class="path" id="dlpath"></span>', ctl:{type:'button', cmd:'downloadDir', label:'Change…'}},
-      {t:'Ask where to save each file', d:'Otherwise everything goes to the folder above.', phase:5, ctl:{type:'toggle', key:'askDownload', value:false}},
+      {t:'Ask where to save each file', d:'Windows’ Save window comes up before each download begins, so you can name the file and put it anywhere. Otherwise everything goes to the folder above. The Save window opens where you last saved.', ctl:{type:'toggle', key:'askDownload', value:false}},
       /* Alpha Build 5 M5 - Safari's own preference, with Safari's own default (Downloads.cs). */
       {t:'Remove download list items', d:'When a finished download leaves the list. <b>Only the list</b> — the file itself stays where it is, whichever you choose.', ctl:{type:'select', key:'downloadHistory', opts:['After one day','When Aviary quits','Upon successful download','Manually'], value:'After one day'}},
       {t:'Ask before opening a downloaded program', d:'Programs, installers, scripts and disk images opened from the Downloads list ask first. Windows has nothing like the Mac’s Gatekeeper; this is the closest a browser can come.', ctl:{type:'toggle', key:'warnExecutables', value:true}},

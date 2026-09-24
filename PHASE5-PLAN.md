@@ -324,8 +324,8 @@ Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingl
   against the engine first, badged rather than shipped dead if it cannot).
 
 ### M5 — Carried from Phase 4 · **STARTED 24 Sep 2026** (HANDOFF §26)
-Five stages, each its own commit with Grant’s OK: **1 the download surface — built, 49/49, not
-committed** · 2 download settings (Ask where to save) · 3 LinkScript · 4 tab groups · 5 wrap-up.
+Five stages, each its own commit with Grant’s OK: **1 the download surface — committed `932ea18`** ·
+**2 Ask where to save + drag out — built, not committed** · 3 LinkScript · 4 tab groups · 5 wrap-up.
 Stage 1 found and fixed bugs 88 (Safety Check promised a download warning nothing gave) and 89 (Edge’s
 own Downloads panel over Aviary). Bugs 85–87 (from re-checking M4.9) stay open until Grant says.
 

@@ -752,12 +752,37 @@ internal sealed partial class BrowserTab
     /// Handled = true suppresses WebView2's own download bar, so ours is the only one the
     /// user sees. The download itself goes to the folder <see cref="ApplyDownloadFolder"/> set.
     /// </summary>
-    private void OnDownloadStarting(CoreWebView2 sender, CoreWebView2DownloadStartingEventArgs args)
+    /// <summary>
+    /// M5 stage 2 - "Ask where to save each file": set by the window, which owns the Save window.
+    /// Given the path the engine would use, answers the path chosen, or null for Cancel.
+    /// </summary>
+    public Func<string, Task<string?>>? AskWhereToSave { get; set; }
+
+    private async void OnDownloadStarting(CoreWebView2 sender, CoreWebView2DownloadStartingEventArgs args)
     {
+        // Taken before the first await or not at all: a deferral asked for later throws, and one
+        // never completed leaves the download waiting for ever (the spec's gotcha, and the same
+        // shape as NewWindowRequested below).
+        Deferral? deferral = null;
         try
         {
             args.Handled = true;
             _downloadStartedAt = System.Diagnostics.Stopwatch.GetTimestamp();
+
+            // M5 stage 2: the download waits, engine-side, while Windows' Save window asks where it
+            // goes. Cancel there is a download that never happens - no row, no file.
+            if (AppSettings.GetBool("askDownload") && AskWhereToSave is { } ask)
+            {
+                deferral = args.GetDeferral();
+                string? chosen = await ask(args.ResultFilePath ?? string.Empty);
+                if (chosen is null)
+                {
+                    args.Cancel = true;
+                    return;
+                }
+
+                args.ResultFilePath = chosen;
+            }
 
             if (Records)
             {
@@ -779,6 +804,10 @@ internal sealed partial class BrowserTab
         {
             // Let the default UI take over rather than lose the download entirely.
             Diagnostics.Swallowed(ex, "tab: download starting");
+        }
+        finally
+        {
+            try { deferral?.Complete(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "tab: download deferral"); }
         }
     }
 

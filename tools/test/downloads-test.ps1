@@ -8,7 +8,7 @@
 #
 # -Picker also drives the real Windows folder picker for Location -> Change..., which needs the
 # keyboard, so guard.ps1 decides whether it runs (the file picker's rules - HANDOFF §25).
-param([int]$Port = 9371, [switch]$Picker, [switch]$PickerOnly)
+param([int]$Port = 9371, [switch]$Picker, [switch]$PickerOnly, [switch]$Stage2)
 if ($PickerOnly) { $Picker = $true }
 
 $kit = $PSScriptRoot
@@ -95,10 +95,38 @@ function EnginePanels {
     if ($engine.Count -eq 0) { return 0 }
     [EngineWin]::Small([uint32[]]$engine)
 }
+# Window helpers for the two steps that type into Windows' own dialogs (folder picker, Save window).
+Add-Type @'
+using System; using System.Text; using System.Runtime.InteropServices;
+public class FolderDlg {
+  [StructLayout(LayoutKind.Sequential)] public struct RC { public int L,T,R,B; }
+  delegate bool EP(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] static extern bool EnumWindows(EP f, IntPtr l);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RC r);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, IntPtr p);
+  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool f);
+  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
+  [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] static extern void mouse_event(uint f, uint x, uint y, uint d, IntPtr e);
+  public static IntPtr Find() { IntPtr found = IntPtr.Zero;
+    EnumWindows(delegate(IntPtr h, IntPtr l) { if (!IsWindowVisible(h)) return true;
+      var c = new StringBuilder(200); GetClassName(h, c, 200); if (c.ToString() == "#32770") { found = h; return false; } return true; }, IntPtr.Zero);
+    return found; }
+  public static void Click(int x, int y) { SetCursorPos(x, y); mouse_event(0x0002,0,0,0,IntPtr.Zero); mouse_event(0x0004,0,0,0,IntPtr.Zero); }
+  public static bool Front(IntPtr h) { IntPtr fg = GetForegroundWindow(); uint them = GetWindowThreadProcessId(fg, IntPtr.Zero), me = GetCurrentThreadId();
+    AttachThreadInput(them, me, true); BringWindowToTop(h); SetForegroundWindow(h); AttachThreadInput(them, me, false);
+    System.Threading.Thread.Sleep(700); return GetForegroundWindow() == h; }
+}
+'@ -ErrorAction SilentlyContinue
 function Get([string]$css) { node cdp.js click "dl probe" $css | Out-Null }
 function WaitFor($file, $bytes, $seconds) { for ($i = 0; $i -lt $seconds * 2; $i++) { if ((Size $file) -eq $bytes) { return $true }; Start-Sleep -Milliseconds 500 }; $false }
 
-if (-not $PickerOnly) {
+if (-not $PickerOnly -and -not $Stage2) {
 # ════════════════════════════════════════════════════════════════════════════
 "`n1. the button: absent with nothing in the list, and a ring while something downloads"
 Launch "dlt"
@@ -312,7 +340,7 @@ Quit
 
 }   # end of sections 1-10
 
-if ($Picker) {
+if ($Picker -and -not $Stage2) {
     "`n11. Settings -> Downloads -> Location -> Change... (the real Windows folder picker)"
     & .\guard.ps1 | Out-Null
     if ($LASTEXITCODE -ne 0) { "  SKIPPED - someone is using the machine, and this one needs the keyboard" }
@@ -322,33 +350,7 @@ if ($Picker) {
         if (Test-Path $target) { Remove-Item $target -Recurse -Force }
         New-Item -ItemType Directory -Force $target | Out-Null
         Add-Type -AssemblyName System.Windows.Forms
-        Add-Type @'
-using System; using System.Text; using System.Runtime.InteropServices;
-public class FolderDlg {
-  [StructLayout(LayoutKind.Sequential)] public struct RC { public int L,T,R,B; }
-  delegate bool EP(IntPtr h, IntPtr l);
-  [DllImport("user32.dll")] static extern bool EnumWindows(EP f, IntPtr l);
-  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
-  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
-  [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr h, out RC r);
-  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
-  [DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr h);
-  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, IntPtr p);
-  [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool f);
-  [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();
-  [DllImport("user32.dll")] static extern bool SetCursorPos(int x, int y);
-  [DllImport("user32.dll")] static extern void mouse_event(uint f, uint x, uint y, uint d, IntPtr e);
-  public static IntPtr Find() { IntPtr found = IntPtr.Zero;
-    EnumWindows(delegate(IntPtr h, IntPtr l) { if (!IsWindowVisible(h)) return true;
-      var c = new StringBuilder(200); GetClassName(h, c, 200); if (c.ToString() == "#32770") { found = h; return false; } return true; }, IntPtr.Zero);
-    return found; }
-  public static void Click(int x, int y) { SetCursorPos(x, y); mouse_event(0x0002,0,0,0,IntPtr.Zero); mouse_event(0x0004,0,0,0,IntPtr.Zero); }
-  public static bool Front(IntPtr h) { IntPtr fg = GetForegroundWindow(); uint them = GetWindowThreadProcessId(fg, IntPtr.Zero), me = GetCurrentThreadId();
-    AttachThreadInput(them, me, true); BringWindowToTop(h); SetForegroundWindow(h); AttachThreadInput(them, me, false);
-    System.Threading.Thread.Sleep(700); return GetForegroundWindow() == h; }
-}
-'@ -ErrorAction SilentlyContinue
+
         node cdp.js key "#0" "ctrl+Comma" | Out-Null; Start-Sleep 2
         node cdp.js click "Settings" "nav button[data-target=down]" | Out-Null; Start-Sleep 1
         node cdp.js click "Settings" "[data-cmd=downloadDir]" | Out-Null; Start-Sleep 3
@@ -396,8 +398,105 @@ public class FolderDlg {
     }
 }
 
+# ════════════════════════════════════════════════════════════════════════════
+# M5 stage 2 - "Ask where to save each file". The Save window is Windows' WinRT picker, hosted by
+# PickerHost: found by class #32770, answered Cancel with WM_CLOSE (no input). Only the typed-path
+# half needs the keyboard (-Picker, guard.ps1 decides).
+Add-Type @'
+using System; using System.Text; using System.Runtime.InteropServices; using System.Collections.Generic;
+public class SaveWin { delegate bool EP(IntPtr h, IntPtr l);
+  [DllImport("user32.dll")] static extern bool EnumWindows(EP f, IntPtr l);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll", CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h, uint m, IntPtr w, IntPtr l);
+  public static List<IntPtr> All(string title) { var l = new List<IntPtr>(); EnumWindows(delegate(IntPtr h, IntPtr x) { if (!IsWindowVisible(h)) return true; var c = new StringBuilder(200); GetClassName(h, c, 200); var t = new StringBuilder(300); GetWindowText(h, t, 300); if (c.ToString() == "#32770" && t.ToString() == title) l.Add(h); return true; }, IntPtr.Zero); return l; }
+  public static void CloseFirst(string title) { var l = All(title); if (l.Count > 0) PostMessage(l[0], 0x10, IntPtr.Zero, IntPtr.Zero); } }
+'@ -ErrorAction SilentlyContinue
+function SaveWindows { @([SaveWin]::All("Save As")).Count }
+
+if (-not $PickerOnly) {
+"`n12. Ask where to save each file (stage 2) - asked before, Cancel leaves nothing"
+Launch "dla" ',"askDownload":"true"'
+Page
+Get "#quick"
+Start-Sleep 2.5
+Check "a Save window comes up before the download begins" ((SaveWindows) -eq 1) (SaveWindows)
+Check "and nothing is listed while it waits" (-not (Visible)) (Visible)
+[SaveWin]::CloseFirst("Save As"); Start-Sleep 1.5
+Check "Cancel: no Save window left" ((SaveWindows) -eq 0) (SaveWindows)
+Check "Cancel: no row" (-not (Visible)) (Visible)
+Check "Cancel: no file - not even the engine's temporary one" (@(Get-ChildItem $script:files).Count -eq 0) ((Get-ChildItem $script:files | ForEach-Object Name) -join ', ')
+# Two downloads from two TABS (two clicks in ONE tab: the second navigation cancels the first
+# before it is a download - measured with the setting off too, so it is the engine, not this).
+$pages = (node cdp.js list) -join "`n"
+U -Id NewTabButton | Out-Null; Start-Sleep 1.5
+$tabB = (node cdp.js list | ForEach-Object { $_.Substring(7, 8) } | Where-Object { $pages -notmatch $_ } | Select-Object -First 1)
+node cdp.js nav $tabB "http://127.0.0.1:8793/page?b" | Out-Null; Start-Sleep 1.5
+$tabA = (node cdp.js list | Where-Object { $_ -match '/page$' } | Select-Object -First 1).Substring(7, 8)
+node cdp.js click $tabA "#quick" | Out-Null
+node cdp.js click $tabB "#program" | Out-Null
+Start-Sleep 2.5
+Check "two downloads at once: ONE Save window" ((SaveWindows) -eq 1) (SaveWindows)
+[SaveWin]::CloseFirst("Save As"); Start-Sleep 2
+Check "then the second, once the first is answered" ((SaveWindows) -eq 1) (SaveWindows)
+[SaveWin]::CloseFirst("Save As"); Start-Sleep 1.5
+Check "and both were asked" ((Events 'download-save-as').Count -eq 3) (Events 'download-save-as').Count
+node cdp.js nav $tabA "http://127.0.0.1:8793/file?name=README&size=1000&rate=100000" | Out-Null; Start-Sleep 2.5
+Check "a file with no extension still gets its Save window" ((SaveWindows) -eq 1) (SaveWindows)
+[SaveWin]::CloseFirst("Save As"); Start-Sleep 1
+Quit
+}
+
+if ($Picker) {
+    "`n12b. Ask where to save - a name and a folder typed into the real Save window"
+    & .\guard.ps1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { "  SKIPPED - someone is using the machine, and this one needs the keyboard" }
+    else {
+        Add-Type -AssemblyName System.Windows.Forms
+        Launch "dlb" ',"askDownload":"true"'
+        $chosen = Join-Path $kit "profiles\dlb-chosen"
+        if (Test-Path $chosen) { Remove-Item $chosen -Recurse -Force }
+        New-Item -ItemType Directory -Force $chosen | Out-Null
+        function SaveAs([string]$path, [switch]$Replace) {
+            Start-Sleep 1.5
+            $dlg = [SaveWin]::All("Save As") | Select-Object -First 1
+            if (-not $dlg -or -not [FolderDlg]::Front($dlg)) { return $false }
+            $r = New-Object FolderDlg+RC; [void][FolderDlg]::GetWindowRect($dlg, [ref]$r)
+            [FolderDlg]::Click(($r.L + [int](($r.R - $r.L) * 0.55)), ($r.B - 144))   # the File name box
+            Start-Sleep -Milliseconds 500
+            [System.Windows.Forms.SendKeys]::SendWait("^a"); [System.Windows.Forms.SendKeys]::SendWait($path)
+            Start-Sleep -Milliseconds 500
+            [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+            Start-Sleep 1.5
+            if ($Replace -and @([SaveWin]::All("Confirm Save As")).Count -gt 0) { [System.Windows.Forms.SendKeys]::SendWait("%y"); Start-Sleep 1.5 }
+            Set-Content -Path (Join-Path $kit "lastinput.txt") -Value ([uint32]([Environment]::TickCount -band 0xFFFFFFFF))
+            return ((SaveWindows) -eq 0)
+        }
+        Page
+        Get "#quick"
+        $ok = SaveAs (Join-Path $chosen "renamed.txt")
+        Check "the Save window took the typed name and folder" $ok (SaveWindows)
+        Start-Sleep 2
+        Check "the file lands THERE, under THAT name" ((Get-Item (Join-Path $chosen "renamed.txt") -ErrorAction SilentlyContinue).Length -eq 20000) ((Get-ChildItem $chosen | ForEach-Object { "$($_.Name)=$($_.Length)" }) -join ', ')
+        Check "and not in the usual folder (control)" (@(Get-ChildItem $script:files -Filter "quick*").Count -eq 0) ((Get-ChildItem $script:files | ForEach-Object Name) -join ', ')
+        OpenPopover
+        Check "the row names the file as saved" (((Rows) -join '|') -match 'renamed\.txt, 20 KB') ((Rows) -join ' | ')
+        ClosePopover
+        # Saving over a file that exists: Windows asks "Replace?", and Yes must REPLACE it - not
+        # leave the old file and write "renamed (1).txt" beside it.
+        [IO.File]::WriteAllText((Join-Path $chosen "renamed.txt"), "the old file")
+        Get "#quick"
+        $ok = SaveAs (Join-Path $chosen "renamed.txt") -Replace
+        Start-Sleep 2
+        $files2 = (Get-ChildItem $chosen | ForEach-Object { "$($_.Name)=$($_.Length)" }) -join ', '
+        Check "Replace: the old file is replaced, and nothing is written beside it" ((Get-Item (Join-Path $chosen "renamed.txt")).Length -eq 20000 -and @(Get-ChildItem $chosen).Count -eq 1) $files2
+        Quit
+    }
+}
+
 "`n--- nothing should have gone wrong ---"
-foreach ($p in @('dlt', 'dlr', 'dls', 'dlq', 'dlp', 'dlf')) {
+foreach ($p in @('dlt', 'dlr', 'dls', 'dlq', 'dlp', 'dlf', 'dla', 'dlb')) {
     $iss = "profiles\$p\user.data.improvementcollection\issues.jsonl"
     if (Test-Path $iss) {
         foreach ($line in Get-Content $iss) {

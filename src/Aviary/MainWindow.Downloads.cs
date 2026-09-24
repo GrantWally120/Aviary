@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -509,6 +510,34 @@ public sealed partial class MainWindow
             }
         };
 
+        // M5 stage 2 - Safari lets a finished download be dragged out of the list into Finder; here,
+        // into Explorer or the desktop. The real file goes, as a COPY: the list's own file stays put.
+        if (record.Completed && !record.Gone)
+        {
+            row.CanDrag = true;
+            row.DragStarting += async (_, e) =>
+            {
+                Microsoft.UI.Xaml.DragOperationDeferral wait = e.GetDeferral();
+                try
+                {
+                    Windows.Storage.StorageFile file = await Windows.Storage.StorageFile.GetFileFromPathAsync(record.FilePath);
+                    e.Data.SetStorageItems(new[] { file });
+                    e.Data.RequestedOperation = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
+                    e.AllowedOperations = Windows.ApplicationModel.DataTransfer.DataPackageOperation.Copy;
+                    DiagFeature("download-drag");
+                }
+                catch (Exception ex)
+                {
+                    e.Cancel = true;
+                    Diagnostics.Swallowed(ex, "download: drag out");
+                }
+                finally
+                {
+                    wait.Complete();
+                }
+            };
+        }
+
         MenuFlyout menu = Themed(new MenuFlyout(), "download row");
         menu.Opening += (_, _) =>
         {
@@ -731,6 +760,65 @@ public sealed partial class MainWindow
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "downloads: choose a folder");
+        }
+    }
+
+    /// <summary>One Save window at a time: a page that starts two downloads gets two questions in turn, not two windows.</summary>
+    private static readonly System.Threading.SemaphoreSlim SaveAsGate = new(1, 1);
+
+    /// <summary>
+    /// Settings → Downloads → "Ask where to save each file" (M5 stage 2): Windows' own Save window,
+    /// asked before the download begins. Answers the chosen path, or null for Cancel.
+    ///
+    /// <para>The WinRT <c>FileSavePicker</c>, not the classic Win32 dialog, on purpose: it runs in
+    /// its own process (PickerHost) and is awaited, so Aviary goes on drawing and answering while it
+    /// is open. A classic modal dialog runs its own message loop, and a modal loop is exactly what
+    /// was found holding Aviary's dispatcher in M4.5 (bug 67). The cost: this picker cannot be told
+    /// to OPEN in a given folder - it starts in Downloads and after that wherever you last saved.</para>
+    /// </summary>
+    private async Task<string?> AskWhereToSaveAsync(string suggestedPath)
+    {
+        await SaveAsGate.WaitAsync();
+        try
+        {
+            string name = System.IO.Path.GetFileName(suggestedPath);
+            string ext = System.IO.Path.GetExtension(name);
+            bool plainExt = ext.Length is > 1 and <= 11 && ext.Skip(1).All(char.IsAsciiLetterOrDigit);
+
+            FileSavePicker picker = new()
+            {
+                SuggestedStartLocation = PickerLocationId.Downloads,
+                SuggestedFileName = plainExt ? System.IO.Path.GetFileNameWithoutExtension(name) : (name.Length > 0 ? name : "Download"),
+            };
+
+            // FileTypeChoices must not be empty, or the picker throws instead of opening.
+            if (plainExt)
+            {
+                picker.FileTypeChoices.Add(ext.TrimStart('.').ToUpperInvariant() + " file", new List<string> { ext });
+            }
+            else
+            {
+                picker.FileTypeChoices.Add("File", new List<string> { "." });
+            }
+
+            WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+
+            Windows.Storage.StorageFile? file = await picker.PickSaveFileAsync();
+
+            // What was chosen is not recorded - a path is a piece of the person's disk; only that
+            // they were asked, and whether they went ahead.
+            DiagFeature("download-save-as", new { saved = file is not null });
+            return string.IsNullOrEmpty(file?.Path) ? null : file.Path;
+        }
+        catch (Exception ex)
+        {
+            // A picker that could not open must not lose the download: it goes where it would have.
+            Diagnostics.Swallowed(ex, "downloads: ask where to save");
+            return suggestedPath.Length > 0 ? suggestedPath : null;
+        }
+        finally
+        {
+            SaveAsGate.Release();
         }
     }
 

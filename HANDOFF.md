@@ -47,9 +47,9 @@ run, the sidebar and Classic included).
 > - Alpha Build 5 **"The Long Run"**: **11 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
 >   M4.6, M4.7, M4.8, M4.9). **M5 STARTED 24 Sep at Grant’s word** (“officially go start M5 … you
 >   have the greenlight”) — §26. Then M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — BUILT, 49/49,
->   NOT COMMITTED** · 2 download settings (Ask where to save) · 3 LinkScript (Ctrl/middle/Shift/Alt-
->   click) · 4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
+> - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — COMMITTED `932ea18`**
+>   (25 Sep, his OK; not published) · **2 Ask where to save + drag out — BUILT, NOT COMMITTED** · 3
+>   LinkScript (Ctrl/middle/Shift/Alt-click) · 4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
 >   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
@@ -89,8 +89,8 @@ run, the sidebar and Classic included).
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
 > - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
->   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stage 1 is NOT committed** —
->   ask first, and run `tools/library/sync.ps1` before any publish.
+>   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stage 1 committed `932ea18`
+>   (NOT published); stage 2 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -2411,7 +2411,7 @@ where to save — the FileSavePicker) · 3 LinkScript (Ctrl/middle-click → bac
 foreground, Shift → new window, Alt → download) · 4 tab groups (Safari's: named, saved, switched from
 the sidebar) · 5 wrap-up (Updates, `MilestonesDone` 12, Aviary.html PHASES, this section).
 
-### Stage 1 — the download surface (24 Sep, BUILT, NOT COMMITTED)
+### Stage 1 — the download surface (24 Sep, COMMITTED `932ea18` on 25 Sep with Grant’s OK; not published)
 
 - **The list is kept** (`DownloadItem.cs`: `DownloadRecord`, `DownloadItem`, `Downloads`) in
   `downloads.json`, temp-then-move, written at once on start/stop/finish and at most every 2 s while
@@ -2478,3 +2478,33 @@ window; a Flyout like this popover draws inside the main window, so `peek.ps1` s
 `real-click.ps1` (one guarded real click + capture). **The folder picker, driven:** Enter on a typed path NAVIGATES into it (and leaves the folder’s own name in the box) — it does not choose it; and the picker opens inside the last folder chosen, so a second Enter behaves differently from run to run (it passed once and then failed twice before this was seen). The choice is the **Select Folder** button — a DirectUI pane with NO Invoke pattern (measured), so it is clicked, 179 px from the right and 39 from the bottom. **Never pipe a harness into `Select-Object
 -First N`**: it stops the script at line N, before it closes its instance — the next harness on the
 same port then drives the wrong Aviary.
+
+### Stage 2 — Ask where to save, and dragging a download out (25 Sep, BUILT, NOT COMMITTED)
+
+- **"Ask where to save each file" is live** (it was badged). The download WAITS — a deferral taken in
+  `BrowserTab.OnDownloadStarting` before its first await — while Windows’ Save window asks where it
+  goes (`MainWindow.AskWhereToSaveAsync`). Cancel = no download, no row, and the engine’s temporary
+  `<guid>.tmp` (it starts fetching while you choose) goes too. The chosen path is never recorded,
+  only that the question was asked and answered (`download-save-as`).
+- **The WinRT `FileSavePicker`, on purpose, not the classic dialog:** it runs in PickerHost and is
+  awaited, so Aviary keeps drawing while it is open — a classic modal dialog runs its own message
+  loop, the shape that held the dispatcher in bug 67. Its cost, said on the row: it cannot be told to
+  open in a folder; it starts in Downloads and then wherever you last saved.
+- **One Save window at a time** (`SaveAsGate`): two downloads from two tabs get two questions in
+  turn. **Measured on the way — the engine, not Aviary:** two download links clicked 0.3 s apart in ONE
+  tab give only the second file, with the setting on or OFF (the control) — the second navigation
+  cancels the first before it becomes a download.
+- **Drag out:** a finished row can be dragged into Explorer or onto the desktop — the real file, as a
+  copy (`DragStarting` → `SetStorageItems`). The spec feared it would be fragile out of a light-
+  dismiss popover; measured with a real drag, it is not.
+
+**Checked (Stage 2):** `downloads-test.ps1 -Stage2 -Picker` **14/14** (the Save window before the
+download, nothing listed while it waits; Cancel leaves no row and no file; two tabs → one window then
+the other; no extension; a typed name and folder land exactly there and NOT in the usual folder; Replace
+really replaces, nothing written beside it) · the full harness with `-Picker` **63/63** on this build (every stage 1 check still green) ·
+`drag-out-test.ps1` **5/5** (guarded real drag into a scratch Explorer window: the copy arrives, the
+original stays, foreground handed back) · `settings-audit.js` **68 live, 9 badged, 0 inert**.
+**Kit:** `downloads-test.ps1 -Stage2` runs only stage 2’s sections; the Save window is found by class
+`#32770` + title "Save As", answered Cancel with WM_CLOSE (no input); "Replace?" is a second #32770,
+"Confirm Save As". **A capture of the Save window shows the contents of Grant’s real Downloads folder**
+(where it opens) — do not keep one.
