@@ -208,6 +208,12 @@ public sealed partial class MainWindow
             panel.Children.Add(ShieldsModeRow(tab!, site, accent, label, secondary));
         }
 
+        // M4.9: Forgetful browsing, per site - with a time (Grant: "add a time thingy").
+        if (applies && !_private && site.Length > 0)
+        {
+            panel.Children.Add(ForgetRow(site, label, secondary));
+        }
+
         panel.Children.Add(new Border { Height = 1, Background = hairline });
 
         // ── this page ──
@@ -362,6 +368,53 @@ public sealed partial class MainWindow
         panel.Children.Add(links);
 
         return panel;
+    }
+
+    /// <summary>
+    /// "Forget this site" (M4.9): Never, or when its last tab closes, or 5 minutes, an hour or a day
+    /// after. The line under it says, in words, what will happen.
+    /// </summary>
+    private FrameworkElement ForgetRow(string site, Brush label, Brush secondary)
+    {
+        StackPanel wrap = new() { Spacing = 4 };
+        Grid top = new();
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        top.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        TextBlock name = new() { Text = "Forget this site", FontSize = 13, Foreground = label, VerticalAlignment = VerticalAlignment.Center };
+        ComboBox when = new() { MinWidth = 150, FontSize = 12 };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(when, "Forget " + site);
+        foreach ((string _, string text) in Forgetful.Choices)
+        {
+            when.Items.Add(text);
+        }
+
+        string mode = Forgetful.ModeFor(site);
+        when.SelectedIndex = Math.Max(0, Array.FindIndex(Forgetful.Choices, c => c.Mode == mode));
+        Grid.SetColumn(when, 1);
+        top.Children.Add(name);
+        top.Children.Add(when);
+
+        TextBlock says = new() { FontSize = 12, Foreground = secondary, TextWrapping = TextWrapping.Wrap };
+        void Say(string m) => says.Text = m.Length == 0
+            ? "Aviary keeps what " + site + " stores, as it does for every site."
+            : "Its cookies and everything it stores are forgotten " +
+              (m == "close" ? "when you close its last tab" : Forgetful.Label(m).ToLowerInvariant() + " you close its last tab") +
+              " - you will be signed out of it.";
+        Say(mode);
+
+        when.SelectionChanged += (_, _) =>
+        {
+            string chosen = Forgetful.Choices[Math.Max(0, when.SelectedIndex)].Mode;
+            Forgetful.Set(site, chosen);
+            Say(chosen);
+            DiagFeature("forget-set", new { site, mode = chosen.Length == 0 ? "never" : chosen, from = "shields" });
+            PushForgetToSettings();
+        };
+
+        wrap.Children.Add(top);
+        wrap.Children.Add(says);
+        return wrap;
     }
 
     /// <summary>

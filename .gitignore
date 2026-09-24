@@ -60,3 +60,4 @@ tools/test/lastinput.txt
 
 # The icon previews are for looking at while designing; the .ico files are what ship (M4.6).
 src/Aviary/Assets/preview-*.png
+tools/test/testpicture.png

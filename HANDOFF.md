@@ -43,18 +43,19 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (21 Sep 2026 — read this first in a new chat)**
-> - Alpha Build 5 **"The Long Run"**: **10 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
->   M4.6, M4.7, M4.8). **M4.9 "Birds News" is in progress — Stages 1–2 of 3 done** (§25). Then M5
+> **WHERE THINGS STAND (24 Sep 2026 — read this first in a new chat)**
+> - Alpha Build 5 **"The Long Run"**: **11 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
+>   M4.6, M4.7, M4.8, M4.9). **M4.9 "Birds News" is complete — all three stages** (§25). Then M5
 >   (download ring + tab groups), M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **Read §25 first**, then §23–24. Bugs **75–81** (§10). Next bug number **82**.
-> - **M4.9 Stage 3 still to do:** Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
->   backgrounds, Picture-in-picture. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
-> - **Owed from M4.8: Grant must confirm the taskbar icon** follows App Icon (bug 77 — Windows 11's
->   taskbar cannot be read from here).
+> - **Read §25 first**, then §23–24. Bugs **75–84** (§10). Next bug number **85**.
+> - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
+>   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
+> - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
+>   Icon, which closes bug 77.
 > - **Grant said NOT to start M5 yet (14, 18, 20 Sep).** M4.9 is what he asked for instead.
-> - Git: M4.8 + M4.9 Stage 1 are committed and published (`ea08c94`). **M4.9 Stage 2 (Birds News) is
->   NOT committed and NOT published yet** — ask first, and run `tools/library/sync.ps1` before any publish.
+> - Git: M4.8 + M4.9 Stage 1 (`ea08c94`) and M4.9 Stage 2, Birds News (`683b8ca`), are committed and
+>   published. **M4.9 Stage 3 is NOT committed and NOT published yet** — ask first, and run
+>   `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -62,8 +63,9 @@ run, the sidebar and Classic included).
 >   root child (M4.7) · **a setting that works but shows you nothing is indistinguishable from a
 >   broken one** (M4.8) — before calling a row live, ask where its effect is visible.
 >   And always run the control: four tests "proved" M4.7's bug before one of them was honest.
-> - Standing orders: read his diagnostics folder each turn (section 13) — it has now caught three
->   real bugs; ask before every commit, every download, every NuGet package, every new filter list;
+> - Standing orders: read his diagnostics folder each turn (section 13) — it has now caught FIVE
+>   real bugs (73, 75, 79, 82, 83), and named the exception behind a sixth (§25's picker) on its
+>   first run; ask before every commit, every download, every NuGet package, every new filter list;
 >   test only on scratch profiles and never drive the desktop while he is using it (`guard.ps1` —
 >   it refused on 21 Sep and was right to); run `tools/library/sync.ps1` before any publish; never
 >   publish `Aviary.html` as an Artifact.
@@ -1278,8 +1280,10 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     on this page and not in this window", put it on the page.
     **Windows 11's taskbar cannot be screen-read** to check this from here: its buttons are not in
     `Shell_TrayWnd`'s UIA tree, `MSTaskListWClass` is a stub, PrintWindow on the tray returns black,
-    and Grant's taskbar auto-hides (its window sits at y=1438 on a 1440-tall screen). Grant is the
-    instrument for that half — ask him to look.
+    and Grant's taskbar auto-hides (its window sits at y=1438 on a 1440-tall screen). Grant was the
+    instrument for that half — and **on 24 Sep he confirmed the taskbar button now follows App Icon.**
+    CLOSED. **When a surface cannot be measured from here, name the person who can see it and ask
+    them; do not call it done, and do not call it broken.**
 78. **Nothing ever woke a sleeping tab** (found 21 Sep building M4.8's memory saver, by reading for
     it rather than by being bitten). `CoreWebView2.Resume()` appeared nowhere in the app, while the
     Performance page's Sleep button has promised "wakes when you click it" since M4.5 — resting a
@@ -1320,6 +1324,30 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     the computer), and the M4.5 Updates line that promised the opposite now says "until M4.9", so
     history stays true without misleading. **When a behaviour changes, grep for every sentence that
     describes it — the row, the Updates notes, the collection list — not just the code.**
+82. **A button that says "Checking…" for ever** (found 21 Sep, testing Birds News' own "Check now").
+    The row disabled itself in a `setTimeout(0)`, which landed AFTER the host's answer had already
+    re-rendered the row — so the disable was written onto the new button and never taken off. The
+    fix is one word: disable it synchronously, in the same turn as `sendCommand`, before anything
+    can answer. **Anything a message might undo must be done before the message goes, not after.**
+83. **Windows shutting down was reported as five engine crashes** (found 22 Sep in GRANT'S OWN
+    diagnostics: five `BrowserProcessExited · Unexpected · exit 0` in the same 15 ms on 21 Sep at
+    16:18, which the summary then led with as "5 engine failures"). Nothing had crashed — he restarted
+    Windows, and every tab's engine exited at once, cleanly, because the machine was going down.
+    `OnProcessFailed` now asks `SystemParametersInfo(SM_SHUTTINGDOWN)` first and records
+    `EngineClosedByShutdown` — a session event, once per process, not an issue. `AVIARY_SHUTDOWN_TEST`
+    forces the answer so it can be tested without restarting the machine. **An alarm that cries wolf
+    is worse than no alarm: it was the loudest line in his summary for a day.**
+84. **A forgotten site was forgotten again every fifteen seconds, for ever** (found 24 Sep by the
+    first end-to-end test of forgetful browsing — 69 forgets in two minutes, measured). "When I close
+    it" is due the instant it is due, so every sweep saw a closed site whose time had come, cleared
+    it, removed the due time, and set it again on the next pass. Nothing looked wrong: the data was
+    gone after the first pass and every pass after did nothing visible — while scanning the whole
+    cookie store and making five engine calls, each time, all session. A `forgot` mark is now set
+    once the site HAS been forgotten and removed the moment it is open again, so it happens once per
+    closing. **A thing that is correct every time it runs can still be a bug in how often it runs;
+    the only reason this was caught is that the test counted, instead of asking whether it worked.**
+    (And a caution about reading: the count was first misread from a four-line tail as "it forgot
+    twice". Tail a log to see what happened LAST, never to count.)
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2109,7 +2137,7 @@ so M4.7 is intact · `motion-session.ps1` Classic: no stall over 50 ms, no crash
 swallowed error · sleeping and waking proved from the diagnostics log · **thirteen scratch profiles:
 no issues, no crashes**.
 
-## 25. Alpha Build 5 M4.9 "Birds News" (21 Sep 2026 — STAGES 1–2 DONE, Stage 3 to come)
+## 25. Alpha Build 5 M4.9 "Birds News" (21–24 Sep 2026 — ALL THREE STAGES DONE)
 
 Grant, while testing M4.8: *"fix one more thing M4.9 small fix lang … Memory saver add more options
 for it such as aggressive … and balanced(Default) … update our data collection to everything … add
@@ -2200,6 +2228,72 @@ the Birds News page), a Settings pane of its own, and `MainWindow` wiring.
 (10,2) both looks · motion sweep clean with Birds News on · every Stage 2 profile on the final build:
 no issues, no crashes · the real fetch: six of six, no future-dated story left, zero issues.
 
-**Stage 3 is not started:** Search open tabs, Forgetful browsing with a timer, Safety Check, Start Page
-backgrounds, Picture-in-picture.
+---
+
+### Stage 3 — the five he picked (24 Sep 2026)
+
+Built easiest-first, as he asked. Each ends with its Settings row working or honestly badged.
+
+- **Search your open tabs** (`MainWindow.TabSearch.cs`, **Ctrl+Shift+A**) — every tab in every
+  window of the same kind, filtered on title and address, Up/Down/Enter to jump. Private and normal
+  are never listed together. Proved by driving it: two tabs listed, typing `sett` narrowed it to
+  one. *Watch out:* MainWindow has its own `AutomationProperties` helper that shadows the WinUI
+  class, so every use here is fully qualified.
+- **Forgetful browsing, with the time he asked for** (`MainWindow.Forget.cs`) — per site: Never /
+  When I close it / 5 minutes / an hour / a day after. Set from the Shields popover, listed in
+  Settings with a "Stop forgetting" button. A sweep every 15 s (and straight after any tab closes)
+  works out which forgetful sites are no longer open in any NORMAL window and clears each one once
+  its time has come; the due time is written into `sites.json`, so "a day after" survives Aviary
+  being closed, and `MarkForgetfulOnExit` gives an open forgetful site its due time as Aviary goes.
+  Opening the site again cancels it. Clearing reuses `ClearSiteDataAsync` and every origin still
+  goes through `ClearableOrigin` (bug 52) — the test forgets **127.0.0.1** on purpose, because an
+  IPv4 literal is exactly the shape that once emptied a whole profile.
+  **Two real problems came out of testing it:** bug 84 (forgotten again every sweep, for ever), and
+  that `_siteOrigins` is only filled while the Website Data pane is OPEN — so forgetting, which runs
+  when nobody has opened it, knew nothing about a site's subdomains or ports. `History.OriginsFor`
+  now supplies them.
+- **Safety Check** (`SafetyCheck.cs`) — a Settings pane that audits what Aviary already holds
+  (Shields lowered for sites, HTTPS-only, third-party cookies, GPC, filter-list age, collection) and
+  offers a fix per row from a whitelist. Reads only; invents no state. Runs itself when the pane opens.
+- **Start Page backgrounds** (`StartBackground.cs`, `MainWindow.StartBackground.cs`) — Glasshouse
+  (the drawn dome, still the default), Plain, Dawn, Dusk, Moss, and **your own picture**. The five
+  drawn ones are CSS gradients built from the theme's own tokens, so each follows Classic/Liquid Glass
+  and light/dark with nothing to download and no licensing question — the same decision the glasshouse
+  was built on. Chosen from the Start Page's Customise popover **and** from a Settings row.
+  The picture is **copied into the profile** and served over the synthetic `aviary.localhost` host
+  the way favicons already are (a NavigateToString document has an opaque origin and cannot load
+  `file://`); its bytes are sniffed, not trusted by name, and capped at 24 MB. If the copy is ever
+  deleted from outside Aviary, the STORE is corrected back to Glasshouse rather than the page being
+  taught to read a value that lies (bug 73's rule).
+- **Picture in picture** — **measured before any code was written**: this engine already does both
+  kinds (`pictureInPictureEnabled` true, `documentPictureInPicture` an object, a real top-level
+  "Picture in picture" window confirmed by enumeration, owned by the WebView2 browser process). So
+  **nothing needed enabling** — no browser flag, no change to `BuildArguments`; a site with its own
+  button already worked. What was missing is the videos whose sites have no button, so it is in the
+  right-click menu of any video, the way Safari does it. It uses `Runtime.evaluate` with
+  `userGesture` and `awaitPromise` rather than `ExecuteScriptAsync`, which cannot await a promise
+  and so cannot say whether it worked. The menu takes a **deferral** and asks the page first, so a
+  video the site refuses (`disablePictureInPicture`) gets no dead item — and still keeps the page's
+  own items, which an early version wrongly took away.
+
+**Three traps worth keeping:**
+- On Windows 11 the file picker is hosted by a **separate process** (`PickerHost`), so it is not
+  among Aviary's own windows and `uia.ps1 -ProcessId` cannot find it. Find it by class `#32770`.
+- `FileOpenPicker` must be given the window handle with `WinRT.Interop.InitializeWithWindow.Initialize`.
+  A hand-declared `IInitializeWithWindow` + cast throws `InvalidCastException` — a projected WinRT
+  object is not a plain COM object. **Aviary's own diagnostics named that exception on the first run.**
+- A `cdp.js shot` paints `position:fixed` layers at the WRONG size when device metrics are emulated,
+  so a full-bleed background looks like it stops short. It does not — `front-and-shoot.ps1` shows it
+  edge to edge. **Never judge a fixed background from a CDP screenshot.**
+
+New in the test kit: `forgetsite.js` + `forget-test.ps1` (**17/17**), `pipsite.js` + `pip-test.ps1`
+(**14/14**), `startbg-test.ps1` (**19/19**), `cdp.js rclick` (a trusted right-click, the only way to
+reach Aviary's own context menu without touching the desktop), `uia.ps1 -Action Select` (a ComboBox's
+items do not exist until its drop-down is open), and `AVIARY_FORGET_TEST=<seconds>`.
+
+**Checked (Stage 3):** engine harness **125/125** · `settings-audit.js` **65 live, 10 badged, 0 inert**
+· flyout geometry **(10,2)** in both looks · `motion-session.ps1` Classic **and** Liquid Glass: no
+stall over 50 ms, no crash, no swallowed error · every scratch profile clean apart from the two
+unclean exits the harnesses cause on purpose · Grant's own diagnostics read at the start of the
+session: nothing new since 21 Sep.
 

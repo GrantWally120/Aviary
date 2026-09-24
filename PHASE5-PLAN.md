@@ -305,7 +305,7 @@ Also unplanned, and named by Grant: four asks while he was testing M4.7.
 - **Storage Usage** — every category row draws its share as a bar in its own colour.
 - Kit: `window-icon.ps1`, `sleep-test.ps1`, and `AVIARY_SLEEP_TEST=<seconds>` (environment only).
 
-### M4.9 — Birds News · **Stages 1–2 of 3 done 21 Sep 2026** (HANDOFF §25)
+### M4.9 — Birds News · **ALL THREE STAGES DONE, 21–24 Sep 2026** (HANDOFF §25)
 
 Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingly-elephant.md`.
 

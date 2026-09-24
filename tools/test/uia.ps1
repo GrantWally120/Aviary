@@ -13,7 +13,10 @@
 #       text through its ValuePattern — raises TextChanged like typing, no keyboard. The box must already
 #       have focus for Aviary to treat it as typing (Ctrl+L over DevTools gives it focus without fronting).
 #   uia.ps1 -ProcessId <pid> -Id AddressBox -Action Value      # read a text box's text, and whether it has focus
-param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help", "SetValue", "Value", "Focus")][string]$Action = "Invoke", [string]$Window = "", [string]$Value = "")
+#   uia.ps1 -ProcessId <pid> -Name "Forget localhost" -Action Select -Value "When I close it"   # (M4.9) choose an
+#       item in a ComboBox. Its items do not exist in the tree until the drop-down is open (WinUI virtualizes
+#       them), so this expands it, selects by name through SelectionItemPattern, then closes it again.
+param([int]$ProcessId, [string]$Name = "", [string]$Id = "", [ValidateSet("Invoke", "Toggle", "Dump", "Help", "SetValue", "Value", "Focus", "Select")][string]$Action = "Invoke", [string]$Window = "", [string]$Value = "")
 
 Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $A = [System.Windows.Automation.AutomationElement]
@@ -81,4 +84,30 @@ switch ($Action) {
     "Help"   { Write-Output ("HELP '{0}': {1}" -f $target.Current.Name, $target.Current.HelpText) }
     "SetValue" { $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).SetValue($Value); Write-Output "SET '$($target.Current.AutomationId)' = '$Value'" }
     "Value"  { $v = $target.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value; Write-Output ("VALUE '{0}' = '{1}' focus={2}" -f $target.Current.AutomationId, $v, $target.Current.HasKeyboardFocus) }
+    "Select" {
+        # A ComboBox's items are created when it opens and destroyed when it closes, so the drop-down
+        # must really be open while the item is found. The list part is a popup of its own, which is
+        # why every top-level window of the process is searched again rather than $target's subtree.
+        $walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+        $box = $target
+        while ($box -and -not [bool]$box.GetCurrentPropertyValue($A::IsExpandCollapsePatternAvailableProperty)) { $box = $walker.GetParent($box) }
+        if (-not $box) { Write-Output "NOT A DROP-DOWN '$($target.Current.Name)'"; exit 1 }
+        $ec = $box.GetCurrentPattern([System.Windows.Automation.ExpandCollapsePattern]::Pattern)
+        $ec.Expand()
+        Start-Sleep -Milliseconds 400
+
+        $item = $null
+        foreach ($root in $A::RootElement.FindAll($T::Children, (New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $ProcessId)))) {
+            foreach ($el in $root.FindAll($T::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+                if ($el.Current.Name -eq $Value -and [bool]$el.GetCurrentPropertyValue($A::IsSelectionItemPatternAvailableProperty)) { $item = $el; break }
+            }
+            if ($item) { break }
+        }
+
+        if (-not $item) { $ec.Collapse(); Write-Output "NO ITEM '$Value' in '$($box.Current.Name)'"; exit 1 }
+        $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+        Start-Sleep -Milliseconds 250
+        try { $ec.Collapse() } catch { }
+        Write-Output "SELECTED '$Value' in '$($box.Current.Name)'"
+    }
 }

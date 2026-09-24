@@ -1159,6 +1159,24 @@ internal static partial class Diagnostics
     }
 
     /// <summary>9 — a WebView2 process failed: renderer, GPU, browser, utility.</summary>
+    private static int _closedByShutdown;
+
+    /// <summary>
+    /// The engine closed because Windows is shutting down or restarting (M4.9, bug 83). Not a
+    /// failure, so not in issues.jsonl and not under Needs attention: one session event, however
+    /// many tabs were open, so the record still says what happened.
+    /// </summary>
+    public static void EngineClosedByShutdown(string kind)
+    {
+        if (_mode != 1 || Interlocked.Exchange(ref _closedByShutdown, 1) == 1)
+        {
+            return;
+        }
+
+        Crumb("session", "engine closed: Windows is shutting down");
+        Enqueue(LogFile.Events, "session", "engine-closed-by-shutdown", new { kind });
+    }
+
     public static void Engine(object data, string crumb)
     {
         if (_mode != 1)

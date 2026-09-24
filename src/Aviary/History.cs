@@ -176,6 +176,36 @@ internal static class History
         }
     }
 
+    /// <summary>
+    /// Every origin history has seen for one site - its subdomains, and any port it was served on.
+    /// Forgetful browsing (M4.9) clears storage one origin at a time, and "https://example.com" on
+    /// its own leaves "https://accounts.example.com" untouched; only the places actually visited
+    /// say what those are. Distinct, so the answer stays short however long history is.
+    /// </summary>
+    public static List<string> OriginsFor(string site)
+    {
+        HashSet<string> origins = new(StringComparer.OrdinalIgnoreCase);
+        if (site.Length == 0)
+        {
+            return origins.ToList();
+        }
+
+        lock (Gate)
+        {
+            foreach (HistoryEntry item in Items.Values)
+            {
+                if (Uri.TryCreate(item.Url, UriKind.Absolute, out Uri? uri)
+                    && uri.Scheme is "http" or "https"
+                    && string.Equals(PublicSuffix.RegistrableDomain(uri.Host), site, StringComparison.OrdinalIgnoreCase))
+                {
+                    origins.Add(uri.GetLeftPart(UriPartial.Authority));
+                }
+            }
+        }
+
+        return origins.ToList();
+    }
+
     /// <summary>Most recently visited first.</summary>
     public static List<HistoryEntry> Recent(int limit = 200)
     {

@@ -52,10 +52,10 @@ internal static class BuildInfo
     /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
     /// M4.7 "Immediate Fix" (21 Sep) is the ninth: the menus M4.6 broke, put right.
-    /// M4.8 "A Iconic Fix" (21 Sep) is the tenth. M4.9 "Birds News" is counted in Milestones but
-    /// not here until all three of its stages have landed.
+    /// M4.8 "A Iconic Fix" (21 Sep) is the tenth, and M4.9 "Birds News" (24 Sep) the eleventh —
+    /// counted here only once all three of its stages had landed, which they have.
     /// </summary>
-    public const int MilestonesDone = 10;
+    public const int MilestonesDone = 11;
 
     public const int Milestones = 15;
 

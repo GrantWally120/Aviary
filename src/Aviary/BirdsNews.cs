@@ -297,6 +297,28 @@ internal static class BirdsNews
     /// running returns at once. <paramref name="force"/> is "Refresh now": the stories are fetched
     /// even if they were fetched a minute ago (still conditionally — an unchanged feed stays cheap).
     /// </summary>
+    /// <summary>
+    /// How soon after a check "Check now" may go back to the sites (M4.9, bug 82). On 21 Sep Grant
+    /// pressed it eight times in two seconds and every press was a full round: 48 requests to six
+    /// real publishers in two seconds, which is how a reader gets itself rate-limited or blocked.
+    /// A press inside this window shows what was just fetched and asks nobody anything.
+    /// </summary>
+    private static readonly TimeSpan ManualGap = TimeSpan.FromSeconds(30);
+
+    /// <summary>"Check now" in Settings: a forced refresh, but never twice inside <see cref="ManualGap"/>.</summary>
+    public static Task CheckNowAsync()
+    {
+        if (DateTimeOffset.Now - _lastRefresh < ManualGap)
+        {
+            // Nothing new to fetch that was not fetched moments ago - but the page is waiting for an
+            // answer, so it gets one.
+            Changed?.Invoke();
+            return Task.CompletedTask;
+        }
+
+        return RefreshAsync(force: true);
+    }
+
     public static async Task RefreshAsync(bool force)
     {
         if (!On || Interlocked.Exchange(ref _refreshing, 1) == 1)

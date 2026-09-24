@@ -48,9 +48,35 @@ internal static class StartPage
   ::-webkit-scrollbar-thumb{background:rgba(128,128,128,.3);border-radius:99px;border:3px solid transparent;background-clip:content-box;}
   ::-webkit-scrollbar-track{background:transparent;}
 
-  /* The glasshouse. Fixed, behind everything, pointer-transparent. */
+  /* The background. Fixed, behind everything, pointer-transparent (M4.9: it used to be only
+     the glasshouse, which is still the default and still drawn rather than photographed). */
   #sky{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.85;}
   #sky svg{width:100%;height:100%;display:block;}
+
+  /* The drawn choices are gradients of the theme's OWN tokens, so each one follows
+     Classic/Liquid Glass and light/dark without a second copy of anything. */
+  #sky[data-bg="dawn"]{background:
+    radial-gradient(120% 80% at 18% 108%, color-mix(in srgb,var(--accent) 16%,transparent), transparent 62%),
+    radial-gradient(90% 70% at 88% 4%, color-mix(in srgb,var(--accent) 7%,transparent), transparent 58%);}
+  #sky[data-bg="dusk"]{background:
+    linear-gradient(200deg, color-mix(in srgb,var(--accent) 11%,transparent) 0%, transparent 46%),
+    radial-gradient(110% 90% at 82% 104%, color-mix(in srgb,var(--ink) 9%,transparent), transparent 60%);}
+  #sky[data-bg="moss"]{background:
+    radial-gradient(130% 95% at 50% 106%, color-mix(in srgb,var(--accent) 9%,transparent), transparent 64%),
+    repeating-linear-gradient(64deg, var(--rib) 0 1px, transparent 1px 34px);}
+
+  /* The person's own picture. Its own layer so it can fade in when it arrives and never
+     flash a half-drawn image over the content. */
+  #pic{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-position:center;background-size:cover;background-repeat:no-repeat;
+    opacity:0;transition:opacity 400ms cubic-bezier(.25,.1,.25,1);
+  }
+  #pic[data-on="1"]{opacity:1;}
+  /* Over a photograph the cards need to hold their own, and the dome would only fight it. */
+  body[data-bg="picture"] #sky{display:none;}
+  body[data-bg="picture"] .card, body[data-bg="picture"] .tile__well{backdrop-filter:blur(18px) saturate(160%);}
+  [data-motion="off"] #pic{transition:none;}
 
   main{position:relative;z-index:1;width:min(920px,100% - 80px);margin:0 auto;padding:64px 0 120px;}
 
@@ -245,6 +271,16 @@ internal static class StartPage
     stroke-dasharray:14;stroke-dashoffset:14;transition:stroke-dashoffset 170ms cubic-bezier(.32,.72,0,1) 30ms;
   }
   .cust__row[aria-checked="true"] .cust__tick path{stroke-dashoffset:0;}
+  /* M4.9 - the background choices, under the sections they share the popover with. */
+  .cust__head{
+    font-size:11px;font-weight:600;color:var(--ink-3);padding:9px 9px 4px;
+    margin-top:5px;border-top:1px solid var(--line);
+  }
+  .cust__swatch{
+    width:15px;height:15px;flex:0 0 auto;border-radius:4px;border:1px solid var(--line);
+  }
+  .cust__row[aria-checked="true"]{color:var(--accent);}
+  .cust__note{font-size:11.5px;color:var(--ink-2);padding:2px 9px 7px;line-height:1.45;}
 
   /* ── Motion (Alpha Build 5 M4.5) — <html data-motion>: flight (Smooth Flight, Classic's),
      fluid (Fluid, Liquid Glass's spring) or off (Reduce motion). Set from the page's data and
@@ -276,6 +312,7 @@ internal static class StartPage
 </head>
 <body>
 <div id="sky" aria-hidden="true"></div>
+<div id="pic" aria-hidden="true"></div>
 
 <main>
   <div class="mark">
@@ -325,7 +362,24 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g,
    Generated rather than shipped. A barrel vault seen from inside: ribs
    converging on a vanishing point, glazing bars crossing them, all in one
    near-invisible ink so it reads as texture and never competes with content. */
-(function sky(){
+/* M4.9 - which background. "glasshouse" draws the dome below; "plain" draws nothing at all;
+   dawn/dusk/moss are CSS above; "picture" points the #pic layer at the profile's own copy,
+   and falls back to the dome if the host had nothing to point it at. */
+var BG = String(D.background || 'Glasshouse').toLowerCase();
+if (BG === 'your picture' && !D.backgroundUrl) { BG = 'glasshouse'; }
+if (BG === 'your picture') { BG = 'picture'; }
+document.body.dataset.bg = BG;
+document.getElementById('sky').dataset.bg = BG;
+if (BG === 'picture') {
+  var pic = document.getElementById('pic');
+  var probe = new Image();
+  probe.onload = function(){ pic.style.backgroundImage = 'url("' + D.backgroundUrl + '")'; pic.dataset.on = '1'; };
+  probe.onerror = function(){ document.body.dataset.bg = 'glasshouse'; document.getElementById('sky').dataset.bg = 'glasshouse'; sky(); };
+  probe.src = D.backgroundUrl;
+}
+
+function sky(){
+  if (document.getElementById('sky').dataset.bg !== 'glasshouse') { document.getElementById('sky').innerHTML = ''; return; }
   var W = 1600, H = 900, cx = W/2, cy = H*0.86, r = W*0.62, parts = [];
   parts.push('<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
              '<stop offset="0" stop-color="var(--sky)"/>' +
@@ -352,7 +406,8 @@ function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g,
 
   document.getElementById('sky').innerHTML =
     '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMax slice">' + parts.join('') + '</svg>';
-})();
+}
+sky();
 
 /* ── tiles ─────────────────────────────────────────────────────────────── */
 function tile(item){
@@ -689,15 +744,37 @@ var LABELS = {favourites:'Favourites', news:'Birds News', menagerie:'The Collect
               reading:'Reading List', privacy:'Privacy Report'};
 if (!D.menagerie) { delete LABELS.menagerie; }
 
+/* M4.9 - the backgrounds, in the order Settings offers them. The swatch is drawn from the same
+   theme tokens the background itself uses, so the two can never disagree. */
+var BACKGROUNDS = [
+  ['Glasshouse', 'linear-gradient(160deg,var(--sky),transparent)'],
+  ['Plain', 'var(--well)'],
+  ['Dawn', 'radial-gradient(at 20% 100%,color-mix(in srgb,var(--accent) 45%,transparent),transparent)'],
+  ['Dusk', 'linear-gradient(200deg,color-mix(in srgb,var(--accent) 35%,transparent),var(--well))'],
+  ['Moss', 'repeating-linear-gradient(64deg,var(--rib) 0 2px,var(--well) 2px 6px)'],
+  ['Your picture', 'linear-gradient(135deg,var(--ink-3),var(--well))'],
+];
+
 function buildCust(){
   var pop = document.getElementById('custPop');
-  pop.innerHTML = Object.keys(LABELS).map(function(k){
+  var rows = Object.keys(LABELS).map(function(k){
     return '<button class="cust__row" data-sec="' + k + '" role="switch" aria-checked="' +
            (SHOW[k] ? 'true' : 'false') + '">' +
              '<svg class="cust__tick" viewBox="0 0 15 15"><path d="M3 8l3 3 6-7"/></svg>' +
              esc(LABELS[k]) +
            '</button>';
-  }).join('');
+  });
+  rows.push('<div class="cust__head">Background</div>');
+  if (D.backgroundProblem) { rows.push('<div class="cust__note">' + esc(D.backgroundProblem) + '</div>'); }
+  var chosen = String(D.background || 'Glasshouse');
+  BACKGROUNDS.forEach(function(b){
+    rows.push('<button class="cust__row" data-bg="' + esc(b[0]) + '" role="radio" aria-checked="' +
+              (b[0].toLowerCase() === chosen.toLowerCase() ? 'true' : 'false') + '">' +
+                '<span class="cust__swatch" style="background:' + b[1] + '"></span>' +
+                esc(b[0] === 'Your picture' ? 'Your picture…' : b[0]) +
+              '</button>');
+  });
+  pop.innerHTML = rows.join('');
 }
 
 document.getElementById('custBtn').addEventListener('click', function(e){
@@ -713,6 +790,18 @@ document.getElementById('custPop').addEventListener('click', function(e){
   if (!row) { return; }
   /* Safari's popover does NOT close on each tick — you set several then dismiss. */
   e.stopPropagation();
+
+  /* M4.9 - a background. The host saves it and reloads the page: every background is drawn at
+     load, and "Your picture…" opens a file picker whose answer only the host can have. */
+  var bg = row.getAttribute('data-bg');
+  if (bg) {
+    [].slice.call(row.parentNode.querySelectorAll('[data-bg]')).forEach(function(r){
+      r.setAttribute('aria-checked', r === row ? 'true' : 'false');
+    });
+    post({type:'startBackground', value:bg});
+    return;
+  }
+
   var k = row.getAttribute('data-sec');
   SHOW[k] = !SHOW[k];
   row.setAttribute('aria-checked', SHOW[k] ? 'true' : 'false');

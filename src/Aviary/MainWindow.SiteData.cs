@@ -239,8 +239,22 @@ public sealed partial class MainWindow
         // Only the site's name goes to diagnostics, and not from a private window.
         DiagUi("website-data-remove", new { site });
 
+        await ClearSiteDataAsync(page, site);
+        await PushSiteDataAsync(page);
+    }
+
+    /// <summary>
+    /// One site's cookies and storage, gone (M4.9: pulled out of RemoveSiteDataAsync so Forgetful
+    /// browsing can use it). <paramref name="page"/> can be any live tab: the cookie store and the
+    /// Storage domain are the profile's, not the page's. It pushes NOTHING to <paramref name="page"/> -
+    /// forgetting runs from ordinary tabs, and a host push must never reach a website (bug 62).
+    /// Every origin still goes through ClearableOrigin first (bug 52).
+    /// </summary>
+    private async Task ClearSiteDataAsync(CoreWebView2 page, string site)
+    {
         try
         {
+            HashSet<string> cookieHosts = new(StringComparer.OrdinalIgnoreCase);
             IReadOnlyList<CoreWebView2Cookie> cookies = await page.CookieManager.GetCookiesAsync(string.Empty);
             foreach (CoreWebView2Cookie cookie in cookies)
             {
@@ -249,14 +263,30 @@ public sealed partial class MainWindow
                     && string.Equals(PublicSuffix.RegistrableDomain(host), site, StringComparison.OrdinalIgnoreCase))
                 {
                     page.CookieManager.DeleteCookie(cookie);
+
+                    // The site's own subdomains - accounts., m., shop. - are only known from its
+                    // cookies; without this their storage would outlive the forgetting.
+                    cookieHosts.Add(host);
                 }
             }
 
             List<string> candidates = _siteOrigins.TryGetValue(site, out HashSet<string>? known)
                 ? new List<string>(known)
                 : new List<string>();
+            // _siteOrigins is only filled while the Website Data pane is open, and forgetting runs
+            // without anyone having opened it - so history is asked directly for the site's real
+            // origins. Without this a forgotten site keeps whatever its subdomains stored.
+            if (!_private)
+            {
+                candidates.AddRange(History.OriginsFor(site));
+            }
+
             candidates.Add("https://" + site);
             candidates.Add("http://" + site);
+            foreach (string host in cookieHosts)
+            {
+                candidates.Add("https://" + host);
+            }
 
             // The www variants only for a domain name — "www." in front of an address is not a
             // host at all (and "www.127.0.0.1" is exactly the origin that emptied the profile).
@@ -305,8 +335,6 @@ public sealed partial class MainWindow
         {
             Diagnostics.Swallowed(ex, "website data: remove");
         }
-
-        await PushSiteDataAsync(page);
     }
 
     /// <summary>

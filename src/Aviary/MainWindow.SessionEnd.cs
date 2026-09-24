@@ -111,6 +111,9 @@ public sealed partial class MainWindow
             return;
         }
 
+        // M4.9: Windows ending the session closes Aviary too - forgetful sites get their due times.
+        MarkForgetfulOnExit();
+
         string reason = (flags & EndSessionLogoff) != 0 ? "Windows signed out"
             : (flags & EndSessionCloseApp) != 0 ? "closed by Windows for an installer or update"
             : "Windows shut down or restarted";

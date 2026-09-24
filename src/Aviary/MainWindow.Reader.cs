@@ -392,6 +392,26 @@ internal static class SiteSettings
         }
     }
 
+    /// <summary>Every site holding this key, with its value, whatever the value (M4.9: forget modes).</summary>
+    public static List<(string Site, string Value)> SitesWithAny(string key)
+    {
+        string suffix = "|" + key;
+        lock (Gate)
+        {
+            List<(string, string)> sites = new();
+            foreach (KeyValuePair<string, string> pair in Values)
+            {
+                if (pair.Key.EndsWith(suffix, StringComparison.OrdinalIgnoreCase) && pair.Value.Length > 0)
+                {
+                    sites.Add((pair.Key.Substring(0, pair.Key.Length - suffix.Length), pair.Value));
+                }
+            }
+
+            sites.Sort((a, b) => StringComparer.OrdinalIgnoreCase.Compare(a.Item1, b.Item1));
+            return sites;
+        }
+    }
+
     public static void Clear()
     {
         lock (Gate) { Values.Clear(); }

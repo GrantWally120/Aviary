@@ -68,6 +68,7 @@ public sealed partial class MainWindow : Window
         ApplyFocusVisuals();
         ApplyAppIcon();
         ApplyMemorySaver();
+        StartForgetting();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -126,6 +127,8 @@ public sealed partial class MainWindow : Window
         AddAccelerator(VirtualKey.Number0, VirtualKeyModifiers.Control, (_, _) => Zoom(0));
         AddAccelerator(VirtualKey.F11, VirtualKeyModifiers.None, (_, _) => ToggleFullScreen());
         AddAccelerator(VirtualKey.N, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => OpenPrivateWindow());
+        // M4.9: search every open tab (Chrome's own shortcut for it).
+        AddAccelerator(VirtualKey.A, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => OpenTabSearch());
         AddAccelerator((VirtualKey)188, VirtualKeyModifiers.Control, (_, _) => OpenSettingsTab());   // Ctrl+, — Safari's own
     }
 
@@ -925,6 +928,8 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"
                    // M4.9 (bug 80): the page redacts exactly the keys the host does, from ONE list.
                    + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";"
+                   // M4.9: Forgetful sites, for Privacy.
+                   + " window.__aviaryForget = " + JsonSerializer.Serialize(ForgetList()) + ";"
                    // M4.9: Birds News' "Right now" row.
                    + " window.__aviaryNews = " + JsonSerializer.Serialize(BirdsNews.Snapshot()) + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
@@ -1072,6 +1077,11 @@ public sealed partial class MainWindow : Window
             focusRing = AppSettings.GetBool("focusRing"),
             isPrivate = _private,
             iconBase = Favicons.IconBase,
+            // M4.9: what is behind the page, and the address of the person's own picture when
+            // that is what they chose. Empty when there is none - the page falls back to the dome.
+            background = StartBackground.Current,
+            backgroundUrl = StartBackground.Current == StartBackground.OwnPicture ? StartBackground.Url : string.Empty,
+            backgroundProblem = TakeBackgroundProblem(),
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
             sections = new
             {
@@ -1377,6 +1387,9 @@ public sealed partial class MainWindow : Window
         }
 
         RebuildTabStrip();
+
+        // M4.9: a forgetful site whose last tab this was starts its clock now.
+        _ = ForgetSweepAsync();
     }
 
     private void CycleTab(int delta)
@@ -1416,6 +1429,7 @@ public sealed partial class MainWindow : Window
             case "tablast": SelectTabByIndex(_tabs.Count - 1); break;
             case "fullscreen": ToggleFullScreen(); break;
             case "privatewindow": OpenPrivateWindow(); break;
+            case "searchtabs": OpenTabSearch(); break;
             case "settings": OpenSettingsTab(); break;
             default:
                 if (action.StartsWith("tab", StringComparison.Ordinal)
@@ -2268,7 +2282,8 @@ public sealed partial class MainWindow : Window
             // same event; only the Start Page's own types are refused, and only those recorded.
             if (!trusted)
             {
-                if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange" or "newsAll")
+                if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange" or "newsAll"
+                    or "startBackground")
                 {
                     RefuseMessage("Start Page", type, args);
                 }
@@ -2318,6 +2333,17 @@ public sealed partial class MainWindow : Window
 
                     break;
                 }
+
+                // M4.9: what is behind the Start Page. "Your picture…" opens a file picker, which
+                // only the host can do, so the page asks rather than deciding.
+                case "startBackground":
+                    if (root.TryGetProperty("value", out JsonElement bg)
+                        && bg.GetString() is { Length: > 0 } chosen)
+                    {
+                        _ = ChooseStartBackgroundAsync(chosen, "start page");
+                    }
+
+                    break;
 
                 // M4.9: "All the stories in Birds News" - this page, opened on the news alone.
                 case "newsAll":
@@ -2454,6 +2480,12 @@ public sealed partial class MainWindow : Window
         privateWindow.KeyboardAcceleratorTextOverride = "Ctrl+Shift+N";
         privateWindow.Click += (_, _) => OpenPrivateWindow();
         menu.Items.Add(privateWindow);
+
+        // M4.9: Search your open tabs - in the menu too, so it can be found without knowing the keys.
+        MenuFlyoutItem searchTabs = new() { Text = "Search Tabs…" };
+        searchTabs.KeyboardAcceleratorTextOverride = "Ctrl+Shift+A";
+        searchTabs.Click += (_, _) => OpenTabSearch();
+        menu.Items.Add(searchTabs);
 
         MenuFlyoutItem closeTab = new() { Text = "Close Tab" };
         closeTab.KeyboardAcceleratorTextOverride = "Ctrl+W";
@@ -2597,6 +2629,16 @@ public sealed partial class MainWindow : Window
                     string settingKey = k.GetString() ?? string.Empty;
                     JsonElement settingValue = root.TryGetProperty("value", out JsonElement sv) ? sv : default;
 
+                    // M4.9: "Your picture" is not a value that can simply be saved - it means "open
+                    // a picker", and the setting must only change if a picture is really adopted.
+                    // Saving first here would leave the row claiming a picture that does not exist.
+                    if (settingKey == "startBackground"
+                        && string.Equals(AsString(settingValue), StartBackground.OwnPicture, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _ = ChooseStartBackgroundAsync(StartBackground.OwnPicture, "settings");
+                        return;
+                    }
+
                     // Persist first, so a setting survives even if applying it throws.
                     AppSettings.Set(settingKey, AsString(settingValue));
                     ApplySetting(settingKey, settingValue);
@@ -2648,6 +2690,11 @@ public sealed partial class MainWindow : Window
                 case "animationStyle":
                 case "reduceMotion":
                     PushMotionToPages();
+                    break;
+
+                // M4.9: every open Start Page redraws with the background just chosen.
+                case "startBackground":
+                    RefreshStartPages();
                     break;
 
                 case "blockTrackers":
@@ -3054,10 +3101,46 @@ public sealed partial class MainWindow : Window
                     await PerfTabAsync(arg ?? string.Empty);
                     break;
 
+                // ── Forgetful browsing (M4.9): "Stop forgetting" ──
+                case "forgetStop":
+                    if (!string.IsNullOrWhiteSpace(arg))
+                    {
+                        Forgetful.Set(arg, string.Empty);
+                        DiagFeature("forget-set", new { site = arg, mode = "never", from = "settings" });
+                        PushForgetToSettings();
+                    }
+
+                    break;
+
+                // ── Safety Check (M4.9) ──
+                case "safetyCheck":
+                    PushSafety(page);
+                    break;
+
+                case "safetyFix":
+                    // Only the settings SafetyCheck names, and only to their safer value: the page
+                    // says WHICH, never what to set it to.
+                    if (arg is not null && SafetyCheck.Fixable.TryGetValue(arg, out string? safer))
+                    {
+                        DiagFeature("safety-fix", new { key = arg });
+                        AppSettings.Set(arg, safer);
+                        using (JsonDocument doc = JsonDocument.Parse(safer is "true" or "false" ? safer : JsonSerializer.Serialize(safer)))
+                        {
+                            ApplySetting(arg, doc.RootElement.Clone());
+                        }
+
+                        // The same switch elsewhere in Settings shows the change at once.
+                        PushToSettingsPage(arg, safer == "true" ? true : safer == "false" ? false : safer);
+                    }
+
+                    PushSafety(page);
+                    break;
+
                 // ── Birds News (M4.9): "Check now" ──
                 case "newsCheck":
                     DiagFeature("birds-news-check", new { from = "settings" });
-                    await BirdsNews.RefreshAsync(force: true);
+                    // Bug 82: never a full round per press - see BirdsNews.ManualGap.
+                    await BirdsNews.CheckNowAsync();
                     break;
 
                 // ── Storage Usage (M4.5) ──
@@ -3484,6 +3567,56 @@ public sealed partial class MainWindow : Window
     /// tab, so any website that defined window.__aviaryApply was told each change (found in
     /// M4's review: search suggestions going off was about to be one of them).
     /// </summary>
+    private static readonly JsonSerializerOptions CamelCase = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+
+    /// <summary>Every forgetful site, what it is set to, and when a closed one is due (M4.9).</summary>
+    private static object ForgetList() => SiteSettings.SitesWithAny(Forgetful.ModeKey)
+        .Where(p => Forgetful.Delay(p.Value) is not null)
+        .Select(p => new
+        {
+            site = p.Site,
+            label = Forgetful.Label(p.Value),
+            due = long.TryParse(SiteSettings.Get(p.Site, Forgetful.DueKey), out long d) ? d : (long?)null,
+            done = SiteSettings.Get(p.Site, Forgetful.DoneKey).Length > 0,
+        })
+        .ToList();
+
+    /// <summary>Every open Settings page shows the list as it is now. Only Aviary's own page hears it.</summary>
+    private void PushForgetToSettings()
+    {
+        string json = JsonSerializer.Serialize(ForgetList());
+        foreach (MainWindow w in OpenWindows)
+        {
+            foreach (BrowserTab t in w._tabs)
+            {
+                if (t.IsInternalPage && t.Title == "Settings" && t.View.CoreWebView2 is CoreWebView2 core)
+                {
+                    _ = core.ExecuteScriptAsync("window.__aviaryForgetList && window.__aviaryForgetList(" + json + ")");
+                }
+            }
+        }
+    }
+
+    /// <summary>Safety Check's findings, to the Settings page that asked (M4.9).</summary>
+    private void PushSafety(CoreWebView2 page)
+    {
+        try
+        {
+            List<SafetyCheck.Finding> found = SafetyCheck.Run();
+            DiagFeature("safety-check", new
+            {
+                warnings = found.Count(f => f.Level == "warn"),
+                notes = found.Count(f => f.Level == "info"),
+                warned = found.Where(f => f.Level == "warn").Select(f => f.Id),
+            });
+            _ = page.ExecuteScriptAsync("window.__aviarySafety && window.__aviarySafety(" + JsonSerializer.Serialize(found, CamelCase) + ")");
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "safety check");
+        }
+    }
+
     private void PushToSettingsPage(string key, object value)
     {
         string payload = JsonSerializer.Serialize(key) + "," + JsonSerializer.Serialize(value);
@@ -3576,6 +3709,12 @@ public sealed partial class MainWindow : Window
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
+        // M4.9: before this window leaves OpenWindows, while its tabs still count as open.
+        if (!_private && OpenWindows.Count(w => !w._private) == 1)
+        {
+            MarkForgetfulOnExit();
+        }
+
         Favicons.Updated -= OnFaviconUpdated;
         BirdsNews.Changed -= OnNewsChanged;
         Bookmarks.Changed -= RefreshBookmarksBar;

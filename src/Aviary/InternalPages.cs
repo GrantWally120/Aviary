@@ -143,6 +143,19 @@ internal static class InternalPages
   .sel__opt[aria-selected="true"] i{opacity:1;}
   .sel[data-disabled="true"]{opacity:.4;pointer-events:none;}
 
+  /* M4.9 — Safety Check. The mark says the kind of line before the words do. */
+  .sc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 12px;}
+  .sc-head b{font-size:15px;font-weight:600;}
+  .sc-row{align-items:flex-start;}
+  .sc-dot{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 inherit;color:#fff;margin-top:1px;}
+  .sc-ok{background:#2eb867;} .sc-warn{background:#f08c1a;} .sc-info{background:var(--accent);}
+  /* M4.9 — Forgetful sites, one line each. `.row__t` for the same specificity reason as the tiles. */
+  .row__t .fg{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+  .row__t .fg__row{display:flex;align-items:center;gap:10px;margin:0;}
+  .row__t .fg__row b{color:var(--ink);font-weight:600;}
+  .row__t .fg__row em{font-style:normal;flex:1;}
+  .row__t .fg i{font-style:normal;color:var(--ink-3);}
+
   /* M4.8 (bug 77) — the App Icon row shows both tiles, so picking one is visibly something.
      The taskbar and Alt-Tab are the only other places it shows, and neither is on this page.
      Selectors carry `.row__t` for the same reason as the rule above: `.row__t span` sets
@@ -609,6 +622,7 @@ var ICON = {
   reset:'<svg viewBox="0 0 16 16" fill="none"><path d="M13.4 8a5.4 5.4 0 1 1-1.6-3.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13 2.4v3.2H9.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   updates:'<svg viewBox="0 0 16 16" fill="none"><path d="M7.2 2.4c.5 3 2 4.5 5 5-3 .5-4.5 2-5 5-.5-3-2-4.5-5-5 3-.5 4.5-2 5-5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M12.6 1.8v2.6M11.3 3.1h2.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
   storage:'<svg viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4.4" rx="5.2" ry="1.9" stroke="currentColor" stroke-width="1.3"/><path d="M2.8 4.4v7.2c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9V4.4M2.8 8c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9" stroke="currentColor" stroke-width="1.3"/></svg>',
+  safety:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8 13.2 3.8v3.9c0 3.1-2.1 5.4-5.2 6.5-3.1-1.1-5.2-3.4-5.2-6.5V3.8L8 1.8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   news:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M4.6 8.6h6.8M4.6 10.8h6.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="4.4" y="5" width="4.2" height="1.9" rx=".5" fill="currentColor"/></svg>',
   perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
@@ -707,8 +721,8 @@ var UPDATES = [
        d:'The menus work again. The arrival M4.6 gave every menu was landing on the wrong part of it, so a menu looked right and answered nothing you clicked — the app menu, Settings and the Collection with it.'},
       {n:'M4.8', t:'A Iconic Fix', when:'21 Sep',
        d:'The app icon really changes the taskbar now, and the row shows you which tile you are on. Performance reads like Task Manager — every part of Aviary on its own line, with the tabs it draws under it. Memory saver stops hinting and starts handing memory back: an idle tab goes to sleep and wakes when you click it.'},
-      {n:'M4.9', t:'Birds News',
-       d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome: search your open tabs, forgetful browsing on a timer, Safety Check, Start Page backgrounds and picture-in-picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
+      {n:'M4.9', t:'Birds News', when:'24 Sep',
+       d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome. Ctrl+Shift+A searches your open tabs. Any site can be set to be forgotten — when you close its last tab, or five minutes, an hour or a day after. Safety Check gathers everything that could be safer into one page, with a button to fix each one. The Start Page gets six backgrounds, five of them drawn by Aviary in whichever look you are using, and the sixth your own picture. Right-click any video for picture in picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
       {n:'M5', t:'The download progress ring and tab groups',
        d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
       {n:'M6', t:'The Experimental menu, in plain English',
@@ -947,6 +961,7 @@ var SECTIONS = [
     rows:[
       {t:'On startup', d:'What Aviary opens with when you launch it.', phase:6, ctl:{type:'select', key:'startup', opts:['Start Page','Continue where you left off','A specific page'], value:'Start Page'}},
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
+      {t:'Start Page background', d:'What is behind the Start Page. Five of the six are drawn by Aviary out of the look you are using, so each one follows Classic, Liquid Glass, light and dark with nothing to download. Your own picture is copied into Aviary’s own folder, so it keeps working if you move or delete the original.', ctl:{type:'select', key:'startBackground', opts:['Glasshouse','Plain','Dawn','Dusk','Moss','Your picture'], value:'Glasshouse'}},
       {t:'Start Page sections', d:'The same switches as the Customise button in the corner of the Start Page.', ctl:{type:'none'}},
       {t:'Show Favourites', d:'', ctl:{type:'toggle', key:'startFavourites', value:true}},
       {t:'Show The Collection', d:'A row of Grant’s own projects, which Aviary carries and runs offline. All of them are always in the app menu.', ctl:{type:'toggle', key:'startMenagerie', value:true}},
@@ -1061,6 +1076,7 @@ var SECTIONS = [
       {t:'Privacy Report shows', d:'What the Start Page’s Privacy Report counts: the last seven days, or everything since Aviary started counting. Bandwidth and time saved are estimates — each blocked request is counted at a typical size for its kind and 50 ms of loading.', ctl:{type:'select', key:'privacyRange', opts:['Last 7 days','All time'], value:'Last 7 days'}},
       {t:'Private window', d:'A window that forgets: pages, searches, cookies and site data from it are gone when you close it, and nothing about it is recorded. Ctrl+Shift+N opens one.', ctl:{type:'button', cmd:'privateWindow', label:'Open'}},
       {t:'Website data', d:'Cookies and storage each site you have visited has kept in this profile, with a way to remove any one site\u2019s.', more:'sitedata', ctl:{type:'button', cmd:'siteData', label:'Show'}},
+      {t:'Forgetful sites', d:'Sites Aviary forgets on its own — their cookies and everything they store — when you close their last tab, or a set time after. Stay signed in where you want to be; be a stranger everywhere else. Choose it for a site from the <b>shield</b> in the toolbar.<span class="fg" id="forgetlist"></span>', ctl:{type:'none'}},
       {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear\u2026'}},
       {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}},
       /* Diagnostics \u2014 PHASE5-PLAN.md M1. Deliberately at the BOTTOM of Privacy and deliberately
@@ -1071,6 +1087,12 @@ var SECTIONS = [
       {t:'Also measure frame timing', d:'How smoothly Aviary draws, once a minute: how many frames, the usual gap between them, and how many were slow. <b>Off even while collection is on, and it should stay off unless you are chasing a stutter.</b> Windows only offers per-frame times to a program that asks the graphics card to redraw <i>continuously</i> — so measuring smoothness this way is the one measurement in Aviary that costs the very thing it is measuring. Everything else here is free. The figures are marked, so a session measured this way is never compared against a normal one.', ctl:{type:'toggle', key:'frameTiming', value:false}},
       {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
     ]},
+
+  /* M4.9 — Safety Check (SafetyCheck.cs): the settings Aviary already holds, read back as a list of
+     what is safe, what could be safer, and what is a choice worth knowing about. */
+  { id:'safety', icon:'safety', name:'Safety Check', title:'Safety Check', safety:true,
+    lede:'Everything on this page is a setting you can already find elsewhere in Settings, or something Aviary already knows — gathered in one place, with a button to fix anything that could be safer. It runs each time you open this page; nothing is sent anywhere.',
+    rows:[] },
 
   { id:'search', icon:'search', name:'Search engine', title:'Search engine',
     lede:'Where the address bar sends anything that is not a web address.',
@@ -1406,6 +1428,9 @@ SECTIONS.forEach(function(s, i){
       '</div></div></div>' +
       '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
+  } else if (s.safety){
+    body += '<div class="sc-head"><b id="sc-sum">Checking…</b><button class="btn" id="sc-again">Check again</button></div>' +
+            '<div class="group" id="sc-list"></div>';
   } else if (s.storage){
     body += renderStorage();
   } else if (s.perf){
@@ -1784,7 +1809,8 @@ var KEYS = [
     ['Ctrl Shift Tab', 'Previous tab'],
     ['Ctrl 1 – 8', 'Go to that tab'],
     ['Ctrl 9', 'Go to the last tab'],
-    ['Ctrl Shift N', 'New private window']
+    ['Ctrl Shift N', 'New private window'],
+    ['Ctrl Shift A', 'Search your open tabs']
   ]},
   {h:'Getting about', rows:[
     ['Ctrl L', 'Type an address or search'],
@@ -1875,6 +1901,10 @@ function nwAgo(ms){
 }
 window.__aviaryNewsStatus = function(n){
   var el = document.getElementById('newsstatus');
+  /* Bug 82: "Check now" is quiet from the press until this answer, so it cannot be pressed eight
+     times in two seconds. */
+  var chk = document.querySelector('.btn[data-cmd="newsCheck"]');
+  if (chk) { chk.disabled = false; chk.textContent = 'Check now'; }
   if (!el || !n) { return; }
   el.textContent = '';
   function line(name, text){
@@ -1897,6 +1927,80 @@ window.__aviaryNewsStatus = function(n){
   (n.problems || []).forEach(function(p){ line('Not used', p.line + ' — ' + p.why); });
 };
 window.__aviaryNewsStatus(window.__aviaryNews);
+
+/* ── Safety Check (M4.9) ─────────────────────────────────────────────────────
+   The host works it out (SafetyCheck.cs) - it knows which sites have Shields lowered, how old the
+   lists are, and what the engine was launched with - and the page draws it. Built with DOM text. */
+function safetyRun(){
+  var sum = document.getElementById('sc-sum');
+  if (sum) { sum.textContent = 'Checking…'; }
+  post({type:'command', name:'safetyCheck'});
+}
+window.__aviarySafety = function(list){
+  var box = document.getElementById('sc-list'), sum = document.getElementById('sc-sum');
+  if (!box || !sum) { return; }
+  var warn = list.filter(function(f){ return f.level === 'warn'; }).length;
+  sum.textContent = warn === 0 ? 'Everything here is as safe as it can be.'
+                  : warn === 1 ? '1 thing could be safer.' : warn + ' things could be safer.';
+  box.textContent = '';
+  /* The ones to act on first, then the choices worth knowing, then what is already fine. */
+  var rank = {warn:0, info:1, ok:2};
+  list.slice().sort(function(a, b){ return rank[a.level] - rank[b.level]; }).forEach(function(f){
+    var row = document.createElement('div'); row.className = 'row sc-row';
+    var dot = document.createElement('span'); dot.className = 'sc-dot sc-' + f.level;
+    dot.textContent = f.level === 'ok' ? '✓' : f.level === 'warn' ? '!' : 'i';
+    var t = document.createElement('div'); t.className = 'row__t';
+    var b = document.createElement('b'); b.textContent = f.title; t.appendChild(b);
+    if (f.detail) { var d = document.createElement('span'); d.textContent = f.detail; t.appendChild(d); }
+    row.appendChild(dot); row.appendChild(t);
+    if (f.fixLabel) {
+      var btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = f.fixLabel;
+      if (f.fixKey) { btn.setAttribute('data-sc-fix', f.fixKey); }
+      if (f.goto) { btn.setAttribute('data-sc-goto', f.goto); }
+      row.appendChild(btn);
+    }
+    box.appendChild(row);
+  });
+};
+main.addEventListener('click', function(e){
+  if (e.target.closest('#sc-again')) { safetyRun(); return; }
+  var fix = e.target.closest('[data-sc-fix]');
+  if (fix) { fix.disabled = true; post({type:'command', name:'safetyFix', arg: fix.getAttribute('data-sc-fix')}); return; }
+  var go = e.target.closest('[data-sc-goto]');
+  if (go) {
+    var target = go.getAttribute('data-sc-goto');
+    if (target.indexOf('cmd:') === 0) {
+      go.disabled = true; go.textContent = 'Updating…';
+      post({type:'command', name: target.substring(4)});
+      setTimeout(safetyRun, 6000);
+    } else { showPane(target); }
+  }
+});
+
+/* M4.9 — Forgetful sites. Site names are shown as text, never markup. */
+window.__aviaryForgetList = function(list){
+  var box = document.getElementById('forgetlist');
+  if (!box) { return; }
+  box.textContent = '';
+  if (!list || !list.length) { var none = document.createElement('i'); none.textContent = 'No site is set to be forgotten.'; box.appendChild(none); return; }
+  list.forEach(function(f){
+    var row = document.createElement('span'); row.className = 'fg__row';
+    var b = document.createElement('b'); b.textContent = f.site; row.appendChild(b);
+    var when = document.createElement('em');
+    var dueText = '';
+    if (f.done) { dueText = ' · closed, and forgotten'; }
+    else if (f.due) { var mins = Math.max(0, Math.round((f.due - Date.now()) / 60000)); dueText = mins < 1 ? ' · forgetting now' : ' · closed, forgotten in ' + (mins < 90 ? mins + ' min' : Math.round(mins / 60) + ' h'); }
+    when.textContent = f.label + dueText; row.appendChild(when);
+    var stop = document.createElement('button'); stop.className = 'btn'; stop.textContent = 'Stop forgetting';
+    stop.setAttribute('data-forget-stop', f.site); row.appendChild(stop);
+    box.appendChild(row);
+  });
+};
+window.__aviaryForgetList(window.__aviaryForget);
+main.addEventListener('click', function(e){
+  var stop = e.target.closest('[data-forget-stop]');
+  if (stop) { stop.disabled = true; post({type:'command', name:'forgetStop', arg: stop.getAttribute('data-forget-stop')}); }
+});
 
 function iconTiles(){
   var sel = document.querySelector('.sel[data-key="appIcon"] .sel__btn span');
@@ -1969,6 +2073,7 @@ function showPane(id){
   document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
   pane.classList.add('on');
   main.scrollTop = 0;
+  if (id === 'safety') { safetyRun(); }
 }
 
 staggerRows(document.querySelector('.pane.on') || document.body);
@@ -2082,7 +2187,14 @@ main.addEventListener('click', function(e){
   closeAllPopups(null);
 
   var btn = e.target.closest('.btn');
-  if (btn && !btn.disabled) { sendCommand(btn.getAttribute('data-cmd')); }
+  if (btn && !btn.disabled) {
+    var cmd = btn.getAttribute('data-cmd');
+    sendCommand(cmd);
+    /* Bug 82: "Check now" goes quiet in the SAME step as it is sent, so the answer cannot arrive
+       first. Deferred with setTimeout it did, on a fast machine: the answer woke the button,
+       then the late disable put it back to sleep for good. __aviaryNewsStatus wakes it. */
+    if (cmd === 'newsCheck') { btn.disabled = true; btn.textContent = 'Checking…'; }
+  }
 });
 
 nav.addEventListener('click', function(){ closeAllPopups(null); });

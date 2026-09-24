@@ -388,6 +388,15 @@ internal sealed partial class BrowserTab
             // Chromium would do a real DNS lookup for aviary.localhost.
             string uri = args.Request.Uri;
 
+            // M4.9: the Start Page's own background picture shares that host, and is asked about
+            // first - the icons' server answers everything else that reaches it, a bad path included.
+            if (_environment is not null
+                && StartBackground.TryServe(uri, _environment, out CoreWebView2WebResourceResponse? picture))
+            {
+                args.Response = picture;
+                return;
+            }
+
             if (_environment is not null
                 && Favicons.TryServe(uri, _environment, out CoreWebView2WebResourceResponse? icon))
             {
@@ -587,6 +596,29 @@ internal sealed partial class BrowserTab
     /// Each property is read on its own: older runtimes lack some, and one missing field must
     /// not lose the record.
     /// </summary>
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int index);
+
+    /// <summary>SM_SHUTTINGDOWN: non-zero once Windows has begun to log off, restart or shut down (bug 83).</summary>
+    private static bool WindowsIsShuttingDown()
+    {
+        // Test only: a shutdown cannot be staged on the machine running the test. Environment only,
+        // like AVIARY_CRASH_TEST - nothing inside the browser can set it.
+        if (Environment.GetEnvironmentVariable("AVIARY_SHUTDOWN_TEST") == "1")
+        {
+            return true;
+        }
+
+        try
+        {
+            return GetSystemMetrics(0x2000) != 0;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
     private void OnProcessFailed(CoreWebView2 sender, CoreWebView2ProcessFailedEventArgs args)
     {
         // Whatever the engine shows for a dead page must be seen, even in a tab still waiting for its first paint.
@@ -623,6 +655,18 @@ internal sealed partial class BrowserTab
 
         string kind = Read(() => args.ProcessFailedKind);
         string reason = Read(() => args.Reason);
+
+        // M4.9 (bug 83, from Grant's own diagnostics, 21 Sep 16:18): Windows restarting closes the
+        // engine's processes a moment BEFORE it tells Aviary the session is ending, so every open
+        // tab reported "BrowserProcessExited — Unexpected" and five engine failures sat under Needs
+        // attention for a PC that had simply been restarted. SM_SHUTTINGDOWN is set from the moment
+        // a shutdown begins; while it is, an engine exit is Windows closing things, and is recorded
+        // as that - once, as a session event - rather than as a failure per tab.
+        if (WindowsIsShuttingDown())
+        {
+            Diagnostics.EngineClosedByShutdown(kind);
+            return;
+        }
 
         // The renderer of THIS page (not a frame's, not the GPU process — those recover by
         // themselves) is gone: Aviary's panel, with Reload, instead of Chromium's (HANDOFF §8).
@@ -1129,6 +1173,7 @@ internal sealed partial class BrowserTab
     'ctrl+d': 'bookmark',
     'ctrl+shift+d': 'readinglist',
     'ctrl+shift+n': 'privatewindow',
+    'ctrl+shift+a': 'searchtabs',
     'ctrl+,': 'settings',
     'ctrl+h': 'history',
     'ctrl+shift+l': 'sidebar',

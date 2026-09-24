@@ -32,8 +32,14 @@ public sealed partial class MainWindow
         core.ContextMenuRequested += OnContextMenuRequested;
     }
 
-    private void OnContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs args)
+    /// <summary>
+    /// async void on purpose: the event is raised by the engine, so there is no caller to hand a
+    /// Task to. Everything inside is in one try, and a right-click on a video is the only path that
+    /// awaits anything (M4.9, picture in picture).
+    /// </summary>
+    private async void OnContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
+        Windows.Foundation.Deferral? deferral = null;
         try
         {
             // Handled = true suppresses the engine's menu entirely. Without it BOTH menus
@@ -89,6 +95,22 @@ public sealed partial class MainWindow
                 menu.Items.Add(new MenuFlyoutSeparator());
             }
 
+            // ── a video (M4.9) ──
+            // Only here is the page asked anything, and only here is the menu held back while it
+            // answers: every other right-click builds and shows exactly as it did before.
+            if (kind == CoreWebView2ContextMenuTargetKind.Video)
+            {
+                deferral = args.GetDeferral();
+                double vx = args.Location.X, vy = args.Location.Y;
+                string? pip = await PipStateAsync(sender, vx, vy);
+                if (pip is not null)
+                {
+                    Add(menu, pip == "in" ? "Leave Picture in Picture" : "Picture in Picture",
+                        () => _ = TogglePictureInPictureAsync(sender, vx, vy));
+                    menu.Items.Add(new MenuFlyoutSeparator());
+                }
+            }
+
             // ── a selection ──
             if (selection.Length > 0)
             {
@@ -107,6 +129,9 @@ public sealed partial class MainWindow
             }
 
             // ── the page itself ──
+            // A video keeps the page's own items too (M4.9): right-clicking one gave Back, Reload,
+            // Add Bookmark and Find in Page before picture in picture existed, and taking them away
+            // would leave a video whose site refuses picture in picture with no menu at all.
             if (linkUri.Length == 0 && selection.Length == 0
                 && kind != CoreWebView2ContextMenuTargetKind.Image)
             {
@@ -152,6 +177,11 @@ public sealed partial class MainWindow
         {
             // A failed menu should not take the page down with it.
             Diagnostics.Swallowed(ex, "page menu: build");
+        }
+        finally
+        {
+            // Not completing a deferral leaves the engine waiting for a menu that never comes.
+            try { deferral?.Complete(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "page menu: deferral"); }
         }
     }
 

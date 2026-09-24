@@ -96,6 +96,7 @@ internal static class AppSettings
         ["frameTiming"] = "false",
         // M4.9 — Birds News (BirdsNews.cs). The Start Page section is its master switch: nothing
         // is fetched while nobody is reading it. The six feeds Grant approved on 21 Sep, each on.
+        ["startBackground"] = "Glasshouse",
         ["startNews"] = "true",
         ["newsRefresh"] = "Every 15 minutes",
         ["newsBbc"] = "true",
