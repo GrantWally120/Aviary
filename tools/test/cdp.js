@@ -11,6 +11,8 @@
 //   node cdp.js press <match> "<css selector>"          -> the same, without scrolling it into view first (dropdown options)
 //   node cdp.js rclick <match> "<css selector>"         -> a TRUSTED RIGHT-click: the only way to reach Aviary's own
 //                                                          context menu without touching the desktop (M4.9)
+//   node cdp.js mclick <match> "<css>" <how>            -> a TRUSTED click with modifiers or another button (M5):
+//                                                          how = ctrl | shift | alt | ctrl+shift | middle | middle+shift
 //   node cdp.js wait  <match> "<js condition>" [ms]     -> polls until truthy
 //   node cdp.js shot  <match> <out.png> [WxH] [light|dark] -> screenshot at WxH, no window touched
 //
@@ -60,6 +62,11 @@ function session(wsUrl) {
   };
 }
 
+// "#host >>> #inner" reaches into a shadow root (M5: links inside shadow DOM). Plain selectors unchanged.
+function finder(sel) {
+  return `(function(){var parts=${JSON.stringify(sel)}.split(">>>"),n=document;for(var i=0;i<parts.length;i++){n=(i?n.shadowRoot:n);if(!n)return null;n=n.querySelector(parts[i].trim());if(!n)return null;}return n;})()`;
+}
+
 async function evaluate(s, expression) {
   const r = await s.send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true, userGesture: true });
   if (r.exceptionDetails) return { exception: r.exceptionDetails.exception?.description || r.exceptionDetails.text };
@@ -89,13 +96,26 @@ async function evaluate(s, expression) {
       // an option must be pressed where it already is (M4.5, 19 Sep 2026).
       const scroll = cmd === 'press' ? "" : "e.scrollIntoView({block:'center'});";
       const button = cmd === 'rclick' ? 'right' : 'left';
-      const rect = await evaluate(s, `(function(){var e=document.querySelector(${JSON.stringify(arg)}); if(!e) return null; ${scroll} var r=e.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2, w:r.width, h:r.height};})()`);
+      const rect = await evaluate(s, `(function(){var e=${finder(arg)}; if(!e) return null; ${scroll} var r=e.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2, w:r.width, h:r.height};})()`);
       if (!rect) { console.log('NO ELEMENT ' + arg); process.exitCode = 1; return; }
       for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
         await s.send('Input.dispatchMouseEvent', { type, x: rect.x, y: rect.y, button, clickCount: 1 });
       }
       console.log((button === 'right' ? 'right-clicked ' : 'clicked ') + arg
         + ' at ' + Math.round(rect.x) + ',' + Math.round(rect.y));
+    } else if (cmd === 'mclick') {
+      // M5 (LinkScript): the engine works out what a link click MEANS from its modifiers and button
+      // (Chromium's DispositionFromClick), so the test must send exactly those, trusted.
+      const how = (extra || '').split('+');
+      const modifiers = (how.includes('alt') ? 1 : 0) | (how.includes('ctrl') ? 2 : 0) | (how.includes('shift') ? 8 : 0);
+      const button = how.includes('middle') ? 'middle' : 'left';
+      const buttons = button === 'middle' ? 4 : 1;
+      const rect = await evaluate(s, `(function(){var e=${finder(arg)}; if(!e) return null; e.scrollIntoView({block:'center'}); var r=e.getBoundingClientRect(); return {x:r.left+Math.min(12,r.width/2), y:r.top+r.height/2};})()`);
+      if (!rect) { console.log('NO ELEMENT ' + arg); process.exitCode = 1; return; }
+      await s.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: rect.x, y: rect.y, modifiers });
+      await s.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: rect.x, y: rect.y, button, buttons, clickCount: 1, modifiers });
+      await s.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: rect.x, y: rect.y, button, buttons: 0, clickCount: 1, modifiers });
+      console.log('clicked (' + (extra || 'plain') + ') ' + arg);
     } else if (cmd === 'type') {
       // node cdp.js type <match> "<selector>" "<text>" — focus, then TRUSTED text input
       await evaluate(s, `(function(){var e=document.querySelector(${JSON.stringify(arg)}); if(e){e.focus();} return !!e;})()`);

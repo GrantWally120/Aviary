@@ -80,6 +80,13 @@ public sealed partial class MainWindow
 
     private void SavePinned()
     {
+        // M5 stage 3: a Shift+click window starts with none of the pinned tabs, so its set is not
+        // THE set - saving it would replace every pinned tab with this window's one or none.
+        if (_linkWindow)
+        {
+            return;
+        }
+
         try
         {
             List<string> urls = _tabs

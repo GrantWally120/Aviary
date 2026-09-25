@@ -75,7 +75,9 @@ public sealed partial class MainWindow
             // ── a link ──
             if (linkUri.Length > 0)
             {
-                Add(menu, "Open Link in New Tab", () => OpenNewTab(linkUri));
+                // M5 stage 3: behind this tab, as Safari and Chrome open it - the page you are on stays.
+                Add(menu, "Open Link in New Tab", () => _ = OpenLinkInBackgroundAsync(linkUri));
+                Add(menu, "Open Link in New Window", () => _ = OpenLinkInWindowAsync(linkUri));
                 Add(menu, "Add Link to Reading List",
                     () => ReadingList.Add(target.HasLinkText ? SafeString(() => target.LinkText) : string.Empty, linkUri, record: !_private));
                 // Safari's "Copy Link" drops tracking parameters too (Link Tracking

@@ -47,9 +47,9 @@ run, the sidebar and Classic included).
 > - Alpha Build 5 **"The Long Run"**: **11 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
 >   M4.6, M4.7, M4.8, M4.9). **M5 STARTED 24 Sep at Grant’s word** (“officially go start M5 … you
 >   have the greenlight”) — §26. Then M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — COMMITTED `932ea18`**
->   (25 Sep, his OK; not published) · **2 Ask where to save + drag out — BUILT, NOT COMMITTED** · 3
->   LinkScript (Ctrl/middle/Shift/Alt-click) · 4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
+> - **M5 stages** (each its own commit, with Grant’s OK; none published yet): **1 the download surface —
+>   `932ea18`** · **2 Ask where to save + drag out — `cbe522e`** · **3 link clicks — BUILT, NOT COMMITTED** ·
+>   4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
 >   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
@@ -89,8 +89,8 @@ run, the sidebar and Classic included).
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
 > - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
->   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stage 1 committed `932ea18`
->   (NOT published); stage 2 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
+>   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stages 1–2 committed (`932ea18`,
+>   `cbe522e`), NOT published; stage 3 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -2479,7 +2479,7 @@ window; a Flyout like this popover draws inside the main window, so `peek.ps1` s
 -First N`**: it stops the script at line N, before it closes its instance — the next harness on the
 same port then drives the wrong Aviary.
 
-### Stage 2 — Ask where to save, and dragging a download out (25 Sep, BUILT, NOT COMMITTED)
+### Stage 2 — Ask where to save, and dragging a download out (25 Sep, COMMITTED `cbe522e` with Grant’s OK; not published)
 
 - **"Ask where to save each file" is live** (it was badged). The download WAITS — a deferral taken in
   `BrowserTab.OnDownloadStarting` before its first await — while Windows’ Save window asks where it
@@ -2508,3 +2508,40 @@ original stays, foreground handed back) · `settings-audit.js` **68 live, 9 badg
 `#32770` + title "Save As", answered Cancel with WM_CLOSE (no input); "Replace?" is a second #32770,
 "Confirm Save As". **A capture of the Save window shows the contents of Grant’s real Downloads folder**
 (where it opens) — do not keep one.
+
+### Stage 3 — link clicks (25 Sep, BUILT, NOT COMMITTED)
+
+**Measured before building** (`linksite.js` + `cdp.js mclick`, on the stage 2 build): Ctrl+click and
+middle-click opened a tab **in front**; Shift+click a **tab** rather than a window; **Ctrl+Shift, Alt
+(download — even from another site) and a web app’s own Ctrl+click were already right.** The review of
+23 Sep said Ctrl+click replaced the page and middle-click did nothing — not so on this build. The engine
+(Chromium’s DispositionFromClick) already knows what each click means; WebView2 just reports all three
+"open elsewhere" kinds as the same NewWindowRequested, and Aviary opened every one as a tab in front.
+
+**So not the spec’s LinkScript** (which took the clicks over, preventDefault and all): the shortcut
+script only NOTES a trusted Ctrl/Shift/middle link click (`linkhint` — capture phase, composedPath so
+shadow-DOM links count, carrying the launch token), and `BrowserTab.HowToOpenAsync` uses the note for
+the new-window request that follows, waiting at most ~120 ms for it, because the note and the request
+travel separately. Nothing is prevented: the page and the engine still decide whether anything opens.
+- **Background tabs** (Ctrl, middle, right-click → Open Link in New Tab) go next to the tab they came
+  from, in the order opened (`BackgroundSlot`), when "New tab position" says after the current tab.
+- **Shift+click and "Open Link in New Window"** open a window of the same kind (private → private)
+  holding that link’s tab only (`MainWindow(forLink: true)`, `MainWindow.Links.cs`).
+- **The pinned list, found on the way:** it is saved from whichever window pins or unpins, as THAT
+  window’s set — so a link window (none pinned) would have replaced the list. Link windows neither
+  restore nor save pinned tabs. (A second window from a second launch still restores them, as before.)
+- Settings’ shortcut list gains a **Links** group, and its row no longer claims every shortcut is read
+  before a website can swallow it — the link clicks are deliberately the other way round (bug 81’s rule).
+
+**Checked (Stage 3):** `links-test.ps1` **27/27** (behind, in order, a shadow-DOM link; middle; Ctrl+Shift
+in front — control; a one-tab Shift window with the pinned tab NOT duplicated and the saved list untouched;
+Alt downloads into the list, cross-site too; target=_blank and a web app’s own Ctrl+click unchanged —
+controls; a forged hint without the token ignored; right-click New Tab behind and New Window; a private
+window’s Shift → a private window; Ctrl+click on a download leaves no tab) · `downloads-test.ps1` **53/53**
+· `pip-test` 14/14 · `motion-session` Classic clean · `settings-audit.js` 68 / 9 / 0. **Noted:** one 51 ms
+stall at a first download (Alt+click), NOT reproduced in 10 more first downloads (5 plain, 5 Alt) —
+recorded, not "fixed". Opening any new window costs 56–105 ms, as before M5 (an M7 item).
+**Kit:** `linksite.js` (port 8795, 127.0.0.1 and .2 — two listeners, never ::), `links-test.ps1`,
+`cdp.js mclick <tab> <css> ctrl|shift|alt|ctrl+shift|middle`, and every cdp.js click reaches into a
+shadow root with `#host >>> #inner`. **A PowerShell helper named `R` is Invoke-History** (the `r` alias):
+a function called R silently never runs — name helpers something else.

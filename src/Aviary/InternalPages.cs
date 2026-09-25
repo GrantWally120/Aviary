@@ -1155,7 +1155,7 @@ var SECTIONS = [
       /* Alpha Build 5 M4.6 — Grant asked for this here, by this name. Both icons ship; the one
          inside the .exe is the blue tile, which is why Explorer keeps showing that one. */
       {t:'App Icon', d:'Which of Aviary’s two icons the <b>taskbar button</b> and <b>Alt-Tab</b> wear — the change is immediate, and the tile below shows which you are on. Aviary draws its own title bar, so there is no icon inside the window itself. The <b>Desktop shortcut and Explorer keep the blue one</b>: that icon lives inside the program file and cannot change while Aviary is running.' + ICON_TILES, ctl:{type:'select', key:'appIcon', opts:['Blue tile','Glass tile'], value:'Blue tile'}},
-      {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. They work on a page as well as in the browser: Aviary reads them before a website can swallow them.', more:'keys', ctl:{type:'none'}},
+      {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. The keys work on a page as well as in the browser: Aviary reads them before a website can swallow them. The link clicks are the other way round on purpose — a website that handles its own clicks, as web apps do, keeps them.', more:'keys', ctl:{type:'none'}},
       {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
       {t:'Read pages aloud', d:'Have Aviary read an article out, with the words marked as it goes.', phase:6, ctl:{type:'none'}},
       {t:'Larger toolbar and tabs', d:'Bigger buttons and taller tabs, for touch and for anyone who finds them small.', phase:6, ctl:{type:'none'}},
@@ -1826,6 +1826,14 @@ var KEYS = [
     ['Ctrl F', 'Find on this page'],
     ['Esc', 'Close the find bar'],
     ['F11', 'Full screen']
+  ]},
+  /* M5 stage 3 - clicks, not keys, but this is where anyone looks for them. */
+  {h:'Links', rows:[
+    ['Ctrl click', 'Open in a new tab, behind this one'],
+    ['Middle click', 'Open in a new tab, behind this one'],
+    ['Ctrl Shift click', 'Open in a new tab, in front'],
+    ['Shift click', 'Open in a new window'],
+    ['Alt click', 'Download the linked file']
   ]},
   {h:'Keeping things', rows:[
     ['Ctrl D', 'Add to Favourites'],

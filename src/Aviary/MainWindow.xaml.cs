@@ -46,9 +46,12 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private static string SearchPrefix => SearchEngines.Current.SearchUrl;
 
-    public MainWindow(bool isPrivate = false)
+    /// <param name="forLink">M5 stage 3: a window opened by Shift+click (or "Open Link in New Window")
+    /// - it holds just that link's tab: no Start Page, no pinned tabs.</param>
+    public MainWindow(bool isPrivate = false, bool forLink = false)
     {
         _private = isPrivate;
+        _linkWindow = forLink;
         OpenWindows.Add(this);
 
         if (!isPrivate)
@@ -296,6 +299,20 @@ public sealed partial class MainWindow : Window
 
         // Never create the session's first WebView on a minimised window (bug 50).
         await WaitUntilNotMinimisedAsync();
+
+        // M5 stage 3: a window opened for a link holds that link's tab and nothing else. The tab is
+        // handed back EMPTY: for a Shift+click the engine navigates it itself.
+        if (_linkWindow)
+        {
+            BrowserTab? first = await CreateTabAsync(select: true, reason: "link opened a new window");
+            if (first is not null)
+            {
+                first.AwaitingFirstPage = true;
+            }
+
+            _linkTab.TrySetResult(first);
+            return;
+        }
 
         if (_private)
         {
@@ -640,7 +657,7 @@ public sealed partial class MainWindow : Window
     /// wiring matters beyond tidiness: this is the list of event subscriptions, and a tab
     /// created down one path that missed one would silently lose downloads or shortcuts.
     /// </summary>
-    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab")
+    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null)
     {
         long created = System.Diagnostics.Stopwatch.GetTimestamp();
         BrowserTab tab = new(_private);
@@ -661,8 +678,8 @@ public sealed partial class MainWindow : Window
         // M4.6 - "New tab position": Safari opens a new tab right after the one you were on;
         // "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the
         // pins whichever way round it is.
-        int at = _tabs.Count;
-        if (select && _active is { } from
+        int at = slot ?? _tabs.Count;
+        if (slot is null && select && _active is { } from
             && AppSettings.Get("newTabPosition").StartsWith("After", StringComparison.OrdinalIgnoreCase))
         {
             int after = _tabs.IndexOf(from);
@@ -708,7 +725,7 @@ public sealed partial class MainWindow : Window
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(created).TotalMilliseconds, 1);
         DiagPerf("tab-create", new { tab = tab.Id, reason, ms, tabs = _tabs.Count });
         DiagTrackSlow("tab-create", ms, reason);
-        DiagUi("tab-open", new { tab = tab.Id, reason, tabs = _tabs.Count });
+        DiagUi("tab-open", new { tab = tab.Id, reason, index = _tabs.IndexOf(tab), tabs = _tabs.Count });
 
         if (ReferenceEquals(tab, _active))
         {
@@ -723,9 +740,19 @@ public sealed partial class MainWindow : Window
     /// straight away, because that is what clicking a link that opens a tab does — and
     /// deliberately not navigated here.
     /// </summary>
-    private async Task<CoreWebView2?> OpenBlankTabAsync()
+    private async Task<CoreWebView2?> OpenBlankTabAsync(string how)
     {
-        BrowserTab? tab = await CreateTabAsync(select: true, reason: "link opened a new tab");
+        // M5 stage 3: Ctrl/middle-click - a tab behind this one; Shift-click - a window of its own.
+        DiagUi("link-open", new { how });
+        if (how == "window")
+        {
+            return (await OpenLinkWindowAsync())?.View.CoreWebView2;
+        }
+
+        bool behind = how == "background";
+        BrowserTab? tab = await CreateTabAsync(select: !behind,
+            reason: behind ? "link opened a background tab" : "link opened a new tab",
+            slot: behind ? BackgroundSlot() : null);
         if (tab is null)
         {
             return null;

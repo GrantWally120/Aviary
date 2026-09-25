@@ -990,6 +990,21 @@ internal sealed partial class BrowserTab
 
                     break;
 
+                case "linkhint":
+                    // M5 stage 3: which kind of new-window request the next one is. Token-checked:
+                    // a page cannot choose where its own links open.
+                    if (root.TryGetProperty("token", out JsonElement hintToken)
+                        && hintToken.ValueKind == JsonValueKind.String
+                        && string.Equals(hintToken.GetString(), ShortcutToken, StringComparison.Ordinal)
+                        && root.TryGetProperty("how", out JsonElement how)
+                        && how.GetString() is "background" or "foreground" or "window"
+                        && root.TryGetProperty("url", out JsonElement hintUrl))
+                    {
+                        _linkHint = (how.GetString()!, hintUrl.GetString() ?? string.Empty, System.Diagnostics.Stopwatch.GetTimestamp());
+                    }
+
+                    break;
+
                 case "painted":
                     // The injected script saw this document's first paint (BrowserTab.Background.cs).
                     // Token-checked like a shortcut, though all a fake could do is show its own tab early.
@@ -1300,6 +1315,30 @@ internal sealed partial class BrowserTab
     e.stopPropagation();
     try { send(stringify({type:'shortcut', action:action, token:TOKEN})); } catch(err){}
   }, true);
+
+  /* M5 stage 3 - WHICH kind of "open elsewhere" a link click meant. The engine already turns a
+     Ctrl-, Shift- or middle-click on a link into a new-window request, but WebView2 does not say
+     which of the three it was, so every one became a tab in front. This only NOTES the click - it
+     never prevents anything: whether a link opens at all is still the page's and the engine's
+     business, so a web app that handles its own Ctrl+click is untouched. Capture phase, so a page
+     that stops the click travelling cannot hide it; trusted clicks only; carries the token. */
+  function linkHint(e){
+    if (!e.isTrusted) { return; }
+    var middle = e.type === 'auxclick' && e.button === 1;
+    if (!middle && (e.type !== 'click' || e.button !== 0)) { return; }
+    if (!middle && !e.ctrlKey && !e.shiftKey) { return; }
+    var path = e.composedPath ? e.composedPath() : [];
+    var link = null;
+    for (var i = 0; i < path.length; i++) {
+      var n = path[i];
+      if (n && (n.tagName === 'A' || n.tagName === 'AREA') && n.href) { link = n; break; }
+    }
+    if (!link) { return; }
+    var how = (middle || e.ctrlKey) ? (e.shiftKey ? 'foreground' : 'background') : 'window';
+    try { send(stringify({type:'linkhint', how:how, url:String(link.href), token:TOKEN})); } catch(err){}
+  }
+  window.addEventListener('click', linkHint, true);
+  window.addEventListener('auxclick', linkHint, true);
 })();
 """;
 
@@ -1960,7 +1999,54 @@ internal sealed partial class BrowserTab
     /// Asks the host for a fresh, initialised, un-navigated CoreWebView2 to hand a new
     /// window to. Null means the host could not make one.
     /// </summary>
-    public Func<Task<CoreWebView2?>>? BlankTabRequested { get; set; }
+    /// <summary>
+    /// Raised so the window can build an EMPTY, initialised, un-navigated tab for a new-window
+    /// request - "tab" (in front), "background", or "window" (M5 stage 3: from the click's hint).
+    /// </summary>
+    public Func<string, Task<CoreWebView2?>>? BlankTabRequested { get; set; }
+
+    /// <summary>The last link click with Ctrl, Shift or the middle button: how, where, and when.</summary>
+    private (string How, string Url, long At)? _linkHint;
+
+    /// <summary>
+    /// What the user's click asked for, if this new-window request came from one. The hint and the
+    /// request travel separately from the page, so the hint may land a moment AFTER the request:
+    /// for a request the user made, a short wait (at most ~120 ms) is allowed for it.
+    /// </summary>
+    private async Task<string> HowToOpenAsync(CoreWebView2NewWindowRequestedEventArgs args)
+    {
+        if (!args.IsUserInitiated)
+        {
+            return "tab";
+        }
+
+        string wanted = Normalise(args.Uri);
+        for (int waited = 0; ; waited += 15)
+        {
+            if (_linkHint is { } hint)
+            {
+                double age = System.Diagnostics.Stopwatch.GetElapsedTime(hint.At).TotalMilliseconds;
+                // The link that was clicked - or, failing an exact match, a click this instant
+                // (a page may open something other than the href; Chromium keys that off the
+                // click's modifiers too).
+                if (age < 1500 && (Normalise(hint.Url) == wanted || age < 400))
+                {
+                    _linkHint = null;
+                    return hint.How;
+                }
+            }
+
+            if (waited >= 120)
+            {
+                return "tab";
+            }
+
+            await Task.Delay(15);
+        }
+
+        static string Normalise(string url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out Uri? u) ? u.GetLeftPart(UriPartial.Query) : url;
+    }
 
     /// <summary>
     /// target="_blank", window.open(), Ctrl+click and middle-click.
@@ -2002,7 +2088,7 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            if (await request() is CoreWebView2 blank)
+            if (await request(await HowToOpenAsync(args)) is CoreWebView2 blank)
             {
                 args.NewWindow = blank;
             }
