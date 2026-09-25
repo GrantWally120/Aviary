@@ -50,6 +50,19 @@ internal static class Experiments
         new("exp.smoothScrollOff", "Turn off smooth scrolling", Badge.Safe, NeedsRestart: true,
             Features: Array.Empty<string>(), Switches: new[] { "--disable-smooth-scrolling" }),
 
+        // Not an engine switch either: it decides how a launch restores pinned tabs (MainWindow.Pinned.cs),
+        // so it too only applies when Aviary starts - hence NeedsRestart, and the row's restart note.
+        new("exp.pinnedOnClick", "Open pinned tabs only when clicked", Badge.Safe, NeedsRestart: true,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Stage 2, at once: every tab but the one in front of its window is muted (MainWindow.Experiments.cs).
+        new("exp.muteBackground", "Mute tabs in the background", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Stage 2, at once: a small readout Aviary draws itself over the page (MainWindow.Overlay.cs).
+        new("exp.perfOverlay", "Show speed and memory on top of pages", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
         // NOT an engine switch - per tab, at once (BrowserTab.Dark.cs). The engine's WebContentsForceDark
         // was built first and measured: it darkened Aviary's own pages as well, and no page could opt
         // out. The per-tab DevTools override does the same darkening for websites only.

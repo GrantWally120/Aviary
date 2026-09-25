@@ -1110,7 +1110,7 @@ var SECTIONS = [
          switches in the browser engine itself, read once when Aviary starts; the page shows a
          note when the saved value differs from what the running engine started with. */
       {t:'Block third-party cookies', d:'Refuses cookies from sites other than the one you are on — the way ads follow you from one site to the next. Sign-in buttons from other sites may ask you to sign in again.', restart:true, ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
-      {t:'Ask sites not to sell or share my data', d:'Sends Global Privacy Control with every request and tells every page’s scripts too. It replaced Do Not Track, and in some places the law requires sites to honour it.', restart:true, ctl:{type:'toggle', key:'gpc', value:true}},
+      {t:'Ask sites not to sell or share my data', d:'Sends Global Privacy Control with every request and tells every page’s scripts too. It replaced Do Not Track, and in some places the law requires sites to honour it. One exception: a page some sites ask the browser to load early, through a note sent with the page, goes without it. Aviary stops early loads a page asks for in its own code, which covers most of them.', restart:true, ctl:{type:'toggle', key:'gpc', value:true}},
       {t:'Remove tracking from links', d:'Takes click identifiers such as fbclid and gclid, and utm_ campaign tags, off any link that takes you to a different site — before that site ever sees them. “Copy Link” removes them too.', ctl:{type:'toggle', key:'stripTracking', value:true}},
       {t:'Always use a secure connection', d:'Asks every site for HTTPS first. If a site has no secure version, Aviary says so and you can choose to continue — a choice it then remembers for that site. Your own computer and local network are left alone.', ctl:{type:'toggle', key:'httpsOnly', value:true}},
       {t:'Send less about where you came from', d:'When a page links to or loads something from another site, that site learns only which site you came from — never the page you were reading.', ctl:{type:'toggle', key:'trimReferrer', value:true}},
@@ -1226,10 +1226,22 @@ var SECTIONS = [
        d:'Pages jump straight to where you scroll, instead of gliding there. Some people find it calmer, and long pages can feel quicker.',
        might:'Scrolling can feel jumpy, and it is easier to lose your place while reading.',
        ctl:{type:'toggle', key:'exp.smoothScrollOff', value:false}},
+      {t:'Open pinned tabs only when clicked', group:'Speed and memory', exp:'safe', restart:true,
+       d:'Your pinned tabs still come back every time Aviary starts, with their icons — but each one only starts loading the first time you click it. Aviary opens sooner and uses less memory until you need them.',
+       might:'The first click on a pinned tab takes a moment while it loads, and until then it cannot show new messages or play anything.',
+       ctl:{type:'toggle', key:'exp.pinnedOnClick', value:false}},
+      {t:'Mute tabs in the background', group:'Speed and memory', exp:'safe',
+       d:'Only the tab in front of each window can make a sound. Switch to a tab and you hear it again. A video you have popped out into its own small window keeps its sound — unless it plays inside a frame on the page, such as a video from another site shown in an article, which goes quiet with its tab for now. Works at once.',
+       might:'Music or a call playing in another tab goes quiet the moment you switch away from it.',
+       ctl:{type:'toggle', key:'exp.muteBackground', value:false}},
       {t:'Make every website dark', group:'Looks', exp:'looks',
        d:'Websites that only come in light colours are turned dark by the browser engine, so a dark screen stays dark at night. It works at once, in every open tab. Aviary’s own pages — Settings, the Start Page — and Reader keep their own look.',
        might:'Some pictures, logos and charts can come out in the wrong colours, and the odd site may be hard to read.',
        ctl:{type:'toggle', key:'exp.darkWebsites', value:false}},
+      {t:'Show speed and memory on top of pages', group:'Troubleshooting', exp:'safe',
+       d:'A small readout in the corner of every window: how much memory Aviary and the tab in front are using, and how busy the processor and graphics card are. The same figures as the Performance page, updated as often as that page’s “How often to measure” says. Aviary draws it over the page, so websites cannot see it, and it never gets in the way of a click. Works at once.',
+       might:'It covers a little of the page’s bottom corner, and measuring costs a little processor time of its own, as the Performance page does while it is open. A screen reader cannot read the corner readout; the Performance page shows the same figures in a form it can.',
+       ctl:{type:'toggle', key:'exp.perfOverlay', value:false}},
       {t:'Turn off video hardware decoding', group:'Troubleshooting', exp:'safe', restart:true,
        d:'Videos are unpacked by the processor instead of the graphics card. Only worth trying if videos flicker, show green blocks, or freeze while the sound carries on.',
        might:'Videos use more of the processor and more power, and very large or fast videos may stutter.',
@@ -1259,8 +1271,8 @@ var SECTIONS = [
   { id:'perf', icon:'perf', name:'Performance', title:'Performance', perf:true,
     lede:'What Aviary is using right now, while this page is open: memory, processor and graphics card, for Aviary itself and every part of its browser engine. The same figures Windows’ Task Manager shows. Nothing here is recorded.',
     rows:[
-      /* M4.6 — LiveStats reads this when it starts, so the choice takes effect the next time
-         you open this page. The foot of the page says which rate it is showing. */
+      /* M4.6 — the rate LiveStats samples at. Since M6 (bug 92) a change takes effect at once
+         (LiveStats.Retime), and the foot of the page says the rate the sampler is really using. */
       {t:'How often to measure', d:'Slower costs Aviary less and steadies the lines; faster catches a spike you would otherwise miss. The figures at the bottom of this page say what the measuring itself costs.', ctl:{type:'select', key:'perfInterval', opts:['Every second','Every 2 seconds','Every 5 seconds'], value:'Every second'}}
     ] },
 
@@ -1385,9 +1397,10 @@ function renderExperimental(s){
     '<div class="row"><div class="row__t"><b>What the labels mean</b><span class="xlegend">' +
       EXP_BADGE.safe + ' Nothing should change except what it says. ' +
       EXP_BADGE.looks + ' A website may draw oddly while it is on.' +
-      /* The third label, Privacy trade-off, joins this line with the first experiment that wears it
-         (stage 2's preload on hover) - together with the ask-once it promises. Not before: a legend
-         entry for a label nothing wears would describe a behaviour that does not exist yet. */
+      /* The third label, Privacy trade-off, joins this line with the first experiment that wears it,
+         together with the ask-once it promises. Not before: a legend entry for a label nothing wears
+         would describe a behaviour that does not exist yet. (Preload on hover was to be the first; it
+         was cut in stage 2, measured - HANDOFF §27.) */
     '</span></div></div>' +
     '<div class="row"><div class="row__t"><b>If something goes wrong</b><span>If Aviary stops unexpectedly soon ' +
       'after you change an experiment, it starts next time with every experiment off, and asks whether to turn ' +
@@ -2828,7 +2841,9 @@ window.__aviaryPerf = function(d){
   var foot = document.getElementById('pf-foot');
   if (foot) {
     foot.textContent = 'Measured ' + (every === 1 ? 'every second' : 'every ' + every + ' seconds') +
-      ', which takes Aviary ' + d.samplerMs.toFixed(1) + ' ms each time, and stops the moment you leave this page. ' +
+      ', which takes Aviary ' + d.samplerMs.toFixed(1) + ' ms each time' +
+      (d.overlay ? '. It carries on after you leave this page, for the readout in the corner (Settings → Experimental → Show speed and memory on top of pages). '
+                 : ', and stops the moment you leave this page. ') +
       'Memory is each part’s private working set and processor is its share of the whole processor — the figures Task Manager shows. ' +
       'Data is what the sites said they were sending, counted only while this page is open; anything streamed without a length is not counted.';
   }

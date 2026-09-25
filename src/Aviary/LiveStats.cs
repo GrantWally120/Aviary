@@ -60,7 +60,8 @@ internal static class LiveStats
     private static volatile bool _watching;
     private static Timer? _timer;
     private static GpuCounters? _gpu;
-    private static Action<Reading>? _deliver;
+    // M6: more than one may listen - the Performance pane and the performance overlay - to ONE sampler.
+    private static readonly Dictionary<string, Action<Reading>> Listeners = new(StringComparer.Ordinal);
 
     private static readonly Dictionary<int, (IntPtr Handle, long Cpu, long At)> Seen = new();
 
@@ -68,40 +69,78 @@ internal static class LiveStats
 
     public static void SetProcesses(IReadOnlyList<Proc> procs) => _procs = procs;
 
-    public static void Start(Action<Reading> deliver)
+    public static void Start(string who, Action<Reading> deliver)
     {
         lock (Gate)
         {
-            _deliver = deliver;
+            Listeners[who] = deliver;
             if (_timer is not null)
             {
+                // M6: someone else is already listening (the corner readout keeps the sampler going
+                // after the Performance page is left) - so a new listener still gets today's rate.
+                RetimeLocked();
                 return;
             }
 
             _watching = true;
             ResetBlocker();
             _uiWorst.Clear();
-            // M4.6: 1, 2 or 5 seconds, from Settings. Slower costs less and smooths the lines;
-            // the page says which rate it is showing and what the sampling itself costs.
-            int every = AppSettings.Get("perfInterval") switch
-            {
-                "Every 2 seconds" => 2000,
-                "Every 5 seconds" => 5000,
-                _ => 1000,
-            };
-
-            _timer = new Timer(_ => Tick(), null, 0, every);
+            _everyMs = SettingMs();
+            _timer = new Timer(_ => Tick(), null, 0, _everyMs);
         }
     }
 
-    public static void Stop()
+    /// <summary>
+    /// The rate actually in use, in milliseconds — what the Performance page says it measures at.
+    /// Not the setting: before M6 the page read the setting, and could say "every 5 seconds" while
+    /// the sampler went on at one (bug 92).
+    /// </summary>
+    public static int EveryMs => _everyMs;
+
+    private static int _everyMs = 1000;
+
+    /// <summary>"How often to measure" changed: a running sampler takes the new rate at once.</summary>
+    public static void Retime()
     {
         lock (Gate)
         {
+            RetimeLocked();
+        }
+    }
+
+    private static void RetimeLocked()
+    {
+        int every = SettingMs();
+        if (_timer is not null && every != _everyMs)
+        {
+            _everyMs = every;
+            _timer.Change(every, every);
+        }
+    }
+
+    // M4.6: 1, 2 or 5 seconds, from Settings. Slower costs less and smooths the lines; the page says
+    // which rate it is showing and what the sampling itself costs. Processor use is worked out from
+    // the real time between two samples (Measure), so the rate can change between them.
+    private static int SettingMs() => AppSettings.Get("perfInterval") switch
+    {
+        "Every 2 seconds" => 2000,
+        "Every 5 seconds" => 5000,
+        _ => 1000,
+    };
+
+    public static void Stop(string who)
+    {
+        lock (Gate)
+        {
+            Listeners.Remove(who);
+            if (Listeners.Count > 0)
+            {
+                return;
+            }
+
             _watching = false;
             _timer?.Dispose();
             _timer = null;
-            _deliver = null;
             _gpu?.Dispose();
             _gpu = null;
             foreach ((IntPtr handle, _, _) in Seen.Values)
@@ -169,16 +208,16 @@ internal static class LiveStats
     private static void Tick()
     {
         long started = Stopwatch.GetTimestamp();
-        Action<Reading>? deliver;
+        Action<Reading>[] deliver;
         GpuCounters gpu;
         lock (Gate)
         {
-            if (!_watching || _deliver is null)
+            if (!_watching || Listeners.Count == 0)
             {
                 return;
             }
 
-            deliver = _deliver;
+            deliver = Listeners.Values.ToArray();
             // Held here, not re-read: Stop() may dispose the shared one while this sample runs.
             gpu = _gpu ??= new GpuCounters();
         }
@@ -249,7 +288,10 @@ internal static class LiveStats
                 Math.Round(rows.Sum(r => r.PeakMB), 1),
                 gpu.ByEngine.ToDictionary(p => p.Key, p => Math.Round(Math.Min(100, p.Value), 1), StringComparer.Ordinal));
 
-            deliver(reading);
+            foreach (Action<Reading> d in deliver)
+            {
+                d(reading);
+            }
         }
         catch (Exception ex)
         {

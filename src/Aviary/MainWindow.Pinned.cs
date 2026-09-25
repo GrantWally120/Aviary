@@ -123,10 +123,23 @@ public sealed partial class MainWindow
             return;
         }
 
+        // M6: "Open pinned tabs only when clicked" - each comes back with its icon and address and NO
+        // engine, and starts the first time it is chosen (M5's dormant tabs, MainWindow.RouseAsync).
+        // Read once, here: it decides how THIS launch restores, so the row says "restart".
+        bool onClick = AppSettings.GetBool("exp.pinnedOnClick");
+
         foreach (string url in urls.Take(12))
         {
             if (BrowserTab.HostOf(url).Length == 0)
             {
+                continue;
+            }
+
+            if (onClick)
+            {
+                BrowserTab dormant = CreateDormantTab(url, string.Empty, "pinned tab restored, dormant");
+                _pinned.Add(dormant);
+                Diagnostics.TabPinned(dormant.Id, true);
                 continue;
             }
 

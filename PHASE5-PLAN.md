@@ -350,9 +350,17 @@ can show). **Replacements:** remember each website's zoom · pop a playing video
 · stop websites asking to show notifications · thin scrollbars on websites · Reader automatically on
 every article. **Stages:** 1 the frame + smooth scrolling / dark websites / video decoding · 2 speed &
 memory · 3 tabs & looks · 4 privacy · 5 wrap-up (gpu / autoplay / language, Updates 13 of 15).
-**Stage 1 built** (not committed): the pane, badges, Turn All Off, Restart Aviary, the crash protection
+**Stage 1 committed `0f6cdbc`:** the pane, badges, Turn All Off, Restart Aviary, the crash protection
 (`SafetyMarker.cs`), and three experiments — "Make every website dark" is PER TAB, not the engine's
 force-dark switch, which darkened Aviary's own pages with no way for a page to opt out.
+**Stage 2 built** (not committed): pinned tabs only when clicked, mute tabs in the background, the
+speed-and-memory readout. **"Preload a page when you point at a link" CUT, measured:** the only preload
+that passes Aviary's filter (`<link rel=prefetch>`) is fetched twice for the HTML most sites serve
+(no-store / no-cache), and the one that is reused (speculation rules) goes around Shields and GPC —
+which is how **bug 91** was found: every website's own speculation rules did that too. Fixed (HANDOFF §10).
+**Stage 2 checked** (25 Sep, clean build): experiments-test 113/113 with Restart, regressions green. The
+checks found four more ways past bug 91's guard (closed) and **bug 92** — Settings → Performance never
+stopped measuring when you left it (fixed; a new "How often to measure" now applies at once).
 
 A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
 nothing about computers can use it without harm.

@@ -26,7 +26,11 @@ public sealed partial class MainWindow
     {
         if (!on)
         {
-            if (ReferenceEquals(_perfPage, page))
+            // Bug 92: by TAB, never by reference. The page's "off" arrives with its own WinRT wrapper
+            // for the same WebView (bug 70's rule), so a reference test never matched: measuring
+            // went on after you left the pane, switched tab or minimised, until the tab itself closed
+            // - and a new "How often to measure" never took effect until then either.
+            if (_perfPage is not null && TabFor(page) is { } leaving && ReferenceEquals(TabFor(_perfPage), leaving))
             {
                 StopPerf();
             }
@@ -59,7 +63,7 @@ public sealed partial class MainWindow
             Diagnostics.Swallowed(ex, "performance: engine processes");
         }
 
-        LiveStats.Start(reading =>
+        LiveStats.Start("performance", reading =>
         {
             // On the sampler's thread. How long the UI thread takes to get to this is also the
             // page's "how quickly Aviary answers" figure.
@@ -87,7 +91,7 @@ public sealed partial class MainWindow
     private void StopPerf()
     {
         _perfPage = null;
-        LiveStats.Stop();
+        LiveStats.Stop("performance");
 
         foreach (MainWindow window in OpenWindows)
         {
@@ -124,7 +128,16 @@ public sealed partial class MainWindow
             return;
         }
 
-        IReadOnlyList<CoreWebView2ProcessExtendedInfo> infos = await _perfEnvironment.GetProcessExtendedInfosAsync();
+        _perfTabsByPid = await RefreshEngineProcessesAsync(_perfEnvironment);
+    }
+
+    /// <summary>
+    /// UI thread: hands <see cref="LiveStats"/> the engine's processes and returns which tabs each
+    /// page process draws. Shared by the Performance pane and (M6) the performance overlay.
+    /// </summary>
+    private static async Task<Dictionary<int, List<BrowserTab>>> RefreshEngineProcessesAsync(CoreWebView2Environment environment)
+    {
+        IReadOnlyList<CoreWebView2ProcessExtendedInfo> infos = await environment.GetProcessExtendedInfosAsync();
 
         // Every window's tabs, by the id of the frame that is their page.
         Dictionary<uint, BrowserTab> byFrame = new();
@@ -170,8 +183,8 @@ public sealed partial class MainWindow
             }
         }
 
-        _perfTabsByPid = tabsByPid;
         LiveStats.SetProcesses(procs);
+        return tabsByPid;
     }
 
     /// <summary>UI thread: one reading, turned into what the page draws, sent to the page that asked.</summary>
@@ -282,12 +295,11 @@ public sealed partial class MainWindow
                 .Where(p => p.Value >= 0.05)
                 .OrderByDescending(p => p.Value)
                 .Select(p => new { name = EngineName(p.Key), percent = p.Value }),
-            everySeconds = AppSettings.Get("perfInterval") switch
-            {
-                "Every 2 seconds" => 2,
-                "Every 5 seconds" => 5,
-                _ => 1,
-            },
+            // The rate the sampler is REALLY using, not the setting (bug 92: they could differ).
+            everySeconds = LiveStats.EveryMs / 1000,
+
+            // M6: while the corner readout is on, measuring does not stop when this page is left.
+            overlay = PerfOverlayOn,
         };
 
         try

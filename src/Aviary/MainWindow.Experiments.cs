@@ -44,8 +44,11 @@ public sealed partial class MainWindow
             foreach (BrowserTab t in w._tabs)
             {
                 t.RefreshDark();
+                t.RefreshMute();
             }
         }
+
+        _ = ApplyPerfOverlayAsync();
     }
 
     /// <summary>A change every open Settings page should draw, in every window.</summary>

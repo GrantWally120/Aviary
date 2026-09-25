@@ -2,6 +2,10 @@
 # Non-intrusive: sends no input and does not steal focus, so it is safe while Grant is at the PC.
 # Optional crop: -Crop "x,y,w,h" in window pixels.
 param([int]$ProcessId, [string]$Out, [string]$Crop = "")
+# .NET resolves a relative path against the PROCESS's directory, not PowerShell's location: run from
+# Zoo\, experiments-test's "shots\xp14.png" failed to save (GDI+ "generic error") and the harness read
+# an old capture instead (25 Sep). Resolve it the way PowerShell would.
+$Out = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Out)
 
 Add-Type -AssemblyName System.Drawing
 Add-Type @"

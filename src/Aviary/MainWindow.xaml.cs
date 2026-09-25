@@ -312,6 +312,7 @@ public sealed partial class MainWindow : Window
             }
 
             _linkTab.TrySetResult(first);
+            _ = ApplyPerfOverlayAsync();   // M6: its corner readout too, if that row is on
             return;
         }
 
@@ -320,6 +321,7 @@ public sealed partial class MainWindow : Window
             // Pinned tabs belong to the normal window; a private one starts with just the
             // Start Page, and there is no crash test to arm here.
             await OpenNewTabAsync(null);
+            _ = ApplyPerfOverlayAsync();
             return;
         }
 
@@ -335,6 +337,7 @@ public sealed partial class MainWindow : Window
 
         // M6: if this launch switched the experiments off after a problem, say so - once.
         _ = TellAboutExperimentsSwitchedOffAsync();
+        _ = ApplyPerfOverlayAsync();
 
         ArmCrashTest();
         ArmStallTest();
@@ -735,6 +738,10 @@ public sealed partial class MainWindow : Window
             ShowNotice(tab, new TabNotice { Kind = "engine-start", Title = "Aviary can't start its browser engine", Detail = ex.Message });
             return null;
         }
+
+        // M6: a tab opened BEHIND (Ctrl+click) never passes SelectTab, so it learns here that it is
+        // in the background - now that its engine exists to be muted.
+        tab.SetInBackground(!ReferenceEquals(tab, _active));
 
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(created).TotalMilliseconds, 1);
         DiagPerf("tab-create", new { tab = tab.Id, reason, ms, tabs = _tabs.Count });
@@ -1387,6 +1394,9 @@ public sealed partial class MainWindow : Window
         foreach (BrowserTab other in _tabs)
         {
             other.SetBackgrounded(!ReferenceEquals(other, tab));
+
+            // M6: "Mute tabs in the background" - nothing is sent while it is off.
+            other.SetInBackground(!ReferenceEquals(other, tab));
         }
 
         foreach (KeyValuePair<BrowserTab, ToggleButton> pair in _tabButtons)
@@ -2723,7 +2733,18 @@ public sealed partial class MainWindow : Window
 
                 // M6: at once, in every open tab of every window - no restart.
                 case "exp.darkWebsites":
+                case "exp.muteBackground":
                     ApplyExperimentsToOpenTabs();
+                    break;
+
+                case "exp.perfOverlay":
+                    _ = ApplyPerfOverlayAsync();
+                    break;
+
+                // Settings -> Performance's rate: a running sampler (the page, the corner readout, or
+                // both) takes it at once, so what the page says is what it does.
+                case "perfInterval":
+                    LiveStats.Retime();
                     break;
 
                 // M4.9: every open Start Page redraws with the background just chosen.
@@ -3842,6 +3863,12 @@ public sealed partial class MainWindow : Window
 
         // M6: a normal close, for the experiments' crash protection - whether or not diagnostics is on.
         SafetyMarker.CleanEnd();
+
+        // M6: the overlay’s sampler goes with the last window.
+        if (_overlayRunning)
+        {
+            StopPerfOverlay();
+        }
 
         // Last: the final summary.md and a session.json that says this session ended
         // cleanly. Bounded, so a stuck disk cannot hold the window open.

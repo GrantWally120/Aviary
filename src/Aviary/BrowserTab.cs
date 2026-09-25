@@ -273,6 +273,8 @@ internal sealed partial class BrowserTab
         // Injected into EVERY document, including ones we did not write, so Ctrl+T keeps
         // working while the caret is inside a text box on somebody else's website. Carries the
         // per-launch shortcut token (see ShortcutToken).
+        // Bug 91: FIRST, before any of the page's own script can add speculation rules.
+        await core.AddScriptToExecuteOnDocumentCreatedAsync(NoSpeculationScript);
         await core.AddScriptToExecuteOnDocumentCreatedAsync(
             ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken));
         await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);

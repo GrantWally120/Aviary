@@ -149,14 +149,17 @@ public sealed partial class MainWindow
     // ── dormant tabs ──────────────────────────────────────────────────────────
 
     /// <summary>A tab with an address, a title and an icon, and no engine yet (<see cref="BrowserTab.Dormant"/>).</summary>
-    private BrowserTab CreateDormantTab(GroupTab page)
+    private BrowserTab CreateDormantTab(GroupTab page) => CreateDormantTab(page.Url, page.Title, "tab group");
+
+    /// <summary>M6: also a pinned tab restored at launch with "Open pinned tabs only when clicked" on.</summary>
+    private BrowserTab CreateDormantTab(string url, string title, string reason)
     {
         BrowserTab tab = new(_private);
         WireTab(tab);
-        tab.MakeDormant(page.Url, page.Title);
+        tab.MakeDormant(url, title);
         tab.SetThemePageColour(ThemePageColour());
         _tabs.Add(tab);
-        DiagUi("tab-open", new { tab = tab.Id, reason = "tab group", index = _tabs.Count - 1, tabs = _tabs.Count, dormant = true });
+        DiagUi("tab-open", new { tab = tab.Id, reason, index = _tabs.Count - 1, tabs = _tabs.Count, dormant = true });
         return tab;
     }
 

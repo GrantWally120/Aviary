@@ -49,14 +49,21 @@ run, the sidebar and Classic included).
 >   start M5 … you have the greenlight”) — §26. Then M7 (measured optimisation), M8 (beta prep).
 > - **M6 — the Experimental menu — STARTED 25 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
 >   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
->   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 BUILT, NOT committed — ask.**
+>   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2 BUILT AND CHECKED, NOT committed** (pinned tabs on
+>   click, mute background tabs, speed-and-memory readout, bugs 91 and 92 fixed; preload CUT) — from a clean
+>   build `experiments-test.ps1 -Restart` **113/113**, audit 74/9/0, every regression green (§27's last
+>   part). **Waiting on Grant's OK to commit.** Then stage 3 (tabs & looks — suggest a 20th experiment).
 >   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
 >   **5 wrap-up — `0e8d432`**. **PUBLISHED 25 Sep** to `publish/Aviary` at `0e8d432` (§26, last part). Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
->   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
+>   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced).
+>   **91** (websites' speculation rules loaded pages outside Aviary — Shields, GPC and all) found and fixed
+>   in M6 stage 2, then given a second look in its checks (four more ways in, closed); two routes left open
+>   and said so (§10). **92** (Settings → Performance never stopped measuring when you left it — bug 70's
+>   rule broken, since M4.5) found and fixed in the same checks. Next bug number **93**.
 > - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
 >   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
 > - **⚠ DOUBLE-CHECK M4.9 BEFORE BUILDING ON IT (Grant's instruction, 24 Sep).** The session that
@@ -1433,6 +1440,63 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     main thread after load, closed through DevTools 0.7 s in) gave ZERO errors on the committed build
     as well — the control failed, so it proves nothing either way. If it recurs in his folder, the
     repro is wrong, not the rule.
+91. **FIXED in M6 stage 2 (mostly — one route stays open, said so) — a website's speculation rules
+    loaded pages OUTSIDE Aviary.** Found 25 Sep measuring "Preload a page when you point at a link".
+    Speculation rules (`<script type="speculationrules">` — Google Search, every WordPress site since
+    6.8) make the ENGINE's own prefetch service fetch pages ahead of time, and on this engine those
+    requests are never handed to `WebResourceRequested` — even with all source kinds registered. The
+    proof was a temporary probe that stamped every request the filter was handed and answered 204 for
+    one address: the prefetch of that address reached the test server; a `fetch()` of it (the
+    control) did not. So speculative loads skipped Shields, tracking-parameter stripping, client-hint
+    removal — and GPC: the engine's own GlobalPrivacyControlForce leaves them without Sec-GPC, while
+    `<link rel=prefetch>` and `fetch()` carry it. **My first reading was wrong** — diagnostics'
+    network.jsonl listed the prefetches, which looked like "the filter saw them"; those lines come from
+    the RESPONSE listener. Adding Sec-GPC in the filter did nothing (the request never arrives), and no
+    engine switch helps (`--disable-blink-features=SpeculationRules`, `--disable-features=Prerender2,…`:
+    loads still went out). **Fix:** `BrowserTab.Speculation.cs` — a script before any of the page's
+    own, in every frame, that answers `HTMLScriptElement.supports('speculationrules')` with false and
+    removes any rules script as it is inserted (HTML or script), before the engine starts a load.
+    Measured with `spec-probe.js`: rules in the HTML (immediate, hover, prerender) and added by script
+    — all loads without it, none with it; `<link rel=prefetch>` (through the filter) unchanged. Cost on
+    a page adding 500-row batches: ~0.1–0.2 ms a batch, within noise. **Still open:** rules in a
+    `Speculation-Rules` RESPONSE HEADER (Cloudflare's Speed Brain) — the JSON file they name IS fetched
+    through the filter, but at that moment it looks like any CORS request (`Accept: */*`, context
+    Other), and the header can only be read after the fact. The GPC row now says so in plain words.
+    **"Seen in diagnostics" is not "seen by the filter": ask which listener wrote the line.**
+    **Second look (25 Sep, the stage 2 checks — from reading the guard, then measured):** the guard
+    looked at a script's type only as the script was ADDED. But the engine reads a script as rules when
+    it is added OR when something is put inside it later, with the type it has then — and the rules
+    last while the element is in the page, whatever its type says afterwards. Four more ways in, each
+    loading on the first guard AND on the published M5 build (the control — so each is a real route):
+    a script added as `text/plain` (or empty) and made rules later; a rules script whose type is changed
+    AWAY in the same task it was added in; rules inside shadow roots made by script (open, closed, even
+    with another frame's `attachShadow`); rules inside an open shadow root declared in the HTML. **All
+    closed:** type changes are watched with their old value, a script that is or was rules is taken
+    out whichever record names it, every shadow root is watched as it is made (`attachShadow` wrapped
+    in a `Proxy`, which still reads as native code) or arrives open, and every DOM method and getter the
+    guard calls is taken before the page's own script runs. `spec-probe.js` measures all eight routes
+    ("late"); experiments-test section 15 checks them against the M5 control. **Still open, measured:**
+    the header route above, and a CLOSED shadow root declared in the page's own HTML (nothing outside a
+    closed root can see in, and the parser never calls `attachShadow`). Both need the site to do it on
+    purpose. **My first probe of this "proved" nothing: the M5 control loaded nothing either (the loop
+    passed each case's FUNCTION to DevTools instead of calling it). The control is what said so.**
+92. **FIXED in M6 stage 2 — Settings → Performance never stopped measuring when you left it** (found
+    25 Sep in the stage 2 checks; as old as the page, M4.5). Its foot says the measuring "stops the
+    moment you leave this page", and the page does post `perfWatch off` when you switch pane, switch
+    tab or minimise (checked by hooking its messages) — but `PerfWatchAsync` stopped only if
+    `ReferenceEquals(_perfPage, page)`, and the CoreWebView2 a WebMessageReceived event hands over is a
+    different WinRT wrapper every time: **bug 70's rule, broken the day bug 70 was found.** So the
+    sampler — and every tab's data counting (`WatchData`) — ran until the Settings TAB closed, and a new
+    "How often to measure" never reached it, while the foot (which read the SETTING) said the new rate.
+    Measured with the page's own updates counted inside it: 6 in 6 s on another pane — on this build
+    and on the published M5 build alike. Found because stage 2's readout keeps the same sampler going on
+    purpose, which made the rate question worth asking. **Fix:** the leaving tab is found through
+    `TabFor` (frame id); a new rate reaches a running sampler at once (`LiveStats.Retime`, which also
+    makes the readout row's "as often as that page says" true); the foot says the rate the sampler is
+    really using (`LiveStats.EveryMs`), and — while the readout is on — that measuring carries on for
+    it. experiments-test section 16: 0 updates in 5 s on another pane and on another tab, measuring
+    again on return; control, the M5 build, went on. **Grep for `ReferenceEquals(` on any CoreWebView2
+    an event gave you.**
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2701,7 +2765,7 @@ week-old tabs, double-click, tint, per-site zoom, video pop-out, thin scrollbars
 5 wrap-up (the plan's "also in M6": gpu / autoplay / language made real, minFont re-badged or cut; Updates
 13 of 15; Aviary.html PHASES).
 
-### Stage 1 — the frame, and three experiments (25 Sep, BUILT — not committed)
+### Stage 1 — the frame, and three experiments (25 Sep, COMMITTED `0f6cdbc` — Grant: "Continue")
 
 - **Settings → Experimental** (`InternalPages.cs`, section `experimental`, after System; System's old
   badged "Experimental features" row is now a live link to it). The header says it in plain words —
@@ -2775,3 +2839,81 @@ key); a DevTools screenshot of a BACKGROUND tab never returns — shoot the tab 
 (`Shot` in the harness); the Collection's index is a dark design of its own, so it proves nothing about
 darkening; a harness that closes an instance with two tabs must answer "Close this window?".
 Grant's diagnostics: unchanged since 06:12 — not exercised.
+
+
+### Stage 2 — speed and memory, bugs 91 and 92 (25 Sep, BUILT AND CHECKED — not committed)
+
+**"Preload a page when you point at a link" — CUT, measured, and it found bug 91.** Measured before
+building (`preload-probe.js`, `reuse-probe.js`, `spec-probe.js`, `expsite.js` /hover /slow /spec-*):
+- The engine supports speculation rules (on hover, list, prerender) — and those loads **never reach
+  Aviary's request filter** (bug 91, §10): no Shields, no GPC, no tracking-parameter stripping.
+- The one preload that DOES pass the filter, `<link rel=prefetch as=document>`, is reused on the click
+  only when the site marks its HTML cacheable (`max-age`); for `no-store`, `no-cache` and
+  `private, max-age=0` — what most sites send — the page was fetched TWICE (server asked 2×, first byte
+  still ~710 ms). A safe preload would mostly cost a second request; a useful one goes around Shields.
+  By the plan's own rule it is cut, not shipped inert. So M6 has **19** experiments, not 20.
+- **Bug 91's fix** (`BrowserTab.Speculation.cs`): a script before any of the page's own, in every frame,
+  answers `supports('speculationrules')` false and removes any rules script as it is inserted.
+  Rules in the HTML and added by script load nothing now (`spec-probe.js`: control = the published M5
+  build, which loaded all of them). **Open, and said so:** rules sent in a `Speculation-Rules` response
+  HEADER (Cloudflare's Speed Brain) — the rule file passes the filter but looks like any CORS request
+  (`Accept: */*`, context Other) at that moment. The GPC row now says there is one exception.
+  Cost of the guard: ~0.1–0.2 ms per 500-row DOM batch (`expsite.js /churn`), within noise.
+
+**The three experiments:**
+- **Open pinned tabs only when clicked** (Speed and memory, Safe, restart) — `RestorePinnedAsync`
+  makes M5's DORMANT tabs (`CreateDormantTab(url, title, reason)`): icon and address, no engine, until
+  first chosen (`RouseAsync`). Measured: 1 engine at launch instead of 3 with two pinned tabs (control);
+  pressing one starts it and it loads; a normal close keeps both pinned (one never started).
+- **Mute tabs in the background** (Speed and memory, Safe, at once) — `BrowserTab.Mute.cs`: every tab
+  but the one in front of its window gets the engine's per-tab mute, set and cleared by Aviary only
+  (`_mutedForBackground`), nothing sent while off. A tab opened BEHIND (Ctrl+click) never passes
+  `SelectTab`, so `CreateTabAsync` tells it too. A tab whose video is in picture in picture keeps its
+  sound (checked as it goes to the back). **Measured by what comes out of the speakers**
+  (`audio-peak.ps1` — Windows' own audio meter for the instance's sessions; a 0.02 tone reads 0.02):
+  in front 0.02 · behind **0** (control: 0.02) · back 0.02 · Ctrl+click tab silent from the start
+  (control: heard) · PiP tab behind 0.02 · switched off in Settings: heard again at once (0 just
+  before). Known limit: a video popped out from inside a frame (an embedded player) is not seen —
+  **measured in the checks** (`frame-pip.js`): behind another tab it reads 0, with the row off 0.02;
+  the row promised every popped-out video kept its sound, and now names the exception instead.
+- **Show speed and memory on top of pages** (Troubleshooting, Safe, at once) — `MainWindow.Overlay.cs`:
+  a readout Aviary draws in the corner of every window (Aviary's memory, the tab in front, processor,
+  graphics), click-through, never in the page. `LiveStats` now takes NAMED listeners
+  (`Start("performance"|"overlay", …)`), so one sampler feeds the Performance page and the readout at
+  once; the engine-process lookup is shared (`RefreshEngineProcessesAsync`). **Found by looking:** the
+  tab in front read "—" after a pinned tab was roused — the engine announces a new page process before
+  the page moves into it, and nothing says when it does — so the readout asks again when its tab is
+  missing, one question at a time; and on a dark page the box vanished (a faint edge now).
+  **Found by the harness:** the readout is NOT in the UI Automation tree — nor is anything laid over
+  the web view, with or without hit-testing (both measured) — so a screen reader cannot read it (the
+  row says so; the Performance page has the same figures), and the harness's first overlay checks had
+  been matching the Settings Performance page's OWN "Processor" text. `AVIARY_OVERLAY_TEST=1` now writes
+  what was drawn to `overlay-test.txt`, and the checks read that.
+  **Found in the checks:** the readout keeps the one sampler going after the Performance page is left —
+  on purpose — so a new "How often to measure" never reached it (it is read when a sampler STARTS), and
+  that question uncovered bug 92 (§10): the page itself had never stopped the sampler either. A new rate
+  now reaches a running sampler at once (`LiveStats.Retime`), and the page's foot says the rate really in
+  use and, while the readout is on, that measuring carries on for it. Also: a fast on-off could let a
+  start still waiting on the engine run after the stop (sampler on, row off) — a generation count now.
+
+**Checked (Stage 2) — finished 25 Sep (evening), from clean builds.** First the harness exactly as it was
+left, on a clean build of the tree as left: **99/100 with -Restart** (the Restart section 7/7, `guard.ps1`
+clear). Its one FAIL was the harness's own: `CornerMean` gave `peek.ps1` a RELATIVE path, .NET saved it
+against the PROCESS's directory (the run was started from `Zoo\`, not `tools\test`), GDI+ threw its
+"generic error", and the check read an OLD capture from an earlier run — so the control saw a dark corner
+on a white page, and the "on" check's PASS beside it was just as hollow. `peek.ps1` now resolves the path
+the PowerShell way; the check deletes the old capture first and reads −1 if none is made. Then stage 2's
+code, read with fresh eyes, and every suspicion measured with a control before anything was changed —
+bug 91's second look (§10), bug 92 (§10), the rate above, the embedded-player limit, the start/stop race.
+After the fixes, a clean rebuild of the final tree (nothing in `src/` newer than it):
+**`experiments-test.ps1 -Restart` 113/113** — sections 13–16 grew: the embedded-player limit and the row that
+now names it; the rate reaching page (gaps 5 s) and readout; bug 91's eight new routes, all loading on the
+published M5 build (the control) and one here (a closed shadow root declared in the page's own HTML —
+said so); bug 92, 0 updates in 5 s on another pane and on another tab, the M5 control going on ·
+`settings-audit.js` **74 live / 9 badged / 0 inert** · regressions on that build: downloads **53/53**,
+links **27/27**, groups **40/40**, pip **14/14**, forget **17/17**, startbg **13/13** (no picker), `si-race`
+**6/6** · the hardened guard's cost on `/churn`: **0.8–0.9 ms a 500-row batch against 0.6–0.7 with no guard**
+(M5), about what the first guard cost. Three probes first "proved" things they could not — the dropdown
+press that never opened (the row is 1,600 px down: scroll it into view, then press), the route probe that
+sent a function instead of a script, and the stale capture — and each was caught by its control.
+Grant's diagnostics: unchanged since 06:12 — not exercised. **Next: Grant's OK to commit stage 2.**
