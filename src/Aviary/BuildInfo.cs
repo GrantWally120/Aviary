@@ -54,8 +54,10 @@ internal static class BuildInfo
     /// M4.7 "Immediate Fix" (21 Sep) is the ninth: the menus M4.6 broke, put right.
     /// M4.8 "A Iconic Fix" (21 Sep) is the tenth, and M4.9 "Birds News" (24 Sep) the eleventh —
     /// counted here only once all three of its stages had landed, which they have.
+    /// M5 — the download ring, link clicks and tab groups (25 Sep) — is the twelfth, counted once
+    /// all four of its building stages had landed.
     /// </summary>
-    public const int MilestonesDone = 11;
+    public const int MilestonesDone = 12;
 
     public const int Milestones = 15;
 

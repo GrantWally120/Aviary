@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **24 September 2026 (night)**, with **M5 under way** — section 26 (Stage 1 of 5 built, not yet committed), after M4.9 “Birds News” was finished (§25) and then re-checked from a clean build (§25’s last part). Alpha Build 5 is called **The Long Run**.
+Last updated **25 September 2026**, with **M5 finished** — section 26 (all five stages), after M4.9 “Birds News” was finished (§25) and then re-checked from a clean build (§25’s last part). Alpha Build 5 is called **The Long Run**.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -43,13 +43,14 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (24 Sep 2026 — read this first in a new chat)**
-> - Alpha Build 5 **"The Long Run"**: **11 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
->   M4.6, M4.7, M4.8, M4.9). **M5 STARTED 24 Sep at Grant’s word** (“officially go start M5 … you
->   have the greenlight”) — §26. Then M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
-> - **M5 stages** (each its own commit, with Grant’s OK; none published yet): **1 the download surface —
->   `932ea18`** · **2 Ask where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab
->   groups — BUILT, NOT COMMITTED** · 5 wrap-up. Read **§26 first**, then §25.
+> **WHERE THINGS STAND (25 Sep 2026 — read this first in a new chat)**
+> - Alpha Build 5 **"The Long Run"**: **12 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
+>   M4.6, M4.7, M4.8, M4.9, M5). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
+>   start M5 … you have the greenlight”) — §26. Next, only when he says: M6 (Experimental menu), M7
+>   (measured optimisation), M8 (beta prep).
+> - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
+>   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
+>   **5 wrap-up — committed** (the commit after `eb253d1`). **None of M5 is published yet — ask.** Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
 >   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
@@ -89,8 +90,8 @@ run, the sidebar and Classic included).
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
 > - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
->   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stages 1–3 committed (`932ea18`,
->   `cbe522e`, `861dcea`), NOT published; stage 4 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
+>   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 committed in full (`932ea18`,
+>   `cbe522e`, `861dcea`, `eb253d1`, then the wrap-up), NOT published** — ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -2396,7 +2397,7 @@ session: nothing new since 21 Sep.
 
 ---
 
-## 26. Alpha Build 5 M5 — downloads, links, tab groups (started 24 Sep 2026)
+## 26. Alpha Build 5 M5 — downloads, links, tab groups (24–25 Sep 2026 — DONE)
 
 Grant, 24 Sep: *"now officially go start M5 … you have the greenlight"* — the plan's M5, carried from
 Phase 4 (PHASE5-PLAN.md): the download ring, popover and a list that remembers; LinkScript; tab
@@ -2546,7 +2547,7 @@ recorded, not "fixed". Opening any new window costs 56–105 ms, as before M5 (a
 shadow root with `#host >>> #inner`. **A PowerShell helper named `R` is Invoke-History** (the `r` alias):
 a function called R silently never runs — name helpers something else.
 
-### Stage 4 — tab groups (25 Sep, BUILT, NOT COMMITTED)
+### Stage 4 — tab groups (25 Sep, COMMITTED `eb253d1` — Grant: "Go"; not published)
 
 Safari's Tab Groups, as PHASE5-PLAN put it: named, kept, switched from the sidebar. A window shows its
 own tabs or one group; switching swaps the whole set (`TabGroups.cs` — `tabgroups.json`, temp-then-move;
@@ -2590,3 +2591,20 @@ strings — spell them `[char]0x2019` etc.; `"[]" | ConvertFrom-Json` comes out 
 of it counts 1 — unroll with `ForEach-Object { $_ }`; and a function returning a one-item list returns the
 item — wrap the CALL, `@(Groups)`. Also: a MenuFlyoutItem's own text label carries its name, so count UIA
 elements by name AND control type.
+
+### Stage 5 — the wrap-up (25 Sep, COMMITTED — Grant: "Go ahead for stage 5"; not published)
+
+M5 is the **twelfth** milestone: `BuildInfo.MilestonesDone` **12**, so Updates reads **12 of 15** with M6
+next. The Updates entry is dated 25 Sep and says what shipped; the notes gain **Downloads** and **Links
+and tab groups**, and Fixes gains bugs 89 and 88 in plain words (90 is not listed: it was fixed by rule and
+never reproduced, so the notes do not claim it). `Aviary.html` — its PHASES array only — dates M5, ticks
+"Downloads ring", "Link clicks" (new) and "Tab groups", and moves them out of "Still to come".
+**Found on the way:** M4.9 stage 3's five features were in its milestone line but had **no notes group**
+on the Updates page — the close-out of 24 Sep dated the line and stopped. Added as "Birds News, part
+three — five picks", written from §25 and careful of the open bugs (86, 87): it claims nothing they
+contradict.
+**Checked (Stage 5):** a clean publish · `settings-audit.js` **68 / 9 / 0** · the Updates page driven on
+a scratch profile: "12 of 15 milestones done", M5 ticked and dated, M6 "Next", both new groups and both
+Fixes lines rendered (photographed) · `Aviary.html`'s PHASES array evaluated by node: parses, M5 dated,
+M6 the first undated, 20 of 22 chips ticked · Grant's diagnostics unchanged since 06:12 (49 issues, no
+crashes) — **not exercised**, which says nothing about M5.

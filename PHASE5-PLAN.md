@@ -323,9 +323,9 @@ Grant's ask, while testing M4.8. Plan: `~/.claude/plans/fix-one-more-thing-tingl
   (on close / 5 min / 1 h / 1 day), Safety Check, Start Page backgrounds, Picture-in-picture (verified
   against the engine first, badged rather than shipped dead if it cannot).
 
-### M5 — Carried from Phase 4 · **STARTED 24 Sep 2026** (HANDOFF §26)
-Five stages, each its own commit with Grant’s OK: **1 the download surface — committed `932ea18`** ·
-**2 Ask where to save + drag out — committed `cbe522e`** · **3 link clicks — committed `861dcea`** · **4 tab groups — built, not committed** · 5 wrap-up.
+### M5 — Carried from Phase 4 · **DONE, 24–25 Sep 2026** (HANDOFF §26)
+Five stages, each its own commit with Grant’s OK: **1 the download surface — `932ea18`** ·
+**2 Ask where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** · **5 wrap-up — committed** (Updates, 12 of 15). Not published yet.
 Stage 1 found and fixed bugs 88 (Safety Check promised a download warning nothing gave) and 89 (Edge’s
 own Downloads panel over Aviary). Bugs 85–87 (from re-checking M4.9) stay open until Grant says.
 

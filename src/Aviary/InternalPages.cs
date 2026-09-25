@@ -723,8 +723,8 @@ var UPDATES = [
        d:'The app icon really changes the taskbar now, and the row shows you which tile you are on. Performance reads like Task Manager — every part of Aviary on its own line, with the tabs it draws under it. Memory saver stops hinting and starts handing memory back: an idle tab goes to sleep and wakes when you click it.'},
       {n:'M4.9', t:'Birds News', when:'24 Sep',
        d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome. Ctrl+Shift+A searches your open tabs. Any site can be set to be forgotten — when you close its last tab, or five minutes, an hour or a day after. Safety Check gathers everything that could be safer into one page, with a button to fix each one. The Start Page gets six backgrounds, five of them drawn by Aviary in whichever look you are using, and the sixth your own picture. Right-click any video for picture in picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
-      {n:'M5', t:'The download progress ring and tab groups',
-       d:'Safari’s download ring with a downloads list that remembers, and named groups of tabs you can switch between.'},
+      {n:'M5', t:'The download progress ring and tab groups', when:'25 Sep',
+       d:'Safari’s download ring, which fills as your files arrive and bounces when the last one lands, over a downloads list that remembers — cleared on the schedule you choose. Aviary can ask where to save each file, a finished download can be dragged out onto the desktop, and a downloaded program asks before it opens. Ctrl-click and the middle button open a link behind the page you are on, Shift-click in a window of its own. And tab groups: named sets of tabs you put away and bring back, from the sidebar or the button beside it.'},
       {n:'M6', t:'The Experimental menu, in plain English',
        d:'Twenty opt-in experiments, each explained in everyday words — and not one of them can make Aviary less safe.'},
       {n:'M7', t:'Faster and smoother — and measured',
@@ -804,6 +804,30 @@ var UPDATES = [
         '<b>The graphics card by the kind of work</b>: drawing, video, moving data',
         '<b>Memory in full</b>: what is in use, what Aviary has asked Windows for, and the most it has ever held at once',
         '<b>Sort the tabs</b> by memory, processor or data, and <b>choose how often</b> Aviary measures — every 1, 2 or 5 seconds'
+      ]},
+      {h:'Downloads', items:[
+        '<b>The download ring.</b> The toolbar’s download button fills as your files arrive — one ring for all of them together — turns while a site hasn’t said how big a file is, and bounces once when the last one lands. It stays hidden until there is something in the list, as Safari’s does',
+        '<b>A list that remembers.</b> Every download with its own file icon, how far along it is and how long is left. Double-click or Enter opens a file, the magnifier shows it in its folder, Stop and ↻ do what they say, and right-click has the rest. <kbd>Ctrl+J</kbd> or <kbd>Ctrl+Alt+L</kbd> opens it',
+        '<b>Remove download list items</b> — after one day, when Aviary quits, as soon as a download succeeds, or only when you say. Only the list is cleared, never a file',
+        '<b>Location</b> chooses where downloads go, and <b>Ask where to save each file</b> brings up Windows’ Save window before a download starts instead. Cancel it and nothing is downloaded',
+        '<b>Drag a finished download</b> out of the list onto the desktop or into a folder',
+        '<b>A downloaded program asks before it opens</b> — installers, scripts and disk images too. Aviary never opens a download by itself',
+        'A download keeps going when you close the tab it came from, and one whose connection drops carries on where it stopped when the site allows it. Closing Aviary while something is downloading asks first, and a download stopped that way is listed with a button to fetch it again',
+        'A private window keeps a list of its own, never written down and gone with the window'
+      ]},
+      {h:'Links and tab groups', items:[
+        '<b>Ctrl-click or the middle button</b> opens a link in a new tab behind the one you are on — next to it, in the order you opened them, unless new tabs are set to go at the end. <b>Ctrl+Shift-click</b> opens it in front, <b>Shift-click</b> in a new window, and <b>Alt-click</b> downloads it',
+        'In the right-click menu, <b>Open Link in New Tab</b> opens it behind too, and <b>Open Link in New Window</b> joins it',
+        '<b>Tab groups.</b> Keep a set of tabs under a name and switch between sets — from the <b>Tab Groups</b> pane in the sidebar, from the button with the group’s name beside the sidebar button, or with <b>Move to Tab Group</b> in a tab’s right-click menu. A group saves itself as its tabs change. Not in a private window',
+        'Coming back to a group loads only the tab in front; the others wait until you choose them, so even a big group comes back quickly. Pinned tabs stay where they are through every switch',
+        'A tab’s right-click menu opens from the keyboard now too — the menu key or <kbd>Shift+F10</kbd>'
+      ]},
+      {h:'Birds News, part three — five picks from Brave, Safari and Chrome', items:[
+        '<b>Search your open tabs</b> with <kbd>Ctrl+Shift+A</kbd> — every tab in every window of the same kind, by title or address. Private and ordinary windows are never listed together',
+        '<b>Forgetful browsing.</b> Choose, from the shield, for any site to be forgotten — its cookies and everything it stores — when you close its last tab, or five minutes, an hour or a day after. Opening it again in time cancels it. Settings lists every forgetful site',
+        '<b>Safety Check</b> in Settings reads back what could be safer — Shields lowered for sites, HTTPS, cookies, the age of the filter lists — with a button to fix each one',
+        '<b>Start Page backgrounds</b>: five drawn by Aviary out of the look you are using, so each follows Classic, Liquid Glass, light and dark, and a sixth that is your own picture',
+        '<b>Picture in picture</b> from the right-click menu of any video whose site allows it'
       ]},
       {h:'Birds News', items:[
         '<b>Live news on your Start Page</b>, right under Favourites: <b>The World</b> from BBC News, Al Jazeera and The Guardian, and <b>The Philippines</b> from Inquirer, Rappler and GMA News, side by side. Each publisher gets a turn, newest first',
@@ -907,7 +931,9 @@ var UPDATES = [
         'A page that crashes now says so, with a Reload Page button',
         'A setting changed at the very moment Aviary was reading its settings back could fail to save',
         'The improvement data’s summary showed file sizes from the session before',
-        'A second copy of Aviary from another folder now says Aviary is already open, instead of sharing its data'
+        'A second copy of Aviary from another folder now says Aviary is already open, instead of sharing its data',
+        'A download from a link that opens a new tab brought Edge’s own Downloads panel up over Aviary',
+        'Safety Check said Aviary warned before opening a downloaded program, when nothing did. Now it does'
       ]}
     ]},
   { phase:6, name:'Testing 1',
