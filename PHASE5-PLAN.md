@@ -353,7 +353,7 @@ memory · 3 tabs & looks · 4 privacy · 5 wrap-up (gpu / autoplay / language, U
 **Stage 1 committed `0f6cdbc`:** the pane, badges, Turn All Off, Restart Aviary, the crash protection
 (`SafetyMarker.cs`), and three experiments — "Make every website dark" is PER TAB, not the engine's
 force-dark switch, which darkened Aviary's own pages with no way for a page to opt out.
-**Stage 2 built** (not committed): pinned tabs only when clicked, mute tabs in the background, the
+**Stage 2 committed `47ddf0b`:** pinned tabs only when clicked, mute tabs in the background, the
 speed-and-memory readout. **"Preload a page when you point at a link" CUT, measured:** the only preload
 that passes Aviary's filter (`<link rel=prefetch>`) is fetched twice for the HTML most sites serve
 (no-store / no-cache), and the one that is reused (speculation rules) goes around Shields and GPC —
@@ -361,6 +361,12 @@ which is how **bug 91** was found: every website's own speculation rules did tha
 **Stage 2 checked** (25 Sep, clean build): experiments-test 113/113 with Restart, regressions green. The
 checks found four more ways past bug 91's guard (closed) and **bug 92** — Settings → Performance never
 stopped measuring when you left it (fixed; a new "How often to measure" now applies at once).
+**Stage 3 committed:** tint the toolbar to match the page, thin scrollbars (CSS —
+the engine's scrollbar features measured useless), each website's zoom, Reader on every article, tab
+previews, **switch to a tab that is already open (the 20th, replacing preload — back to 20)**, pop a playing
+video out, close week-old tabs, and double-click below the tabs — built for tabs down the side, because
+along the top the tabs always fill their bar. Found on the way: **bugs 93** (Reader's state per window),
+**94** (Memory saver slept a tab you had just read) and **95** ("Underline links" on Aviary's own pages).
 
 A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
 nothing about computers can use it without harm.

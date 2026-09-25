@@ -175,6 +175,46 @@ window.pip = async function () {
   if (u.pathname === '/spec-static') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(SPEC_STATIC); return; }
   if (u.pathname === '/spec-header') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'speculation-rules': '"/rules.json"' }); res.end(SPEC_HEADER); return; }
   if (u.pathname === '/rules.json') { res.writeHead(200, { 'content-type': 'application/speculationrules+json', 'cache-control': 'no-store' }); res.end(RULES_JSON); return; }
+  // M6 stage 3, "Tint the toolbar to match the page". /tint?c=<any CSS colour> declares one theme-color;
+  // /tint-scheme declares one per colour scheme (light #e0f0ff, dark #102030); /tint-app is a web app
+  // that, 1.5 s after loading, changes its colour AND its address without loading a page (pushState).
+  if (u.pathname === '/tint' || u.pathname === '/tint-scheme' || u.pathname === '/tint-app') {
+    const c = (u.searchParams.get('c') || '#0a7d4b').replace(/[<>"&]/g, '');
+    const metas = u.pathname === '/tint-scheme'
+      ? '<meta name="theme-color" media="(prefers-color-scheme: light)" content="#e0f0ff"><meta name="theme-color" media="(prefers-color-scheme: dark)" content="#102030">'
+      : `<meta name="theme-color" content="${c}">`;
+    const app = u.pathname === '/tint-app'
+      ? `<script>setTimeout(function(){document.querySelector('meta[name=theme-color]').setAttribute('content','#aa2200');history.pushState({},'','/tint-app?moved=1');document.title='exp tint app moved';},1500);</script>` : '';
+    // &article=1: /article itself (a page Reader is known to take) with the colour added - to prove
+    // Reader drops the tint. (A home-made article was tried first: Reader's probe found 0 words in it.)
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    if (u.searchParams.get('article') === '1') { res.end(ARTICLE.replace('<meta charset="utf-8">', '<meta charset="utf-8">' + metas)); return; }
+    res.end(`<!doctype html><meta charset="utf-8">${metas}<title>exp tint</title><body style="font:20px system-ui;padding:2rem;background:#fff">a page that chooses a colour${app}</body>`);
+    return;
+  }
+  // M6 stage 3, "Pop a playing video out when you switch tabs": a VIDEO that plays with sound (a drawn
+  // canvas + the quiet tone, as one stream) once start() is called with a gesture - NOT popped out.
+  // ?muted=1 plays it muted (must not pop out); ?nopip=1 bars picture in picture (must not either).
+  if (u.pathname === '/video') {
+    const muted = u.searchParams.get('muted') === '1', nopip = u.searchParams.get('nopip') === '1';
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(`<!doctype html><title>exp video</title><body style="font:20px system-ui;padding:2rem">
+<canvas id="c" width="160" height="90"></canvas><video id="v" width="480" height="270" playsinline${nopip ? ' disablepictureinpicture' : ''}></video><script>
+window.start = async function () {
+  var cv = document.getElementById('c'), g2 = cv.getContext('2d'), n = 0;
+  setInterval(function () { g2.fillStyle = 'hsl(' + (n++ * 7 % 360) + ',70%,50%)'; g2.fillRect(0, 0, 160, 90); }, 50);
+  var ac = new AudioContext(), o = ac.createOscillator(), gain = ac.createGain(), dest = ac.createMediaStreamDestination();
+  gain.gain.value = 0.02; o.frequency.value = 220; o.connect(gain); gain.connect(dest); o.start();
+  var v = document.getElementById('v');
+  v.srcObject = new MediaStream([cv.captureStream(20).getVideoTracks()[0], dest.stream.getAudioTracks()[0]]);
+  v.muted = ${muted ? 'true' : 'false'};
+  await v.play();
+  return !v.paused;
+};
+window.state = function () { return JSON.stringify({ pip: !!document.pictureInPictureElement, playing: !document.getElementById('v').paused }); };
+</script></body>`);
+    return;
+  }
   // Bug 91's second look: rules inside a shadow root the HTML itself declares (open or closed).
   if (u.pathname === '/spec-dsd') {
     const mode = u.searchParams.get('mode') === 'closed' ? 'closed' : 'open';

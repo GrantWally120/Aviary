@@ -41,6 +41,19 @@ function NewTab($pidv, $url) {
     Start-Sleep -Seconds 3
 }
 function Sites { Get-Content "profiles\$Profile\sites.json" -Raw -ErrorAction SilentlyContinue }
+# The one desktop input here: a real Ctrl+W. type-hwnd.ps1 refuses unless the test window owns the
+# foreground - and until 26 Sep its answer was thrown away, so a refusal (someone came back to the PC)
+# showed up as three "failures" of the timed mode. Every later step depends on the close having
+# happened, so a refusal now STOPS the run and says why, as si-race.ps1 does.
+function CtrlW([int]$wait) {
+    $said = & .\type-hwnd.ps1 -Hwnd ([long]$h) -Text "^w" -WaitMs $wait
+    if ("$said" -notmatch '^sent') {
+        "  STOP  Ctrl+W refused - another window has the foreground (someone is using the machine): $said"
+        "`n$pass passed, $fail failed - STOPPED EARLY, the rest not run"
+        Stop-Process -Id $pidv -Force -ErrorAction SilentlyContinue
+        exit 3
+    }
+}
 
 # The test server, if it is not already up.
 try { Invoke-WebRequest -UseBasicParsing "http://localhost:8791/?read" -TimeoutSec 2 | Out-Null }
@@ -80,7 +93,7 @@ Check "sites.json says close" ((Sites) -match 'forget":\s+"close"') (Sites)
 "`n3. closing its last tab forgets it - and nothing else"
 $before = Forgets
 $h = (Get-Process -Id $pidv).MainWindowHandle
-& .\type-hwnd.ps1 -Hwnd ([long]$h) -Text "^w" -WaitMs 1500 | Out-Null
+CtrlW 1500
 Start-Sleep -Seconds 4
 $still = (node cdp.js list) -join "`n"
 Check "the 127.0.0.1 tab is gone" ($still -notmatch "127\.0\.0\.1:8791") $still
@@ -101,7 +114,7 @@ Check "still one after 7 more seconds" ((Forgets) -eq $after) (Forgets)
 "`n5. being open again cancels, and re-arms"
 Check "the forgotten mark is cleared while it is open" ((Sites) -notmatch 'forgot') (Sites)
 $was = Forgets
-& .\type-hwnd.ps1 -Hwnd ([long]$h) -Text "^w" -WaitMs 1500 | Out-Null
+CtrlW 1500
 Start-Sleep -Seconds 5
 Check "closing it again forgets it again" ((Forgets) -eq ($was + 1)) ("$was -> " + (Forgets))
 
@@ -113,7 +126,7 @@ Start-Sleep -Milliseconds 800
 & .\uia.ps1 -ProcessId $pidv -Id ShieldsButton -Action Invoke | Out-Null
 Start-Sleep -Milliseconds 600
 $was = Forgets
-& .\type-hwnd.ps1 -Hwnd ([long]$h) -Text "^w" -WaitMs 1200 | Out-Null
+CtrlW 1200
 Start-Sleep -Milliseconds 2000
 Check "not forgotten while its time runs" ((Forgets) -eq $was) ("$was -> " + (Forgets))
 Check "a due time was written" ((Sites) -match 'forgetAt') (Sites)

@@ -69,6 +69,38 @@ internal static class Experiments
         new("exp.darkWebsites", "Make every website dark", Badge.Looks, NeedsRestart: false,
             Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
 
+        // ── Stage 3: tabs and looks - none of them an engine switch, all at once. ──
+
+        // Looks. The toolbar and tab strip take the page's theme-color (MainWindow.Tint.cs).
+        new("exp.tintToolbar", "Tint the toolbar to match the page", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Looks. CSS in the stylesheet Aviary adopts into websites (ReadingAids.cs). The engine's
+        // FluentScrollbar / FluentOverlayScrollbar features were measured first and change nothing on
+        // this engine; OverlayScrollbar hides the bar until you scroll, which is not "thin".
+        new("exp.thinScrollbars", "Thin scrollbars on websites", Badge.Looks, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Looks. Ctrl +/- and the Aa menu zoom the site in front, not every site (BrowserTab.ApplyZoom).
+        new("exp.siteZoom", "Remember each website’s zoom", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Looks. The per-site "Use Reader Automatically" for every site (MainWindow.Reader.cs).
+        new("exp.autoReader", "Use Reader on every article", Badge.Looks, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Tabs.
+        new("exp.tabPreview", "Show a preview when you point at a tab", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+        new("exp.switchToTab", "Switch to a tab that is already open", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+        new("exp.videoPopOut", "Pop a playing video out when you switch tabs", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+        new("exp.closeOldTabs", "Close tabs you have not looked at in a week", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+        new("exp.dblClickNewTab", "Double-click below your tabs for a new tab", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
         // Measured 25 Sep: H.264 and VP9 at 1080p stop being "power efficient" - the graphics
         // card no longer decodes them; the processor does.
         new("exp.noVideoDecode", "Turn off video hardware decoding", Badge.Safe, NeedsRestart: true,

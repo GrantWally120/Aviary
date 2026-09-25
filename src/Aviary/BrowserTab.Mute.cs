@@ -29,14 +29,25 @@ internal sealed partial class BrowserTab
 
     public void SetInBackground(bool background)
     {
+        // Every switch tells every tab where it is; only a tab whose place CHANGED has anything to
+        // decide - so a tab switch does not ask each background page about picture in picture again.
+        if (_inBackground == background && _muteGeneration > 0)
+        {
+            return;
+        }
+
         _inBackground = background;
         RefreshMute();
     }
 
     public void RefreshMute() => _ = ApplyMuteAsync();
 
+    /// <summary>Counts every decision, so an older one still waiting on the page gives way to a newer one.</summary>
+    private int _muteGeneration;
+
     private async Task ApplyMuteAsync()
     {
+        int generation = ++_muteGeneration;
         try
         {
             if (View.CoreWebView2 is not CoreWebView2 core)
@@ -44,28 +55,31 @@ internal sealed partial class BrowserTab
                 return;
             }
 
+            // Picture in picture is asked EVERY time the tab is behind - also when it is already muted:
+            // M6 stage 3's "Pop a playing video out" pops the video out just AFTER the tab went behind,
+            // and that tab must be heard again. Nothing is asked while the experiment is off.
             bool want = MuteBackground && _inBackground;
-            if (!want)
+            if (want && await ShowsPictureInPictureAsync(core))
             {
-                if (_mutedForBackground)
-                {
-                    core.IsMuted = false;
-                    _mutedForBackground = false;
-                }
-
-                return;
+                want = false;
             }
 
-            if (_mutedForBackground || await ShowsPictureInPictureAsync(core))
+            // A newer decision was made while the page answered (switched back to, the switch
+            // turned off, a video popped out): that one stands.
+            if (generation != _muteGeneration)
             {
                 return;
             }
 
-            // Things may have moved on during that await (switched back to, or the switch turned off).
-            if (MuteBackground && _inBackground && !_mutedForBackground)
+            if (want && !_mutedForBackground)
             {
                 core.IsMuted = true;
                 _mutedForBackground = true;
+            }
+            else if (!want && _mutedForBackground)
+            {
+                core.IsMuted = false;
+                _mutedForBackground = false;
             }
         }
         catch (Exception ex)

@@ -49,10 +49,12 @@ run, the sidebar and Classic included).
 >   start M5 … you have the greenlight”) — §26. Then M7 (measured optimisation), M8 (beta prep).
 > - **M6 — the Experimental menu — STARTED 25 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
 >   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
->   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2 BUILT AND CHECKED, NOT committed** (pinned tabs on
->   click, mute background tabs, speed-and-memory readout, bugs 91 and 92 fixed; preload CUT) — from a clean
->   build `experiments-test.ps1 -Restart` **113/113**, audit 74/9/0, every regression green (§27's last
->   part). **Waiting on Grant's OK to commit.** Then stage 3 (tabs & looks — suggest a 20th experiment).
+>   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2
+>   COMMITTED `47ddf0b`** (Grant: "commit and continue"; pinned on click, mute background tabs, the readout,
+>   bugs 91 and 92; preload cut). **Stage 3 COMMITTED** (Grant: "ok go continue") — tabs and looks, nine
+>   experiments (the 20th, "Switch to a tab that is already open", taken as agreed with his "continue"), and
+>   bugs 93, 94, 95 found and fixed on the way (§27's Stage 3, §10). **Stage 4 next** (privacy).
+>   Then stage 4 (privacy, 5), then stage 5 (the wrap-up).
 >   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
@@ -63,7 +65,10 @@ run, the sidebar and Classic included).
 >   **91** (websites' speculation rules loaded pages outside Aviary — Shields, GPC and all) found and fixed
 >   in M6 stage 2, then given a second look in its checks (four more ways in, closed); two routes left open
 >   and said so (§10). **92** (Settings → Performance never stopped measuring when you left it — bug 70's
->   rule broken, since M4.5) found and fixed in the same checks. Next bug number **93**.
+>   rule broken, since M4.5) found and fixed in the same checks. In M6 stage 3: **93** (Reader's state was
+>   the window's, not the tab's — "Show Reader" offered on a page in Reader, doing nothing), **94** (Memory
+>   saver slept a tab you had just been reading), **95** ("Underline links" reached Aviary's own pages
+>   whenever diagnostics was on — since M4.5). Next bug number **96**.
 > - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
 >   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
 > - **⚠ DOUBLE-CHECK M4.9 BEFORE BUILDING ON IT (Grant's instruction, 24 Sep).** The session that
@@ -1497,6 +1502,35 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     it. experiments-test section 16: 0 updates in 5 s on another pane and on another tab, measuring
     again on return; control, the M5 build, went on. **Grep for `ReferenceEquals(` on any CoreWebView2
     an event gave you.**
+93. **FIXED in M6 stage 3 — Reader's state belonged to the WINDOW, not the tab** (found 25 Sep reading
+    the code for "Use Reader on every article", then measured). "Reader is on" and "this page has an
+    article" were two window fields, reset and re-asked by EVERY tab's navigation — the tabs behind
+    included — and never touched by switching tabs. Measured: Reader on in tab A, a page loaded in tab
+    B, back to A: A still showed Reader, its Aa menu offered "Show Reader", and choosing it did nothing
+    — the only way out of Reader was to leave the page. Control: with no other tab loading, A's menu
+    offered "Hide Reader" and it worked; the published M5 build has the bug (experiments-test 19).
+    Each tab keeps its own now (`BrowserTab.ReaderState.cs`) and the window reads the tab in front;
+    a page that loads BEHIND with Reader due (per site, or every site) opens in Reader when it first
+    comes to the front — it used to open without.
+94. **FIXED in M6 stage 3 — Memory saver slept a tab you had just been reading** (found 25 Sep building
+    "Close tabs you have not looked at in a week", which needs the same clock; then measured with
+    `AVIARY_SLEEP_TEST=8`). A tab's "last looked at" (`LastActiveUtc`) was stamped when it came to the
+    FRONT, never when it left, so a page read for twenty minutes counted as idle for twenty the moment
+    you switched away, and the saver slept it at its next check (Balanced: a minute). Measured: in front
+    1 s, then left — slept 8.5 s later (the control: the idle time); in front 14 s, then left — slept
+    **1.8 s** later. SelectTab now stamps the tab that leaves the front too. **My first probe of this
+    was wrong the other way: its "control" tab had been chosen at launch, 8 s before the timing began —
+    only choosing a tab stamps it. The control said so by failing.**
+95. **FIXED in M6 stage 3 — "Underline links" reached Aviary's own pages whenever diagnostics was on**
+    (found 25 Sep when "Thin scrollbars on websites" gave Settings thin scroll bars). The reading aids'
+    stylesheet (`ReadingAids.cs`, M4.5) is registered for every document in a tab as the tab starts,
+    without waiting — and a tab opened for Settings is already becoming Settings by then. With
+    diagnostics on, whose own per-page script shifts that timing, the registration won EVERY time.
+    Measured on the published M5 build: diagnostics on — every Settings tab wore the underline sheet;
+    off — none did (and in one ordering, none in either). Grant runs with diagnostics on. The script now
+    leaves any page that is not http(s) alone, deciding by the page as the element-hiding script always
+    has (why Shields never had this). experiments-test section 17 checks it, with the M5 control.
+    **A promise that depends on which of two unawaited things finishes first is not a promise.**
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2841,7 +2875,7 @@ darkening; a harness that closes an instance with two tabs must answer "Close th
 Grant's diagnostics: unchanged since 06:12 — not exercised.
 
 
-### Stage 2 — speed and memory, bugs 91 and 92 (25 Sep, BUILT AND CHECKED — not committed)
+### Stage 2 — speed and memory, bugs 91 and 92 (25 Sep, COMMITTED `47ddf0b` — Grant: "commit and continue")
 
 **"Preload a page when you point at a link" — CUT, measured, and it found bug 91.** Measured before
 building (`preload-probe.js`, `reuse-probe.js`, `spec-probe.js`, `expsite.js` /hover /slow /spec-*):
@@ -2916,4 +2950,92 @@ links **27/27**, groups **40/40**, pip **14/14**, forget **17/17**, startbg **13
 (M5), about what the first guard cost. Three probes first "proved" things they could not — the dropdown
 press that never opened (the row is 1,600 px down: scroll it into view, then press), the route probe that
 sent a function instead of a script, and the stale capture — and each was caught by its control.
-Grant's diagnostics: unchanged since 06:12 — not exercised. **Next: Grant's OK to commit stage 2.**
+Grant's diagnostics: unchanged since 06:12 — not exercised. Committed `47ddf0b` with Grant's "commit and continue".
+
+
+### Stage 3 — tabs and looks, and bugs 93–95 (25–26 Sep, COMMITTED — Grant: "ok go continue")
+
+Grant, 25 Sep: *"commit and continue"* — to stage 2's commit and to the 20th experiment I suggested for the
+place preload left: **"Switch to a tab that is already open"** (Safari's address bar does it). The eight
+planned plus that one, **each audited against the code and measured before it was built**:
+
+- **Double-click the empty tab bar** — along the top there IS no empty tab bar: the tabs always divide the
+  whole strip (the Safari silhouette, `MainWindow.TabMotion.cs`), and the strip is not the window's drag
+  region, so §27's audit note ("trades away maximise") was wrong. Built where the space exists — **below
+  the tabs in the sidebar** (tabs down the side) — and the row says so: *"Double-click below your tabs for
+  a new tab"*. A double-click on a tab, a button or a heading is theirs.
+- **Thin scrollbars on websites** — the engine's `FluentScrollbar` and `FluentOverlayScrollbar` measured to
+  change nothing (screenshots byte-identical); `OverlayScrollbar` hides the bar until you scroll (0 px — not
+  "thin"). CSS `scrollbar-width: thin` = **10 px instead of 15**. Built as CSS in the reading aids'
+  stylesheet (`ReadingAids.cs`), **in a layer**, so a site that sets its own width or colour keeps it (a
+  site's `none` beat it — measured). A site that only uses `::-webkit-scrollbar` loses its styling (the
+  engine ignores those once `scrollbar-width` is set) — hence the amber label. **It found bug 95.**
+- **Remember each website's zoom** — `SiteZoom.cs`: Ctrl +/− and the Aa menu zoom the site in front only,
+  kept in `sites.json` (so Clear Browsing Data forgets it); a zoom set back to the default is forgotten; a
+  private window's zooms live in memory until the last private window closes and never read the kept ones;
+  off = every site on the default at once, kept values back when it is on again. The Aa menu's "Actual
+  Size (x%)" shows the page in front's zoom. "Default zoom" now reaches every window.
+- **Use Reader on every article** — the per-site "Use Reader Automatically" for every site; the Aa item then
+  says "…on Every Site (Experimental)", disabled. A page that loads BEHIND with Reader due now opens in Reader
+  when it first comes to the front (per site too — it used to open without). **It found bug 93.**
+- **Show a preview when you point at a tab** — `CapturePreviewAsync` as the tab LEAVES the front (measured:
+  works on the just-hidden WebView, 68–83 ms, a real picture — the harness paints the page red first and
+  reads the JPEG back); decoded 280 px wide into the tab's tooltip above its name. The tab in front has none.
+  `AVIARY_PREVIEW_TEST=1` keeps the JPEG so a test can look at it.
+- **Switch to a tab that is already open** — `FindOpenTab` from the address bar's Enter: the same page to a
+  person (www., http/https, a trailing slash, a #place). A new, empty Start Page it was typed into closes.
+- **Pop a playing video out when you switch tabs** — the tab left runs a picture-in-picture request through
+  its own DevTools session as a gesture (`Runtime.evaluate`, `userGesture`), for a playing, sounding video at
+  least 200 px wide the site has not barred; going back puts it back — only one Aviary popped out. Measured
+  first that a just-hidden tab may still start it. With "Mute tabs in the background" on it keeps its sound:
+  the mute now asks about picture in picture on every decision, newest decision wins (`_muteGeneration`),
+  and only a tab whose place changed decides again.
+- **Close tabs you have not looked at in a week** — Aviary does not bring ordinary tabs back after it closes,
+  and a tab group's pages are kept pages: so only tabs left open in a running Aviary, never the tab in front,
+  a pinned one, one playing sound, or any tab while the window shows a group. No "reopen closed tab" exists
+  to promise. `AVIARY_TABAGE_TEST=<s>`. Its clock — when a tab was last looked at — **found bug 94.**
+- **Tint the toolbar to match the page** — the page's `theme-color` (per colour scheme; a canvas normalises
+  the CSS colour; see-through taken as opaque), read after each page and each change of address (a web app
+  that changes colour and address without loading is followed). Drawn as a layer UNDER the toolbar and tab
+  strip (`TintToolbar`, `TintTabStrip`), their theme switched to whichever of Light or Dark reads on it.
+  None on Aviary's own pages, in Reader, on a page "Make every website dark" is darkening, or under a Windows
+  contrast theme. **Photographed in all sixteen combinations** (Classic / Liquid Glass × light / dark theme ×
+  none / green / cream / purple) — which found two things before anyone saw them: the active tab's chip and
+  the caption buttons are coloured from CODE by Aviary's own theme (`ThemeBrush`), so under a dark tint in
+  the light theme the chip stayed pale under white words, and under cream in the dark theme the caption
+  glyphs stayed white. Both now read the tint's theme (`ThemeBrushIn`, `TintTheme`).
+
+**Kit:** `pointer.ps1` (a real pointer — hover a control and photograph its tooltip's own popup window, or
+double-click below it; guard.ps1 decides), `AVIARY_TINT_TEST`, `AVIARY_PREVIEW_TEST`, `AVIARY_TABAGE_TEST`,
+`expsite.js` `/tint`, `/tint-scheme`, `/tint-app`, `/video`. `settings-audit.js` no longer counts the registry
+file or a `case "key":` label as reading a key — nine unbuilt rows had passed as live (control: the committed
+stage 2 source still reads 74 / 9 / 0). The harness's own `Kill` helper had been PowerShell's `kill` alias
+(Stop-Process) all along, never waiting — renamed `StopAviary`. Every harness is parse-checked before a run
+now: a comment inside a one-line function swallowed its brace once.
+
+**Checked (Stage 3) — 25–26 Sep, from a clean build (nothing in `src/` newer than it):**
+`experiments-test.ps1 -Restart` **171 passed, 0 failed** — every stage 1–3 section; sections 17–24 each with its
+control (the switch off; for bugs 93 and 95 the published M5 build). The one section it could not run was 25
+(the sidebar double-click): **REFUSED by guard.ps1** — Grant came back to the PC during the run. It passed
+**3/3** in the desktop run just before, on the same source (desktop run: 20, 22b, 25 — **8/8**: a real Enter
+in the address bar, a real pointer resting on a tab until its tooltip showed the page's picture, a real
+double-click below the sidebar's tabs, each with its control). `settings-audit.js` **83 live / 9 badged / 0
+inert**, with its new, sharper rules. Regressions on the clean build: links **27/27**, groups **40/40**, pip
+**14/14**, startbg **13/13**, si-race **6/6**, and — because bug 94 changed Memory saver's clock — `saver-modes`
+(Off 0, Chill/Balanced/Aggressive 1 each, "true" → Balanced and sleeps, "false" → Off) and `minimise-sleep`
+(Aggressive sleeps on minimising; Balanced, the control, does not): all as they must be.
+**Two that looked like regressions and were the HARNESSES — each settled with a control:** `downloads-test` read
+53 / 51 / 50 on this build while Grant was using the PC (a first popover opening that read empty mid-download;
+a private window that opened late). The committed stage 2 build, built in a scratch worktree, against this one
+alternately with the machine idle: **53, 53, 53, 53** — both builds clean every time. The harness had two
+weaknesses a busy machine exposed: a fixed 900 ms wait for the popover (now: waits until it IS open, up to
+4 s), and — worse — when the private window was late, `$priv` came back empty and `cdp.js` drove the NORMAL
+window's page, so an ordinary download read as "the private download leaked into downloads.json" (now: it
+waits up to 10 s for that window's page, and if it never comes it says so and drives nothing). Fixed harness:
+**53/53**. And `forget-test` section 6 "failed" three ways because its real Ctrl+W was REFUSED — Grant at the PC
+— and the harness threw the refusal away; it now STOPS and says so (`CtrlW`). Re-run with the machine idle:
+**17/17**, and the desktop sections again: **8/8** (section 25's double-click included). **When a harness
+drives "the window it found", ask what it drives when it finds nothing.**
+Grant's diagnostics: a real session on 25 Sep 23:16–23:18 — **he tried an M6 build's Experimental menu on his
+own profile** (smooth scrolling, dark websites, the readout, video decoding; YouTube; all switched off again;
+no errors, no crashes). Unchanged since.

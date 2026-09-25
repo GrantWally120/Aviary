@@ -39,12 +39,31 @@ public sealed partial class MainWindow
     /// </summary>
     private static void ApplyExperimentsToOpenTabs()
     {
+        bool tint = AppSettings.GetBool("exp.tintToolbar");
+        bool previews = AppSettings.GetBool("exp.tabPreview");
         foreach (MainWindow w in OpenWindows.ToList())
         {
             foreach (BrowserTab t in w._tabs)
             {
                 t.RefreshDark();
                 t.RefreshMute();
+
+                // M6 stage 3: thin scroll bars (the adopted stylesheet), and each site's own zoom.
+                _ = t.RefreshAidsAsync();
+                t.ApplyZoom();
+
+                // The tint: every open page asked for its colour when it is switched on.
+                if (tint)
+                {
+                    _ = w.ReadTintAsync(t);
+                }
+            }
+
+            w.ApplyTint();
+            w.ApplyCloseOldTabs();
+            if (!previews)
+            {
+                w.DropPreviews();
             }
         }
 

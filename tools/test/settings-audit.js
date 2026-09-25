@@ -26,12 +26,20 @@ for (const r of rows) {
   (isGated ? gated : live).push({ key: km[1], title });
 }
 
-const others = fs.readdirSync(dir).filter(f => f.endsWith(".cs") && f !== "InternalPages.cs")
+// Experiments.cs names every exp.* key in its registry, which is not the same as anything READING
+// one (25 Sep: nine stage-3 rows passed as live before a line of them was built). So the registry
+// file is left out here, and an experiment whose effect IS the registry - engine features or
+// switches - is counted as read below.
+const others = fs.readdirSync(dir).filter(f => f.endsWith(".cs") && f !== "InternalPages.cs" && f !== "Experiments.cs")
   .map(f => fs.readFileSync(dir + f, "utf8")).join("\n");
+const regSrc = fs.readFileSync(dir + "Experiments.cs", "utf8");
+const byEngine = new Set([...regSrc.matchAll(/new\("(exp\.[A-Za-z0-9_]+)"[^;]*?(?:Features:\s*new\[\][^}]*\}|Switches:\s*new\[\][^}]*\})/gs)].map(m => m[1]));
 
 const unread = [];
 for (const row of live) {
-  const inCs = new RegExp('"' + esc(row.key) + '"').test(others);
+  // Not as a `case "key":` label either - the settings switch naming a key applies it, it does not
+  // make anything read it.
+  const inCs = new RegExp('(?<!case )"' + esc(row.key) + '"').test(others) || byEngine.has(row.key);
   const inJs = new RegExp("[^A-Za-z0-9_.]" + esc(row.key) + "[^A-Za-z0-9_.]").test(after);
   if (!inCs && !inJs) unread.push(row);
 }

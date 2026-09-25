@@ -144,9 +144,9 @@ public sealed partial class MainWindow
                 Add(menu, "Reload", ReloadOrStop);
                 menu.Items.Add(new MenuFlyoutSeparator());
 
-                if (_readerAvailable || _readerActive)
+                if (ReaderAvailable || ReaderActive)
                 {
-                    Add(menu, _readerActive ? "Hide Reader" : "Show Reader", ToggleReader);
+                    Add(menu, ReaderActive ? "Hide Reader" : "Show Reader", ToggleReader);
                 }
 
                 Add(menu, "Add to Reading List", AddToReadingList);

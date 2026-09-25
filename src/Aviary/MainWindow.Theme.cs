@@ -58,10 +58,16 @@ public sealed partial class MainWindow
     /// is always the last one merged — and reads the named theme's sub-dictionary directly,
     /// instead of letting the resource system pick one by the Windows theme.
     /// </summary>
-    private Brush ThemeBrush(string key)
-    {
-        string theme = EffectiveThemeKey();
+    private Brush ThemeBrush(string key) => ThemeBrushIn(key, EffectiveThemeKey());
 
+    /// <summary>
+    /// The same, from a NAMED theme's dictionary. M6 stage 3's toolbar tint switches the toolbar and
+    /// tab strip to whichever of Light or Dark reads on the page's colour; the parts coloured from
+    /// code - the active tab's chip and the window's caption buttons - must follow that theme, not
+    /// the window's, or a pale chip carried white words (found by photographing it, 26 Sep).
+    /// </summary>
+    private Brush ThemeBrushIn(string key, string theme)
+    {
         try
         {
             var merged = Application.Current.Resources.MergedDictionaries;
@@ -345,8 +351,12 @@ public sealed partial class MainWindow
             }
 
             AppWindowTitleBar bar = _appWindow.TitleBar;
-            Windows.UI.Color glyph = ColorOf(ThemeBrush("AvIconBrush"));
-            Windows.UI.Color quiet = ColorOf(ThemeBrush("AvLabelTertiaryBrush"));
+
+            // Under the toolbar tint (M6 stage 3) the buttons sit on the page's colour: the theme
+            // the tint chose for the toolbar, not the window's (white glyphs vanished on cream).
+            string theme = TintTheme ?? EffectiveThemeKey();
+            Windows.UI.Color glyph = ColorOf(ThemeBrushIn("AvIconBrush", theme));
+            Windows.UI.Color quiet = ColorOf(ThemeBrushIn("AvLabelTertiaryBrush", theme));
 
             bar.ButtonBackgroundColor = Microsoft.UI.Colors.Transparent;
             bar.ButtonInactiveBackgroundColor = Microsoft.UI.Colors.Transparent;
@@ -354,8 +364,8 @@ public sealed partial class MainWindow
             bar.ButtonHoverForegroundColor = glyph;
             bar.ButtonPressedForegroundColor = glyph;
             bar.ButtonInactiveForegroundColor = quiet;
-            bar.ButtonHoverBackgroundColor = ColorOf(ThemeBrush("AvHoverBrush"));
-            bar.ButtonPressedBackgroundColor = ColorOf(ThemeBrush("AvPressBrush"));
+            bar.ButtonHoverBackgroundColor = ColorOf(ThemeBrushIn("AvHoverBrush", theme));
+            bar.ButtonPressedBackgroundColor = ColorOf(ThemeBrushIn("AvPressBrush", theme));
         }
         catch (Exception ex)
         {

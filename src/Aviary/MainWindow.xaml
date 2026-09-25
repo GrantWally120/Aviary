@@ -445,6 +445,12 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
+            <!-- M6 stage 3, "Tint the toolbar to match the page": the page's colour, drawn UNDER
+                 everything in the row (first child), never hit-testable, so the row's own theme
+                 brush is never replaced (MainWindow.TabsExperiments.cs). Collapsed when off. -->
+            <Border x:Name="TintToolbar" Grid.Column="0" Grid.ColumnSpan="6"
+                    Visibility="Collapsed" IsHitTestVisible="False" />
+
             <!-- Left group. Sidebar toggle sits 12px from the window edge; back and forward
                  are a coupled pair, hence the tight 2px between them. -->
             <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
@@ -733,6 +739,10 @@
                  it can travel from tab to tab: gliding under Smooth Flight, stretching like gel
                  under Fluid (MainWindow.TabMotion.cs, M4.5). Before the strip, so the tabs'
                  titles draw over it. -->
+            <!-- M6 stage 3: the tint's second layer, under the tab strip (see TintToolbar). -->
+            <Border x:Name="TintTabStrip" Grid.Column="0" Grid.ColumnSpan="2"
+                    Visibility="Collapsed" IsHitTestVisible="False" />
+
             <Border x:Name="TabPillHost" Grid.Column="0" IsHitTestVisible="False" />
 
             <Grid x:Name="TabStrip" Grid.Column="0" />
@@ -905,8 +915,13 @@
                         </Grid>
                     </Border>
 
+                    <!-- Background Transparent so its empty space can be double-clicked (M6 stage 3,
+                         "Double-click below your tabs for a new tab"); a null background is not
+                         hit-testable. -->
                     <ScrollViewer x:Name="SidebarScroll"
                                   Grid.Row="1"
+                                  Background="Transparent"
+                                  DoubleTapped="SidebarScroll_DoubleTapped"
                                   Padding="8,0,8,12"
                                   HorizontalScrollMode="Disabled"
                                   HorizontalScrollBarVisibility="Disabled"

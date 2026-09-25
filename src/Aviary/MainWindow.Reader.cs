@@ -29,8 +29,10 @@ public sealed partial class MainWindow
 
     private static readonly string[] ReaderThemes = { "White", "Sepia", "Grey", "Black" };
 
-    private bool _readerActive;
-    private bool _readerAvailable;
+    // Bug 93: the tab's own state (BrowserTab.ReaderState.cs), read from the tab in front - these used
+    // to be the window's, reset by any tab's navigation and never by switching tabs.
+    private bool ReaderActive => _active?.ReaderShown ?? false;
+    private bool ReaderAvailable => _active?.ReaderAvailable ?? false;
 
     private string ReaderFont => AppSettings.Get("readerFont") is { Length: > 0 } f ? f : "New York";
     private string ReaderTheme => AppSettings.Get("readerTheme") is { Length: > 0 } t ? t : "White";
@@ -58,7 +60,7 @@ public sealed partial class MainWindow
     /// </summary>
     private async Task ProbeReaderAsync(BrowserTab tab)
     {
-        _readerAvailable = false;
+        tab.ReaderAvailable = false;
 
         try
         {
@@ -67,8 +69,15 @@ public sealed partial class MainWindow
                 return;
             }
 
+            string asked = tab.Url;
             string json = await core.ExecuteScriptAsync(
                 "window.__aviaryReader ? window.__aviaryReader.probe() : '{}'");
+
+            // The tab may have moved on to another page while it answered; that page asks for itself.
+            if (!string.Equals(asked, tab.Url, StringComparison.Ordinal))
+            {
+                return;
+            }
 
             // ExecuteScriptAsync returns the value JSON-encoded, so a string result comes
             // back as a quoted, escaped string that has to be unwrapped before parsing.
@@ -79,15 +88,15 @@ public sealed partial class MainWindow
             }
 
             using JsonDocument doc = JsonDocument.Parse(inner);
-            _readerAvailable = doc.RootElement.TryGetProperty("readable", out JsonElement r)
-                               && r.ValueKind == JsonValueKind.True;
+            tab.ReaderAvailable = doc.RootElement.TryGetProperty("readable", out JsonElement r)
+                                  && r.ValueKind == JsonValueKind.True;
 
             // Category 14: Reader's verdict on every page — the data M7 needs to tell whether
             // the extraction is too strict or too eager.
             DiagFeature("reader-verdict", new
             {
                 url = tab.Url,
-                readable = _readerAvailable,
+                readable = tab.ReaderAvailable,
                 words = doc.RootElement.TryGetProperty("words", out JsonElement w) && w.TryGetInt32(out int n) ? n : (int?)null,
             });
         }
@@ -107,43 +116,45 @@ public sealed partial class MainWindow
     {
         PageSettingsButton.IsEnabled = _active is { IsReady: true, IsInternalPage: false };
         ToolTipService.SetToolTip(PageSettingsButton,
-            _readerActive ? "Page settings — Reader is on" : "Page settings");
+            ReaderActive ? "Page settings — Reader is on" : "Page settings");
     }
 
     // ══ READER ═════════════════════════════════════════════════════════════
 
     private async void ToggleReader()
     {
-        if (_active?.View.CoreWebView2 is not CoreWebView2 core)
+        // The tab asked about, held: the answer below belongs to IT, even if another tab is in
+        // front by the time the page has answered (bug 93).
+        BrowserTab? tab = _active;
+        if (tab?.View.CoreWebView2 is not CoreWebView2 core)
         {
             return;
         }
 
         try
         {
-            if (_readerActive)
+            if (tab.ReaderShown)
             {
                 await core.ExecuteScriptAsync("window.__aviaryReader && window.__aviaryReader.exit()");
-                _readerActive = false;
+
+                // M6: Reader keeps the background chosen for it, whatever "Make every website dark" says.
+                tab.SetReaderShown(false);
             }
             else
             {
-                if (!_readerAvailable)
+                if (!tab.ReaderAvailable)
                 {
                     return;
                 }
 
                 await core.ExecuteScriptAsync(
                     "window.__aviaryReader && window.__aviaryReader.enter(" + ReaderOptions() + ")");
-                _readerActive = true;
+                tab.SetReaderShown(true);
             }
 
-            // M6: Reader keeps the background chosen for it, whatever "Make every website dark" says.
-            _active?.SetReaderShown(_readerActive);
-
-            DiagFeature(_readerActive ? "reader-on" : "reader-off", new
+            DiagFeature(tab.ReaderShown ? "reader-on" : "reader-off", new
             {
-                url = _active?.Url,
+                url = tab.Url,
                 font = ReaderFont,
                 background = ReaderTheme,
             });
@@ -154,11 +165,14 @@ public sealed partial class MainWindow
         }
 
         UpdatePageButton();
+
+        // M6 stage 3: Reader has its own look, so the toolbar's tint comes off (and back after).
+        ApplyTint();
     }
 
     private async void RestyleReader()
     {
-        if (!_readerActive || _active?.View.CoreWebView2 is not CoreWebView2 core)
+        if (!ReaderActive || _active?.View.CoreWebView2 is not CoreWebView2 core)
         {
             return;
         }
@@ -189,10 +203,12 @@ public sealed partial class MainWindow
         zoomOut.Click += (_, _) => Zoom(-1);
         menu.Items.Add(zoomOut);
 
+        // M6 stage 3: the page in front's zoom - its site's own when each website keeps one.
+        string zoomNow = ZoomInFront();
         MenuFlyoutItem zoomLabel = new()
         {
-            Text = "Actual Size  (" + AppSettings.Get("zoom") + ")",
-            IsEnabled = AppSettings.Get("zoom") != "100%",
+            Text = "Actual Size  (" + zoomNow + ")",
+            IsEnabled = zoomNow != "100%",
         };
         zoomLabel.KeyboardAcceleratorTextOverride = "Ctrl+0";
         zoomLabel.Click += (_, _) => Zoom(0);
@@ -208,14 +224,14 @@ public sealed partial class MainWindow
         // ── reader ──
         MenuFlyoutItem reader = new()
         {
-            Text = _readerActive ? "Hide Reader" : "Show Reader",
-            IsEnabled = _readerActive || _readerAvailable,
+            Text = ReaderActive ? "Hide Reader" : "Show Reader",
+            IsEnabled = ReaderActive || ReaderAvailable,
         };
         reader.KeyboardAcceleratorTextOverride = "Ctrl+Shift+R";
         reader.Click += (_, _) => ToggleReader();
         menu.Items.Add(reader);
 
-        if (!_readerAvailable && !_readerActive)
+        if (!ReaderAvailable && !ReaderActive)
         {
             // Saying WHY it is greyed out is the difference between a considered menu and
             // one that looks broken.
@@ -226,7 +242,7 @@ public sealed partial class MainWindow
             });
         }
 
-        if (_readerActive)
+        if (ReaderActive)
         {
             MenuFlyoutSubItem font = new() { Text = "Reader Font" };
             foreach (string name in ReaderFonts)
@@ -264,17 +280,23 @@ public sealed partial class MainWindow
         string host = BrowserTab.HostOf(_active?.Url ?? string.Empty);
         if (host.Length > 0)
         {
+            // M6 stage 3: with "Use Reader on every article" on, every site already is - the item
+            // says so rather than offering a switch that changes nothing.
+            bool everySite = AppSettings.GetBool("exp.autoReader");
             ToggleMenuFlyoutItem auto = new()
             {
-                Text = "Use Reader Automatically on " + host,
-                IsChecked = SiteSettings.GetBool(host, "autoReader"),
+                Text = everySite
+                    ? "Use Reader Automatically on Every Site (Experimental)"
+                    : "Use Reader Automatically on " + host,
+                IsChecked = everySite || SiteSettings.GetBool(host, "autoReader"),
+                IsEnabled = !everySite,
             };
             auto.Click += (_, _) =>
             {
                 bool now = !SiteSettings.GetBool(host, "autoReader");
                 SiteSettings.Set(host, "autoReader", now ? "true" : "false");
                 DiagFeature("reader-automatic", new { site = host, on = now });
-                if (now && _readerAvailable && !_readerActive)
+                if (now && ReaderAvailable && !ReaderActive)
                 {
                     ToggleReader();
                 }

@@ -337,6 +337,9 @@ public sealed partial class MainWindow : Window
 
         // M6: if this launch switched the experiments off after a problem, say so - once.
         _ = TellAboutExperimentsSwitchedOffAsync();
+
+        // M6 stage 3: "Close tabs you have not looked at in a week" sweeps while its switch is on.
+        ApplyCloseOldTabs();
         _ = ApplyPerfOverlayAsync();
 
         ArmCrashTest();
@@ -1386,6 +1389,16 @@ public sealed partial class MainWindow : Window
             DiagUi("tab-switch", new { tab = tab.Id, index = _tabs.IndexOf(tab), tabs = _tabs.Count });
         }
 
+        BrowserTab? leaving = ReferenceEquals(_active, tab) ? null : _active;
+        if (leaving is not null)
+        {
+            // Bug 94: a tab was last looked at when it LEFT the front, not when it came to it.
+            // Stamped only on arrival, a page you had read for twenty minutes counted as idle for
+            // twenty the moment you left it, and Memory saver slept it at its next check (measured:
+            // 1.8 s after leaving with an 8 s idle time; 8.5 s for a tab in front for 1 s, the control).
+            leaving.LastActiveUtc = DateTime.UtcNow;
+        }
+
         _active = tab;
         tab.LastActiveUtc = DateTime.UtcNow;
         Diagnostics.TabActive(tab.Id);
@@ -1411,6 +1424,21 @@ public sealed partial class MainWindow : Window
         RenderNotice(tab);
 
         UpdateChrome();
+
+        // Bug 93: the Aa menu describes the tab now in front - and a page that loaded behind with
+        // Reader due (per site, or M6's "Use Reader on every article") opens in Reader as it is seen.
+        UpdatePageButton();
+        if (tab.ReaderDue)
+        {
+            tab.ReaderDue = false;
+            if (tab.ReaderAvailable && !tab.ReaderShown)
+            {
+                ToggleReader();
+            }
+        }
+
+        // M6 stage 3: the experiments that act as tabs change places (MainWindow.TabsExperiments.cs).
+        OnTabSwitchedForExperiments(leaving, tab);
     }
 
     private void CloseTab(BrowserTab tab)
@@ -1422,6 +1450,9 @@ public sealed partial class MainWindow : Window
         }
 
         DiagUi("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
+
+        // M6 stage 3: its preview picture goes with it.
+        _previews.Remove(tab);
 
         // Closing the last tab closes the window, the way every browser behaves - unless the
         // person asked for the window to stay with a fresh Start Page (M4.5).
@@ -1596,18 +1627,33 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private async void OnTabNavigated(BrowserTab tab)
     {
-        _readerActive = false;
+        // M6 stage 3, "Tint the toolbar to match the page": the new page's colour.
+        _ = ReadTintAsync(tab);
+
+        // Bug 93: the answer is THIS tab's, whichever tab is in front.
         await ProbeReaderAsync(tab);
 
-        if (!ReferenceEquals(tab, _active) || !_readerAvailable)
+        if (!tab.ReaderAvailable || tab.ReaderShown)
         {
             return;
         }
 
+        // Per site (the Aa menu), or every site (M6 stage 3, "Use Reader on every article").
         string host = BrowserTab.HostOf(tab.Url);
-        if (host.Length > 0 && SiteSettings.GetBool(host, "autoReader"))
+        if (host.Length == 0 || !(SiteSettings.GetBool(host, "autoReader") || AppSettings.GetBool("exp.autoReader")))
+        {
+            return;
+        }
+
+        if (ReferenceEquals(tab, _active))
         {
             ToggleReader();
+        }
+        else
+        {
+            // Loaded behind (a Ctrl+click): it opens in Reader the first time it comes to the front,
+            // where it used to open without it (SelectTab).
+            tab.ReaderDue = true;
         }
     }
 
@@ -1634,8 +1680,13 @@ public sealed partial class MainWindow : Window
             chrome.Title.Text = ShownTitle(tab);
             Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, ShownTitle(tab));
             chrome.Icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
-            ToolTipService.SetToolTip(button, ShownTitle(tab));
+
+            // The name - or, with M6's tab previews on, the picture above it (MainWindow.TabsExperiments.cs).
+            SetTabTip(button, tab);
         }
+
+        // M6 stage 3: a page that changed address without loading (a web app) may have changed colour.
+        _ = ReadTintAsync(tab);
 
         if (ReferenceEquals(tab, _active))
         {
@@ -2151,6 +2202,22 @@ public sealed partial class MainWindow : Window
             DiagBrowse("typed", text, new { tab = tab.Id, typed = text, target });
         }
 
+        // M6 stage 3, "Switch to a tab that is already open": an address another tab of this window
+        // already shows is a trip to that tab, not a second copy of the page.
+        if (!search && FindOpenTab(target, except: tab) is { } open)
+        {
+            DiagUi("switch-to-open-tab", new { from = tab.Id, to = open.Id });
+            SelectTab(open);
+
+            // A new, empty tab it was typed into has nothing to keep.
+            if (tab.IsStartPage && !tab.CanGoBack && _tabs.Contains(tab))
+            {
+                CloseTab(tab);
+            }
+
+            return true;
+        }
+
         ClearNotice(tab);
         tab.Navigate(target);
         return true;
@@ -2210,27 +2277,32 @@ public sealed partial class MainWindow : Window
     /// <summary>Ctrl+plus, Ctrl+minus, Ctrl+0. Direction 0 resets to 100%.</summary>
     private void Zoom(int direction)
     {
-        double current = 100;
-        string saved = AppSettings.Get("zoom").TrimEnd('%');
-        _ = double.TryParse(saved, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out current);
-
-        double next;
-        if (direction == 0)
+        // M6 stage 3, "Remember each website's zoom": only the site in front changes (SiteZoom.cs),
+        // and every tab showing that site follows it - in every window of the same kind.
+        if (SiteZoom.On && _active is { IsInternalPage: false } front
+            && BrowserTab.HostOf(front.Url) is { Length: > 0 } host)
         {
-            next = 100;
-        }
-        else
-        {
-            int index = Array.FindIndex(ZoomLevels, z => Math.Abs(z - current) < 0.5);
-            if (index < 0)
+            double was = ZoomPercent(SiteZoom.For(front.Url, _private));
+            double to = NextZoom(was, direction);
+            string zoom = to.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
+            DiagUi("zoom", new { from = was, to, site = host });
+            SiteZoom.Set(host, _private, zoom);
+            foreach (MainWindow w in OpenWindows.ToList())
             {
-                index = Array.FindIndex(ZoomLevels, z => z >= current);
-                if (index < 0) { index = ZoomLevels.Length - 1; }
+                foreach (BrowserTab t in w._tabs)
+                {
+                    if (t.IsPrivate == _private && string.Equals(BrowserTab.HostOf(t.Url), host, StringComparison.OrdinalIgnoreCase))
+                    {
+                        t.ApplyZoom();
+                    }
+                }
             }
 
-            next = ZoomLevels[Math.Clamp(index + direction, 0, ZoomLevels.Length - 1)];
+            return;
         }
+
+        double current = ZoomPercent(AppSettings.Get("zoom"));
+        double next = NextZoom(current, direction);
 
         string text = next.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + "%";
         DiagUi("zoom", new { from = current, to = next });
@@ -2242,6 +2314,36 @@ public sealed partial class MainWindow : Window
             t.ApplyZoom();
         }
     }
+
+    private static double ZoomPercent(string zoom)
+    {
+        double current = 100;
+        _ = double.TryParse(zoom.TrimEnd('%'), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out current);
+        return current;
+    }
+
+    /// <summary>The next of <see cref="ZoomLevels"/> in that direction; 0 is Actual Size, 100%.</summary>
+    private static double NextZoom(double current, int direction)
+    {
+        if (direction == 0)
+        {
+            return 100;
+        }
+
+        int index = Array.FindIndex(ZoomLevels, z => Math.Abs(z - current) < 0.5);
+        if (index < 0)
+        {
+            index = Array.FindIndex(ZoomLevels, z => z >= current);
+            if (index < 0) { index = ZoomLevels.Length - 1; }
+        }
+
+        return ZoomLevels[Math.Clamp(index + direction, 0, ZoomLevels.Length - 1)];
+    }
+
+    /// <summary>The zoom the page in front is shown at - its site's own, or the default.</summary>
+    private string ZoomInFront() =>
+        _active is { IsInternalPage: false } front ? SiteZoom.For(front.Url, _private) : AppSettings.Get("zoom");
 
     private void HomeButton_Click(object sender, RoutedEventArgs e)
     {
@@ -2734,6 +2836,16 @@ public sealed partial class MainWindow : Window
                 // M6: at once, in every open tab of every window - no restart.
                 case "exp.darkWebsites":
                 case "exp.muteBackground":
+                // M6 stage 3 - tabs and looks.
+                case "exp.tintToolbar":
+                case "exp.thinScrollbars":
+                case "exp.siteZoom":
+                case "exp.autoReader":
+                case "exp.tabPreview":
+                case "exp.switchToTab":
+                case "exp.videoPopOut":
+                case "exp.closeOldTabs":
+                case "exp.dblClickNewTab":
                     ApplyExperimentsToOpenTabs();
                     break;
 
@@ -2949,9 +3061,14 @@ public sealed partial class MainWindow : Window
                     break;
 
                 case "zoom":
-                    foreach (BrowserTab zt in _tabs)
+                    // Every window: with M6's per-site zoom, this is the zoom of every site that has
+                    // none of its own, wherever it is open.
+                    foreach (MainWindow zw in OpenWindows.ToList())
                     {
-                        zt.ApplyZoom();
+                        foreach (BrowserTab zt in zw._tabs)
+                        {
+                            zt.ApplyZoom();
+                        }
                     }
 
                     break;
@@ -3807,7 +3924,14 @@ public sealed partial class MainWindow : Window
         if (_private && !OpenWindows.Exists(w => w._private))
         {
             Downloads.ForgetPrivate();
+
+            // M6 stage 3: and so do the zooms set in private windows.
+            SiteZoom.ForgetPrivate();
         }
+
+        // M6 stage 3: the week-old sweep belongs to this window.
+        _oldTabsTimer?.Stop();
+        _oldTabsTimer = null;
 
         if (OpenWindows.Count > 0)
         {

@@ -275,7 +275,9 @@ public sealed partial class MainWindow
 
         try
         {
-            _pillBrush.Color = ColorOf(ThemeBrush("AvTabActiveBrush"));
+            // Under M6's toolbar tint, the chip is the tinted strip's theme's (a pale chip with white words
+            // was unreadable - MainWindow.TabsExperiments.cs).
+            _pillBrush.Color = ColorOf(ThemeBrushIn("AvTabActiveBrush", TintTheme ?? EffectiveThemeKey()));
             float radius = (float)Res<CornerRadius>("AvTabCornerRadius", new CornerRadius(6)).TopLeft;
             _pillShape.CornerRadius = new Vector2(radius, radius);
         }

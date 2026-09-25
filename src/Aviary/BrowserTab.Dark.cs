@@ -31,6 +31,9 @@ internal sealed partial class BrowserTab
     /// <summary>Whether this tab should be darkened right now.</summary>
     private bool WantsDark => DarkWebsites && !IsInternalPage && !_readerShown;
 
+    /// <summary>"Make every website dark" is darkening this page (M6 stage 3: the tint leaves such a page alone).</summary>
+    public bool Darkened => WantsDark;
+
     /// <summary>Re-applies the switch to this tab: after the setting changes, or Reader comes or goes.</summary>
     public void RefreshDark() => _ = SendDarkAsync(WantsDark);
 

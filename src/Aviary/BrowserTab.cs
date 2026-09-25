@@ -51,6 +51,26 @@ internal sealed partial class BrowserTab
     /// <summary>True for Aviary's own pages, which show the dome mark rather than a letter.</summary>
     public bool IsInternalPage => _internalTitle is not null;
 
+    /// <summary>The Start Page (M6 stage 3: a new, empty tab "Switch to a tab" may close).</summary>
+    public bool IsStartPage => _internalTitle == "Start Page";
+
+    /// <summary>Sound is coming from this tab's page now (M6 stage 3: such a tab is never closed for being old).</summary>
+    public bool IsPlayingAudio
+    {
+        get
+        {
+            try
+            {
+                return View.CoreWebView2?.IsDocumentPlayingAudio ?? false;
+            }
+            catch (Exception)
+            {
+                // A tab being torn down cannot answer; it is playing nothing anyone will hear.
+                return false;
+            }
+        }
+    }
+
     /// <summary>
     /// True between NavigationStarting and NavigationCompleted. Safari's reload glyph
     /// becomes a stop glyph while this is true — a browser that cannot be told to stop is
@@ -1386,7 +1406,8 @@ internal sealed partial class BrowserTab
                     "Largest" => "150",
                     _ => "100",
                 }
-                : AppSettings.Get("zoom").TrimEnd('%');
+                // M6 stage 3: the site's own zoom when "Remember each website's zoom" is on (SiteZoom.cs).
+                : SiteZoom.For(Url, IsPrivate).TrimEnd('%');
 
             if (!double.TryParse(text, System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture, out double percent)
@@ -1733,6 +1754,9 @@ internal sealed partial class BrowserTab
 
         // M6: "Make every website dark" - on for a website, off for Aviary's own pages.
         DarkOnNavigationStarting();
+
+        // Bug 93: Reader's state is the tab's own, and a new page starts without it.
+        ReaderOnNavigationStarting();
 
         try
         {

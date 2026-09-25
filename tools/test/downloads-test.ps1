@@ -55,7 +55,15 @@ function U { param($Id = "", $Name = "", $Action = "Invoke", $Value = "", $Windo
 function Tree { (U -Action Dump) -join "`n" }
 function Rows { U -Action Dump | Select-String "ListItem" | ForEach-Object { ($_.Line.Trim() -replace '^ListItem\s+', '') } }
 function PopoverOpen { (Tree) -match 'Clear downloads' }
-function OpenPopover { if (-not (PopoverOpen)) { U -Id DownloadsButton | Out-Null; Start-Sleep -Milliseconds 900 } }
+# Waits until the popover IS open, up to 4 s - not a fixed 900 ms: on 25 Sep, with someone using the PC,
+# its first opening took longer and the next checks read an empty list (the same build passed when idle).
+function OpenPopover {
+    if (PopoverOpen) { return }
+    U -Id DownloadsButton | Out-Null
+    $d = (Get-Date).AddSeconds(4)
+    do { Start-Sleep -Milliseconds 300 } until ((PopoverOpen) -or (Get-Date) -gt $d)
+    Start-Sleep -Milliseconds 300
+}
 function ClosePopover { if (PopoverOpen) { U -Id DownloadsButton | Out-Null; Start-Sleep -Milliseconds 700 } }
 function Record($file) { (Get-Content "profiles\$script:profile\downloads.json" -Raw -ErrorAction SilentlyContinue | ConvertFrom-Json) | Where-Object FileName -eq $file | Select-Object -First 1 }
 function Size($file) { $f = Get-Item (Join-Path $script:files $file) -ErrorAction SilentlyContinue; if ($f) { $f.Length } else { -1 } }
@@ -312,9 +320,18 @@ Quit
 Launch "dlp"
 $normalPages = (node cdp.js list) -join "`n"
 U -Id MenuButton | Out-Null; Start-Sleep 1
-U -Name "New Private Window" | Out-Null; Start-Sleep 3
-# The private window's page is the one that did not exist before it opened.
-$priv = (node cdp.js list | Where-Object { $_ -match '^page' } | ForEach-Object { $_.Substring(7, 8) } | Where-Object { $normalPages -notmatch $_ } | Select-Object -First 1)
+U -Name "New Private Window" | Out-Null
+# The private window's page is the one that did not exist before it opened - WAITED for, up to 10 s. On
+# 26 Sep, with someone at the PC, it came late: $priv was empty, cdp.js then drove the NORMAL window's page,
+# and that ordinary download showed up as "the private download leaked into downloads.json". A harness
+# must never drive a window that is not the one under test.
+$priv = $null; $d = (Get-Date).AddSeconds(10)
+while (-not $priv -and (Get-Date) -lt $d) {
+    Start-Sleep -Milliseconds 500
+    $priv = (node cdp.js list | Where-Object { $_ -match '^page' } | ForEach-Object { $_.Substring(7, 8) } | Where-Object { $normalPages -notmatch $_ } | Select-Object -First 1)
+}
+if (-not $priv) { Check "a private window opened (its page appeared within 10 s)" $false "no new page"; Quit }
+else {
 node cdp.js nav $priv "http://127.0.0.1:8793/page" | Out-Null
 Start-Sleep 2
 node cdp.js click $priv "#quick" | Out-Null
@@ -337,6 +354,7 @@ public class Titles { delegate bool EP(IntPtr h, IntPtr l);
 $normalTitle = [Titles]::Normal([uint32]$script:pidv)
 Check "the normal window does not (control)" ($normalTitle.Length -gt 0 -and -not (((U -Action Dump -Window $normalTitle) -join "`n") -match 'DownloadsButton')) $normalTitle
 Quit
+}   # the private window opened
 
 }   # end of sections 1-10
 
