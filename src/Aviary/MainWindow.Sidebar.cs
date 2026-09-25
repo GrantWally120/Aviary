@@ -16,6 +16,7 @@ namespace Aviary;
 internal enum SidebarPane
 {
     Tabs,
+    Groups,
     Bookmarks,
     ReadingList,
     History,
@@ -67,6 +68,7 @@ public sealed partial class MainWindow
             "Bookmarks" => SidebarPane.Bookmarks,
             "Reading List" => SidebarPane.ReadingList,
             "History" => SidebarPane.History,
+            "Tab Groups" => _private ? SidebarPane.Bookmarks : SidebarPane.Groups,
             _ => SidebarPane.Tabs,
         };
 
@@ -183,6 +185,9 @@ public sealed partial class MainWindow
         {
             (SidebarPane.Tabs, "Tabs",
                 "M2.4,3.6 H13.6 A1.4,1.4 0 0 1 15,5 V11 A1.4,1.4 0 0 1 13.6,12.4 H2.4 A1.4,1.4 0 0 1 1,11 V5 A1.4,1.4 0 0 1 2.4,3.6 Z M6,3.6 V12.4"),
+            // M5 stage 4: Tab Groups - there in both tab layouts, as Safari's is; never in a private window.
+            (SidebarPane.Groups, "Tab Groups",
+                "M4.4,5.6 H13.2 A1.2,1.2 0 0 1 14.4,6.8 V12.4 A1.2,1.2 0 0 1 13.2,13.6 H4.4 A1.2,1.2 0 0 1 3.2,12.4 V6.8 A1.2,1.2 0 0 1 4.4,5.6 Z M5.6,3.4 H11.6 A1.2,1.2 0 0 1 12.8,4.6"),
             (SidebarPane.Bookmarks, "Bookmarks",
                 "M4.2,2.4 H11.8 V13.6 L8,10.6 L4.2,13.6 Z"),
             (SidebarPane.ReadingList, "Reading List",
@@ -193,7 +198,7 @@ public sealed partial class MainWindow
 
         bool tabsHere = UsingSidebarTabs;
         (SidebarPane pane, string name, string geometry)[] items =
-            all.Where(item => tabsHere || item.pane != SidebarPane.Tabs).ToArray();
+            all.Where(item => (tabsHere || item.pane != SidebarPane.Tabs) && !(_private && item.pane == SidebarPane.Groups)).ToArray();
 
         for (int i = 0; i < items.Length; i++)
         {
@@ -297,6 +302,7 @@ public sealed partial class MainWindow
             SidebarPane.Bookmarks => "Bookmarks",
             SidebarPane.ReadingList => "Reading List",
             SidebarPane.History => "History",
+            SidebarPane.Groups => "Tab Groups",
             _ => "Tabs",
         });
 
@@ -521,6 +527,7 @@ public sealed partial class MainWindow
         switch (_pane)
         {
             case SidebarPane.Tabs: RenderTabsPane(); break;
+            case SidebarPane.Groups: RenderGroupsPane(); break;
             case SidebarPane.Bookmarks: RenderBookmarksPane(); break;
             case SidebarPane.ReadingList: RenderReadingListPane(); break;
             case SidebarPane.History: RenderHistoryPane(); break;

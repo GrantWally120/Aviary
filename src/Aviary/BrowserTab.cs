@@ -1394,6 +1394,34 @@ internal sealed partial class BrowserTab
         }
     }
 
+    /// <summary>
+    /// M5 stage 4 - a tab from a tab group that has not been looked at yet: it has an address, a
+    /// title and its site's icon, and NO engine. Switching to a group with twenty tabs would
+    /// otherwise start twenty engines at once (a new tab's engine takes ~355 ms - Grant's own
+    /// median); only the tab in front is started, and each of the others when it is first chosen
+    /// (MainWindow.RouseAsync). Not the memory saver's sleep: a sleeping tab has an engine, paused.
+    /// </summary>
+    public bool Dormant { get; private set; }
+
+    /// <param name="url">Empty for a Start Page kept in a tab group.</param>
+    public void MakeDormant(string url, string title)
+    {
+        Dormant = true;
+        Url = url;
+        Title = string.IsNullOrWhiteSpace(title) ? HostOf(url) : title;
+        Monogram = PublicSuffix.Monogram(HostOf(url));
+        IconKey = Favicons.KeyFor(url);
+        Favicons.Pin(IconKey);
+        if (!IsPrivate)
+        {
+            Diagnostics.TabUrl(Id, url);
+            Diagnostics.TabTitle(Id, Title);
+        }
+    }
+
+    /// <summary>The engine is up: from here the tab is an ordinary one.</summary>
+    public void Roused() => Dormant = false;
+
     public bool CanGoBack => IsReady && View.CanGoBack;
 
     public bool CanGoForward => IsReady && View.CanGoForward;

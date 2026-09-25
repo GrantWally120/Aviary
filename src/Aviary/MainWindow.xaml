@@ -456,6 +456,19 @@
                           StrokeThickness="1.3"
                           StrokeLineJoin="Round" />
                 </Button>
+                <!-- M5 stage 4: the tab group in front, by name; shown once any group exists. -->
+                <Button x:Name="TabGroupButton" Style="{StaticResource AvToolButton}"
+                        Visibility="Collapsed" Width="NaN" Margin="4,0,0,0"
+                        Click="TabGroupButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="8,0,7,0">
+                        <TextBlock x:Name="TabGroupLabel" FontSize="12.5" MaxWidth="160"
+                                   TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource AvLabelBrush}" />
+                        <Path Width="9" Height="9" Data="M1.5,3 L4.5,6 L7.5,3" VerticalAlignment="Center"
+                              Stroke="{ThemeResource AvIconBrush}" StrokeThickness="1.4"
+                              StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                    </StackPanel>
+                </Button>
                 <Border Width="12" />
                 <Button x:Name="BackButton" Style="{StaticResource AvToolButton}"
                         Click="BackButton_Click" ToolTipService.ToolTip="Back">

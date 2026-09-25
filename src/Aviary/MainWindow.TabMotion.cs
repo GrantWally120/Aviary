@@ -54,6 +54,18 @@ public sealed partial class MainWindow
     {
         _tabButtons.Clear();
 
+        // M5 stage 4: the set of tabs changed - the group in front is written a second later, and
+        // the tab group button's "8 Tabs" follows the count.
+        QueueGroupSave();
+        UpdateTabGroupButton();
+
+        // And the Tab Groups pane's own count, if it is showing - it said "0 Tabs" over a Start Page
+        // at launch, because it was drawn before the first tab existed and nothing redrew it.
+        if (_sidebarVisible && _pane == SidebarPane.Groups)
+        {
+            RefreshSidebar();
+        }
+
         // Tabs down the side: the strip is empty and the sidebar draws them (BOTH hosts are
         // cleared — a button can have one parent, and one left in the other host throws).
         if (UsingSidebarTabs && _sidebarVisible)

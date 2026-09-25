@@ -236,6 +236,12 @@ public sealed partial class MainWindow
         Add(menu, "Add to Reading List",
             () => ReadingList.Add(tab.Title, tab.Url, record: !_private), BrowserTab.HostOf(tab.Url).Length > 0);
 
+        // M5 stage 4.
+        if (MoveToGroupItem(tab) is { } move)
+        {
+            menu.Items.Add(move);
+        }
+
         menu.Items.Add(new MenuFlyoutSeparator());
         Add(menu, "Close Tab", () => CloseTab(tab));
         Add(menu, "Close Other Tabs", () => CloseOthers(tab), _tabs.Count > 1);

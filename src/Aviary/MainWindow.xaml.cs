@@ -73,6 +73,7 @@ public sealed partial class MainWindow : Window
         ApplyMemorySaver();
         StartForgetting();
         WireDownloads();
+        WireTabGroups();
         ConfigureTitleBar();
         InitialiseActivationDim();
 
@@ -657,10 +658,13 @@ public sealed partial class MainWindow : Window
     /// wiring matters beyond tidiness: this is the list of event subscriptions, and a tab
     /// created down one path that missed one would silently lose downloads or shortcuts.
     /// </summary>
-    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null)
+    /// <summary>
+    /// Every event a tab raises that the window listens to - ONE list, used by every way a tab is
+    /// made (CreateTabAsync, and the dormant tabs of a tab group). A tab made down a path that
+    /// missed one would silently lose its downloads or its shortcuts.
+    /// </summary>
+    private void WireTab(BrowserTab tab)
     {
-        long created = System.Diagnostics.Stopwatch.GetTimestamp();
-        BrowserTab tab = new(_private);
         tab.Changed += OnTabChanged;
         tab.CloseRequested += t => CloseTab(t);
         tab.ShortcutPressed += OnShortcut;
@@ -674,6 +678,13 @@ public sealed partial class MainWindow : Window
         WireShields(tab);
         tab.BlankTabRequested = OpenBlankTabAsync;
         tab.AskWhereToSave = AskWhereToSaveAsync;
+    }
+
+    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null)
+    {
+        long created = System.Diagnostics.Stopwatch.GetTimestamp();
+        BrowserTab tab = new(_private);
+        WireTab(tab);
 
         // M4.6 - "New tab position": Safari opens a new tab right after the one you were on;
         // "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the
@@ -1340,6 +1351,12 @@ public sealed partial class MainWindow : Window
         // empty for a frame between them.
         tab.View.Visibility = Visibility.Visible;
 
+        // M5 stage 4: a tab group's tab that has not been looked at yet starts its engine now.
+        if (tab.Dormant)
+        {
+            _ = RouseAsync(tab);
+        }
+
         foreach (BrowserTab other in _tabs)
         {
             if (!ReferenceEquals(other, tab))
@@ -1595,6 +1612,9 @@ public sealed partial class MainWindow : Window
 
     private void OnTabChanged(BrowserTab tab)
     {
+        // M5 stage 4: a page loaded or retitled in the group in front.
+        QueueGroupSave();
+
         if (_tabButtons.TryGetValue(tab, out ToggleButton? button)
             && button.Tag is TabChrome chrome)
         {
@@ -1754,7 +1774,10 @@ public sealed partial class MainWindow : Window
         button.AddHandler(UIElement.PointerReleasedEvent, new PointerEventHandler(released), true);
         button.AddHandler(UIElement.PointerCaptureLostEvent, new PointerEventHandler(released), true);
 
-        button.RightTapped += (_, e) =>
+        // M5 stage 4: ContextRequested, not RightTapped - the same menu from a right-click, a long
+        // press AND the keyboard (the menu key, Shift+F10). RightTapped alone left a tab's menu - and
+        // with it "Move to Tab Group" - out of reach of anyone not using a mouse.
+        button.ContextRequested += (_, e) =>
         {
             e.Handled = true;
             ShowTabMenu(tab, button);
@@ -2497,6 +2520,14 @@ public sealed partial class MainWindow : Window
         fullScreen.KeyboardAcceleratorTextOverride = "F11";
         fullScreen.Click += (_, _) => ToggleFullScreen();
         menu.Items.Add(fullScreen);
+
+        // M5 stage 4: Safari's File menu has New Tab Group; Aviary's app menu is where File's things are.
+        if (!_private)
+        {
+            MenuFlyoutItem newGroup = new() { Text = "New Tab Group" };
+            newGroup.Click += (_, _) => _ = NewEmptyTabGroupAsync();
+            menu.Items.Add(newGroup);
+        }
 
         MenuFlyoutItem downloads = new() { Text = "Downloads", KeyboardAcceleratorTextOverride = "Ctrl+J" };
         downloads.Click += (_, _) => OpenDownloads();
@@ -3724,6 +3755,7 @@ public sealed partial class MainWindow : Window
         BirdsNews.Changed -= OnNewsChanged;
         Bookmarks.Changed -= RefreshBookmarksBar;
         UnwireDownloads();
+        UnwireTabGroups();
         OpenWindows.Remove(this);
 
         // M5: a private window’s download list lives exactly as long as the private windows do.

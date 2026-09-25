@@ -177,7 +177,10 @@ public sealed partial class MainWindow
             }
         };
 
-        button.RightTapped += (_, e) =>
+        // M5 stage 4: ContextRequested, not RightTapped - the same menu from a right-click, a long
+        // press AND the keyboard (the menu key, Shift+F10). RightTapped alone left a tab's menu - and
+        // with it "Move to Tab Group" - out of reach of anyone not using a mouse.
+        button.ContextRequested += (_, e) =>
         {
             e.Handled = true;
             ShowTabMenu(tab, button);

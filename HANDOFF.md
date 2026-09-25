@@ -48,8 +48,8 @@ run, the sidebar and Classic included).
 >   M4.6, M4.7, M4.8, M4.9). **M5 STARTED 24 Sep at Grant’s word** (“officially go start M5 … you
 >   have the greenlight”) — §26. Then M6 (Experimental menu), M7 (measured optimisation), M8 (beta prep).
 > - **M5 stages** (each its own commit, with Grant’s OK; none published yet): **1 the download surface —
->   `932ea18`** · **2 Ask where to save + drag out — `cbe522e`** · **3 link clicks — BUILT, NOT COMMITTED** ·
->   4 tab groups · 5 wrap-up. Read **§26 first**, then §25.
+>   `932ea18`** · **2 Ask where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab
+>   groups — BUILT, NOT COMMITTED** · 5 wrap-up. Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
 >   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
@@ -89,8 +89,8 @@ run, the sidebar and Classic included).
 > - Nothing is owed from M4.7/M4.8: Grant confirmed on 24 Sep that the taskbar button follows App
 >   Icon, which closes bug 77.
 > - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
->   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stages 1–2 committed (`932ea18`,
->   `cbe522e`), NOT published; stage 3 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
+>   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 stages 1–3 committed (`932ea18`,
+>   `cbe522e`, `861dcea`), NOT published; stage 4 not committed** — ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -2509,7 +2509,7 @@ original stays, foreground handed back) · `settings-audit.js` **68 live, 9 badg
 "Confirm Save As". **A capture of the Save window shows the contents of Grant’s real Downloads folder**
 (where it opens) — do not keep one.
 
-### Stage 3 — link clicks (25 Sep, BUILT, NOT COMMITTED)
+### Stage 3 — link clicks (25 Sep, COMMITTED `861dcea` — Grant: "Go continue"; not published)
 
 **Measured before building** (`linksite.js` + `cdp.js mclick`, on the stage 2 build): Ctrl+click and
 middle-click opened a tab **in front**; Shift+click a **tab** rather than a window; **Ctrl+Shift, Alt
@@ -2545,3 +2545,48 @@ recorded, not "fixed". Opening any new window costs 56–105 ms, as before M5 (a
 `cdp.js mclick <tab> <css> ctrl|shift|alt|ctrl+shift|middle`, and every cdp.js click reaches into a
 shadow root with `#host >>> #inner`. **A PowerShell helper named `R` is Invoke-History** (the `r` alias):
 a function called R silently never runs — name helpers something else.
+
+### Stage 4 — tab groups (25 Sep, BUILT, NOT COMMITTED)
+
+Safari's Tab Groups, as PHASE5-PLAN put it: named, kept, switched from the sidebar. A window shows its
+own tabs or one group; switching swaps the whole set (`TabGroups.cs` — `tabgroups.json`, temp-then-move;
+`MainWindow.TabGroups.cs`).
+- **Where:** a **Tab Groups** pane in the sidebar in BOTH tab layouts (Grant's is Top bar — the plan's
+  "sidebar Tabs pane" only exists in the Sidebar layout, so it could not live there); a button with the
+  group's name beside the sidebar button once any group exists (its menu: every set, New Empty Tab Group,
+  New Tab Group with N Tabs, and Rename/Delete for the group in front); "Move to Tab Group ▸" on a tab's
+  menu; "New Tab Group" in the app menu. Nothing in a private window (Safari doesn't either).
+- **Dormant tabs** (`BrowserTab.Dormant`, `MainWindow.RouseAsync`): a group comes back as tabs with an
+  address, a title and a cached icon and NO engine; only the one in front starts, each other on first
+  choice. A new tab's engine takes ~355 ms (Grant's own median) — twenty at once would be seven seconds.
+  Every engine call in the tree already guarded on `IsReady`, which is what made this safe. Not the
+  memory saver's sleep (that pauses an engine that exists).
+- **What a set keeps:** each tab's address and title and which was in front; a **Start Page is kept as a
+  Start Page** (Safari counts it — without that the button said "0 Tabs" over a Start Page); Settings and
+  Aviary's other pages are not kept. Pinned tabs stay put through every switch and are never saved into a
+  group. A tab still downloading is parked, not closed (stage 1), so a switch never kills a download.
+- **The group in front writes itself** a second after its tabs change (`QueueGroupSave`), so killing Aviary
+  loses at most that second — tested by force-closing and relaunching.
+- **One window per group:** choosing a group open in another window brings that window forward.
+- **A tab's menu opens on `ContextRequested` now**, not `RightTapped` — right-click, long press AND the
+  keyboard's menu key / Shift+F10; before, a tab's menu (and so Move to Tab Group) was mouse-only. A group
+  row's Rename/Delete is a `ContextFlyout` for the same reason.
+- **Found by the harness:** the pane said "0 Tabs" at launch — drawn before the first tab existed and
+  never redrawn (M4.8's rule, again); it now redraws with the tab strip.
+
+**Checked (Stage 4):** `groups-test.ps1` **40/40** (no button without a group; a group from the tabs in
+front with NOTHING reloaded; switching away closes them and shows the window's own set; back: all in the
+strip, the one in front first, and ONLY it with an engine; a dormant tab rouses and loads where it was;
+the group updates itself and survives a kill; rename and delete from the button, delete asking first;
+two groups with a pinned tab that never moves and is never saved into either; a download surviving its
+group being put away; no groups in a private window with the normal window as control; a Start Page's
+round trip) · `tabmenu-test.ps1` **7/7** (one guarded real right-click: the tab's menu opens ONCE, Move to
+Tab Group moves it) · downloads **53/53**, links **27/27**, forget **17/17**, PiP **14/14** · motion-session
+Classic and Liquid Glass clean · flyout geometry (10,2) both looks · audit **68 / 9 / 0** · the button and
+pane photographed in Classic dark and Liquid Glass light.
+**Kit:** `groups-test.ps1` (UTF-8 with BOM), `tabmenu-test.ps1` (DESKTOP INPUT, guarded). **Three PowerShell
+5.1 traps met writing them:** curly quotes and apostrophes ARE quote characters to its parser, even inside
+strings — spell them `[char]0x2019` etc.; `"[]" | ConvertFrom-Json` comes out as ONE object, so `@(...)`
+of it counts 1 — unroll with `ForEach-Object { $_ }`; and a function returning a one-item list returns the
+item — wrap the CALL, `@(Groups)`. Also: a MenuFlyoutItem's own text label carries its name, so count UIA
+elements by name AND control type.
