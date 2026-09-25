@@ -138,6 +138,9 @@ public sealed partial class MainWindow
                 _readerActive = true;
             }
 
+            // M6: Reader keeps the background chosen for it, whatever "Make every website dark" says.
+            _active?.SetReaderShown(_readerActive);
+
             DiagFeature(_readerActive ? "reader-on" : "reader-off", new
             {
                 url = _active?.Url,

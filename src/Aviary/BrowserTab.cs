@@ -310,6 +310,9 @@ internal sealed partial class BrowserTab
         // it fires, and a renderer that dies should at least be known about.
         core.ProcessFailed += OnProcessFailed;
 
+        // M6: which process is the engine, so "Restart Aviary" can wait for it to go.
+        WebViewEnvironment.NoteBrowserProcess(core);
+
         Diagnostics.EnabledChanged += OnDiagnosticsChanged;
         if (Records)
         {
@@ -675,6 +678,15 @@ internal sealed partial class BrowserTab
         if (kind == nameof(CoreWebView2ProcessFailedKind.RenderProcessExited))
         {
             PageGone?.Invoke(this, reason);
+        }
+
+        // M6: the engine itself, or its graphics process, going is what an engine-switch experiment
+        // would cause - counted against experiments changed just before (SafetyMarker). A page's own
+        // renderer is not: websites crash theirs by themselves.
+        if (kind is nameof(CoreWebView2ProcessFailedKind.BrowserProcessExited)
+                 or nameof(CoreWebView2ProcessFailedKind.GpuProcessExited))
+        {
+            SafetyMarker.Problem("its browser engine stopped unexpectedly");
         }
 
         Diagnostics.Engine(new
@@ -1716,6 +1728,9 @@ internal sealed partial class BrowserTab
 
         // White under websites, the theme's colour under Aviary's own pages — and when (bug 61).
         CanvasOnNavigationStarting(args);
+
+        // M6: "Make every website dark" - on for a website, off for Aviary's own pages.
+        DarkOnNavigationStarting();
 
         try
         {

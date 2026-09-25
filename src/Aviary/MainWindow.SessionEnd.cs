@@ -127,6 +127,9 @@ public sealed partial class MainWindow
         try { History.Save(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "session end: history"); }
         try { AppSettings.SaveIfUnsaved(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "session end: settings"); }
 
+        // M6: Windows ending the session is a normal close, not a crash to blame on an experiment.
+        SafetyMarker.CleanEnd();
+
         Diagnostics.Shutdown(reason);
     }
 }

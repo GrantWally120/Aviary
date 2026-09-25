@@ -48,6 +48,28 @@ internal static class WebViewEnvironment
     /// <summary>The settings that are engine switches — each needs a restart to change.</summary>
     public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect", "reduceMotion" };
 
+    /// <summary>
+    /// The engine's browser process, once a tab has started (M6: "Restart Aviary" waits for it to
+    /// go before the new Aviary starts, because an engine still running on this profile with the
+    /// OLD switches would refuse the new ones). 0 until known.
+    /// </summary>
+    public static int BrowserProcessId { get; private set; }
+
+    public static void NoteBrowserProcess(CoreWebView2 core)
+    {
+        try
+        {
+            if (BrowserProcessId == 0)
+            {
+                BrowserProcessId = (int)core.BrowserProcessId;
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "engine: read the browser process");
+        }
+    }
+
     /// <summary>The engine's compiled-shader and GPU caches, which it opens at launch and holds.</summary>
     private static readonly string[] GpuCaches =
     {
@@ -168,6 +190,15 @@ internal static class WebViewEnvironment
             _launchedWith[key] = AppSettings.GetBool(key);
         }
 
+        // M6: the experiments that change the engine are launch-time too - read once, here.
+        foreach (Experiments.Experiment e in Experiments.All)
+        {
+            if (e.NeedsRestart)
+            {
+                _launchedWith[e.Key] = Experiments.IsOn(e);
+            }
+        }
+
         List<string> features = new();
         if (_launchedWith["thirdPartyCookies"])
         {
@@ -179,11 +210,20 @@ internal static class WebViewEnvironment
             features.Add("GlobalPrivacyControlForce");
         }
 
+        // M6: into the SAME list. The engine keeps only the last --enable-features it is given, so
+        // a second one for an experiment would silently switch the privacy features above off.
+        bool LaunchedOn(Experiments.Experiment e) => _launchedWith.TryGetValue(e.Key, out bool on) ? on : Experiments.IsOn(e);
+        features.AddRange(Experiments.EngineFeatures(LaunchedOn));
+
         List<string> args = new();
         if (features.Count > 0)
         {
             args.Add("--enable-features=" + string.Join(",", features));
         }
+
+        // M6: each experiment's own switches, from the fixed list in Experiments.cs only - a value
+        // in settings.json is never passed on, and anything that weakens security is dropped there.
+        args.AddRange(Experiments.EngineSwitches(LaunchedOn));
 
         if (_launchedWith["webrtcProtect"])
         {

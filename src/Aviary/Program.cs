@@ -253,6 +253,21 @@ public static class Program
         show!();
     }
 
+    /// <summary>
+    /// M6: "Restart Aviary" (Settings, under an engine switch that has changed). Once the last
+    /// window has closed and everything is written, <see cref="Release"/> starts a new Aviary -
+    /// the path a launch arriving during a close already takes (bug 51). Asked only after the
+    /// person has confirmed, and followed at once by closing every window, so it is never left
+    /// set by a close that was cancelled.
+    /// </summary>
+    internal static void RequestRelaunch()
+    {
+        lock (Gate)
+        {
+            _relaunchRequested = true;
+        }
+    }
+
     /// <summary>The last window has started closing: a launch from now on waits for <see cref="Release"/>.</summary>
     internal static void BeginClosing()
     {
@@ -306,6 +321,22 @@ public static class Program
 
     private static void StartAnotherAviary()
     {
+        // M6: the engine this Aviary started is still shutting down for a moment after its last
+        // tab went. A new engine on the same profile with DIFFERENT switches - the whole point of
+        // "Restart Aviary" - cannot start while the old one runs, so give it up to five seconds.
+        try
+        {
+            if (WebViewEnvironment.BrowserProcessId is > 0 and int engine)
+            {
+                using Process old = Process.GetProcessById(engine);
+                old.WaitForExit(5000);
+            }
+        }
+        catch (Exception)
+        {
+            // Already gone (GetProcessById throws for a process that has exited): nothing to wait for.
+        }
+
         try
         {
             if (Environment.ProcessPath is { } exe)

@@ -340,6 +340,20 @@ own Downloads panel over Aviary). Bugs 85–87 (from re-checking M4.9) stay open
 
 ### M6 — The Experimental menu: a lot, in plain English, safe by construction
 
+**Started 25 Sep 2026 (Grant: "Just go do what ever") — HANDOFF §27.** The list of 20 below was
+written on 10 Sep; it was audited against Settings before anything was built, and every switch
+measured on the engine first. **Cut, a real setting already does it:** quiet tabs to sleep (Memory
+saver), loading bar in the address field (M4.5's loading line), calm animations on websites (Reduce
+motion), new tabs next to the current one (New tab position). **Cut, measured worthless:** Screen
+smoothness (the engine already draws at 241 fps on the 240 Hz screen; the switch gave ~4,300 no screen
+can show). **Replacements:** remember each website's zoom · pop a playing video out when switching tabs
+· stop websites asking to show notifications · thin scrollbars on websites · Reader automatically on
+every article. **Stages:** 1 the frame + smooth scrolling / dark websites / video decoding · 2 speed &
+memory · 3 tabs & looks · 4 privacy · 5 wrap-up (gpu / autoplay / language, Updates 13 of 15).
+**Stage 1 built** (not committed): the pane, badges, Turn All Off, Restart Aviary, the crash protection
+(`SafetyMarker.cs`), and three experiments — "Make every website dark" is PER TAB, not the engine's
+force-dark switch, which darkened Aviary's own pages with no way for a page to opt out.
+
 A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
 nothing about computers can use it without harm.
 

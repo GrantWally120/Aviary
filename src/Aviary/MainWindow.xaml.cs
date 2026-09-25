@@ -333,6 +333,9 @@ public sealed partial class MainWindow : Window
         // The engine's code is loaded now; make sure a native crash still reaches Aviary's recorder.
         NativeCrash.CheckStillInstalled();
 
+        // M6: if this launch switched the experiments off after a problem, say so - once.
+        _ = TellAboutExperimentsSwitchedOffAsync();
+
         ArmCrashTest();
         ArmStallTest();
     }
@@ -2661,6 +2664,12 @@ public sealed partial class MainWindow : Window
 
                     // Persist first, so a setting survives even if applying it throws.
                     AppSettings.Set(settingKey, AsString(settingValue));
+                    if (Experiments.IsExperiment(settingKey))
+                    {
+                        // M6: the crash protection watches the next runs after any change.
+                        SafetyMarker.ExperimentChanged();
+                    }
+
                     ApplySetting(settingKey, settingValue);
                     return;
                 }
@@ -2710,6 +2719,11 @@ public sealed partial class MainWindow : Window
                 case "animationStyle":
                 case "reduceMotion":
                     PushMotionToPages();
+                    break;
+
+                // M6: at once, in every open tab of every window - no restart.
+                case "exp.darkWebsites":
+                    ApplyExperimentsToOpenTabs();
                     break;
 
                 // M4.9: every open Start Page redraws with the background just chosen.
@@ -3119,6 +3133,16 @@ public sealed partial class MainWindow : Window
 
                 case "privateWindow":
                     OpenPrivateWindow();
+                    break;
+
+                // M6: Settings → Experimental.
+                case "experimentsOff":
+                    TurnEveryExperimentOff();
+                    break;
+
+                // M6: under any switch that only applies at launch, once it has been changed.
+                case "restart":
+                    await RestartAviaryAsync();
                     break;
 
                 case "siteData":
@@ -3815,6 +3839,9 @@ public sealed partial class MainWindow : Window
         _tabs.Clear();
         _parked.Clear();
         _tabButtons.Clear();
+
+        // M6: a normal close, for the experiments' crash protection - whether or not diagnostics is on.
+        SafetyMarker.CleanEnd();
 
         // Last: the final summary.md and a session.json that says this session ended
         // cleanly. Bounded, so a stuck disk cannot hold the window open.

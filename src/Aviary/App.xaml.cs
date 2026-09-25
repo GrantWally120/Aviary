@@ -41,6 +41,11 @@ public partial class App : Application
             Diagnostics.Swallowed(nativeFailure, "native crash: install the abort handler");
         }
 
+        // M6: before the engine's switches are built (the first tab). If the last run ended badly
+        // soon after an experiment changed, every experiment is switched off HERE, so none of them
+        // reaches the engine. Not part of diagnostics: safety must not depend on opting in.
+        SafetyMarker.AtLaunch();
+
         WebViewEnvironment.EnsureUserDataFolder();
 
         // The ad blocker's lists are read on a background thread while the window builds, so
@@ -72,6 +77,9 @@ public partial class App : Application
         // The full report — breadcrumbs, open tabs, build — when collection is on. crash.log
         // below stays regardless: knowing that Aviary crashed must never depend on opting in.
         Diagnostics.Crash(e.Exception, "UI thread (Aviary kept running)", terminating: false);
+
+        // M6: a crash Aviary survived still counts against experiments changed just before it.
+        SafetyMarker.Problem("part of it failed and recovered");
 
         try
         {

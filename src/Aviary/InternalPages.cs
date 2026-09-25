@@ -216,6 +216,22 @@ internal static class InternalPages
   /* "Restart Aviary to apply" under an engine switch whose saved value is not yet the one
      the running engine started with. */
   .note{display:block;margin-top:6px;font-size:12px;font-weight:600;color:#FF9500 !important;}
+  .btn.btn--note{margin-left:8px;padding:3px 9px;font-size:11.5px;vertical-align:baseline;}
+  /* M6: Experimental's badges and its "What might happen" line. */
+  .row__t b.xt{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;}
+  /* `.row__t` on each, for the same reason as above: `.row__t span` would otherwise win. */
+  .row__t .xb{display:inline-block;font:600 10.5px/1 inherit;letter-spacing:.01em;padding:3px 7px;border-radius:99px;
+    white-space:nowrap;margin:0;line-height:1;}
+  .row__t .xb--safe{color:#1d7a43;background:rgba(46,184,103,.16);}
+  .row__t .xb--looks{color:#8a5a00;background:rgba(240,168,26,.20);}
+  .row__t .xb--privacy{color:#0a5ec2;background:rgba(10,132,255,.15);}
+  @media (prefers-color-scheme: dark){
+    .row__t .xb--safe{color:#63d98f;background:rgba(46,184,103,.20);}
+    .row__t .xb--looks{color:#ffc75a;background:rgba(240,168,26,.20);}
+    .row__t .xb--privacy{color:#6fb3ff;background:rgba(10,132,255,.22);}
+  }
+  .row__t .xlegend .xb{margin:0 4px 0 0;vertical-align:1px;}
+  .row__t .might{margin-top:4px;}
   /* Website data: one line per site, its sizes, and Remove. */
   .sitedata{margin-top:12px;display:grid;gap:2px;max-height:340px;overflow-y:auto;}
   .sitedata[hidden]{display:none;}
@@ -624,6 +640,7 @@ var ICON = {
   storage:'<svg viewBox="0 0 16 16" fill="none"><ellipse cx="8" cy="4.4" rx="5.2" ry="1.9" stroke="currentColor" stroke-width="1.3"/><path d="M2.8 4.4v7.2c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9V4.4M2.8 8c0 1.05 2.33 1.9 5.2 1.9s5.2-.85 5.2-1.9" stroke="currentColor" stroke-width="1.3"/></svg>',
   safety:'<svg viewBox="0 0 16 16" fill="none"><path d="M8 1.8 13.2 3.8v3.9c0 3.1-2.1 5.4-5.2 6.5-3.1-1.1-5.2-3.4-5.2-6.5V3.8L8 1.8Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.2-3.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   news:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M4.6 8.6h6.8M4.6 10.8h6.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="4.4" y="5" width="4.2" height="1.9" rx=".5" fill="currentColor"/></svg>',
+  experimental:'<svg viewBox="0 0 16 16" fill="none"><path d="M6.3 2.2h3.4M6.9 2.2v4L3.3 12.3a1 1 0 0 0 .9 1.5h7.6a1 1 0 0 0 .9-1.5L9.1 6.2v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.7 10.2h6.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
   perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
   about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
 };
@@ -1194,7 +1211,29 @@ var SECTIONS = [
       {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', phase:5, ctl:{type:'toggle', key:'gpu', value:true}},
       {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', phase:5, ctl:{type:'toggle', key:'background', value:false}},
       {t:'Memory saver', d:'How hard Aviary works to give memory back. Background tabs always drop their memory priority, and a tab you have not looked at for a while is <b>put to sleep</b> — which really does hand its memory back, a heavy page can be holding hundreds of megabytes. A sleeping tab wakes the moment you click it, on the page you left.<br><b>Chill</b> sleeps a tab after an hour. <b>Balanced</b> after half an hour. <b>Aggressive</b> after five minutes, and lets go of every background tab as soon as you minimise the window. <b>Off</b> never sleeps anything.<br>A tab <b>playing sound or video is never put to sleep</b> — the engine itself refuses — and neither is the tab you are on, one of Aviary’s own pages, or anything in a private window. Performance lists which tabs are asleep.', ctl:{type:'select', key:'memorySaver', opts:['Off','Chill','Balanced','Aggressive'], value:'Balanced'}},
-      {t:'Experimental features', d:'Opt-in switches that are not ready to be defaults — including the frame-rate ceiling.', phase:5, ctl:{type:'none'}}
+      {t:'Experimental features', d:'Unfinished features you can switch on, each one explained in plain words: what it does, and what might happen. None of them can make Aviary less safe.', ctl:{type:'goto', target:'experimental', label:'Open Experimental'}}
+    ]},
+
+  /* M6: the Experimental menu. Each row has a name a person would say out loud, what it does
+     (d), what might happen (might), and a badge (exp: safe | looks | privacy). What a switch
+     DOES to the engine is fixed in Experiments.cs - never here, never in settings.json - and
+     every one was measured on this engine before it was offered (tools/test/switch-probe.ps1).
+     The names must match Experiments.cs; settings-audit.js checks. */
+  { id:'experimental', icon:'experimental', name:'Experimental', title:'Experimental', experimental:true,
+    lede:'These are unfinished features. Some might make a website look wrong. <b>None of them can make Aviary less safe</b> — anything that would weaken its protection is left out on purpose, whoever asks for it.',
+    rows:[
+      {t:'Turn off smooth scrolling', group:'Speed and memory', exp:'safe', restart:true,
+       d:'Pages jump straight to where you scroll, instead of gliding there. Some people find it calmer, and long pages can feel quicker.',
+       might:'Scrolling can feel jumpy, and it is easier to lose your place while reading.',
+       ctl:{type:'toggle', key:'exp.smoothScrollOff', value:false}},
+      {t:'Make every website dark', group:'Looks', exp:'looks',
+       d:'Websites that only come in light colours are turned dark by the browser engine, so a dark screen stays dark at night. It works at once, in every open tab. Aviary’s own pages — Settings, the Start Page — and Reader keep their own look.',
+       might:'Some pictures, logos and charts can come out in the wrong colours, and the odd site may be hard to read.',
+       ctl:{type:'toggle', key:'exp.darkWebsites', value:false}},
+      {t:'Turn off video hardware decoding', group:'Troubleshooting', exp:'safe', restart:true,
+       d:'Videos are unpacked by the processor instead of the graphics card. Only worth trying if videos flicker, show green blocks, or freeze while the sound carries on.',
+       might:'Videos use more of the processor and more power, and very large or fast videos may stutter.',
+       ctl:{type:'toggle', key:'exp.noVideoDecode', value:false}}
     ]},
 
   { id:'reset', icon:'reset', name:'Reset settings', title:'Reset settings',
@@ -1309,14 +1348,54 @@ function control(row){
   return badge;
 }
 
+/* M6: the three Experimental badges, as small coloured labels (the plan's 🟢 🟡 🔵). */
+var EXP_BADGE = {
+  safe:    '<span class="xb xb--safe">Safe to try</span>',
+  looks:   '<span class="xb xb--looks">Some sites may look wrong</span>',
+  privacy: '<span class="xb xb--privacy">Privacy trade-off</span>'
+};
+
 function rowHtml(r){
   var key = r.ctl && r.ctl.key;
+  /* M6: the note under an engine switch carries the way to act on it. */
   var note = (r.restart && key)
-    ? '<span class="note" data-restart="' + key + '" hidden>Restart Aviary to apply this change.</span>'
+    ? '<span class="note" data-restart="' + key + '" hidden>Restart Aviary to apply this change. ' +
+      '<button class="btn btn--note" data-cmd="restart">Restart Aviary</button></span>'
     : '';
-  return '<div class="row"><div class="row__t"><b>' + r.t + '</b>' +
-         (r.d ? '<span>' + r.d + '</span>' : '') + note + (r.more ? (MORE[r.more] || '') : '') +
+  var title = r.exp ? '<b class="xt">' + r.t + (EXP_BADGE[r.exp] || '') + '</b>' : '<b>' + r.t + '</b>';
+  var might = r.might ? '<span class="might"><b>What might happen:</b> ' + r.might + '</span>' : '';
+  return '<div class="row"><div class="row__t">' + title +
+         (r.d ? '<span>' + r.d + '</span>' : '') + might + note + (r.more ? (MORE[r.more] || '') : '') +
          '</div>' + control(r) + '</div>';
+}
+
+/* M6: Experimental - the promise, one button that turns everything off, then the rows in their
+   groups. The groups come from the rows themselves, in the order they first appear. */
+function renderExperimental(s){
+  var groups = [], by = {};
+  s.rows.forEach(function(r){
+    var g = r.group || 'Other';
+    if (!by[g]) { by[g] = []; groups.push(g); }
+    by[g].push(r);
+  });
+  var html = '<div class="group"><div class="row"><div class="row__t"><b>Turn every experiment off</b>' +
+      '<span>Back to Aviary as it ships, in one go. Anything that only changes when Aviary starts says so, ' +
+      'with a button to restart.</span></div>' +
+      '<button class="btn" data-cmd="experimentsOff">Turn All Off</button></div>' +
+    '<div class="row"><div class="row__t"><b>What the labels mean</b><span class="xlegend">' +
+      EXP_BADGE.safe + ' Nothing should change except what it says. ' +
+      EXP_BADGE.looks + ' A website may draw oddly while it is on.' +
+      /* The third label, Privacy trade-off, joins this line with the first experiment that wears it
+         (stage 2's preload on hover) - together with the ask-once it promises. Not before: a legend
+         entry for a label nothing wears would describe a behaviour that does not exist yet. */
+    '</span></div></div>' +
+    '<div class="row"><div class="row__t"><b>If something goes wrong</b><span>If Aviary stops unexpectedly soon ' +
+      'after you change an experiment, it starts next time with every experiment off, and asks whether to turn ' +
+      'them back on. This works whether or not data collection is on.</span></div></div></div>';
+  groups.forEach(function(g){
+    html += '<h2 class="upd-h">' + g + '</h2><div class="group">' + by[g].map(rowHtml).join('') + '</div>';
+  });
+  return html;
 }
 
 
@@ -1470,6 +1549,8 @@ SECTIONS.forEach(function(s, i){
     if (s.rows.length) { body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
   } else if (s.updates){
     body += renderUpdates(s);
+  } else if (s.experimental){
+    body += renderExperimental(s);
   } else {
     body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>';
   }
@@ -2258,7 +2339,8 @@ window.__aviaryApply = function(key, value){
   var k = (window.CSS && CSS.escape) ? CSS.escape(key) : key;
 
   var sw = document.querySelector('.sw[data-key="' + k + '"]');
-  if (sw){ sw.setAttribute('aria-checked', value ? 'true' : 'false'); return; }
+  /* M6: and its "Restart Aviary" note follows - "Turn All Off" arrives here, not as a click. */
+  if (sw){ sw.setAttribute('aria-checked', value ? 'true' : 'false'); restartNote(key, !!value); return; }
 
   var sel = document.querySelector('.sel[data-key="' + k + '"]');
   if (!sel) { return; }

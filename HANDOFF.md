@@ -46,8 +46,11 @@ run, the sidebar and Classic included).
 > **WHERE THINGS STAND (25 Sep 2026 — read this first in a new chat)**
 > - Alpha Build 5 **"The Long Run"**: **12 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
 >   M4.6, M4.7, M4.8, M4.9, M5). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
->   start M5 … you have the greenlight”) — §26. Next, only when he says: M6 (Experimental menu), M7
->   (measured optimisation), M8 (beta prep).
+>   start M5 … you have the greenlight”) — §26. Then M7 (measured optimisation), M8 (beta prep).
+> - **M6 — the Experimental menu — STARTED 25 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
+>   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
+>   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 BUILT, NOT committed — ask.**
+>   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
 >   **5 wrap-up — `0e8d432`**. **PUBLISHED 25 Sep** to `publish/Aviary` at `0e8d432` (§26, last part). Read **§26 first**, then §25.
@@ -2659,3 +2662,116 @@ and a clean close. Its first two runs "failed" to close: with two tabs open Avia
 window?" and waited — the script now expects the question and answers it. **Tip:** a test that closes an
 instance with two or more tabs must answer that question (or seed `warnManyTabs:false`), or it reads as a hang.
 Grant's diagnostics: still unchanged since 06:12 — not exercised.
+
+---
+
+## 27. Alpha Build 5 M6 — the Experimental menu (25 Sep 2026 — IN PROGRESS)
+
+Grant, 25 Sep: *"Just go do what ever"* — to the M6 plan below (and to the docs commit before it). The
+plan's list of 20 was written on 10 Sep; a lot has shipped since, so it was **audited against Settings
+first** and every experiment's switch **measured on this engine before a line was written**
+(`tools/test/switch-probe.ps1` + `switch-probe.js` + `expsite.js`, port 8797).
+
+**The audit of the 20 (25 Sep):**
+- **Cut — a real setting already does it:** Put quiet tabs to sleep (Memory saver, M4.8/M4.9) · Show a
+  loading bar in the address field (M4.5's loading line, always on) · Calm animations on websites too
+  (Reduce motion already tells websites, M4.5) · Open new tabs next to the current one (New tab position,
+  M4.6).
+- **Cut — measured to be worthless:** Screen smoothness. The engine already draws at the screen's rate
+  (241 frames a second on Grant's 240 Hz screen); `--disable-frame-rate-limit` made pages draw ~4,300 a
+  second that no screen can show — power for nothing.
+- **Kept (15)**, with what the audit changed: *Open pinned tabs only when clicked* is NOT covered by M5 —
+  `RestorePinnedAsync` still starts an engine per pinned tab; M5's dormant tabs make it small. *Block
+  scripts from other websites* and *Stronger fingerprint protection* already exist as badged Shields rows
+  — each is built ONCE, one key, and the Shields row points to it. *Forget everything when Aviary closes*
+  is 🟡 not 🟢 (it signs you out everywhere) and reuses Forgetful browsing's clearing; "Never" sites are
+  kept. *Performance overlay* is drawn by Aviary, never injected into pages. *Double-click the empty tab
+  bar* says it trades away Windows' maximise-on-double-click. *Preload on hover* ships only if proven to
+  still pass through Shields.
+- **Five replacements:** Remember each website's zoom (today Ctrl +/- sets ONE zoom for every site —
+  why YouTube at 200% made everything 200%) · Pop a playing video out when you switch tabs (M4.9's PiP) ·
+  Stop websites asking to show notifications (Aviary handles no permission requests today) · Thin
+  scrollbars on websites (the plan's old inert `scrollbars` row) · Use Reader automatically on every
+  article (only per-site exists).
+
+**Stages, each its own commit:** 1 the frame + three experiments · 2 speed & memory
+(pinned on click, mute background tabs, preload on hover, the overlay) · 3 tabs & looks (tab preview, close
+week-old tabs, double-click, tint, per-site zoom, video pop-out, thin scrollbars, Reader) · 4 privacy
+(forget on close, extra link cleaning, third-party scripts, fingerprint defences, notification prompts) ·
+5 wrap-up (the plan's "also in M6": gpu / autoplay / language made real, minFont re-badged or cut; Updates
+13 of 15; Aviary.html PHASES).
+
+### Stage 1 — the frame, and three experiments (25 Sep, BUILT — not committed)
+
+- **Settings → Experimental** (`InternalPages.cs`, section `experimental`, after System; System's old
+  badged "Experimental features" row is now a live link to it). The header says it in plain words —
+  *"These are unfinished features. Some might make a website look wrong. None of them can make Aviary less
+  safe"* — then **Turn All Off**, what the three labels mean, and what happens if something goes wrong.
+  Each row: a name a person would say, what it does, **"What might happen:"**, and a coloured label —
+  *Safe to try* (green) · *Some sites may look wrong* (amber) · *Privacy trade-off* (blue — styled, but
+  left out of the legend until stage 2's first privacy experiment brings the ask-once it promises; a legend
+  line for a label nothing wears would describe behaviour that does not exist). Rows are grouped by `group:`.
+- **`Experiments.cs`** — the registry: key (`exp.*`), name, label, whether it needs a restart, and its
+  engine features/switches. **A value in settings.json is only ever compared with "true"** — never passed
+  on — so editing the file cannot add a switch, and an unknown `exp.*` key does nothing. A list of
+  security-weakening switches (certificate/HTTPS errors, sandbox, site isolation, web security, mixed
+  content, file access, debugging port, `--disable-features`…) is refused by `IsForbidden` even if one were
+  ever typed into the registry. Diagnostics already filed `exp.*` changes as category 7 "experiment".
+- **Engine features go into the ONE `--enable-features`** (`WebViewEnvironment.BuildArguments`): the engine
+  keeps only the last copy it is given, so a second would silently drop third-party-cookie blocking and GPC.
+- **"Restart Aviary"** — the orange "Restart Aviary to apply this change" note under ANY launch-time switch
+  (the four privacy rows too) now carries a button. It asks first, honestly: *"Pinned tabs and tab groups
+  are kept; other open tabs close"* (Continue-where-you-left-off is a later build), plus how many downloads
+  would stop; then `Program.RequestRelaunch()` and every window closes with its questions already answered;
+  `Release()` starts the new Aviary — the bug-51 relaunch path — **after waiting up to 5 s for the old
+  engine's browser process to exit** (`WebViewEnvironment.BrowserProcessId`): a new engine with different
+  switches cannot start on the profile while the old one runs.
+- **Crash protection — `SafetyMarker.cs`, NOT part of diagnostics** (works with collection off — tested).
+  `experiments-safety.json` in the profile: running / started / changedAt / cleanRuns / problem, written
+  synchronously (temp-then-move). **The rule:** if Aviary stops unexpectedly *soon* after the experiments
+  changed, the next launch — in App's constructor, BEFORE the engine's switches are built — turns every
+  experiment off, and the first window asks: **Keep Them Off** (default) / **Turn Them Back On** (which then
+  offers Restart Aviary if any of them needs it). "Soon" = before two normal runs that STARTED after the
+  change (the session a change is made in never counts: an engine switch only bites at the next launch).
+  "Stops unexpectedly": the file still says running (fatal / native crash, kill, power cut); a UI-thread
+  failure Aviary survived (`App_UnhandledException`); the engine's browser or GPU process exiting (not a
+  page's renderer — websites crash those themselves; not during Windows shutdown — bug 83's rule).
+  Normal ends: the last window closing, and Windows ending the session.
+- **The three experiments, each measured before it was built** (`switch-probe.ps1`, control = no switch):
+  - *Turn off smooth scrolling* (Speed and memory, Safe, restart) — `--disable-smooth-scrolling`: one Page
+    Down glides through 37 positions without it, jumps 0→667 in one frame with it. (A DevTools WHEEL event
+    is never animated — the control jumped too — so the key is the only honest test.)
+  - *Make every website dark* (Looks, amber, **at once — no restart**) — **per tab**, `BrowserTab.Dark.cs`.
+    The engine's `WebContentsForceDark` was built first and the harness caught it **darkening Settings
+    itself** in the light theme (a pixel of rgb(18,18,18) where the CSS said white). No page can opt out on
+    this engine: `color-scheme: light dark`, `only light` in CSS and the `only light` meta tag were all
+    darkened alike (`scheme-probe.js`). So: `Emulation.setAutoDarkModeOverride` through the tab's own
+    DevTools session — measured to darken, to last across the tab's navigations, and to come off — ON for
+    websites, OFF for Aviary's own pages and while Reader is showing. Decided on every NavigationStarting
+    (after the internal-page flag is settled); nothing is ever sent to a tab while the experiment is off.
+  - *Turn off video hardware decoding* (Troubleshooting, Safe, restart) — `--disable-accelerated-video-decode`:
+    1080p H.264 and VP9 stop being `powerEfficient` (the graphics card no longer decodes them).
+
+**Checked (Stage 1):** `experiments-test.ps1` **65/65** on the final build, and its `-Restart` section **7/7**
+the run before (same code; the Restart Aviary question, the old Aviary gone, a new one started by itself
+with the switch in its engine and Page Down jumping, not blamed as a crash) — every claim with its control:
+an instance with nothing on beside one with all three; the engine's real command line read through WMI;
+Start Page, Settings and Reader measured light in the SAME instance where a website measured dark; dark
+following the tab to a different site (127.0.0.2, a new renderer) and past a page left in Reader; off and on
+again with no restart; a hostile settings.json (`--disable-web-security`, `true --no-sandbox`, `yes`, an unknown
+`exp.evil`) reaching nothing; the crash protection for a fatal crash, a survived UI failure, a killed engine,
+and with data collection OFF; "soon" failing after one normal run and holding after two; a crash with no
+experiments asking nothing · `settings-audit.js` **71 live / 9 badged / 0 inert**, and its new Experimental
+check (every row in the registry under the same name, nothing in the registry without a row) caught a
+planted misname — the control · regressions on this build: downloads **53/53**, links **27/27**, groups
+**40/40**, pip **14/14**, forget **17/17**, startbg **13/13** (no picker), `si-race` **6/6** · the pane
+photographed in light and dark.
+**Found by the harness and fixed before it was ever committed:** the engine-wide force-dark darkened Settings
+(see above — why dark is per tab). **Found by looking:** the legend's sentences began in lower case after
+each label, and it promised an ask-once for a label nothing wears yet (now left out until stage 2).
+**Kit:** `expsite.js` (8797, .1 and .2), `switch-probe.ps1/.js`, `scheme-probe.js`, `autodark-probe.js`,
+`experiments-test.ps1` — README. **Traps met:** a DevTools wheel event is never smooth-scrolled (use a
+key); a DevTools screenshot of a BACKGROUND tab never returns — shoot the tab in front, with a time limit
+(`Shot` in the harness); the Collection's index is a dark design of its own, so it proves nothing about
+darkening; a harness that closes an instance with two tabs must answer "Close this window?".
+Grant's diagnostics: unchanged since 06:12 — not exercised.
