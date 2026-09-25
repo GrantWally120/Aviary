@@ -2643,3 +2643,19 @@ launch in one session can point the other's UI Automation and Stop-Process at th
 must not drive test instances at once**; when in doubt, watch the process list while a harness runs.
 Grant's diagnostics: unchanged since 06:12 (49 issues, no crashes) — M5 has
 still not met his real browsing.
+
+**Re-checked from a clean build (25 Sep afternoon, "Zoo Part 12", at Grant's word — the session before was
+compacted).** `bin`/`obj` deleted, `tools/test/pub` rebuilt at `e9dd6c9` (docs only since `0e8d432`), every M5
+harness re-run rather than its write-up trusted: `downloads-test -Picker` **63/63** · `links-test` **27/27** ·
+`groups-test` **40/40** · `settings-audit` **68 / 9 / 0** · `forget-test` **17/17** · `pip-test` **14/14** ·
+`startbg-test -Picker` **19/19** · filters **125/125** · and, with `guard.ps1` clear (Grant idle ~2 h),
+`drag-out-test` **5/5** and `tabmenu-test` **7/7**. Every number is the one the notes above give.
+**The publish check, found independently the same way:** the portable PDB records a checksum of every source
+file it was compiled from — all 98 of Aviary's own files are identical between the tested and the published
+build; the one file that differs is CsWinRT's generated `WinRTCCWVtable.g.cs` (its embedded text, pulled out
+of both PDBs: the same classes and interface entries, the classes in another order). Two methods, one answer.
+**`publish-smoke.ps1` (new, 18/18 on `publish/Aviary`)** — the Collection really served, a download, Updates,
+and a clean close. Its first two runs "failed" to close: with two tabs open Aviary rightly asked "Close this
+window?" and waited — the script now expects the question and answers it. **Tip:** a test that closes an
+instance with two or more tabs must answer that question (or seed `warnManyTabs:false`), or it reads as a hang.
+Grant's diagnostics: still unchanged since 06:12 — not exercised.
