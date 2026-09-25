@@ -5,7 +5,7 @@
 # SAVED AS UTF-8 WITH BOM: it matches Aviary's own curly quotes and apostrophes.
 #
 #   groups-test.ps1 [-Port 9391]
-param([int]$Port = 9391)
+param([int]$Port = 9391, [string]$Exe = "")
 
 $kit = $PSScriptRoot
 Set-Location $kit
@@ -31,9 +31,9 @@ function Launch([string]$name, [string]$extra = "", [switch]$Keep) {
         if (Test-Path $script:files) { Remove-Item $script:files -Recurse -Force }
         New-Item -ItemType Directory -Force $script:files | Out-Null
         $seed = '{"improvementCollection":"true","startNews":"false","listsAutoUpdate":"Off","sidebarVisible":"true","sidebarPane":"Tab Groups","downloadDir":' + (ConvertTo-Json $script:files) + $extra + '}'
-        & .\launch-quiet.ps1 -Profile $name -Fresh -Port $Port -SettingsJson $seed | Out-Null
+        & .\launch-quiet.ps1 -Profile $name -Fresh -Port $Port -SettingsJson $seed -Exe $Exe | Out-Null
     } else {
-        & .\launch-quiet.ps1 -Profile $name -Port $Port | Out-Null
+        & .\launch-quiet.ps1 -Profile $name -Port $Port -Exe $Exe | Out-Null
     }
     $script:pidv = [int](Get-Content pid.txt)
     Start-Sleep 4

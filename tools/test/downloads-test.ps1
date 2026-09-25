@@ -8,7 +8,7 @@
 #
 # -Picker also drives the real Windows folder picker for Location -> Change..., which needs the
 # keyboard, so guard.ps1 decides whether it runs (the file picker's rules - HANDOFF §25).
-param([int]$Port = 9371, [switch]$Picker, [switch]$PickerOnly, [switch]$Stage2)
+param([int]$Port = 9371, [switch]$Picker, [switch]$PickerOnly, [switch]$Stage2, [string]$Exe = "")
 if ($PickerOnly) { $Picker = $true }
 
 $kit = $PSScriptRoot
@@ -39,9 +39,9 @@ function Launch([string]$name, [string]$extra = "", [switch]$Keep) {
     $env:AVIARY_OPEN_TEST = "1"
     if ($Keep) {
         $json = Get-Content "profiles\$name\settings.json" -Raw | ConvertFrom-Json
-        & .\launch-quiet.ps1 -Profile $name -Port $Port | Out-Null
+        & .\launch-quiet.ps1 -Profile $name -Port $Port -Exe $Exe | Out-Null
     } else {
-        & .\launch-quiet.ps1 -Profile $name -Fresh -Port $Port -SettingsJson $seed | Out-Null
+        & .\launch-quiet.ps1 -Profile $name -Fresh -Port $Port -SettingsJson $seed -Exe $Exe | Out-Null
     }
     $env:AVIARY_OPEN_TEST = $null
     $script:pidv = [int](Get-Content pid.txt)

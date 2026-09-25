@@ -14,7 +14,7 @@ four new landing pages, a description under every milestone, and a 500 MB diagno
 section 16. **The Collection's copies of Grant's files are NOT in git** (section 16 says how
 they are rebuilt). M2.5 is committed (`6718603`), renamed from "the Menagerie" at Grant's ask
 (`abf595c`), and bug 55 — a favicon write race from his own diagnostics — fixed (`7eff452`).
-Last updated **25 September 2026**, with **M5 finished** — section 26 (all five stages), after M4.9 “Birds News” was finished (§25) and then re-checked from a clean build (§25’s last part). Alpha Build 5 is called **The Long Run**.
+Last updated **25 September 2026**, with **M5 finished and published** — section 26 (all five stages), after M4.9 “Birds News” was finished (§25) and then re-checked from a clean build (§25’s last part). Alpha Build 5 is called **The Long Run**.
 
 **Then M3 (13 Sep): Shields, the ad blocker** — section 17. EasyList + EasyPrivacy (the only two
 lists Grant approved downloading), a filter engine of our own, element hiding, a toolbar shield
@@ -50,7 +50,7 @@ run, the sidebar and Classic included).
 >   (measured optimisation), M8 (beta prep).
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
->   **5 wrap-up — committed** (the commit after `eb253d1`). **None of M5 is published yet — ask.** Read **§26 first**, then §25.
+>   **5 wrap-up — `0e8d432`**. **PUBLISHED 25 Sep** to `publish/Aviary` at `0e8d432` (§26, last part). Read **§26 first**, then §25.
 > - Bugs **85–90** (§10): **85, 86, 87 are OPEN** (found re-checking M4.9 — PiP under a player’s
 >   overlay, the Settings background row, the stale Forgetful list); Grant chose M5 over fixing them
 >   first, so they wait for his word. 88, 89 and 90 are fixed in M5 stage 1 (90 by rule, not reproduced). Next bug number **91**.
@@ -91,7 +91,7 @@ run, the sidebar and Classic included).
 >   Icon, which closes bug 77.
 > - Git: M4.9 is committed and published in full — Stage 1 with M4.8 (`ea08c94`), Stage 2 (`683b8ca`),
 >   Stage 3 (`3b15a76`, published 24 Sep), then docs (`af5d38d`). **M5 committed in full (`932ea18`,
->   `cbe522e`, `861dcea`, `eb253d1`, then the wrap-up), NOT published** — ask first, and run `tools/library/sync.ps1` before any publish.
+>   `cbe522e`, `861dcea`, `eb253d1`, `0e8d432`) and PUBLISHED 25 Sep** — for the next one, ask first, and run `tools/library/sync.ps1` before any publish.
 > - **Do not trust `bloom-frames.ps1`** — it never measured the bloom (§25). Use
 >   `AVIARY_MOTION_TEST=1` to prove Motion.Bloom runs; nothing outside the process can see it.
 > - **The two rules these three milestones paid for:** a composition transform through
@@ -2592,7 +2592,7 @@ of it counts 1 — unroll with `ForEach-Object { $_ }`; and a function returning
 item — wrap the CALL, `@(Groups)`. Also: a MenuFlyoutItem's own text label carries its name, so count UIA
 elements by name AND control type.
 
-### Stage 5 — the wrap-up (25 Sep, COMMITTED — Grant: "Go ahead for stage 5"; not published)
+### Stage 5 — the wrap-up (25 Sep, COMMITTED `0e8d432` — Grant: "Go ahead for stage 5")
 
 M5 is the **twelfth** milestone: `BuildInfo.MilestonesDone` **12**, so Updates reads **12 of 15** with M6
 next. The Updates entry is dated 25 Sep and says what shipped; the notes gain **Downloads** and **Links
@@ -2608,3 +2608,38 @@ a scratch profile: "12 of 15 milestones done", M5 ticked and dated, M6 "Next", b
 Fixes lines rendered (photographed) · `Aviary.html`'s PHASES array evaluated by node: parses, M5 dated,
 M6 the first undated, 20 of 22 chips ticked · Grant's diagnostics unchanged since 06:12 (49 issues, no
 crashes) — **not exercised**, which says nothing about M5.
+
+### Published (25 Sep 2026 — Grant: "Go ahead commit and publish")
+
+`tools/library/sync.ps1` first (1 file copied: `Aviary.html`, whose PHASES stage 5 had changed; 89
+unchanged, none removed), then `publish/Aviary` — Grant's desktop shortcut — rebuilt from `0e8d432` with
+no Aviary running (checked right before). It had been `3b15a76` (M4.9 stage 3).
+**The §5 check — the published tree against the tested one (`tools/test/pub`, built 11:48):** 659 files
+each side, differing in exactly four: `Aviary.exe`/`.dll`/`.pdb` and the Collection's copy of
+`Aviary.html` (now equal to `Zoo/Aviary.html`). The exe is byte-identical once the commit stamp is
+swapped. **The dll was not** — 209 bytes in 17 runs were left, including a block of method bodies in
+another ORDER. Chased to the end rather than waved through:
+- No compiled file changed after the 11:48 build (mtimes; `git diff eb253d1 0e8d432 -- src` is exactly
+  stage 5's two files, both already in that build).
+- A rebuild of today's source with the TESTED build's stamp forced in (`-p:SourceRevisionId=eb253d1…`)
+  differs from the published dll ONLY in the stamp (40 bytes of the version attribute, 79 of the version
+  resource) and the ids hashed from it (PE timestamp, MVID, CodeView GUID, PDB checksum) — so the
+  published dll is exactly this source.
+- The tested dll, compared METHOD BY METHOD (`tools/test/ildump`): the same 4,731 methods; 4,727
+  byte-identical. The other four are `GetExposedInterfaces` in CsWinRT's GENERATED
+  `WinRT.AviaryVtableClasses.*WinRTTypeDetails` (App, MainWindow, XamlMetaDataProvider, XamlUserType):
+  the generator emitted those four classes in a different order, so their rows — and the tokens their
+  bodies point at — were renumbered. Not one method compiled from Aviary's own source differs.
+**So: a byte compare of two builds of the same source is NOT expected to match** — CsWinRT's generator
+is not order-stable between builds. Compare by method with `ildump` and read what differs.
+**Smoke-tested FROM `publish/Aviary`** on scratch profiles (the three M5 harnesses gained `-Exe`):
+`downloads-test` **53/53**, `links-test` **27/27**, `groups-test` **40/40** — every M5 check that needs no
+desktop input — and its Updates page: "12 of 15 milestones done", "Built 25 Sep 2026, 11:58", M6 next,
+all three new notes groups. **Then all three re-run, 12:17–12:27, with a watcher sampling every Aviary
+process each 0.7 s: the same 53 / 27 / 40, and never a second Aviary.** Why the re-run: ANOTHER Claude session
+("Zoo Part 12/13") was running the same publish check in this tree at the same time — it left an untracked
+`tools/test/publish-smoke.ps1` noting the collision — and every harness reads the ONE `tools/test/pid.txt`, so a
+launch in one session can point the other's UI Automation and Stop-Process at the wrong Aviary. **Two sessions
+must not drive test instances at once**; when in doubt, watch the process list while a harness runs.
+Grant's diagnostics: unchanged since 06:12 (49 issues, no crashes) — M5 has
+still not met his real browsing.
