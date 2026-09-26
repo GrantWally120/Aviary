@@ -101,6 +101,33 @@ internal static class Experiments
         new("exp.dblClickNewTab", "Double-click below your tabs for a new tab", Badge.Safe, NeedsRestart: false,
             Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
 
+        // ── Stage 4: privacy - all at once, none an engine switch. ──
+
+        // Every website's cookies and stored data go when the last window closes; sites set to "Never"
+        // in Forgetful browsing keep their sign-in cookies (MainWindow.ForgetEverything.cs).
+        new("exp.forgetOnClose", "Forget everything when Aviary closes", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // A second, longer list of tracking parameters than Brave's (LinkCleaner.cs). Measured first:
+        // 21 of 23 well-known trackers went through the shipped list.
+        new("exp.moreLinkCleaning", "Strip even more tracking from links", Badge.Looks, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Shields' verdict (BrowserTab.Shields.cs): a script from any site but the page's own is refused.
+        new("exp.thirdPartyScripts", "Block scripts from other websites", Badge.Looks, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Per-site, per-session noise in canvas and audio reads, and plainer hardware (BrowserTab.Fingerprint.cs).
+        new("exp.fingerprint", "Stronger fingerprint protection", Badge.Looks, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
+        // Replaces "Stop websites asking to show notifications", CUT measured: the engine never shows
+        // web notifications or asks - every request is already refused. Every <a ping>, the site's own
+        // included (EasyPrivacy already stops other sites'), in Shields' verdict. The engine's --no-pings
+        // was measured too; Aviary's own filter works at once and shows what it stopped.
+        new("exp.noPings", "Stop link-click pings", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>()),
+
         // Measured 25 Sep: H.264 and VP9 at 1080p stop being "power efficient" - the graphics
         // card no longer decodes them; the processor does.
         new("exp.noVideoDecode", "Turn off video hardware decoding", Badge.Safe, NeedsRestart: true,

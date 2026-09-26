@@ -327,10 +327,22 @@ public sealed partial class MainWindow : Window
 
         Diagnostics.Mark("chrome-ready");
 
-        await RestorePinnedAsync();
+        // M6 stage 4: the last session ended without the forgetting "Forget everything when Aviary
+        // closes" owed it - pinned tabs come back asleep, and nothing loads a site until it is done.
+        // ONCE per launch, in its first ordinary window: a second window opened later would otherwise find
+        // this session's own marker and forget everything mid-session.
+        bool forgetOwed = !_forgetCheckedThisLaunch && ForgetEverything.PendingAtLaunch;
+        _forgetCheckedThisLaunch = true;
+        await RestorePinnedAsync(forceDormant: forgetOwed);
         Diagnostics.Mark("pinned-tabs-restored");
         await OpenNewTabAsync(null);
         Diagnostics.Mark("first-tab-created");
+        if (forgetOwed)
+        {
+            await ForgetOwedAtLaunchAsync();
+        }
+
+        ForgetEverything.MarkSession();
 
         // The engine's code is loaded now; make sure a native crash still reaches Aviary's recorder.
         NativeCrash.CheckStillInstalled();
@@ -1470,7 +1482,8 @@ public sealed partial class MainWindow : Window
                 return;
             }
 
-            Close();
+            // Bug 96: through the close questions and the forgetting, as the title bar's × is.
+            RequestClose();
             return;
         }
 
@@ -2679,7 +2692,7 @@ public sealed partial class MainWindow : Window
         menu.Items.Add(new MenuFlyoutSeparator());
 
         MenuFlyoutItem exit = new() { Text = "Exit" };
-        exit.Click += (_, _) => Close();
+        exit.Click += (_, _) => RequestClose();   // bug 96: asks what the × asks
         menu.Items.Add(exit);
 
         menu.ShowAt(MenuButton);
@@ -2846,6 +2859,12 @@ public sealed partial class MainWindow : Window
                 case "exp.videoPopOut":
                 case "exp.closeOldTabs":
                 case "exp.dblClickNewTab":
+                // M6 stage 4 - privacy.
+                case "exp.forgetOnClose":
+                case "exp.moreLinkCleaning":
+                case "exp.thirdPartyScripts":
+                case "exp.fingerprint":
+                case "exp.noPings":
                     ApplyExperimentsToOpenTabs();
                     break;
 

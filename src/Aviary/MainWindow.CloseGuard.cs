@@ -37,31 +37,88 @@ public sealed partial class MainWindow
     {
         try
         {
-            // M5: closing the last window closes Aviary, and that stops every download still
-            // running - Safari asks first, and so does this, whatever the tabs setting says.
-            if (!_closeConfirmed && RunningDownloadsHere() > 0)
+            // Cancel THIS close and do what comes first; a dialog cannot be awaited from inside the
+            // event, and a window that closed while the question was on screen would answer it itself.
+            if (BeforeClose() is { } first)
             {
                 args.Cancel = true;
-                _ = AskBeforeStoppingDownloadsAsync();
-                return;
+                _ = first();
             }
-
-            if (_closeConfirmed || _private || _tabs.Count < 2
-                || !AppSettings.GetBool("warnManyTabs"))
-            {
-                return;
-            }
-
-            // Cancel THIS close and ask; a dialog cannot be awaited from inside the event, and
-            // a window that closed while the question was on screen would answer it itself.
-            args.Cancel = true;
-            _ = AskBeforeClosingAsync();
         }
         catch (Exception ex)
         {
             // Never let this stop a window from closing: the fallback is the old behaviour.
             Diagnostics.Swallowed(ex, "close: several tabs question");
         }
+    }
+
+    /// <summary>
+    /// A close Aviary makes itself - the menu's Exit, the last tab closing. Window.Close() does NOT
+    /// pass through AppWindow.Closing (only the title bar's ×, Alt+F4 and the taskbar do), so on its
+    /// own it skipped both questions and the forgetting (bug 96, 26 Sep: Exit closed a window of two
+    /// tabs without asking, and "Forget everything when Aviary closes" forgot nothing).
+    /// </summary>
+    private void RequestClose()
+    {
+        try
+        {
+            if (BeforeClose() is { } first)
+            {
+                _ = first();
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "close: before closing");
+        }
+
+        Close();
+    }
+
+    /// <summary>
+    /// What has to happen before this window may close, or null for nothing: the downloads question,
+    /// the several-tabs question, then "Forget everything when Aviary closes" - each at most once.
+    /// </summary>
+    private Func<Task>? BeforeClose()
+    {
+        // M5: closing the last window closes Aviary, and that stops every download still
+        // running - Safari asks first, and so does this, whatever the tabs setting says.
+        if (!_closeConfirmed && RunningDownloadsHere() > 0)
+        {
+            return AskBeforeStoppingDownloadsAsync;
+        }
+
+        if (!_closeConfirmed && !_private && _tabs.Count >= 2 && AppSettings.GetBool("warnManyTabs"))
+        {
+            return AskBeforeClosingAsync;
+        }
+
+        // M6 stage 4: the close is really going ahead - held once more when it is the last ordinary
+        // window and there is something to forget (MainWindow.ForgetEverything.cs).
+        if (ForgetEverythingDue())
+        {
+            return CloseForRealAsync;
+        }
+
+        return null;
+    }
+
+    /// <summary>Every question is answered: forget, if this close owes it, then close for real.</summary>
+    private async Task CloseForRealAsync()
+    {
+        _closeConfirmed = true;
+        try
+        {
+            await ForgetEverythingIfDueAsync();
+        }
+        catch (Exception ex)
+        {
+            // Whatever happened, the close goes through; an unfinished forget is owed to the next launch.
+            Diagnostics.Swallowed(ex, "close: forget everything");
+        }
+
+        Close();
     }
 
     private async Task AskBeforeStoppingDownloadsAsync()
@@ -84,8 +141,7 @@ public sealed partial class MainWindow
                 return;
             }
 
-            _closeConfirmed = true;
-            Close();
+            await CloseForRealAsync();
         }
         catch (Exception ex)
         {
@@ -112,8 +168,7 @@ public sealed partial class MainWindow
                 return;
             }
 
-            _closeConfirmed = true;
-            Close();
+            await CloseForRealAsync();
         }
         catch (Exception ex)
         {

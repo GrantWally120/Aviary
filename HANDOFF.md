@@ -51,10 +51,12 @@ run, the sidebar and Classic included).
 >   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
 >   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2
 >   COMMITTED `47ddf0b`** (Grant: "commit and continue"; pinned on click, mute background tabs, the readout,
->   bugs 91 and 92; preload cut). **Stage 3 COMMITTED** (Grant: "ok go continue") — tabs and looks, nine
+>   bugs 91 and 92; preload cut). **Stage 3 COMMITTED `a8c657a`** (Grant: "ok go continue") — tabs and looks, nine
 >   experiments (the 20th, "Switch to a tab that is already open", taken as agreed with his "continue"), and
->   bugs 93, 94, 95 found and fixed on the way (§27's Stage 3, §10). **Stage 4 next** (privacy).
->   Then stage 4 (privacy, 5), then stage 5 (the wrap-up).
+>   bugs 93, 94, 95 found and fixed on the way (§27's Stage 3, §10). **Stage 4 COMMITTED 26 Sep** (Grant:
+>   "commit and continue"; privacy, five experiments — §27's Stage 4; **bug 96** found and fixed on the way: every close
+>   Aviary made itself skipped the close questions). Its desktop-input checks (Restart, 26c, 20, 22b, 25) and
+>   si-race were committed still waiting for an idle PC. Then stage 5 (the wrap-up).
 >   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
@@ -68,7 +70,8 @@ run, the sidebar and Classic included).
 >   rule broken, since M4.5) found and fixed in the same checks. In M6 stage 3: **93** (Reader's state was
 >   the window's, not the tab's — "Show Reader" offered on a page in Reader, doing nothing), **94** (Memory
 >   saver slept a tab you had just been reading), **95** ("Underline links" reached Aviary's own pages
->   whenever diagnostics was on — since M4.5). Next bug number **96**.
+>   whenever diagnostics was on — since M4.5). In M6 stage 4: **96** (Aviary's own closes — Exit, the last
+>   tab, a question's yes, Restart — skipped the close questions and the forgetting). Next bug number **97**.
 > - **M4.9 Stage 3 landed 24 Sep:** Search open tabs, Forgetful browsing with a timer, Safety Check,
 >   Start Page backgrounds, Picture in picture — all five built and driven end to end (§25).
 > - **⚠ DOUBLE-CHECK M4.9 BEFORE BUILDING ON IT (Grant's instruction, 24 Sep).** The session that
@@ -1531,6 +1534,20 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     leaves any page that is not http(s) alone, deciding by the page as the element-hiding script always
     has (why Shields never had this). experiments-test section 17 checks it, with the M5 control.
     **A promise that depends on which of two unawaited things finishes first is not a promise.**
+96. **FIXED in M6 stage 4 — Aviary's own closes skipped everything the title bar's × does** (found 26
+    Sep when "Forget everything when Aviary closes" forgot nothing after "Close 2 Tabs" was answered —
+    only the NEXT launch forgot, as for a crash; then measured). Every close Aviary makes itself — the app
+    menu's **Exit**, the **last tab** closing (Ctrl+W, its ×, a page's `window.close()`), a close
+    **question answered yes**, **Restart Aviary** — called `Window.Close()`, and `Window.Close()` does NOT
+    raise `AppWindow.Closing`: only the title bar's ×, Alt+F4 and the taskbar do. So since M4.5 Exit closed
+    a window of many tabs without "Close this window?", and since M5 Exit or the last tab stopped a running
+    download without asking. Measured before the fix: Exit on two tabs, the question switched on — closed
+    at once, nothing asked. **Fix:** one `BeforeClose()` (`MainWindow.CloseGuard.cs`) decides what a close
+    owes — the downloads question, then the several-tabs question, then the forgetting — for the × (through
+    `AppWindow.Closing`) and for `RequestClose()` (Exit, the last tab); a yes, and the forgetting, end in
+    `CloseForRealAsync()`; Restart forgets before any window goes. experiments-test 31 (and 26c for
+    Restart), against the published M5 build. **`Window.Close()` is not a close the person made: what a
+    close must do goes in `BeforeClose`, never only in the Closing handler.**
 ---
 
 ## 12. The recovered Phase 4 design specs
@@ -2953,7 +2970,7 @@ sent a function instead of a script, and the stale capture — and each was caug
 Grant's diagnostics: unchanged since 06:12 — not exercised. Committed `47ddf0b` with Grant's "commit and continue".
 
 
-### Stage 3 — tabs and looks, and bugs 93–95 (25–26 Sep, COMMITTED — Grant: "ok go continue")
+### Stage 3 — tabs and looks, and bugs 93–95 (25–26 Sep, COMMITTED `a8c657a` — Grant: "ok go continue")
 
 Grant, 25 Sep: *"commit and continue"* — to stage 2's commit and to the 20th experiment I suggested for the
 place preload left: **"Switch to a tab that is already open"** (Safari's address bar does it). The eight
@@ -3039,3 +3056,82 @@ drives "the window it found", ask what it drives when it finds nothing.**
 Grant's diagnostics: a real session on 25 Sep 23:16–23:18 — **he tried an M6 build's Experimental menu on his
 own profile** (smooth scrolling, dark websites, the readout, video decoding; YouTube; all switched off again;
 no errors, no crashes). Unchanged since.
+
+
+### Stage 4 — privacy, and bug 96 (26 Sep, COMMITTED — Grant: "commit and continue"; desktop checks still to run)
+
+**Measured before anything was built** (`expsite.js` /notify, /ping, /fp, /scripts, /params, /store):
+- **"Stop websites asking to show notifications" — CUT, measured.** Asked for permission, a page is told
+  "denied" within 2 s, with no prompt anywhere (no window of Aviary's or the engine's): WebView2 never shows a
+  prompt for web notifications, and without a host handler every request is refused. There was nothing to
+  stop. **Worth knowing for the beta: Aviary shows no web notifications at all.**
+- **Its replacement, "Stop link-click pings"** — `<a ping>` ("hyperlink auditing"): Aviary sends them today.
+  A site's OWN ping arrived (with `Ping-To`: the link clicked); another site's did not — EasyPrivacy's
+  `*$ping,third-party` already stops those (in blocking.jsonl), so pings DO pass Aviary's filter (no bug-91
+  bypass). The engine's `--no-pings` was measured to stop both, but the experiment lives in Shields' verdict
+  instead: at once, no restart, and listed with what Shields stopped.
+- **Fingerprint:** with nothing on, a canvas drawing, an audio rendering, the graphics card ("NVIDIA GeForce
+  RTX 5070 Ti"), 16 cores and 32 GB read the SAME on two websites and after a restart.
+- **Other sites' scripts** ran; **link parameters:** of 23 well-known trackers on a link to another site,
+  Brave's list took 2 off (fbclid, utm_source) — gad_source, _ga, mc_cid, trk, li_fat_id, igshid… went through.
+
+**The five:**
+- **Forget everything when Aviary closes** (Safe to try — not amber: nothing looks wrong; being signed out is
+  its "What might happen") — `MainWindow.ForgetEverything.cs`. When the LAST ordinary window closes — however
+  it closes: the ×, Exit, the last tab, a close question's yes, Restart Aviary (which says so in its question)
+  — the close is held once more and the engine clears all site data and its cache in one call
+  (`ClearBrowsingDataAsync(AllSite | DiskCache)`, 10 s at most); Aviary's history, bookmarks, passwords,
+  downloads and per-site choices stay. A site set to **"Never — keep it"** in Forgetful browsing keeps its
+  cookies (copied out, put back) — Forgetful's default "Never" was no entry at all, so while this is on the
+  menu reads "When Aviary closes" for the default and "Never — keep it" is a stored choice (`KeepMode`,
+  "never" — the sweep already treats it as never). A crash or Windows shutting down leaves the marker
+  `forget-everything-pending`; the next launch — its FIRST window only — brings pinned tabs back asleep,
+  forgets through the first Start Page, and only then can a site load. **The marker alone decides, not the
+  switch:** after a crash the launch's crash protection switches every experiment off — this one too —
+  and what that session was meant to forget must still go.
+- **Strip even more tracking from links** (amber) — `LinkCleaner.More` + `hsa_*`: Google's newer ad codes,
+  Analytics' own visitor number (_ga), Mailchimp, LinkedIn, Yahoo, Condé Nast, Alibaba, Bilibili, Facebook,
+  Pinterest, Reddit, Klaviyo, Webtrekk, Adobe, Matomo's named fields, Instagram's share id anywhere. Not
+  generic names a site may use (ref, source, from, id) and not affiliate codes.
+- **Block scripts from other websites** (amber) — the M3 Shields row that was only promised: Shields' verdict
+  refuses any script not from the page's own site, Standard and Strict; a site with Shields off runs
+  everything; pictures and styles still load. The Shields row now leads to the experiment.
+- **Stronger fingerprint protection** (amber) — the other promised Shields row. `BrowserTab.Fingerprint.cs`:
+  Brave-style noise in what scripts READ BACK from canvases (2D, WebGL, OffscreenCanvas — opaque pixels only:
+  a real canvas reads a see-through pixel as colourless, so noise there could be spotted) and audio, seeded by
+  a per-launch key and the top page's site — different for every site and every launch, the same within a
+  visit — plus 8 cores, 8 GB and a common graphics card. Each replaced function is a `Proxy` of the real one
+  (reads as native). Not covered, and said on the row: web workers; fonts.
+- **Stop link-click pings** (Safe) — above.
+
+**Found building it — bug 96** (§10): every close Aviary makes ITSELF — Exit, the last tab, a close question's
+yes, Restart — went round `AppWindow.Closing`, so "Forget everything" forgot nothing as Aviary closed (only
+the next launch did, as after a crash), and Exit had never asked "Close this window?" (since M4.5). Fixed for
+every one of them in one place, `BeforeClose()`.
+
+**Checked** (26 Sep, clean build 08:28 — `bin`/`obj` deleted): experiments-test **199/199** without its desktop
+parts (197, plus section 16's two, which failed on a slow start — no Settings tab listed yet after a fixed
+2.5 s; 5/5 alone, twice; `OpenSettingsAt` now waits for the tab). Stage 4's own: 26 forget on close **7** · 26b
+killed → the next launch **4** · 27 link parameters **3** · 28 other sites' scripts **5** · 29 fingerprint **9** ·
+30 pings **3** · 31 bug 96 **10** (its M5 controls: Exit closed two tabs without asking; the last tab closing
+mid-download closed Aviary without asking). Settings audit 88 live / 9 badged / 0 inert, 20 experimental rows
+= the registry. Regressions on the same build: downloads **53**, links **27**, groups **40**, pip **14**, forget
+**17** (its Ctrl+W part ran), startbg **13** (no picker), saver-modes and minimise-sleep as before (their controls hold).
+**Not yet run — they need the PC to themselves, and Grant was at it:** the desktop parts (11 Restart, 26c restart
+forgets, 20, 22b, 25 — the scratchpad runner `desktop-only.ps1 -Restart`) and si-race (it stopped itself).
+- Forgetting took **59–72 ms** as Aviary closed and 89 ms at a launch; a site kept with "Never — keep it" kept
+  its cookie, and its local storage went, as the row says.
+- Fingerprint: two sites read different canvases and audio, one site the same twice in a visit, a restart new
+  values; **60 of 14,400 pixels** of the test drawing differ from the real one, each by 1; no colour in any
+  see-through pixel; 8 cores, 8 GB, Intel UHD 620; every replaced function reads as native code.
+
+**The first run was 24/6 — each failure found by its control, two of them real:**
+1. The forget at close never ran → **bug 96**.
+2. Killed, the next launch did NOT forget: crash protection had switched the experiments off first — this one
+   with them — and the check read the switch. **The marker alone decides now.**
+3. The test drawing's pixel SUM drifted 3% with the noise on. The noise flipped bits in see-through pixels too,
+   where a flip can only add — and colour in a see-through pixel is something a real canvas never returns: a
+   tell a fingerprinting script could look for. **Opaque pixels only now**, and the check compares the drawing
+   byte for byte (a sum was the wrong measure — it hid the difference between "noisy" and "wrong").
+4. Harness: a Shields segment is a ToggleButton — `uia.ps1 -Action Toggle`, not Invoke (Invoke climbed to
+   some other control). The next run hit a popup going mid-walk (`ElementNotAvailable`); uia.ps1 retries now.

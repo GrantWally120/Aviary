@@ -52,6 +52,9 @@ public sealed partial class MainWindow
                 _ = t.RefreshAidsAsync();
                 t.ApplyZoom();
 
+                // M6 stage 4: the fingerprint defences, from the next page this tab opens.
+                _ = t.RefreshFingerprintAsync();
+
                 // The tint: every open page asked for its colour when it is switched on.
                 if (tint)
                 {
@@ -68,6 +71,10 @@ public sealed partial class MainWindow
         }
 
         _ = ApplyPerfOverlayAsync();
+
+        // M6 stage 4: "Forget everything when Aviary closes" switched on means this session now has
+        // something to forget, even if it ends badly; off means nothing is owed.
+        ForgetEverything.MarkSession();
     }
 
     /// <summary>A change every open Settings page should draw, in every window.</summary>
@@ -97,6 +104,11 @@ public sealed partial class MainWindow
                 : " " + downloads + " downloads are still running, and they will stop.";
         }
 
+        if (ForgetEverything.On)
+        {
+            body += " Forget everything when Aviary closes is on, so websites' data is cleared as it closes.";
+        }
+
         if (!await ConfirmAsync("Restart Aviary?", body, "Restart"))
         {
             return;
@@ -105,10 +117,18 @@ public sealed partial class MainWindow
         DiagUi("restart", new { downloads });
         Program.RequestRelaunch();
 
+        // A restart closes Aviary: "Forget everything when Aviary closes" forgets first, once, while every
+        // window is still open - Window.Close() on its own would skip it (bug 96).
+        if (OpenWindows.FirstOrDefault(w => !w._private) is { } main)
+        {
+            await main.ForgetEverythingIfDueAsync(everyWindow: true, when: "as Aviary restarted");
+        }
+
         // Everything was asked above, so no window asks again on the way out.
         foreach (MainWindow w in OpenWindows.ToList())
         {
             w._closeConfirmed = true;
+            w._forgotEverything = true;
             w.Close();
         }
     }

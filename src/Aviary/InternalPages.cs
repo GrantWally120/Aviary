@@ -1098,8 +1098,9 @@ var SECTIONS = [
       {t:'Show the number on the shield', d:'The small count on the toolbar shield, showing how many things were stopped on the page you are on. Off, the shield is still there and still stops them.', ctl:{type:'toggle', key:'shieldBadge', value:true}},
       {t:'Warn before ad and tracker sites', d:'In Strict only: when a site is on the lists as one that exists to serve ads or track people, Aviary shows a warning instead of opening it, with a way to open it anyway. Off, Strict blocks what those sites load but opens them.', ctl:{type:'toggle', key:'strictWarning', value:true}},
 
-      {t:'Stronger fingerprint protection', d:'Make every Aviary look alike to the scripts that identify a browser by its fonts, canvas and hardware.', phase:5, ctl:{type:'none'}},
-      {t:'Block scripts from other sites', d:'Refuse scripts a page loads from anywhere but its own site. It breaks a great many sites, which is why it is its own switch and not part of Strict.', phase:5, ctl:{type:'none'}},
+      /* M6 stage 4: these two were promises here since M3; each is now ONE switch, in Experimental. */
+      {t:'Stronger fingerprint protection', d:'Now an experiment: a tiny, per-site difference in how Aviary draws and plays for the scripts that identify a browser, and a plainer answer about its hardware.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
+      {t:'Block scripts from other sites', d:'Now an experiment: refuse scripts a page loads from anywhere but its own site. It breaks a great many sites, which is why it is its own switch and not part of Strict.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
       {t:'Block this element', d:'Point at anything on a page and hide it for good, the way uBlock Origin’s picker does.', phase:6, ctl:{type:'none'}}
     ]},
 
@@ -1275,6 +1276,28 @@ var SECTIONS = [
        d:'With your tabs down the side, double-click the empty space below them to open a new tab. Tabs along the top always fill their bar, so there it has no empty space to use.',
        might:'A double-click that misses the last tab opens a new one.',
        ctl:{type:'toggle', key:'exp.dblClickNewTab', value:false}},
+      /* M6 stage 4 — privacy. All work at once. The two that stop requests go through Shields, so a site
+         you have turned Shields off for is left alone, and what they stop is listed with the rest. */
+      {t:'Forget everything when Aviary closes', group:'Privacy', exp:'safe',
+       d:'When you close Aviary, every website’s cookies and everything websites have saved on this computer are cleared — as if you had never been there. Your history, bookmarks, passwords and downloads are kept. A site you set to “Never” in Forgetful browsing (the shield in the address field) keeps its sign-in.',
+       might:'You are signed out of every website each time you close Aviary, except the ones you keep, and sites load a little slower the first time after, with nothing saved to reuse.',
+       ctl:{type:'toggle', key:'exp.forgetOnClose', value:false}},
+      {t:'Strip even more tracking from links', group:'Privacy', exp:'looks',
+       d:'Aviary already takes Brave’s list of tracking codes off links that lead to another site. This adds a second, longer list — Google’s newer ad codes, Google Analytics’ own visitor number, and the codes Mailchimp, LinkedIn, Facebook, Pinterest, Reddit, Adobe and others add to follow a click.',
+       might:'Now and then a link can lose a part a site uses: a shop may not see which campaign sent you there.',
+       ctl:{type:'toggle', key:'exp.moreLinkCleaning', value:false}},
+      {t:'Block scripts from other websites', group:'Privacy', exp:'looks',
+       d:'A page may run its own scripts, but none that it loads from another website — the way most tracking, many adverts and a lot of embedded extras arrive. Pictures and styles from other sites still load. Part of Shields: a site you turn Shields off for runs everything.',
+       might:'It breaks a great many sites: logins through another company, videos and maps embedded from elsewhere, comments, payment pages. Turn Shields off for a site that needs them.',
+       ctl:{type:'toggle', key:'exp.thirdPartyScripts', value:false}},
+      {t:'Stronger fingerprint protection', group:'Privacy', exp:'looks',
+       d:'Scripts can recognise a browser without cookies, from how it draws a picture or plays a sound and from its hardware. Aviary adds a tiny difference to those drawings and sounds — different for every website and every time Aviary starts, the same within a visit — and gives a plainer answer about the graphics card, the processor and the memory. From the next page you open.',
+       might:'A site that reads back its own drawings, such as a photo editor, can come out a hair different. Scripts running in the background of a page (web workers) still see the real values.',
+       ctl:{type:'toggle', key:'exp.fingerprint', value:false}},
+      {t:'Stop link-click pings', group:'Privacy', exp:'safe',
+       d:'When you click some links, the site quietly tells a server which link you clicked — a “ping” sent alongside the click. Shields already stops the ones that go to other companies; this stops the site’s own too. Part of Shields, so a site you turn Shields off for is left alone.',
+       might:'Nothing you can see: links still open exactly as before. A site simply learns less about which of its links you use.',
+       ctl:{type:'toggle', key:'exp.noPings', value:false}},
       {t:'Show speed and memory on top of pages', group:'Troubleshooting', exp:'safe',
        d:'A small readout in the corner of every window: how much memory Aviary and the tab in front are using, and how busy the processor and graphics card are. The same figures as the Performance page, updated as often as that page’s “How often to measure” says. Aviary draws it over the page, so websites cannot see it, and it never gets in the way of a click. Works at once.',
        might:'It covers a little of the page’s bottom corner, and measuring costs a little processor time of its own, as the Performance page does while it is open. A screen reader cannot read the corner readout; the Performance page shows the same figures in a form it can.',

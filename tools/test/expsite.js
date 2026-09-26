@@ -13,6 +13,30 @@
 //   node expsite.js     ->  http://127.0.0.1:8797/
 const http = require('http');
 const PORT = 8797;
+
+// What fingerprinting scripts read (M6 stage 4). Hashes of a canvas drawing and an audio rendering, the
+// graphics card's names, cores, memory, screen - all as one JSON from window.fp().
+const FP = `
+function h(s){var x=2166136261>>>0;for(var i=0;i<s.length;i++){x^=s.charCodeAt(i);x=Math.imul(x,16777619)>>>0;}return x.toString(16);}
+function draw(){
+  var c=document.createElement('canvas');c.width=240;c.height=60;var g=c.getContext('2d');
+  g.textBaseline='top';g.font='16px Arial';g.fillStyle='#f60';g.fillRect(100,1,62,20);g.fillStyle='#069';g.fillText('Aviary fp \u{1F426} 12345',2,15);
+  g.fillStyle='rgba(102,204,0,0.7)';g.fillText('Aviary fp \u{1F426} 12345',4,17);
+  return c;
+}
+window.px=function(){var d=draw().getContext('2d').getImageData(0,0,240,60).data,s='';for(var i=0;i<d.length;i+=8192){s+=String.fromCharCode.apply(null,d.subarray(i,i+8192));}return btoa(s);};
+window.fp=async function(){
+  var c=draw(),g=c.getContext('2d');
+  var canvas=h(c.toDataURL());
+  var px=g.getImageData(0,0,240,60).data,clear=0;for(var i=0;i<px.length;i+=4){if(px[i+3]===0&&(px[i]||px[i+1]||px[i+2])){clear++;}}
+  var audio='none';
+  try{var ac=new OfflineAudioContext(1,5000,44100),o=ac.createOscillator(),k=ac.createDynamicsCompressor();o.type='triangle';o.frequency.value=10000;o.connect(k);k.connect(ac.destination);o.start(0);
+    var buf=await ac.startRendering(),d=buf.getChannelData(0),sum=0;for(var j=4500;j<5000;j++){sum+=Math.abs(d[j]);}audio=sum.toFixed(12);}catch(e){audio='error '+e.name;}
+  var gl=document.createElement('canvas').getContext('webgl'),vendor='',renderer='';
+  if(gl){var ext=gl.getExtension('WEBGL_debug_renderer_info');if(ext){vendor=gl.getParameter(ext.UNMASKED_VENDOR_WEBGL);renderer=gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);}}
+  return JSON.stringify({canvas:canvas,seeThrough:clear,audio:audio,vendor:vendor,renderer:renderer,cores:navigator.hardwareConcurrency,memory:navigator.deviceMemory,
+    screen:screen.width+'x'+screen.height+'x'+screen.colorDepth,plugins:navigator.plugins.length,lang:navigator.languages.join(',')});
+};`;
 const hits = [];
 
 const WHITE = `<!doctype html><meta charset="utf-8"><title>exp white</title>
@@ -101,7 +125,7 @@ const handler = (req, res) => {
   hits.push({ t: Date.now(), url: req.url, host: req.headers.host, purpose: req.headers['sec-purpose'] || req.headers['purpose'] || '',
               mode: req.headers['sec-fetch-mode'] || '', dest: req.headers['sec-fetch-dest'] || '', gpc: req.headers['sec-gpc'] || '',
               referer: req.headers['referer'] || '', chua: req.headers['sec-ch-ua'] || '', ua: (req.headers['user-agent'] || '').slice(0, 60),
-              probe: req.headers['x-aviary-probe'] || '' });
+              probe: req.headers['x-aviary-probe'] || '', pingTo: req.headers['ping-to'] || '' });
   const u = new URL(req.url, 'http://x');
   // /slow?n=..&cc=no-store|no-cache|max-age=300 - a page that takes 700 ms, with the cache rule real
   // sites use for HTML: does a <link rel=prefetch> of it make the click fast, or is it fetched again?
@@ -175,6 +199,72 @@ window.pip = async function () {
   if (u.pathname === '/spec-static') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); res.end(SPEC_STATIC); return; }
   if (u.pathname === '/spec-header') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store', 'speculation-rules': '"/rules.json"' }); res.end(SPEC_HEADER); return; }
   if (u.pathname === '/rules.json') { res.writeHead(200, { 'content-type': 'application/speculationrules+json', 'cache-control': 'no-store' }); res.end(RULES_JSON); return; }
+  // M6 stage 4, "Stronger fingerprint protection": /fp computes what fingerprinting scripts read - a canvas
+  // drawing's pixels, an audio rendering's samples, the graphics card's names, cores, memory, screen - and
+  // window.fp() resolves to them as JSON (hashes, so two runs compare at a glance).
+  if (u.pathname === '/fp') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end('<!doctype html><title>exp fp</title><body style="font:20px system-ui;padding:2rem">what a fingerprinting script reads<script>' + FP + '</script></body>');
+    return;
+  }
+  // M6 stage 4, "Block scripts from other websites": a script from this site, one from a subdomain-less
+  // OTHER site (127.0.0.2), each setting a window flag; state() reports which ran.
+  if (u.pathname === '/scripts') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end('<!doctype html><title>exp scripts</title><body style="font:20px system-ui;padding:2rem">scripts from here and elsewhere' +
+      '<script src="/s.js?who=own"></script><script src="http://127.0.0.2:8797/s.js?who=other"></script>' +
+      '<img src="http://127.0.0.2:8797/pixel.png" alt=""><script>window.state=function(){return JSON.stringify({own:!!window.__own,other:!!window.__other,img:document.images[0].complete&&document.images[0].naturalWidth>0})};</script></body>');
+    return;
+  }
+  if (u.pathname === '/s.js') {
+    res.writeHead(200, { 'content-type': 'text/javascript', 'cache-control': 'no-store' });
+    res.end('window.__' + (u.searchParams.get('who') === 'other' ? 'other' : 'own') + ' = true;');
+    return;
+  }
+  if (u.pathname === '/pixel.png') {
+    res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'no-store' });
+    res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64'));
+    return;
+  }
+  // M6 stage 4, "Strip even more tracking from links": /params links to the OTHER site with parameters -
+  // /hits shows which of them arrived.
+  if (u.pathname === '/params') {
+    const q = u.search.slice(1);
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end('<!doctype html><title>exp params</title><body style="font:20px system-ui;padding:2rem"><a id="go" href="http://127.0.0.2:8797/target?' + q.replace(/"/g, '') + '">a link carrying parameters</a></body>');
+    return;
+  }
+  // M6 stage 4, "Forget everything when Aviary closes": put() stores a cookie (a day long) and a local
+  // storage value; read() says what this site still has.
+  if (u.pathname === '/store') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(`<!doctype html><title>exp store</title><body style="font:20px system-ui;padding:2rem">a site that remembers you<script>
+window.put = function () { document.cookie = 'who=' + location.hostname + '; max-age=86400; path=/'; localStorage.setItem('who', location.hostname); return true; };
+window.read = function () { return JSON.stringify({ cookie: /who=/.test(document.cookie), local: localStorage.getItem('who') !== null }); };
+</script></body>`);
+    return;
+  }
+  // M6 stage 4, link-click pings (<a ping>, "hyperlink auditing"): #same pings this site, #cross pings
+  // 127.0.0.2 - a tracker told which link you clicked. /pinged answers 204; its hits carry Ping-To.
+  if (u.pathname === '/ping') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end('<!doctype html><title>exp ping</title><body style="font:20px system-ui;padding:2rem">' +
+      '<p><a id="same" href="/target?n=ping-same" ping="/pinged?n=same">a link that pings this site</a></p>' +
+      '<p><a id="cross" href="/target?n=ping-cross" ping="http://127.0.0.2:8797/pinged?n=cross">a link that pings another site</a></p></body>');
+    return;
+  }
+  if (u.pathname === '/pinged') { res.writeHead(204); res.end(); return; }
+  // M6 stage 4, "Stop websites asking to show notifications": ask() requests the permission (a gesture -
+  // cdp.js eval carries one) and records the answer in window.__perm; state() says where it stands.
+  if (u.pathname === '/notify') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(`<!doctype html><title>exp notify</title><body style="font:20px system-ui;padding:2rem">a site that wants to notify you<script>
+window.__perm = null;
+window.ask = function () { return Notification.requestPermission().then(function (p) { window.__perm = p; return p; }); };
+window.state = function () { return JSON.stringify({ permission: Notification.permission, answer: window.__perm }); };
+</script></body>`);
+    return;
+  }
   // M6 stage 3, "Tint the toolbar to match the page". /tint?c=<any CSS colour> declares one theme-color;
   // /tint-scheme declares one per colour scheme (light #e0f0ff, dark #102030); /tint-app is a web app
   // that, 1.5 s after loading, changes its colour AND its address without loading a page (pushState).

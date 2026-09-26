@@ -32,7 +32,14 @@ internal static class Forgetful
     /// </summary>
     public const string DoneKey = "forgot";
 
-    public static readonly (string Mode, string Label)[] Choices =
+    /// <summary>
+    /// M6 stage 4: "Never", CHOSEN — stored, where the default "Never" is simply no entry. Only
+    /// "Forget everything when Aviary closes" needs the difference: there, a site set to Never is kept
+    /// and every other site is forgotten. The sweep treats it as never (it has no delay).
+    /// </summary>
+    public const string KeepMode = "never";
+
+    private static readonly (string Mode, string Label)[] Plain =
     {
         ("", "Never"),
         ("close", "When I close it"),
@@ -40,6 +47,20 @@ internal static class Forgetful
         ("1h", "An hour after"),
         ("1d", "A day after"),
     };
+
+    // While "Forget everything when Aviary closes" is on, a site with no choice IS forgotten when Aviary
+    // closes - so that is what its default says, and keeping it is a choice of its own.
+    private static readonly (string Mode, string Label)[] WithEverything =
+    {
+        ("", "When Aviary closes"),
+        (KeepMode, "Never — keep it"),
+        ("close", "When I close it"),
+        ("5m", "5 minutes after"),
+        ("1h", "An hour after"),
+        ("1d", "A day after"),
+    };
+
+    public static (string Mode, string Label)[] Choices => ForgetEverything.On ? WithEverything : Plain;
 
     /// <summary>
     /// AVIARY_FORGET_TEST=&lt;seconds&gt; turns every wait into that many seconds, and makes the sweep tick
@@ -58,6 +79,7 @@ internal static class Forgetful
         _ => null,
     };
 
+    // A kept site ("never") reads as plain "Never" once "Forget everything" is off - which is what it is.
     public static string Label(string mode) => Choices.FirstOrDefault(c => c.Mode == mode).Label ?? "Never";
 
     public static string ModeFor(string site) => site.Length == 0 ? string.Empty : SiteSettings.Get(site, ModeKey);
@@ -66,6 +88,14 @@ internal static class Forgetful
     {
         if (site.Length == 0)
         {
+            return;
+        }
+
+        if (mode == KeepMode)
+        {
+            SiteSettings.Set(site, ModeKey, KeepMode);
+            SiteSettings.Remove(site, DueKey);
+            SiteSettings.Remove(site, DoneKey);
             return;
         }
 

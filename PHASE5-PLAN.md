@@ -361,12 +361,19 @@ which is how **bug 91** was found: every website's own speculation rules did tha
 **Stage 2 checked** (25 Sep, clean build): experiments-test 113/113 with Restart, regressions green. The
 checks found four more ways past bug 91's guard (closed) and **bug 92** — Settings → Performance never
 stopped measuring when you left it (fixed; a new "How often to measure" now applies at once).
-**Stage 3 committed:** tint the toolbar to match the page, thin scrollbars (CSS —
+**Stage 3 committed `a8c657a`:** tint the toolbar to match the page, thin scrollbars (CSS —
 the engine's scrollbar features measured useless), each website's zoom, Reader on every article, tab
 previews, **switch to a tab that is already open (the 20th, replacing preload — back to 20)**, pop a playing
 video out, close week-old tabs, and double-click below the tabs — built for tabs down the side, because
 along the top the tabs always fill their bar. Found on the way: **bugs 93** (Reader's state per window),
 **94** (Memory saver slept a tab you had just read) and **95** ("Underline links" on Aviary's own pages).
+**Stage 4 committed (26 Sep):** forget everything when Aviary closes (a site set to
+"Never — keep it" stays signed in; a crash forgets at the next launch, before any site loads), strip even
+more tracking from links, block scripts from other websites and stronger fingerprint protection (the two
+Shields rows M3 only promised), and stop link-click pings. **"Stop websites asking to show notifications"
+CUT, measured:** this engine refuses every request itself, with no prompt — there was nothing to stop. Found
+on the way: **bug 96** — every close Aviary made itself (Exit, the last tab, a question's yes, Restart) went
+round the close questions, so Exit never asked "Close this window?" and the forgetting never ran.
 
 A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
 nothing about computers can use it without harm.

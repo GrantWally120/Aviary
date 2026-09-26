@@ -103,7 +103,7 @@ public sealed partial class MainWindow
     }
 
     /// <summary>Reopens the pinned tabs, in order, before anything else is shown.</summary>
-    private async Task RestorePinnedAsync()
+    private async Task RestorePinnedAsync(bool forceDormant = false)
     {
         List<string> urls;
 
@@ -126,7 +126,8 @@ public sealed partial class MainWindow
         // M6: "Open pinned tabs only when clicked" - each comes back with its icon and address and NO
         // engine, and starts the first time it is chosen (M5's dormant tabs, MainWindow.RouseAsync).
         // Read once, here: it decides how THIS launch restores, so the row says "restart".
-        bool onClick = AppSettings.GetBool("exp.pinnedOnClick");
+        // M6 stage 4: also when a forget is owed from the last session - nothing may load a site first.
+        bool onClick = AppSettings.GetBool("exp.pinnedOnClick") || forceDormant;
 
         foreach (string url in urls.Take(12))
         {

@@ -1,4 +1,4 @@
-# The Experimental menu, end to end (Alpha Build 5 M6 stages 1-3; 15 is bug 91, 16 bug 92, 17-25 stage 3). No desktop input unless -Restart:
+# The Experimental menu, end to end (Alpha Build 5 M6 stages 1-4; 15 is bug 91, 16 bug 92, 17-25 stage 3, 26-31 stage 4 - 31 is bug 96). No desktop input unless -Restart:
 # DevTools reads the pages and the engine's own behaviour, UI Automation presses Aviary's buttons and
 # dialogs, and the engine's command line is read from Windows (WMI) - the one place that shows what
 # the engine was REALLY started with.
@@ -84,10 +84,18 @@ function Luminance($b64) {
 }
 function Gpc { node cdp.js eval "#0" "navigator.globalPrivacyControl === true" }
 function OpenSettingsAt([string]$pane) {
-    U -Id MenuButton | Out-Null; Start-Sleep 1
-    U -Name "Settings" | Out-Null; Start-Sleep 2.5
-    $script:sid = (@(Pages) | Where-Object { $_ -match 'Settings' } | Select-Object -First 1)
-    if ($script:sid) { $script:sid = $script:sid.Substring(7, 8); node cdp.js click $script:sid "button[data-target=$pane]" | Out-Null; Start-Sleep 1 }
+    # Waited for, not a fixed 2.5 s: after a slow start (26 Sep - the first tab still about:blank) no
+    # Settings tab was listed yet, and section 16 failed on nothing. Two tries at the menu, 8 s each.
+    $script:sid = $null
+    for ($try = 0; $try -lt 2 -and -not $script:sid; $try++) {
+        U -Id MenuButton | Out-Null; Start-Sleep 1
+        U -Name "Settings" | Out-Null
+        for ($i = 0; $i -lt 16 -and -not $script:sid; $i++) {
+            Start-Sleep -Milliseconds 500
+            $script:sid = (@(Pages) | Where-Object { $_ -match 'Settings' } | Select-Object -First 1)
+        }
+    }
+    if ($script:sid) { $script:sid = $script:sid.Substring(7, 8); Start-Sleep 1; node cdp.js click $script:sid "button[data-target=$pane]" | Out-Null; Start-Sleep 1 }
 }
 function S([string]$js) { node cdp.js eval $script:sid $js }
 # A DevTools screenshot of a tab that is not being drawn (one in the background) waits for ever
@@ -102,7 +110,7 @@ function Pixel([string]$out, [int]$x, [int]$y) {
 }
 
 # ---------------------------------------------------------------------------------------------
-"1. the pane: the promise, the labels, fifteen rows in their groups, one button for everything"
+"1. the pane: the promise, the labels, twenty rows in their groups, one button for everything"
 Launch "xp1" | Out-Null
 OpenSettingsAt "system"
 $sys = S "(function(){var b=document.querySelector('#pane-system .btn[data-goto=experimental]');return b?(b.disabled?'disabled':'live'):'none';})()"
@@ -114,8 +122,8 @@ $lede = S "document.querySelector('#pane-experimental .lede').innerText"
 Check "the header says none of them can make Aviary less safe" ($lede -match 'None of them can make Aviary less safe') $lede
 $shape = S "(function(){var p=document.getElementById('pane-experimental');return JSON.stringify({rows:p.querySelectorAll('.sw[data-key^=\'exp.\']').length,badges:p.querySelectorAll('.row .xt .xb').length,might:p.querySelectorAll('.might').length,groups:[].map.call(p.querySelectorAll('h2.upd-h'),function(h){return h.textContent}),off:!!p.querySelector('.btn[data-cmd=experimentsOff]')});})()"
 $sh = ($shape | ConvertFrom-Json) | ConvertFrom-Json
-Check "fifteen switches (stages 1-3), each with a badge and a What might happen line" ($sh.rows -eq 15 -and $sh.badges -eq 15 -and $sh.might -eq 15) $shape
-Check "in their groups: Speed and memory, Looks, Tabs, Troubleshooting" (($sh.groups -join '|') -eq 'Speed and memory|Looks|Tabs|Troubleshooting') ($sh.groups -join '|')
+Check "twenty switches (stages 1-4), each with a badge and a What might happen line" ($sh.rows -eq 20 -and $sh.badges -eq 20 -and $sh.might -eq 20) $shape
+Check "in their groups: Speed and memory, Looks, Tabs, Privacy, Troubleshooting" (($sh.groups -join '|') -eq 'Speed and memory|Looks|Tabs|Privacy|Troubleshooting') ($sh.groups -join '|')
 Check "a Turn All Off button" ($sh.off -eq $true) $shape
 $badgeColour = S "getComputedStyle(document.querySelector('#pane-experimental .xb--looks')).backgroundColor"
 Check "the labels are drawn as coloured labels (not the description's grey)" ($badgeColour -notmatch 'rgba\(0, 0, 0, 0\)' -and $badgeColour -match 'rgb') $badgeColour
@@ -141,7 +149,7 @@ node cdp.js click $script:sid ".btn[data-cmd=experimentsOff]" | Out-Null; Start-
 # Every key the page shows - not a list kept here, which went stale the moment stage 3 added nine.
 $keys = @(("$(S "[].map.call(document.querySelectorAll('.sw[data-key^=\'exp.\']'),function(s){return s.getAttribute('data-key')}).join(',')")" -replace '"', '').Split(','))
 $after = @($keys | ForEach-Object { Setting "xp1" $_ })
-Check "every exp.* in settings.json is false ($($keys.Count) of them)" ($keys.Count -eq 15 -and @($after | Where-Object { $_ -ne 'false' }).Count -eq 0) (($keys | ForEach-Object { "$_=$(Setting 'xp1' $_)" }) -join ' ')
+Check "every exp.* in settings.json is false ($($keys.Count) of them)" ($keys.Count -eq 20 -and @($after | Where-Object { $_ -ne 'false' }).Count -eq 0) (($keys | ForEach-Object { "$_=$(Setting 'xp1' $_)" }) -join ' ')
 $drawn = S "[].filter.call(document.querySelectorAll('.sw[data-key^=\'exp.\']'),function(s){return s.getAttribute('aria-checked')!=='false'}).length"
 Check "every switch is drawn off at once" ($drawn -eq '0') $drawn
 $notes = S "[].filter.call(document.querySelectorAll('.note[data-restart^=\'exp.\']'),function(n){return !n.hidden}).length"
@@ -783,6 +791,251 @@ StopAviary $script:pidv
 $env:AVIARY_TINT_TEST = $null
 
 # ---------------------------------------------------------------------------------------------
+# STAGE 4 - privacy. Every experiment against a control with its switch off.
+function Stored([string]$t) { (Val $t "read()") -replace '\\"', '"' | ConvertFrom-Json }
+function NewPage([string[]]$before) { @(Pages | ForEach-Object { $_.Substring(7, 8) } | Where-Object { $before -notcontains $_ })[0] }
+$KEEP = "Never " + [char]0x2014 + " keep it"   # the script is ASCII: PowerShell 5.1 would misread a typed dash
+
+"26. Forget everything when Aviary closes - control: off"
+foreach ($run in @(@('xp26c', ''), @('xp26', ',"exp.forgetOnClose":"true"'))) {
+    $on = [bool]$run[1]
+    Launch $run[0] $run[1] | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    node cdp.js nav $t0 "http://127.0.0.1:8797/store" | Out-Null; Start-Sleep 1.5
+    node cdp.js eval $t0 "put()" | Out-Null
+    $ids = @(Pages | ForEach-Object { $_.Substring(7, 8) })
+    U -Id NewTabButton | Out-Null; Start-Sleep 2
+    $t1 = NewPage $ids
+    node cdp.js nav $t1 "http://127.0.0.2:8797/store" | Out-Null; Start-Sleep 1.5
+    node cdp.js eval $t1 "put()" | Out-Null
+    if ($on) {
+        U -Id ShieldsButton | Out-Null; Start-Sleep 1.2
+        U -Name "Forget 127.0.0.2" -Action Select -Value $KEEP | Out-Null; Start-Sleep 0.8
+        U -Id ShieldsButton | Out-Null; Start-Sleep 0.6
+        Check "(the Shields popover kept 127.0.0.2: sites.json says never)" ((Get-Content "profiles\xp26\sites.json" -Raw -ErrorAction SilentlyContinue) -match '"127\.0\.0\.2\|forget":\s*"never"') (Get-Content "profiles\xp26\sites.json" -Raw -ErrorAction SilentlyContinue)
+    }
+    [void](CloseClean)
+    Launch $run[0] -Keep | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    node cdp.js nav $t0 "http://127.0.0.1:8797/store" | Out-Null; Start-Sleep 1.5
+    $a = Stored $t0
+    node cdp.js nav $t0 "http://127.0.0.2:8797/store" | Out-Null; Start-Sleep 1.5
+    $b = Stored $t0
+    if (-not $on) {
+        Check "control: closed and opened again, a site still has its cookie and its stored data" ($a.cookie -and $a.local) ($a | ConvertTo-Json -Compress)
+    } else {
+        Check "on: closing Aviary forgot the site - its cookie AND its stored data" (-not $a.cookie -and -not $a.local) ($a | ConvertTo-Json -Compress)
+        Check "a site set to Never - keep it kept its cookie, its sign-in" ($b.cookie) ($b | ConvertTo-Json -Compress)
+        Check "(and only its cookie: what else it stored went with the rest, as the row says)" (-not $b.local) ($b | ConvertTo-Json -Compress)
+        Check "Aviary's own history was kept" ((Get-Content "profiles\xp26\history.json" -Raw -ErrorAction SilentlyContinue) -match '127\.0\.0\.1:8797/store') "history.json"
+        $f = @(Select-String -Path "profiles\xp26\user.data.improvementcollection\events.jsonl" -Pattern 'forgot-everything' | ForEach-Object { $_.Line })
+        Check "diagnostics says when, and how long it took" (@($f | Where-Object { $_ -match 'as Aviary closed' -and $_ -match '"ms"' }).Count -eq 1) ($f -join ' | ')
+    }
+    StopAviary $script:pidv
+}
+"26b. ...and when Aviary did NOT close properly (killed), the next launch forgets before any site loads"
+Launch "xp26k" (',"exp.forgetOnClose":"true","pinnedTabs":"[\"http://127.0.0.1:8797/store\"]"') | Out-Null
+$p = Tab '8797/store'
+node cdp.js eval $p "put()" | Out-Null
+StopAviary $script:pidv
+Check "(killed: the marker says a forget is owed)" (Test-Path "profiles\xp26k\forget-everything-pending") "no marker"
+Launch "xp26k" -Keep | Out-Null
+Check "the next launch brought the pinned tab back ASLEEP - nothing loaded a site before the forget" (-not ((Pages) -join ' ' -match '8797/store')) ((Pages) -join ' | ')
+$f = @(Select-String -Path "profiles\xp26k\user.data.improvementcollection\events.jsonl" -Pattern 'forgot-everything' | ForEach-Object { $_.Line })
+Check "and it forgot at launch" (@($f | Where-Object { $_ -match 'at launch' }).Count -eq 1) ($f -join ' | ')
+U -Name "127.0.0.1" -Action Toggle | Out-Null; Start-Sleep 3
+$p = Tab '8797/store'
+$a = if ($p) { Stored $p } else { $null }
+Check "woken, the pinned site has nothing left" ($a -and -not $a.cookie -and -not $a.local) ($a | ConvertTo-Json -Compress)
+StopAviary $script:pidv
+
+"27. Strip even more tracking from links - control: off (Brave's list only)"
+$P27 = "fbclid=A&gad_source=C&_ga=K&mc_cid=E&trk=I&li_fat_id=J&igshid=H&hsa_cam=Y&ref=F&keep=Z"
+foreach ($run in @(@('xp27c', ''), @('xp27', ',"exp.moreLinkCleaning":"true"'))) {
+    $on = [bool]$run[1]
+    Launch $run[0] ($run[1] + ',"httpsOnly":"false"') | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    $from = (Invoke-RestMethod "http://127.0.0.1:8797/hits").Count
+    node cdp.js nav $t0 "http://127.0.0.1:8797/params?$P27" | Out-Null; Start-Sleep 1.5
+    node cdp.js click $t0 "#go" | Out-Null; Start-Sleep 2
+    $arrived = "$(@((Invoke-RestMethod 'http://127.0.0.1:8797/hits') | Select-Object -Skip $from | Where-Object { $_.url -match '^/target' -and $_.host -match '127\.0\.0\.2' })[0].url)"
+    if (-not $on) {
+        Check "control: Brave's list takes fbclid, and the rest arrive" ($arrived -notmatch 'fbclid' -and $arrived -match 'gad_source' -and $arrived -match '_ga=' -and $arrived -match 'keep=Z') $arrived
+    } else {
+        Check "on: Google's gad_source, Analytics' _ga, Mailchimp, LinkedIn, Instagram and HubSpot's codes are taken off" ($arrived -notmatch 'gad_source|_ga=|mc_cid|trk=|li_fat_id|igshid|hsa_cam|fbclid') $arrived
+        Check "and what a site may really use stays: ref, and an ordinary parameter" ($arrived -match 'ref=F' -and $arrived -match 'keep=Z') $arrived
+    }
+    StopAviary $script:pidv
+}
+
+"28. Block scripts from other websites - control: off"
+foreach ($run in @(@('xp28c', ''), @('xp28', ',"exp.thirdPartyScripts":"true"'))) {
+    $on = [bool]$run[1]
+    Launch $run[0] ($run[1] + ',"httpsOnly":"false"') | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    node cdp.js nav $t0 "http://127.0.0.1:8797/scripts" | Out-Null; Start-Sleep 2
+    $s = (Val $t0 "state()") -replace '\\"', '"' | ConvertFrom-Json
+    if (-not $on) { Check "control: the other site's script runs" ($s.own -and $s.other) ($s | ConvertTo-Json -Compress) }
+    else {
+        Check "on: the page's own script runs, the other site's does not" ($s.own -and -not $s.other) ($s | ConvertTo-Json -Compress)
+        Check "a picture from the other site still loads" ($s.img) ($s | ConvertTo-Json -Compress)
+        $bl = @(Select-String -Path "profiles\xp28\user.data.improvementcollection\blocking.jsonl" -Pattern 's\.js\?who=other' | ForEach-Object { $_.Line })
+        Check "Shields lists it as stopped (Experimental)" (@($bl | Where-Object { $_ -match 'Experimental' }).Count -ge 1) ($bl -join ' | ')
+        U -Id ShieldsButton | Out-Null; Start-Sleep 1.2
+        # A segment is a ToggleButton: it toggles. "Invoke" climbed past it to some other control (26 Sep).
+        $said = U -Name "Shields Off for 127.0.0.1" -Action Toggle; Start-Sleep 2.5
+        node cdp.js nav $t0 "http://127.0.0.1:8797/scripts" | Out-Null; Start-Sleep 2
+        $s = (Val $t0 "state()") -replace '\\"', '"' | ConvertFrom-Json
+        Check "with Shields off for the site, it runs everything again" ($s.own -and $s.other) "$($s | ConvertTo-Json -Compress); $said"
+    }
+    StopAviary $script:pidv
+}
+
+"29. Stronger fingerprint protection - control: off (the same answers everywhere, measured 26 Sep)"
+function Fp([string]$t, [string]$origin) { node cdp.js nav $t "$origin/fp" | Out-Null; Start-Sleep 1.5; ((Val $t "fp()") -replace '\\"', '"') | ConvertFrom-Json }
+# The drawing's own pixels (RGBA, 240x60), read by the page, compared byte for byte: a sum hid what the
+# noise did (26 Sep: a flip in a see-through pixel can only add, so the sum drifted 3%).
+function Px([string]$t) { $b = Val $t "px()"; try { [Convert]::FromBase64String($b) } catch { $null } }
+Add-Type @'
+public static class PxCmp {
+    // { pixels that differ, the largest difference in any byte, pixels in all }
+    public static int[] Diff(byte[] a, byte[] b) {
+        if (a == null || b == null || a.Length != b.Length) { return new[] { -1, -1, 0 }; }
+        int changed = 0, max = 0;
+        for (int i = 0; i + 3 < a.Length; i += 4) {
+            int d = 0;
+            for (int j = 0; j < 4; j++) { int x = System.Math.Abs(a[i + j] - b[i + j]); if (x > d) { d = x; } }
+            if (d > 0) { changed++; if (d > max) { max = d; } }
+        }
+        return new[] { changed, max, a.Length / 4 };
+    }
+}
+'@
+Launch "xp29c" | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$c1 = Fp $t0 "http://127.0.0.1:8797"; $c2 = Fp $t0 "http://127.0.0.2:8797"
+$cpx = Px $t0
+Check "control: two sites read the same canvas and audio, the real card, 16 cores" ($c1.canvas -eq $c2.canvas -and $c1.audio -eq $c2.audio -and $c1.cores -eq 16 -and $c1.renderer -match 'NVIDIA' -and $c1.seeThrough -eq 0) "$($c1.canvas)/$($c2.canvas) $($c1.audio)/$($c2.audio) $($c1.cores) $($c1.renderer) $($c1.seeThrough)"
+StopAviary $script:pidv
+Launch "xp29" ',"exp.fingerprint":"true"' | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$a1 = Fp $t0 "http://127.0.0.1:8797"; $a1b = Fp $t0 "http://127.0.0.1:8797"; $b1 = Fp $t0 "http://127.0.0.2:8797"
+$bpx = Px $t0
+Check "on: two sites read DIFFERENT canvas and audio" ($a1.canvas -ne $b1.canvas -and $a1.audio -ne $b1.audio) "$($a1.canvas)/$($b1.canvas) $($a1.audio)/$($b1.audio)"
+Check "one site reads the same twice in a visit (pages that compare keep working)" ($a1.canvas -eq $a1b.canvas -and $a1.audio -eq $a1b.audio) "$($a1.canvas)/$($a1b.canvas)"
+Check "and neither is the real one" ($a1.canvas -ne $c1.canvas -and $a1.audio -ne $c1.audio) "$($a1.canvas) vs $($c1.canvas)"
+$d = [PxCmp]::Diff($cpx, $bpx)
+Check "the drawing is still the drawing: $($d[0]) of $($d[2]) pixels differ from the real one, by at most $($d[1]) (limits: 1, and under 1 in 16)" ($d[0] -gt 0 -and $d[1] -eq 1 -and $d[0] -lt $d[2] / 16) "$($d[0]) of $($d[2]) pixels differ, by up to $($d[1])"
+Check "and no colour in a see-through pixel - a real canvas never reads one, so a page could spot it" ($a1.seeThrough -eq 0 -and $b1.seeThrough -eq 0) "$($a1.seeThrough) / $($b1.seeThrough)"
+Check "cores 8, memory 8, a common graphics card" ($a1.cores -eq 8 -and $a1.memory -eq 8 -and $a1.renderer -notmatch 'NVIDIA') "$($a1.cores) $($a1.memory) $($a1.renderer)"
+$nat = Val $t0 "[CanvasRenderingContext2D.prototype.getImageData, HTMLCanvasElement.prototype.toDataURL, Object.getOwnPropertyDescriptor(Navigator.prototype,'hardwareConcurrency').get].every(function(f){return /\[native code\]/.test(Function.prototype.toString.call(f))})"
+Check "every replaced function still reads as native code" ($nat -eq 'true') $nat
+StopAviary $script:pidv
+Launch "xp29" -Keep | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$a2 = Fp $t0 "http://127.0.0.1:8797"
+Check "after a restart the same site reads different values again (a new session)" ($a2.canvas -ne $a1.canvas -and $a2.audio -ne $a1.audio) "$($a1.canvas) -> $($a2.canvas)"
+StopAviary $script:pidv
+
+"30. Stop link-click pings - control: off (EasyPrivacy already stops other sites')"
+foreach ($run in @(@('xp30c', ''), @('xp30', ',"exp.noPings":"true"'))) {
+    $on = [bool]$run[1]
+    Launch $run[0] ($run[1] + ',"httpsOnly":"false"') | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    $from = (Invoke-RestMethod "http://127.0.0.1:8797/hits").Count
+    node cdp.js nav $t0 "http://127.0.0.1:8797/ping" | Out-Null; Start-Sleep 1.5
+    node cdp.js click $t0 "#same" | Out-Null; Start-Sleep 2
+    $h = @((Invoke-RestMethod "http://127.0.0.1:8797/hits") | Select-Object -Skip $from)
+    $pings = @($h | Where-Object { $_.url -match '^/pinged' }).Count
+    $went = @($h | Where-Object { $_.url -match 'ping-same' }).Count
+    if (-not $on) { Check "control: the site's own ping reaches it" ($pings -eq 1 -and $went -eq 1) "pings $pings, link $went" }
+    else {
+        Check "on: no ping - and the link still opens" ($pings -eq 0 -and $went -eq 1) "pings $pings, link $went"
+        $bl = @(Select-String -Path "profiles\xp30\user.data.improvementcollection\blocking.jsonl" -Pattern 'pinged' | ForEach-Object { $_.Line })
+        Check "Shields lists it as stopped (Experimental)" (@($bl | Where-Object { $_ -match 'Experimental' }).Count -ge 1) ($bl -join ' | ')
+    }
+    StopAviary $script:pidv
+}
+
+"31. Bug 96: Aviary's own closes - the menu's Exit, the last tab - ask what the title bar's x asks, and forget"
+# Window.Close() never passes through AppWindow.Closing, so every close Aviary made itself skipped the
+# questions (and stage 4's forgetting). The last tab is closed by its page: a page whose history is one
+# entry long may window.close() itself - location.replace keeps it one long.
+try { Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:8793/page" -TimeoutSec 2 | Out-Null }
+catch { Start-Process node -ArgumentList "dlsite.js" -WorkingDirectory $kit -WindowStyle Hidden | Out-Null; Start-Sleep 2 }
+$MANY = ',"warnManyTabs":"true"'
+function DlSeed([string]$name) {
+    $files = Join-Path $kit "profiles\$name-files"
+    if (Test-Path $files) { Remove-Item $files -Recurse -Force }
+    New-Item -ItemType Directory -Force $files | Out-Null
+    ',"downloadDir":' + (ConvertTo-Json $files)
+}
+# The window's only tab starts a 20-second download, then its page closes itself.
+function LastTabClosesWhileDownloading {
+    $t = @(Pages)[0].Substring(7, 8)
+    node cdp.js eval $t "location.replace('http://127.0.0.1:8793/page')" | Out-Null; Start-Sleep 2
+    $t = Tab '8793/page'
+    node cdp.js eval $t "(function(){var a=document.createElement('a');a.href='/file?name=long.zip&size=6000000&rate=300000';document.body.appendChild(a);a.click();return true})()" | Out-Null
+    Start-Sleep 3
+    node cdp.js eval $t "(function(){setTimeout(function(){window.close()},300);return history.length})()"
+}
+$m5 = Join-Path $kit "..\..\publish\Aviary\Aviary.exe"
+if ((Test-Path $m5) -and (Get-Item $m5).VersionInfo.ProductVersion -like "*0e8d432*") {
+    $line = & .\launch-quiet.ps1 -Profile xp31c -Fresh -Port $Port -Exe (Resolve-Path $m5).Path -SettingsJson ($BASE + $MANY + '}')
+    $script:pidv = if ("$line" -match 'TEST PID (\d+)') { [int]$Matches[1] } else { 0 }
+    Start-Sleep 4
+    U -Id NewTabButton | Out-Null; Start-Sleep 2
+    U -Id MenuButton | Out-Null; Start-Sleep 1
+    U -Name "Exit" | Out-Null
+    Check "control (the published M5 build): Exit closed a window of two tabs without asking" (WaitGone $script:pidv 6) "still open"
+    StopAviary $script:pidv
+    $line = & .\launch-quiet.ps1 -Profile xp31cd -Fresh -Port $Port -Exe (Resolve-Path $m5).Path -SettingsJson ($BASE + (DlSeed "xp31cd") + '}')
+    $script:pidv = if ("$line" -match 'TEST PID (\d+)') { [int]$Matches[1] } else { 0 }
+    Start-Sleep 4
+    $said = LastTabClosesWhileDownloading
+    Check "control (M5): the last tab closing mid-download closed Aviary without asking" (WaitGone $script:pidv 6) "still open; $said"
+    StopAviary $script:pidv
+} else { "  (no M5 build at publish\Aviary - controls skipped)" }
+
+Launch "xp31" ($MANY + ',"exp.forgetOnClose":"true"') | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+node cdp.js nav $t0 "http://127.0.0.1:8797/store" | Out-Null; Start-Sleep 1.5
+node cdp.js eval $t0 "put()" | Out-Null
+U -Id NewTabButton | Out-Null; Start-Sleep 2
+U -Id MenuButton | Out-Null; Start-Sleep 1
+U -Name "Exit" | Out-Null; Start-Sleep 1.5
+$asked = (Tree) -match 'Close 2 Tabs'
+U -Name "Cancel" | Out-Null; Start-Sleep 1.5
+Check "Exit asks Close this window?, as the x does - and Cancel keeps the window" ($asked -and (Alive $script:pidv) -and (Tree) -notmatch 'Close 2 Tabs') "asked: $asked, open: $(Alive $script:pidv)"
+U -Id MenuButton | Out-Null; Start-Sleep 1
+U -Name "Exit" | Out-Null; Start-Sleep 1.5
+U -Name "Close 2 Tabs" | Out-Null
+Check "Close 2 Tabs closes it" (WaitGone $script:pidv 20) "still open"
+$f = @(Select-String -Path "profiles\xp31\user.data.improvementcollection\events.jsonl" -Pattern 'forgot-everything' | ForEach-Object { $_.Line })
+Check "having forgotten everything, as Aviary closed" (@($f | Where-Object { $_ -match 'as Aviary closed' }).Count -eq 1) ($f -join ' | ')
+Launch "xp31" -Keep | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+node cdp.js eval $t0 "location.replace('http://127.0.0.1:8797/store')" | Out-Null; Start-Sleep 2
+$t0 = Tab '8797/store'
+$a = Stored $t0
+Check "(the site has nothing left)" ($a -and -not $a.cookie -and -not $a.local) ($a | ConvertTo-Json -Compress)
+node cdp.js eval $t0 "put()" | Out-Null
+$said = node cdp.js eval $t0 "(function(){setTimeout(function(){window.close()},300);return history.length})()"
+Check "the last tab closing closes the window" (WaitGone $script:pidv 20) "still open; $said"
+$f = @(Select-String -Path "profiles\xp31\user.data.improvementcollection\events.jsonl" -Pattern 'forgot-everything' | ForEach-Object { $_.Line })
+Check "and forgets too" (@($f | Where-Object { $_ -match 'as Aviary closed' }).Count -eq 2) ($f -join ' | ')
+StopAviary $script:pidv
+
+Launch "xp31d" (DlSeed "xp31d") | Out-Null
+$said = LastTabClosesWhileDownloading
+Start-Sleep 1.5
+$t = Tree
+Check "the last tab closing mid-download asks first, as the x does" ((Alive $script:pidv) -and $t -match 'download is still in progress') "open: $(Alive $script:pidv); $said"
+U -Name "Cancel" | Out-Null; Start-Sleep 1.5
+Check "and Cancel keeps Aviary - and the download - going" ((Alive $script:pidv) -and (Tree) -notmatch 'download is still in progress') "open: $(Alive $script:pidv)"
+StopAviary $script:pidv
+
+# ---------------------------------------------------------------------------------------------
 if ($Restart) {
     "11. Restart Aviary: a new Aviary, with the change in its engine"
     & .\guard.ps1 | Out-Null
@@ -815,6 +1068,39 @@ if ($Restart) {
             Check "the restart was a NORMAL close (not blamed as a crash)" ((Tree) -notmatch 'Aviary switched off') "asked"
             StopAviary $script:pidv
         }
+    }
+
+    "26c. Forget everything when Aviary closes: a restart is a close (bug 96 - its windows closed with Window.Close())"
+    & .\guard.ps1 | Out-Null
+    if ($LASTEXITCODE -eq 3) { "  SKIP  guard.ps1: someone is using the machine" }
+    else {
+        Launch "xp26r" ',"exp.forgetOnClose":"true"' | Out-Null
+        $old = $script:pidv
+        $t0 = @(Pages)[0].Substring(7, 8)
+        node cdp.js nav $t0 "http://127.0.0.1:8797/store" | Out-Null; Start-Sleep 1.5
+        node cdp.js eval $t0 "put()" | Out-Null
+        OpenSettingsAt "experimental"
+        node cdp.js click $script:sid ".sw[data-key='exp.smoothScrollOff']" | Out-Null; Start-Sleep 1
+        node cdp.js click $script:sid ".note[data-restart='exp.smoothScrollOff'] .btn[data-cmd=restart]" | Out-Null; Start-Sleep 1.5
+        Check "Restart Aviary? says websites' data is cleared as it closes" ((Tree) -match "data is cleared as it closes") "not said"
+        U -Name "Restart" | Out-Null
+        Check "the old Aviary closes" (WaitGone $old 20) "still running"
+        $new = $null; $d = (Get-Date).AddSeconds(25)
+        while ((Get-Date) -lt $d -and -not $new) {
+            Start-Sleep 1
+            $new = Get-CimInstance Win32_Process -Filter "Name='Aviary.exe'" | Where-Object { $_.ProcessId -ne $old -and $_.ExecutablePath -like "*tools\test\pub*" } | Select-Object -First 1
+        }
+        if ($new) {
+            $script:pidv = [int]$new.ProcessId
+            Start-Sleep 6
+            $f = @(Select-String -Path "profiles\xp26r\user.data.improvementcollection\events.jsonl" -Pattern 'forgot-everything' | ForEach-Object { $_.Line })
+            Check "it forgot as Aviary restarted - not at the next launch" (@($f | Where-Object { $_ -match 'as Aviary restarted' }).Count -eq 1 -and @($f | Where-Object { $_ -match 'at launch' }).Count -eq 0) ($f -join ' | ')
+            $t0 = @(Pages)[0].Substring(7, 8)
+            node cdp.js nav $t0 "http://127.0.0.1:8797/store" | Out-Null; Start-Sleep 1.5
+            $a = Stored $t0
+            Check "and the site has nothing left" ($a -and -not $a.cookie -and -not $a.local) ($a | ConvertTo-Json -Compress)
+            StopAviary $script:pidv
+        } else { Check "a new Aviary starts by itself" $false "none" }
     }
 
     # Stage 3's three that need the real keyboard or pointer - each asks guard.ps1 first.

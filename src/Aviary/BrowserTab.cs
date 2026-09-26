@@ -295,6 +295,9 @@ internal sealed partial class BrowserTab
         // per-launch shortcut token (see ShortcutToken).
         // Bug 91: FIRST, before any of the page's own script can add speculation rules.
         await core.AddScriptToExecuteOnDocumentCreatedAsync(NoSpeculationScript);
+
+        // M6 stage 4: "Stronger fingerprint protection", when it is on - also before any page script.
+        await RefreshFingerprintAsync();
         await core.AddScriptToExecuteOnDocumentCreatedAsync(
             ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken));
         await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);

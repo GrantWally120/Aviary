@@ -388,6 +388,14 @@ internal sealed partial class BrowserTab
             return null;
         }
 
+        // M6 stage 4, "Stop link-click pings": every <a ping>, the site's OWN included - EasyPrivacy's
+        // *$ping,third-party already stops other sites' (measured), and a site's own is exactly what
+        // Standard below would let through. Nothing but the ping: the link still opens.
+        if (type == ReqType.Ping && AppSettings.GetBool("exp.noPings"))
+        {
+            return ("*$ping", "Experimental");
+        }
+
         // A site's own requests are never stopped in Standard — by any list, Aviary's included, or
         // a tracker company's own website would load as a broken page — and never on a page the
         // person chose to open anyway after Strict's warning.
@@ -396,6 +404,15 @@ internal sealed partial class BrowserTab
         if ((!strict || openedAnyway) && FilterEngine.IsSameSite(uri, _filterPage))
         {
             return null;
+        }
+
+        // M6 stage 4, "Block scripts from other websites" - the M3 Shields row that was only promised.
+        // Any script not from the page's own site (a subdomain of it is its own), in Standard and Strict
+        // alike; never a page the person opened anyway.
+        if (type == ReqType.Script && !openedAnyway && AppSettings.GetBool("exp.thirdPartyScripts")
+            && !FilterEngine.IsSameSite(uri, _filterPage))
+        {
+            return ("*$script,third-party", "Experimental");
         }
 
         // Aviary's own short list first — it predates the lists, and it is a hash lookup.

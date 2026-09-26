@@ -396,8 +396,14 @@ public sealed partial class MainWindow
         top.Children.Add(when);
 
         TextBlock says = new() { FontSize = 12, Foreground = secondary, TextWrapping = TextWrapping.Wrap };
-        void Say(string m) => says.Text = m.Length == 0
-            ? "Aviary keeps what " + site + " stores, as it does for every site."
+        void Say(string m) => says.Text =
+            m == Forgetful.KeepMode
+                ? "Aviary keeps " + site + "'s sign-in" + (ForgetEverything.On ? ", even when it forgets every other site as it closes." : ", as it does for every site.")
+            : m.Length == 0
+                ? (ForgetEverything.On
+                    // M6 stage 4: with "Forget everything when Aviary closes" on, no choice means forgotten.
+                    ? "Its cookies and everything it stores are forgotten when Aviary closes, with every other site's. Choose Never to keep it."
+                    : "Aviary keeps what " + site + " stores, as it does for every site.")
             : "Its cookies and everything it stores are forgotten " +
               (m == "close" ? "when you close its last tab" : Forgetful.Label(m).ToLowerInvariant() + " you close its last tab") +
               " - you will be signed out of it.";
@@ -408,7 +414,7 @@ public sealed partial class MainWindow
             string chosen = Forgetful.Choices[Math.Max(0, when.SelectedIndex)].Mode;
             Forgetful.Set(site, chosen);
             Say(chosen);
-            DiagFeature("forget-set", new { site, mode = chosen.Length == 0 ? "never" : chosen, from = "shields" });
+            DiagFeature("forget-set", new { site, mode = chosen.Length == 0 ? (ForgetEverything.On ? "aviary-closes" : "never") : chosen, from = "shields" });
             PushForgetToSettings();
         };
 

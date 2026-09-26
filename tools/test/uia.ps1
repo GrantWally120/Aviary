@@ -22,20 +22,33 @@ Add-Type -AssemblyName UIAutomationClient, UIAutomationTypes
 $A = [System.Windows.Automation.AutomationElement]
 $T = [System.Windows.Automation.TreeScope]
 
-$roots = $A::RootElement.FindAll($T::Children,
-    (New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $ProcessId)))
-if ($roots.Count -eq 0) { Write-Output "NO WINDOW for pid $ProcessId"; exit 2 }
+# A popup that goes while the tree is being walked (a tooltip fading, a flyout opening) throws
+# ElementNotAvailable half-way (26 Sep: "Forget 127.0.0.2" was never chosen). Walk again - four tries.
+for ($attempt = 1; ; $attempt++) {
+    try {
+        $roots = $A::RootElement.FindAll($T::Children,
+            (New-Object System.Windows.Automation.PropertyCondition($A::ProcessIdProperty, $ProcessId)))
+        if ($roots.Count -eq 0) { Write-Output "NO WINDOW for pid $ProcessId"; exit 2 }
 
-$found = @()
-foreach ($root in $roots) {
-    if ($Window -and $root.Current.Name -notlike "*$Window*") { continue }
-    foreach ($el in $root.FindAll($T::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
-        $n = $el.Current.Name; $aid = $el.Current.AutomationId
-        if ($Action -eq "Dump") {
-            if (-not $Name -or $n -like "*$Name*") { $found += "{0,-22} {1,-28} {2}" -f $el.Current.ControlType.ProgrammaticName.Replace('ControlType.', ''), $aid, $n }
-            continue
+        $found = @()
+        foreach ($root in $roots) {
+            if ($Window -and $root.Current.Name -notlike "*$Window*") { continue }
+            foreach ($el in $root.FindAll($T::Descendants, [System.Windows.Automation.Condition]::TrueCondition)) {
+                $n = $el.Current.Name; $aid = $el.Current.AutomationId
+                if ($Action -eq "Dump") {
+                    if (-not $Name -or $n -like "*$Name*") { $found += "{0,-22} {1,-28} {2}" -f $el.Current.ControlType.ProgrammaticName.Replace('ControlType.', ''), $aid, $n }
+                    continue
+                }
+                if (($Name -and $n -eq $Name) -or ($Id -and $aid -eq $Id)) { $found += $el }
+            }
         }
-        if (($Name -and $n -eq $Name) -or ($Id -and $aid -eq $Id)) { $found += $el }
+        break
+    }
+    catch {
+        # PowerShell wraps it in MethodInvocationException: look inside.
+        $e = $_.Exception; while ($e.InnerException) { $e = $e.InnerException }
+        if ($attempt -ge 4 -or $e -isnot [System.Windows.Automation.ElementNotAvailableException]) { throw }
+        Start-Sleep -Milliseconds 400
     }
 }
 

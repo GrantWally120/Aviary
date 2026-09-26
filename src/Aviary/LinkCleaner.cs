@@ -43,6 +43,28 @@ internal static class LinkCleaner
     /// <summary>Every parameter starting with this — utm_source, utm_medium, utm_campaign…</summary>
     private const string CampaignPrefix = "utm_";
 
+    /// <summary>
+    /// M6 stage 4, "Strip even more tracking from links" — only while that experiment is on. Measured
+    /// first (tools/test/expsite.js /params): of 23 well-known tracking parameters on a link to another
+    /// site, the list above took 2 off. These are ones whose only job is following a click or a person,
+    /// each named by the company that adds it: Google Ads' newer click codes and Google Analytics' own
+    /// visitor number (_ga — the cookie's value, carried across sites); Mailchimp's campaign; LinkedIn's
+    /// tracking; Yahoo's and Condé Nast's campaign ids; Alibaba's spm and Bilibili's share codes;
+    /// Facebook's share and internal codes; Pinterest's, Reddit's and Klaviyo's click ids; Webtrekk's and
+    /// Adobe's campaign codes; Matomo's named campaign fields; Instagram's share id wherever it lands;
+    /// and HubSpot's ad fields (every hsa_). Deliberately NOT here: generic names a site may really use
+    /// (ref, source, from, campaign, id) and affiliate codes (tag, aff) — stripping those pays nobody.
+    /// </summary>
+    private static readonly HashSet<string> More = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "gad_source", "gad_campaignid", "_ga", "_gac", "mc_cid", "trk", "trkCampaign", "li_fat_id",
+        "ncid", "cmpid", "spm", "spm_id_from", "share_source", "share_medium", "share_plat",
+        "share_session_id", "share_tag", "share_from", "mibextid", "__tn__", "__cft__", "epik", "rdt_cid",
+        "_kx", "wt_mc", "wt_zmc", "s_kwcid", "ef_id", "pk_campaign", "pk_kwd", "pk_keyword", "pk_source",
+        "pk_medium", "pk_content", "mtm_campaign", "mtm_kwd", "mtm_keyword", "mtm_source", "mtm_medium",
+        "mtm_content", "mtm_group", "mtm_placement", "igshid", "igsh",
+    };
+
     /// <summary>Stripped only on these sites, where they identify who shared the link.</summary>
     private static readonly (string[] Hosts, string[] Params)[] PerSite =
     {
@@ -144,6 +166,13 @@ internal static class LinkCleaner
         }
 
         if (Global.Contains(name) || name.StartsWith(CampaignPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // M6 stage 4, Settings -> Experimental -> "Strip even more tracking from links".
+        if (AppSettings.GetBool("exp.moreLinkCleaning")
+            && (More.Contains(name) || name.StartsWith("hsa_", StringComparison.OrdinalIgnoreCase)))
         {
             return true;
         }
