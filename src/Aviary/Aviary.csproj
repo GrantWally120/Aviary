@@ -72,6 +72,9 @@
     <!-- Both icons travel with the build: the glass one is only reachable at runtime. -->
     <Content Include="Assets\Aviary.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Aviary-Glass.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- M7 "Super Quik": Quik's loading screen, Grant's video (a work in progress - replace the file to
+         change it). Played once, muted, the first time Aviary runs Quik (MainWindow.QuikIntro.cs). -->
+    <Content Include="Assets\Quik\loading.mp4" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

@@ -327,6 +327,10 @@ public sealed partial class MainWindow : Window
 
         Diagnostics.Mark("chrome-ready");
 
+        // M7 "Super Quik": the first launch into Quik plays its loading screen - over the window, while the
+        // tabs below are made as usual (MainWindow.QuikIntro.cs).
+        ShowQuikIntroIfDue();
+
         // M6 stage 4: the last session ended without the forgetting "Forget everything when Aviary
         // closes" owed it - pinned tabs come back asleep, and nothing loads a site until it is done.
         // ONCE per launch, in its first ordinary window: a second window opened later would otherwise find
@@ -998,6 +1002,8 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
                    + " window.__aviaryLaunchText = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedText) + ";"
+                   // M7: whether THIS launch runs Quik - its options are locked until it does.
+                   + " window.__aviaryQuik = " + JsonSerializer.Serialize(new { on = Quik.On }) + ";"
                    + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";"
                    + " window.__aviarySpeed = " + JsonSerializer.Serialize(Motion.PageSpeed) + ";"
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"
@@ -3010,6 +3016,11 @@ public sealed partial class MainWindow : Window
 
                 case "animationSpeed":
                     PushMotionToPages();
+                    break;
+
+                // M7 "Super Quik": takes effect at the next launch (Quik.cs) - the Settings note says so.
+                case "quik":
+                    Quik.Switched(AppSettings.GetBool(Quik.Key));
                     break;
 
                 case "focusRing":

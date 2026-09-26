@@ -44,9 +44,9 @@ Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section
 run, the sidebar and Classic included).
 
 > **WHERE THINGS STAND (26 Sep 2026 — read this first in a new chat)**
-> - Alpha Build 5 **"The Long Run"**: **13 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
+> - Alpha Build 5 **"The Long Run"**: **13 of 16 milestones done** (sixteen since M7 "Super Quik" went in, 26 Sep: M0, M1, M2, M2.5, M3, M4, M4.5,
 >   M4.6, M4.7, M4.8, M4.9, M5, M6). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
->   start M5 … you have the greenlight”) — §26. Then M7 (measured optimisation), M8 (beta prep).
+>   start M5 … you have the greenlight”) — §26. Then **M7 "Super Quik"** (Quik mode — STARTED 26 Sep, §28), M8 (measured optimisation), M9 (beta prep).
 > - **M6 — the Experimental menu — STARTED 25 Sep, DONE 26 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
 >   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
 >   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2
@@ -58,7 +58,7 @@ run, the sidebar and Classic included).
 >   Aviary made itself skipped the close questions). Its desktop-input checks (Restart, 26c, 20, 22b, 25) were
 >   committed still waiting for an idle PC — and passed in stage 5's full run (26c, a restart forgetting: 4/4). **Stage 5 COMMITTED 26 Sep** (Grant: "commit and dont start M7 yet") — the wrap-up, M6
 >   **DONE (13 of 15):** Hardware acceleration, Auto-Play, Preferred language and Minimum font size made real (§27's
->   Stage 5). **M7 (measured optimisation) is NOT started — Grant: "dont start M7 yet". Wait for his word.**
+>   Stage 5). **Then Grant (26 Sep): a NEW M7, "Super Quik" — Quik mode, in Beta (§28); the measured optimisation moved to M8 and beta prep to M9 (16 milestones).** **M7 stage 1 COMMITTED** (Grant: "contuinue"; §28): Settings → Quik, the loading screen, the Quik speed, the renumbering. **Stage 2 next** (the speed).
 >   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
@@ -210,7 +210,7 @@ zoom, and reload-becomes-stop. Two planned items moved to Phase 05 rather than s
 half-built: the **download progress ring** and **tab groups**.
 
 **Phase 05 is planned in full in `PHASE5-PLAN.md`** (approved by Grant 10 Sep 2026) — nine
-milestones, M0 to M8. **M0 is done** (10 Sep): it exercised everything Phase 4 had only
+milestones, M0 to M8 (M9 since 26 Sep). **M0 is done** (10 Sep): it exercised everything Phase 4 had only
 compiled and found six real bugs, now fixed (section 10, bugs 25–30). **M1 is done** (11 Sep):
 the local diagnostics folder, built and proven category by category in the running app —
 section 13 has how it works, how to read it each turn, and how to test it. Exercising and
@@ -763,7 +763,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   gone) — the official build was unpacked from `Downloads` into `tools/library/work/godot`;
   `Launcher.cs`'s header says "v1.2" while its own patch log (and the Collection) say 0.9.1.
   Opening Settings stalled the UI thread 93 ms once in Grant's data (the page grew with Updates) —
-  a candidate for M7.
+  a candidate for M8 (the measured optimisation — M7 until 26 Sep).
 - **Download progress ring** — deferred from Phase 4 to Phase 5. Downloads still work; the
   button is the plain one with a MenuFlyout, and downloads are still session-only with no
   history. A complete spec exists (see section 12).
@@ -785,7 +785,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   (the owner may be closing), then says "Aviary is already open" and ends having written nothing. It
   cannot bring the other copy's window forward — only a launch of the same copy can (bug 51).
 - Opening a private window stalls the UI thread 55–75 ms (building the window) — seen twice as
-  `ui-stall` anomalies. Harmless; worth trimming in M7.
+  `ui-stall` anomalies. Harmless; worth trimming in M8.
 - Workers still have `navigator.userAgentData` with the Safari identity on — no injection
   reaches a worker. (The Settings row already says "page scripts" — checked 18 Sep.)
 - Favicon requests the ENGINE makes are outside the request filter; with the DevTools override
@@ -813,11 +813,11 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
   lists were not added — Grant approved EasyList and EasyPrivacy only; each extra list needs his yes.
   ~~Strict's warning is shown only for the tab on screen~~ — fixed 19 Sep (bug 65): a background
   tab keeps its warning (and HTTPS-Only's fallback) and shows it when switched to.
-- **Shields — for M7 to measure:** the element-hiding script is ~786 KB and is registered in every
+- **Shields — for M8 to measure:** the element-hiding script is ~786 KB and is registered in every
   tab (each renderer keeps a copy); the blocker costs ~9 µs a request in the app against ~1.6 µs in
   the harness (the URL is lowercased twice and TrackerBlocker parses a Uri first); the lists build
   in 70–110 ms at launch with no disk cache (the plan asked for one — not built, because the build
-  is already under the first page's wait; M7 decides with numbers).
+  is already under the first page's wait; M8 decides with numbers).
 - ~~**Unstyled pages are dark-on-dark in the dark theme**~~ — **fixed 13 Sep as bug 61, committed
   and published 14 Sep** (section 10). Websites sit on white whatever the theme, as in Chrome and Safari; a
   page that asks for dark gets Chromium's own dark canvas; Aviary's pages and a new tab keep the
@@ -832,7 +832,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     slower than that is shown anyway, and can then show white between arriving and painting — as
     it would in Chrome.
   - Every page now posts one small `painted` message to the host (the injected ShortcutScript).
-    Ignored once the tab is showing; a candidate for M7 to measure, not a known cost.
+    Ignored once the tab is showing; a candidate for M8 to measure, not a known cost.
 - **Search (M4, section 18) — what the engines do, not Aviary:** Qwant was removed (it does not serve
   the Philippines — Grant's call, 14 Sep). Startpage runs a ~10 s proof-of-work page and Mojeek an "I'm not a robot" tick before a
   first search from an address they are unsure of (the row says so). Engine suggestions are asked
@@ -1687,7 +1687,7 @@ Build 1 until current and Beta are Beta Build 1 and 2 … and also mention curre
 **What the app says now.** Version **0.5.0 · Alpha Build 5 (AB5)**, a **pre-release**, "3 of 9
 milestones done" — in About, the Get started lede, the Updates pane, diagnostics' `session.json`
 and `summary.md` (`channel` = "Alpha Build 5 (pre-release)"). The version moved to 0.5.0 now,
-not at M8: it is the build being made, labelled pre-release until it ships.
+not at M9: it is the build being made, labelled pre-release until it ships.
 
 **BuildInfo.cs is still the only source.** `Version`, `PhaseNumber` (5, the build being made),
 `PhaseName` ("Privacy that works" — each build has a headline, like a named update),
@@ -1707,7 +1707,7 @@ on a dead switch, in Alpha Build 5, reads as broken); a row due later reads **"B
 in Aviary**, which opens Settings on it; also "See updates" on Get started, a `goto` control —
 a pane switch in the page, never a host command). Top to bottom: the build you are on (name,
 AB5 and Pre-release chips, headline, version · built · engine, a nine-segment milestone bar,
-M0–M8 with dates and "Next"); an "Automatic updates" row badged Beta Build 1 (honestly gated —
+M0–M9 with dates and "Next"); an "Automatic updates" row badged Beta Build 1 (honestly gated —
 updates come with the installer); "What's new in Alpha Build 5 so far" by category, ending in
 **Known issue** (bug 50); "Coming next" (BB1, BB2); "Earlier builds" (AB4 → AB1, collapsed); the
 interface study as a footnote. It never goes online and says so.
@@ -1720,7 +1720,7 @@ history is hand-written; STATE never is** — shipped / current / planned all co
 **Keeping it true — do these, every time:**
 - A milestone ships → `MilestonesDone++` in BuildInfo, and a `when` on that milestone in
   UPDATES; add its user-facing changes to AB5's `notes` (plain words — Grant reads this page).
-- AB5 ships (M8) → `PhaseShipped = 5`: every phase:5 row goes live together and the hero's chip
+- AB5 ships (M9) → `PhaseShipped = 5`: every phase:5 row goes live together and the hero's chip
   becomes "Latest". Then for Beta Build 1: `PhaseNumber = 6`, a new `PhaseName`, `Version`,
   `MilestonesDone = 0`, and a `milestones` list on the phase-6 entry.
 - `Aviary.html` shows the same names (PHASES titles; `code` feeds the hero pill) — keep in step.
@@ -2082,7 +2082,7 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   - **Leaving full screen: 60–110 ms, NOT fixed** — 85–120 ms of it is inside the Windows App SDK's own
     `AppWindow.SetPresenter(Overlapped)`; Aviary's part (chrome, geometry, layout) measured ~3.5 ms, and
     handing back the original presenter object did not help. It is the same in Classic (so not the
-    glass shadows). `full-screen` perf lines (`presenterMs`, `chromeMs`) keep measuring it for M7;
+    glass shadows). `full-screen` perf lines (`presenterMs`, `chromeMs`) keep measuring it for M8;
     replacing the SDK's full-screen mechanism is the only lever left. Kit: `fullscreen-bench.ps1`.
   - **Opening Settings: not reproduced** on scratch profiles (≤ 19 ms at 1280 and 2540 wide) while
     Grant's copy logged 93–122 ms. His next stalls will carry the new cause (busy / waiting / window
@@ -2190,7 +2190,7 @@ Flight** is the milestone AND Classic's motion style; **Fluid** is Liquid Glass'
   milestone list (labels are written, not counted, so it sits between M4 and M5 exactly as M2.5 does);
   a What's-new section in Updates covering motion, Shields, the two new pages, accessibility and tabs,
   plus six fixes in plain English; `Aviary.html`'s AB5 entry; and PHASE5-PLAN's own M4.5 section, with
-  M7 shrunk to what M4.5 did not do (it keeps cold start, new-tab time, memory per background tab and
+  M7 (now M8) shrunk to what M4.5 did not do (it keeps cold start, new-tab time, memory per background tab and
   the long-session numbers).
   - **Committed** `9b55bb4` (stage 7) and `aa736e9` (stages 8–9), then `tools/library/sync.ps1` and a
     publish to `publish/Aviary`. The §5 check: the published tree differs from the tested copy in
@@ -2590,7 +2590,7 @@ window as control; the real folder picker) · `settings-audit.js` **67 live, 10 
 ms · popover photographed in Classic/Liquid Glass × light/dark · one guarded REAL click: no focus
 ring on open (the ring in the UIA-driven shots is WinUI marking keyboard-style input, not a bug).
 **Known, not new:** opening a private window stalls the UI 70–105 ms (105 ms on the committed build,
-71 ms on this one) — an M7 item.
+71 ms on this one) — an M8 item.
 
 **Kit:** `dlsite.js` (port 8793: slow, sizeless, dropped-and-resumable, a program, target=_blank,
 `/hits` with Range), `downloads-test.ps1 [-Picker]` (UTF-8 WITH BOM — it matches Aviary's "—" and
@@ -2661,7 +2661,7 @@ controls; a forged hint without the token ignored; right-click New Tab behind an
 window’s Shift → a private window; Ctrl+click on a download leaves no tab) · `downloads-test.ps1` **53/53**
 · `pip-test` 14/14 · `motion-session` Classic clean · `settings-audit.js` 68 / 9 / 0. **Noted:** one 51 ms
 stall at a first download (Alt+click), NOT reproduced in 10 more first downloads (5 plain, 5 Alt) —
-recorded, not "fixed". Opening any new window costs 56–105 ms, as before M5 (an M7 item).
+recorded, not "fixed". Opening any new window costs 56–105 ms, as before M5 (an M8 item).
 **Kit:** `linksite.js` (port 8795, 127.0.0.1 and .2 — two listeners, never ::), `links-test.ps1`,
 `cdp.js mclick <tab> <css> ctrl|shift|alt|ctrl+shift|middle`, and every cdp.js click reaches into a
 shadow root with `#host >>> #inner`. **A PowerShell helper named `R` is Invoke-History** (the `r` alias):
@@ -3189,5 +3189,76 @@ draw live. **Continue running in the background said "Later in AB5"** — the pl
 promising this build was wrong: `phase:6` now. The Updates page driven on a
 scratch profile: 13 of 15, M6's line, both groups and the bug 96 line rendered. Regressions on the final build (the clean
 build plus the one-word badge change, rebuilt 13:26): downloads **53**, links **27**, groups **40**, pip **14**, forget **17**,
-startbg **13** (no picker), saver-modes and minimise-sleep as they must be; **si-race 3 of 6 delays OK (0, 20, 50 ms)** —
-it stops itself when someone is at the keyboard, and Grant was; 100, 200 and 400 ms still to run.
+startbg **13** (no picker), saver-modes and minimise-sleep as they must be; **si-race 6 of 6 delays OK** — 0, 20 and 50 ms
+before the commit; it stops itself when someone is at the keyboard, and Grant was, so 100, 200 and 400 ms ran after it
+(on the same build, 26 Sep).
+
+---
+
+## 28. Alpha Build 5 M7 — "Super Quik": Quik mode, in Beta (26 Sep 2026 — IN PROGRESS)
+
+Grant, 26 Sep, after M6: *"lets start M7 but push the original m7 to m8 and so on this update is called
+Super Quik the hero card of this update is Quik"* — a mode that makes Aviary "much quicker and faster and less
+slow and unresponsive", in Beta. The old M7 (measured optimisation) is now **M8**, beta preparation **M9**:
+Alpha Build 5 has **sixteen** milestones. The approved plan: `~/.claude/plans/c-users-user-downloads-grok-video-4e944-sharded-coral.md`.
+
+**What Grant asked for, and chose** (his answers to four questions, 26 Sep):
+- Its own section in Settings. Its options are locked until Quik is running: switch it on → Restart Aviary →
+  the loading screen → Quik runs, and its options open up.
+- **The loading screen** is his video (`Downloads\grok-video-4e944d4e-….mp4`: 6 s, H.264 with a soundtrack — a
+  metal "Quik" wordmark with a "Beta" tag). It plays **once, when Aviary restarts into Quik**, **muted**, with
+  **Skip**. A work in progress: he will replace it.
+- **"Quik" animation speed** — a fourth speed, only in the Quik section.
+- Quik launches "slightly debloated and more optimized and faster".
+- Targets for this update: a new tab in **≤20 ms, aiming for 10**; a cold start **≥20% faster** than regular
+  Aviary; Aviary's own operations in 10–20 ms where Aviary is the cost. Long-term goal: 60%+ faster.
+- His picks: **Keep recent tabs awake** and **Quik Labs**; fix bugs **85** (PiP on YouTube — he found it),
+  **86** and **87**.
+
+**The baseline** (Grant's own diagnostics, 26 Sep — what Quik is measured against): cold start median **1,041 ms**
+over 33 launches; the latest 1,094 ms = process→App 178 · the window ~230 · **the engine, started only after the
+window is ready, ~387** · the Start Page ~103. New tab: median **350 ms** (p10 103, p90 2,305).
+
+### Stage 1 — Quik's frame, the renumbering, the loading screen, the Quik speed (26 Sep, COMMITTED — Grant: "contuinue")
+- **`Quik.cs`** — key `quik`, read ONCE at launch (App's constructor, after the crash protection). `Quik.On` = this
+  launch; the saved value = the next. The restart note comes from `WebViewEnvironment.LaunchedWith["quik"]`.
+  **Crash protection covers it** (Beta): `Experiments.TurnAllOff(quikToo: true)` from `SafetyMarker` only — the
+  Experimental pane's Turn All Off leaves Quik alone; the dialog names it "Quik (Beta)"; switched off, the
+  loading screen is no longer owed; "Turn Them Back On" owes it again and restarts.
+- **Settings → Quik** (`SECTIONS` id `quik`, right under Get started, drawn by `renderQuik`): a hero card —
+  "Quik" in heavy italic like his wordmark, a Beta chip, a bolt; the switch with its restart note; **What Quik
+  does** (ONLY what is built — stage 1: the Quik speed); **Quik's settings**, `quik:true` rows locked with a
+  "Needs Quik" badge and a sentence until Quik runs (`window.__aviaryQuik`); **Beta — what doesn't work yet**
+  ("Nothing known yet" until something is).
+- **The Quik speed**: `Motion.Speed` "Quik" = 0.35× (Quick 0.68×), pages `data-speed="quik"` (Settings and the
+  Start Page CSS) — **only while Quik runs**; otherwise it moves as Quick. Two dropdowns share `animationSpeed`
+  now: the Appearance one offers three and says "Quik is chosen in Settings → Quik" (`syncSelects`,
+  `quikSpeedNote`).
+- **The loading screen** (`MainWindow.QuikIntro.cs`): switching Quik on writes `quik-intro-pending`; the first
+  launch into Quik shows a native overlay — `MediaPlayerElement`, muted, fill, Skip (focused; Esc too) — over
+  the whole window while the tabs are made underneath, then clears the marker. No file, a failure or Reduce
+  motion → no overlay; 15 s limit whatever the video does. The file: `src/Aviary/Assets/Quik/loading.mp4`
+  (Content, copied to the output) — **replace it to change the loading screen**.
+- **Renumbering**: `BuildInfo.Milestones` 16; Updates and `Aviary.html` PHASES (M7 Super Quik, M8, M9; chip
+  "Super Quik"); PHASE5-PLAN (a new M7 section; M8, M9); this file's box and "candidate for M7" notes → M8.
+
+**Checked** (26 Sep): new harness **`quik-test.ps1` 17/17** — the pane locked (control) and live after the
+restart; the loading screen plays once, muted (`audio-peak` 0), 6.4 s to its end, not again; Skip ends it
+(3.6 s in); no video / Reduce motion → nothing; the Quik speed only in the Quik section, regular Aviary moving as
+Quick (control); crash protection switches Quik off after a kill and says so, Turn All Off does not (control).
+Settings audit 94 live / 5 badged / 0 inert; Updates reads 13 of 16, "Next: M7 · Super Quik".
+**From a clean build (15:12):** quik-test **17/17**; experiments-test **248/248 with -Restart**, every desktop part;
+regressions downloads 53, links 27, groups 40, pip 14, forget 17, startbg 13, saver-modes and minimise-sleep as they
+must be, **si-race 6/6**.
+**Then Grant tried it himself** (16:07, the test build on his own profile): on → Restart → the loading screen to its
+end → off again. His diagnostics caught what the harness had not looked for: **a 204 ms window stall as the loading
+screen ended** ("during: feature quik-intro, just before"). The test profiles had it too (206, 213 ms); quik-test now
+looks for stalls around it — and caught 214 and 207 ms on that build (the control). Timed step by step: pause, detach
+and remove 0.1–2.3 ms; **`MediaPlayer.Dispose()` 214–219 ms, every time**. Disposing it off the window's thread while
+the picture still held it **hung Aviary on a Skip** (Not Responding — found by the next run). Fixed: pause, detach
+(`SetMediaPlayer(null)`) and remove on the window's thread (0.6–4.3 ms), THEN dispose off it. **quik-test 20/20**
+(stall-free at the end and on Skip; Aviary answering after Skip). The full runs above were on the 15:12 build — the fix
+touches only the loading screen's end, which only quik-test exercises.
+**Found on the way (harness):** UI Automation's `FindAll` never sees a control added to the window's own root
+after it loaded — the Skip button, on screen and invokable, was found by a tree walk and by nothing else;
+`uia.ps1` now walks before it says NOT FOUND. And a kill is a crash: `quik-test` closes Aviary with WM_CLOSE.

@@ -179,9 +179,10 @@ internal static class Experiments
     /// <summary>
     /// "Turn every experiment off", and the switch-off after a problem. Returns the keys that were
     /// on, so they can be turned back on. Writes each through <see cref="AppSettings.Set"/>, so
-    /// diagnostics records every one as an experiment change (category 7).
+    /// diagnostics records every one as an experiment change (category 7). <paramref name="quikToo"/>: the
+    /// switch-off after a problem also covers Quik (M7, Beta) - the Experimental pane's button does not.
     /// </summary>
-    public static List<string> TurnAllOff()
+    public static List<string> TurnAllOff(bool quikToo = false)
     {
         List<string> were = new();
         foreach (Experiment e in All)
@@ -191,6 +192,16 @@ internal static class Experiments
                 AppSettings.Set(e.Key, "false");
                 were.Add(e.Key);
             }
+        }
+
+        // M7: Quik is Beta, and the crash protection watches it the same way.
+        if (quikToo && AppSettings.GetBool(Quik.Key))
+        {
+            AppSettings.Set(Quik.Key, "false");
+            were.Add(Quik.Key);
+
+            // Nothing is owed to a launch that will not run Quik: switched back on, it is owed again.
+            Quik.IntroDone();
         }
 
         return were;

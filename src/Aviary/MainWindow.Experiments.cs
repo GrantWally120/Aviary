@@ -145,7 +145,7 @@ public sealed partial class MainWindow
         }
 
         string names = string.Join(Environment.NewLine, off.Keys
-            .Select(k => Experiments.Find(k)?.Name ?? k)
+            .Select(k => k == Quik.Key ? "Quik (Beta)" : Experiments.Find(k)?.Name ?? k)
             .Select(n => "•  " + n));
 
         bool turnBackOn;
@@ -162,7 +162,8 @@ public sealed partial class MainWindow
                     Text = "Last time Aviary ran, " + off.Why + ", soon after experimental features were changed. "
                          + "To be safe, they are all off:" + Environment.NewLine + Environment.NewLine + names
                          + Environment.NewLine + Environment.NewLine
-                         + "You can turn any of them on again in Settings → Experimental.",
+                         + "You can turn any of them on again in Settings → Experimental"
+                         + (off.Keys.Contains(Quik.Key) ? ", and Quik in Settings → Quik." : "."),
                     TextWrapping = TextWrapping.Wrap,
                 },
                 PrimaryButtonText = "Keep Them Off",
@@ -193,13 +194,17 @@ public sealed partial class MainWindow
         {
             AppSettings.Set(key, "true");
             PushToEverySettingsPage(key, true);
+            if (key == Quik.Key)
+            {
+                Quik.Switched(true);
+            }
         }
 
         SafetyMarker.ExperimentChanged();
         ApplyExperimentsToOpenTabs();
 
         // The ones that change the engine only apply at launch - and this launch is running without them.
-        if (off.Keys.Any(k => Experiments.Find(k)?.NeedsRestart == true))
+        if (off.Keys.Any(k => k == Quik.Key || Experiments.Find(k)?.NeedsRestart == true))
         {
             await RestartAviaryAsync();
         }

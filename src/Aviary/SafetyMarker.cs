@@ -60,7 +60,7 @@ internal static class SafetyMarker
 
             if (problem is not null && before.CleanRuns < TrustAfter)
             {
-                List<string> were = Experiments.TurnAllOff();
+                List<string> were = Experiments.TurnAllOff(quikToo: true);
                 if (were.Count > 0)
                 {
                     _switchedOff = were;

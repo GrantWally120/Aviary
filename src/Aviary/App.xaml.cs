@@ -46,6 +46,10 @@ public partial class App : Application
         // reaches the engine. Not part of diagnostics: safety must not depend on opting in.
         SafetyMarker.AtLaunch();
 
+        // M7 "Super Quik": what this launch runs as - read once, after the crash protection above,
+        // which may just have switched Quik off.
+        Quik.AtLaunch();
+
         WebViewEnvironment.EnsureUserDataFolder();
 
         // The ad blocker's lists are read on a background thread while the window builds, so

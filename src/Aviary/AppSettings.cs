@@ -118,6 +118,8 @@ internal static class AppSettings
         ["autoplay"] = WebViewEnvironment.AutoPlayWithSound,
         ["language"] = WebViewEnvironment.LanguageOfWindows,
         ["minFont"] = "None",
+        // M7 "Super Quik" — off until switched on in Settings → Quik; read once, at launch (Quik.cs).
+        ["quik"] = "false",
     };
 
     public static void Load()

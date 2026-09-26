@@ -170,7 +170,7 @@ Built as planned, with these outcomes and differences — each decided on eviden
   whole-word token rather than the longest. Regex rules, `$popup`, `$csp`, `$redirect`, scriptlets
   and procedural hiding are skipped and counted — shown in Settings.
 - **No compiled index on disk:** building from text takes 70–110 ms on a background thread at
-  launch, inside the first page's wait; a cache is left for M7 to justify with numbers.
+  launch, inside the first page's wait; a cache is left for M8 (then called M7) to justify with numbers.
 - **Cosmetic:** one page script in every document, nested frames included, adopting one
   stylesheet; measured first (~2 ms per page, no recalc cost). Blocked frames and images also
   collapse, and blocked frames get a 204 so they no longer cost a renderer process.
@@ -193,7 +193,7 @@ New `FilterEngine.cs` (parser + token index) and `Shields.cs` (per-site state).
   the toolbar shield popover, which also shows this page's blocked count and opens the full
   Privacy Report.
 - Parsed once on a background thread, compiled index cached to disk. **Match cost is
-  logged to `perf.jsonl`** with a budget (see M7).
+  logged to `perf.jsonl`** with a budget (see M8).
 
 ### M4 — Search · **done 14 Sep 2026** (HANDOFF §18)
 Grant (14 Sep): DuckDuckGo stays the default; Bing and Google stay on the list. Built as planned:
@@ -235,9 +235,9 @@ Classic's way of moving; **Fluid** is Liquid Glass's.
   ring, every shortcut listed; and two tab choices (ask before closing several, what the last
   tab does). Diagnostics cap 500 → 650 MB.
 
-**What this takes off M7's list**: the blocker's per-request cost, the tab strip rebuild, the
+**What this takes off M8's list** (M7 until 26 Sep): the blocker's per-request cost, the tab strip rebuild, the
 focus rings, the animated pane transitions, the chrome dimming when the window is inactive, and
-one easing set used everywhere. M7 keeps the broader budget work — cold start, new-tab time,
+one easing set used everywhere. M8 keeps the broader budget work — cold start, new-tab time,
 memory per background tab, and the long-session numbers.
 
 ### M4.6 — Smooth Fix · **done 20 Sep 2026** (HANDOFF §22)
@@ -374,7 +374,7 @@ Shields rows M3 only promised), and stop link-click pings. **"Stop websites aski
 CUT, measured:** this engine refuses every request itself, with no prompt — there was nothing to stop. Found
 on the way: **bug 96** — every close Aviary made itself (Exit, the last tab, a question's yes, Restart) went
 round the close questions, so Exit never asked "Close this window?" and the forgetting never ran.
-**Stage 5 committed (26 Sep) — M6 done, 13 of 15. M7 waits for Grant's word:** the plan's "also in M6". Hardware acceleration,
+**Stage 5 committed `ca4f685` (26 Sep) — M6 done, 13 of 15 (then 13 of 16: M7 Super Quik went in, below):** the plan's "also in M6". Hardware acceleration,
 Auto-Play (Safari's three choices; the engine's own default measured to BE "Stop Media with Sound") and
 Preferred language (only languages the engine has words for — it ignores Cebuano, so it is not offered) made
 real through the engine's start-up; **Minimum font size made real, not cut** — through the engine's OWN
@@ -451,7 +451,28 @@ CSS; `reduceMotion` driving chrome animations. `translate`, `background`, `start
 gated for Phase 6. **Target: zero live, inert rows.** **Done 26 Sep** (stage 5): `scrollbars` became the "Thin scrollbars" experiment,
 `minFont` went through the engine's Preferences instead of CSS, and `background`'s badge now says Phase 6.
 
-### M7 — Optimisation and polish, measured by diagnostics
+### M7 — Super Quik: Quik mode, in Beta · **STARTED 26 Sep 2026 — stage 1 committed** (HANDOFF §28)
+Grant, 26 Sep: a new M7, **Super Quik** — the measured optimisation moved to M8 and the beta
+preparation to M9, so Alpha Build 5 has sixteen milestones. The hero is **Quik**, a mode that
+makes Aviary quicker and more responsive — in Beta: fixes and speed come gradually, and what does
+not work yet is listed plainly.
+- **Its own place in Settings**, with its switch. Quik changes how Aviary starts, so it applies at
+  the next launch; its options are locked until Aviary is running it. The first launch into Quik
+  plays Grant's loading screen — once, muted, with Skip — while the browser starts underneath.
+- **Targets for this update** (the long-term goal is 60%+ faster than regular Aviary): a new tab in
+  ≤20 ms, aiming for 10 (regular: median 350 ms); a cold start ≥20% faster (regular: median
+  1,041 ms); Aviary's own operations in 10–20 ms where Aviary itself is the cost. Measured against
+  regular Aviary on the same machine, never claimed on feel.
+- **How:** the engine started with the window instead of after it; one new tab kept ready; a
+  slightly debloated launch (what the first page does not need comes just after it); a fourth
+  animation speed, **Quik**, offered only in the Quik section; recent tabs kept awake; and **Quik
+  Labs** for riskier speed-ups, each measured first.
+- Grant's word on the open bugs: **85** (picture in picture on YouTube — he found it), **86**, **87**.
+- Three stages, each its own commit: 1 the frame (Settings → Quik, the loading screen, the Quik
+  speed, the renumbering) · 2 the speed (engine with the window, the ready tab, the debloated
+  launch, recent tabs awake) · 3 Quik Labs, bugs 85–87, the wrap-up.
+
+### M8 — Optimisation and polish, measured by diagnostics (was M7 until 26 Sep)
 Nothing is "optimised" on feel. Each change is **measured before and after from
 `perf.jsonl`**, and the numbers go in the phase notes.
 - **Budgets** (baseline taken in M1, targets confirmed then): cold start to first paint;
@@ -465,11 +486,11 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
   as a loading indicator, a tab audio indicator and per-tab mute, and empty states. Real Liquid
   Glass blur still needs Win2D — **ask first.**
 
-### M8 — Beta preparation
+### M9 — Beta preparation (was M8 until 26 Sep)
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
   repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
 - App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 10` (0.5.0 and the name
-  "Alpha Build 5" already arrived on 13 Sep — until M8 they are labelled pre-release). Updates'
+  "Alpha Build 5" already arrived on 13 Sep — until M9 they are labelled pre-release). Updates'
   AB5 entry finished, landing page and HANDOFF updated.
 
 ## Critical files
@@ -485,7 +506,7 @@ both theme files.
 ## Reuse, not rebuild
 
 - `AppSettings` schema handshake — new keys register themselves; never reintroduce a list.
-- `BuildInfo` gating — new rows carry `phase:5`, live when M8 bumps `PhaseShipped`.
+- `BuildInfo` gating — new rows carry `phase:5`, live when M9 bumps `PhaseShipped`.
 - `PrivacyReport` already keeps per-day/per-tracker/per-site counts; the engine feeds it.
 - `SiteSettings` (`MainWindow.Reader.cs`) is the per-site store for Shields and HTTPS
   exceptions.

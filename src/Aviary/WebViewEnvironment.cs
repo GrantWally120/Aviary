@@ -233,6 +233,10 @@ internal static class WebViewEnvironment
             _launchedWith[key] = AppSettings.GetBool(key);
         }
 
+        // M7: Quik is not an engine switch, but it too is decided at launch - so Settings shows its
+        // "Restart Aviary to apply this change" note the same way, from this map.
+        _launchedWith[Quik.Key] = Quik.On;
+
         _launchedText = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (string key in RestartChoices)
         {

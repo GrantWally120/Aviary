@@ -61,7 +61,11 @@ internal static class BuildInfo
     /// </summary>
     public const int MilestonesDone = 13;
 
-    public const int Milestones = 15;
+    /// <summary>
+    /// Sixteen since 26 Sep: Grant put M7 "Super Quik" (Quik mode) in, and the measured optimisation and the
+    /// beta preparation moved to M8 and M9.
+    /// </summary>
+    public const int Milestones = 16;
 
     /// <summary>The last alpha. Phase 6 onwards is beta.</summary>
     private const int LastAlphaPhase = 5;

@@ -53,6 +53,26 @@ for ($attempt = 1; ; $attempt++) {
 }
 
 if ($Action -eq "Dump") { $found | Select-Object -First 200; exit 0 }
+
+# FindAll misses a control added to the window's own root after it loaded (26 Sep: Quik's loading screen and
+# its Skip button, on screen and invokable - a tree walker finds them, FindAll does not). Walk before giving up.
+if ($found.Count -eq 0) {
+    $walker = [System.Windows.Automation.TreeWalker]::ControlViewWalker
+    function WalkFor($el, $depth) {
+        if ($depth -gt 14) { return }
+        $c = $walker.GetFirstChild($el)
+        while ($c) {
+            $n = $c.Current.Name; $aid = $c.Current.AutomationId
+            if (($Name -and $n -eq $Name) -or ($Id -and $aid -eq $Id)) { $script:found += $c }
+            WalkFor $c ($depth + 1)
+            $c = $walker.GetNextSibling($c)
+        }
+    }
+    foreach ($root in $roots) {
+        if ($Window -and $root.Current.Name -notlike "*$Window*") { continue }
+        WalkFor $root 0
+    }
+}
 if ($found.Count -eq 0) { Write-Output "NOT FOUND name='$Name' id='$Id'"; exit 1 }
 $target = $found[0]
 

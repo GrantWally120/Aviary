@@ -337,6 +337,8 @@ internal static class InternalPages
   .hero__title h2{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.024em;}
   .hero__name{margin-top:4px;font-size:15px;font-weight:500;}
   .hero__meta{margin-top:5px;font-size:12.5px;color:var(--ink-2);-webkit-user-select:text;user-select:text;}
+  /* M7: the Quik pane's title leans like the wordmark in Grant's loading screen. */
+  #pane-quik .hero__title h2{font-style:italic;font-weight:800;letter-spacing:-.035em;}
   .bar{display:grid;gap:4px;margin-top:20px;}
   .bar i{height:6px;border-radius:99px;background:var(--fill-hover);}
   .bar i.done{background:var(--accent);}
@@ -512,6 +514,7 @@ internal static class InternalPages
   :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-x:1;--m-dur:calc(200ms * var(--m-x));--m-pane:calc(240ms * var(--m-x));--m-rise:8px;interpolate-size:allow-keywords;}
   html[data-speed="calm"]{--m-x:1.5;}
   html[data-speed="quick"]{--m-x:.68;}
+  html[data-speed="quik"]{--m-x:.35;}
   html[data-motion="fluid"]{--m-ease:linear(0, .006, .025 2.8%, .101 6.1%, .539 18.9%, .721 25.3%, .849 31.5%, .937 38.1%, .968 41.8%, .991 45.7%, 1.006 50.1%, 1.015 55%, 1.017 63.9%, 1.001);--m-dur:calc(360ms * var(--m-x));--m-pane:calc(420ms * var(--m-x));--m-rise:14px;}
   html[data-motion="off"] *,html[data-motion="off"] *::before,html[data-motion="off"] *::after{transition:none!important;animation:none!important;}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;}}
@@ -582,6 +585,8 @@ if (window.__aviaryFocusRing) { document.documentElement.dataset.focus = 'clear'
 var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
 /* M6 stage 5: ...and for the launch-time CHOICES (Auto-Play, Preferred language, Minimum font size). */
 var LAUNCH_TEXT = (typeof window.__aviaryLaunchText === 'object' && window.__aviaryLaunchText) || {};
+/* M7 "Super Quik": whether THIS launch runs Quik (Quik.cs). Its options are locked until it does. */
+var QUIK = (typeof window.__aviaryQuik === 'object' && window.__aviaryQuik) || {on:false};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
 /* The ad blocker's filter lists: versions, dates, counts, the last check (Shields, M3). */
@@ -625,6 +630,7 @@ function post(o){ try { o.token = window.__aviaryToken || ''; window.chrome.webv
 function sendSetting(k, v){ post({type:'setting', key:k, value:v}); }
 function sendCommand(n){ post({type:'command', name:n}); }
 var ICON = {
+  quik:'<svg viewBox="0 0 16 16" fill="none"><path d="M9.2 1.8 3.4 9h4.2l-.8 5.2L12.6 7H8.4l.8-5.2Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
   start:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.5 8.6 8 3.4l5.5 5.2M4 7.6V13h8V7.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   look:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 2.2v11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
   content:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2.2 6.2h11.6" stroke="currentColor" stroke-width="1.4"/></svg>',
@@ -746,9 +752,11 @@ var UPDATES = [
        d:'Safari’s download ring, which fills as your files arrive and bounces when the last one lands, over a downloads list that remembers — cleared on the schedule you choose. Aviary can ask where to save each file, a finished download can be dragged out onto the desktop, and a downloaded program asks before it opens. Ctrl-click and the middle button open a link behind the page you are on, Shift-click in a window of its own. And tab groups: named sets of tabs you put away and bring back, from the sidebar or the button beside it.'},
       {n:'M6', t:'The Experimental menu, in plain English', when:'26 Sep',
        d:'Twenty unfinished features to try in Settings → Experimental, each explained in everyday words with what might happen — and not one of them can make Aviary less safe. If Aviary stops soon after you change one, the next launch switches them all off and asks. And the last four settings that only promised now work: hardware acceleration, Auto-Play, your preferred language and a minimum font size.'},
-      {n:'M7', t:'Faster and smoother — and measured',
+      {n:'M7', t:'Super Quik',
+       d:'<b>Quik</b>, in Beta: a mode that makes Aviary quicker — a faster start, new tabs in a blink, and a speed of its own for everything that moves. It has its own place in Settings.'},
+      {n:'M8', t:'Faster and smoother — and measured',
        d:'Start-up, new tabs, memory and animation tuned, with every improvement proved by the diagnostics numbers rather than by feel.'},
-      {n:'M8', t:'Getting ready for Beta Build 1',
+      {n:'M9', t:'Getting ready for Beta Build 1',
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
@@ -1043,6 +1051,14 @@ var SECTIONS = [
 
   /* M4.9 — Birds News (BirdsNews.cs). The one part of Aviary that goes online by itself, so this
      page says exactly what it fetches, from whom, how often, and what it sends. */
+  /* Alpha Build 5 M7 "Super Quik" (Grant, 26 Sep) — Quik.cs. Its switch applies at the next launch;
+     its options (quik:true) are locked until Aviary is running Quik. Drawn by renderQuik. */
+  { id:'quik', icon:'quik', name:'Quik', title:'Quik', quik:true,
+    lede:'A quicker Aviary, in Beta. Switch it on and restart Aviary, and Quik’s own settings open up.',
+    rows:[
+      {t:'Quik', hero:true, d:'Quik changes how Aviary starts, so it takes effect when Aviary restarts — the first time, with a loading screen.', restart:true, ctl:{type:'toggle', key:'quik', value:false}},
+      {t:'Animation speed', quik:true, d:'The Appearance row’s three speeds, and one more: <b>Quik</b>, about half the length of Quick. It is only offered here, and moves that fast only while Quik is running.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick','Quik'], value:'Standard'}}
+    ]},
   { id:'news', icon:'news', name:'Birds News', title:'Birds News',
     lede:'Live headlines on your Start Page, straight from the people who publish them. Aviary asks each site for its own news feed — as Aviary, not dressed up as a person’s browser — sends no cookies, and shows every headline exactly as its site wrote it. Nothing about what you read is sent anywhere.',
     rows:[
@@ -1079,7 +1095,7 @@ var SECTIONS = [
          Fluid is Liquid Glass’s. Reduce motion (Accessibility) turns both off. */
       {t:'Animation style', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick, like Safari on the Mac. <b>Fluid</b> is springy and gel-like, like Safari 26 — tabs stretch toward where they are going and buttons squish when pressed. Each look has its own, or choose one for both.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
       /* Alpha Build 5 M4.6 — one multiplier on every duration, in the window and in these pages. */
-      {t:'Animation speed', d:'How fast all of that moves. <b>Calm</b> stretches every animation by half, <b>Quick</b> cuts it by a third. Springs keep their bounce either way — a spring’s feel is its give, not its length.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick'], value:'Standard'}},
+      {t:'Animation speed', d:'How fast all of that moves. <b>Calm</b> stretches every animation by half, <b>Quick</b> cuts it by a third. Springs keep their bounce either way — a spring’s feel is its give, not its length.<span class="qnote" id="quikspeed" hidden></span>', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick'], value:'Standard'}},
       /* M4.6 — MainWindow.ApplyLookGeometry. Windows draws the three buttons itself and decides
          where they sit; the bar is what moves. Classic is already aligned, so this does nothing there. */
       {t:'Window buttons', d:'Where Liquid Glass puts its bar, and what that does about Windows’ three buttons. <b>Floating</b> leaves the bar 8&nbsp;px down, so the buttons ride a little above its middle. <b>Buttons on the glass</b> runs the bar up into the corner so they sit on it — they are still Windows’ own buttons, so Snap Layouts keep working. <b>Bar aligned</b> keeps the side gaps and drops the top one. Classic is already lined up, and ignores this.', ctl:{type:'select', key:'windowButtons', opts:['Floating','Buttons on the glass','Bar aligned'], value:'Floating'}},
@@ -1379,6 +1395,7 @@ function control(row){
      build you are already on says "Later in AB5" — "Alpha Build 5" on a switch you cannot
      use, in Alpha Build 5, would read as broken. */
   var pending = row.never ? row.never
+              : (row.quik && !QUIK.on) ? 'Needs Quik'
               : (row.phase && row.phase > PHASE)
                   ? (row.phase === (BUILD.phaseNumber | 0) ? 'Later in ' + codeOf(row.phase) : nameOf(row.phase))
                   : null;
@@ -1471,6 +1488,35 @@ function rowHtml(r){
   return '<div class="row"><div class="row__t">' + title +
          (r.d ? '<span>' + r.d + '</span>' : '') + might + note + (r.more ? (MORE[r.more] || '') : '') +
          '</div>' + control(r) + '</div>';
+}
+
+/* ── The Quik pane (M7 "Super Quik") ────────────────────────────────────── */
+var BOLT = '<svg class="hero__mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
+  '<path d="M13.8 2.6 5.1 13.4h6.3l-1.2 8L18.9 10.6h-6.3l1.2-8Z" stroke="var(--accent)" stroke-width="1.1" stroke-linejoin="round"/></svg>';
+/* What Quik does — ONLY what is built and measured, stage by stage (HANDOFF §28). Nothing promised. */
+var QUIK_DOES = [
+  {t:'A fourth animation speed', d:'<b>Quik</b> — about half the length of Quick, for the whole browser and its own pages. Choose it below.'}
+];
+/* Beta: what does not work yet, said plainly. Empty until something is found. */
+var QUIK_ISSUES = [];
+function renderQuik(s){
+  var main = s.rows.filter(function(r){ return r.hero; });
+  var opts = s.rows.filter(function(r){ return !r.hero; });
+  var h = '<div class="group hero">' + BOLT +
+    '<div class="hero__kicker">' + (QUIK.on ? 'Running now' : 'Super Quik') + '</div>' +
+    '<div class="hero__title"><h2>Quik</h2><span class="chip chip--pre">Beta</span></div>' +
+    '<div class="hero__name">A quicker Aviary — and it gets quicker, update by update.</div>' +
+    '<div style="height:12px"></div></div>' +
+    '<div class="group">' + main.map(rowHtml).join('') + '</div>';
+  h += '<h2 class="upd-h">What Quik does</h2><div class="group">' + QUIK_DOES.map(rowHtml).join('') + '</div>';
+  h += '<h2 class="upd-h">Quik’s settings</h2>' +
+    (QUIK.on ? '' : '<p class="lede">These open up once Aviary is running Quik: switch it on above, then restart.</p>') +
+    '<div class="group">' + opts.map(rowHtml).join('') + '</div>';
+  h += '<h2 class="upd-h">Beta — what doesn’t work yet</h2><div class="group">' +
+    (QUIK_ISSUES.length ? QUIK_ISSUES.map(rowHtml).join('')
+      : rowHtml({t:'Nothing known yet', d:'Quik is new. Anything found slower or broken in Quik is listed here, plainly, as soon as it is known.'})) +
+    '</div>';
+  return h;
 }
 
 /* M6: Experimental - the promise, one button that turns everything off, then the rows in their
@@ -1654,6 +1700,8 @@ SECTIONS.forEach(function(s, i){
     if (s.rows.length) { body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
   } else if (s.updates){
     body += renderUpdates(s);
+  } else if (s.quik){
+    body += renderQuik(s);
   } else if (s.experimental){
     body += renderExperimental(s);
   } else {
@@ -1700,6 +1748,26 @@ window.__aviarySiteData = function(list){
   });
 };
 
+/* M7: one setting can have two dropdowns - Animation speed in Appearance and in Quik. Every one of them shows
+   the value, even one it does not offer (Appearance never offers Quik: its button just says so). */
+function syncSelects(key, value, except){
+  var k = (window.CSS && CSS.escape) ? CSS.escape(key) : key;
+  document.querySelectorAll('.sel[data-key="' + k + '"]').forEach(function(sel){
+    if (sel === except) { return; }
+    sel.querySelectorAll('.sel__opt').forEach(function(o){
+      o.setAttribute('aria-selected', o.getAttribute('data-v') === String(value) ? 'true' : 'false');
+    });
+    sel.querySelector('.sel__btn span').textContent = String(value);
+  });
+  if (key === 'animationSpeed') { quikSpeedNote(); }
+}
+function quikSpeedNote(){
+  var n = document.getElementById('quikspeed'), b = document.querySelector('#pane-look .sel[data-key=animationSpeed] .sel__btn span');
+  if (!n || !b) { return; }
+  n.hidden = b.textContent !== 'Quik';
+  n.textContent = ' Quik is chosen in Settings → Quik' + (QUIK.on ? '.' : ' — until Aviary is running Quik, it moves as Quick.');
+}
+
 /* Shows the restart note while a launch-time switch - or choice - differs from what the engine started with. */
 function restartNote(key, value){
   var n = document.querySelector('.note[data-restart="' + key + '"]');
@@ -1709,6 +1777,7 @@ function restartNote(key, value){
 }
 Object.keys(LAUNCH).forEach(function(k){ restartNote(k, saved(k, LAUNCH[k]) === true); });
 Object.keys(LAUNCH_TEXT).forEach(function(k){ restartNote(k, saved(k, LAUNCH_TEXT[k])); });
+quikSpeedNote();
 
 var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
@@ -2397,6 +2466,7 @@ main.addEventListener('click', function(e){
     host.querySelector('.sel__pop').hidden = true;
     host.querySelector('.sel__btn').setAttribute('aria-expanded','false');
     if (unchanged) { return; }
+    syncSelects(host.getAttribute('data-key'), opt.getAttribute('data-v'), host);
     sendSetting(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     restartNote(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     if (host.getAttribute('data-key') === 'searchEngine') { suggestRow(); }
@@ -2450,12 +2520,8 @@ window.__aviaryApply = function(key, value){
   /* M6: and its "Restart Aviary" note follows - "Turn All Off" arrives here, not as a click. */
   if (sw){ sw.setAttribute('aria-checked', value ? 'true' : 'false'); restartNote(key, !!value); return; }
 
-  var sel = document.querySelector('.sel[data-key="' + k + '"]');
-  if (!sel) { return; }
-  sel.querySelectorAll('.sel__opt').forEach(function(o){
-    o.setAttribute('aria-selected', o.getAttribute('data-v') === String(value) ? 'true' : 'false');
-  });
-  sel.querySelector('.sel__btn span').textContent = String(value);
+  if (!document.querySelector('.sel[data-key="' + k + '"]')) { return; }
+  syncSelects(key, value, null);
   restartNote(key, String(value));
   if (key === 'searchEngine') { suggestRow(); }
 };

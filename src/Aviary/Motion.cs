@@ -46,14 +46,23 @@ internal static class Motion
     {
         "Calm" => 1.5,
         "Quick" => 0.68,
+        QuikSpeed => Quik.On ? 0.35 : 0.68,
         _ => 1.0,
     };
 
-    /// <summary>"calm", "standard" or "quick" - what Aviary's own pages key their durations off.</summary>
+    /// <summary>
+    /// M7 "Super Quik": the fourth speed, offered only in Settings → Quik (Grant: "not accessible normally,
+    /// only in the Quik section") - about half of Quick's length again. Only while Quik is running: in
+    /// regular Aviary a saved "Quik" moves as Quick.
+    /// </summary>
+    public const string QuikSpeed = "Quik";
+
+    /// <summary>"calm", "standard", "quick" or "quik" - what Aviary's own pages key their durations off.</summary>
     public static string PageSpeed => AppSettings.Get(SpeedKey) switch
     {
         "Calm" => "calm",
         "Quick" => "quick",
+        QuikSpeed => Quik.On ? "quik" : "quick",
         _ => "standard",
     };
 
