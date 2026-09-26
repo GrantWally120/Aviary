@@ -1,4 +1,4 @@
-# The Experimental menu, end to end (Alpha Build 5 M6 stages 1-4; 15 is bug 91, 16 bug 92, 17-25 stage 3, 26-31 stage 4 - 31 is bug 96). No desktop input unless -Restart:
+# The Experimental menu, end to end (Alpha Build 5 M6 stages 1-5; 15 is bug 91, 16 bug 92, 17-25 stage 3, 26-31 stage 4 - 31 is bug 96, 32-35 stage 5). No desktop input unless -Restart:
 # DevTools reads the pages and the engine's own behaviour, UI Automation presses Aviary's buttons and
 # dialogs, and the engine's command line is read from Windows (WMI) - the one place that shows what
 # the engine was REALLY started with.
@@ -1033,6 +1033,160 @@ $t = Tree
 Check "the last tab closing mid-download asks first, as the x does" ((Alive $script:pidv) -and $t -match 'download is still in progress') "open: $(Alive $script:pidv); $said"
 U -Name "Cancel" | Out-Null; Start-Sleep 1.5
 Check "and Cancel keeps Aviary - and the download - going" ((Alive $script:pidv) -and (Tree) -notmatch 'download is still in progress') "open: $(Alive $script:pidv)"
+StopAviary $script:pidv
+
+# ---------------------------------------------------------------------------------------------
+# STAGE 5 - the wrap-up: the four Settings rows that were badged until now (Hardware acceleration,
+# Auto-Play, Preferred language, Minimum font size), each made real and checked against the engine's
+# own default - which was measured before a line was written.
+function Live([string]$key) { S "(function(){var r=document.querySelector('[data-key=$key]').closest('.row');return !r.querySelector('.soon') && !r.querySelector('.sw[disabled],.sel__btn[disabled]')})()" }
+function Noted([string]$key) { S "!document.querySelector('.note[data-restart=$key]').hidden" }
+# A choice is opened with a click (which scrolls it into view) and picked with a PRESS: Settings closes
+# an open dropdown on any scroll (cdp.js).
+function Pick([string]$key, [string]$v) {
+    node cdp.js click $script:sid ".sel[data-key=$key] .sel__btn" | Out-Null; Start-Sleep 0.6
+    node cdp.js press $script:sid ".sel[data-key=$key] .sel__opt[data-v='$v']" | Out-Null; Start-Sleep 0.8
+}
+function Shown([string]$key) { (S "document.querySelector('.sel[data-key=$key] .sel__btn span').textContent") -replace '"', '' }
+function AutoPlay([string]$t) { node cdp.js nav $t "http://127.0.0.1:8797/autoplay" | Out-Null; Start-Sleep 3; (Val $t "state()") -replace '\\"', '"' | ConvertFrom-Json }
+function Heard([string]$t) {
+    $from = (Invoke-RestMethod "http://127.0.0.1:8797/hits").Count
+    node cdp.js nav $t "http://127.0.0.1:8797/white" | Out-Null; Start-Sleep 1.5
+    "$(@((Invoke-RestMethod 'http://127.0.0.1:8797/hits') | Select-Object -Skip $from | Where-Object { $_.url -eq '/white' })[0].lang)"
+}
+function LaunchWith([string]$name, [string]$seed, [string]$extra) {
+    $line = & .\launch-quiet.ps1 -Profile $name -Fresh -Port $Port -SettingsJson ($BASE + $seed + '}') -ExtraArgs $extra
+    $script:pidv = if ("$line" -match 'TEST PID (\d+)') { [int]$Matches[1] } else { 0 }
+    Start-Sleep 4
+}
+
+"32. Hardware acceleration - control: on (the graphics card draws)"
+# (Not $GL: PowerShell names ignore case, so $gl - the answer - overwrote it, and the next run evaluated the card's NAME.)
+$WEBGL_JS = "(function(){var gl=document.createElement('canvas').getContext('webgl');if(!gl)return 'no webgl';var e=gl.getExtension('WEBGL_debug_renderer_info');return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):'no ext'})()"
+$WEBGPU_JS = "navigator.gpu ? navigator.gpu.requestAdapter().then(function(a){return a ? 'adapter' : 'none'}) : 'none'"
+foreach ($run in @(@('xp32c', ''), @('xp32', ',"gpu":"false"'))) {
+    $on = -not [bool]$run[1]
+    Launch $run[0] ($run[1] + ',"httpsOnly":"false"') | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    node cdp.js nav $t0 "http://127.0.0.1:8797/raf" | Out-Null; Start-Sleep 3
+    $fps = [double](Val $t0 "window.__fps"); $gl = Val $t0 $WEBGL_JS; $gpu = Val $t0 $WEBGPU_JS; $cl = Engine
+    if ($on) {
+        $script:fps32 = $fps
+        Check "control: the graphics card draws - WebGL on it, WebGPU finds it, and no --disable-gpu" ($gl -match 'NVIDIA' -and $gpu -eq 'adapter' -and $cl -notmatch '--disable-gpu') "$gl; $gpu"
+    } else {
+        Check "off: the engine was started with --disable-gpu" ($cl -match '--disable-gpu') $cl
+        Check "and Windows' software renderer draws: WebGL on Microsoft Basic Render Driver, no WebGPU" ($gl -match 'Basic Render' -and $gpu -eq 'none') "$gl; $gpu"
+        Check "pages still draw at the screen's rate: $fps frames a second (on: $script:fps32)" ($fps -ge $script:fps32 * 0.8) "$fps vs $script:fps32"
+        OpenSettingsAt "system"
+        Check "the row is live - no badge, a switch that moves" ((Live 'gpu') -eq 'true') (Live 'gpu')
+        node cdp.js click $script:sid ".sw[data-key=gpu]" | Out-Null; Start-Sleep 0.8
+        $noted = Noted 'gpu'
+        node cdp.js click $script:sid ".sw[data-key=gpu]" | Out-Null; Start-Sleep 0.8
+        Check "switched on, it says Restart Aviary to apply this change - back off, it does not" ($noted -eq 'true' -and (Noted 'gpu') -eq 'false') "$noted then $(Noted 'gpu')"
+    }
+    StopAviary $script:pidv
+}
+
+"33. Auto-Play - control: Stop Media with Sound, which is what the engine does by itself (measured 26 Sep)"
+Launch "xp33c" ',"httpsOnly":"false"' | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$a = AutoPlay $t0
+Check "control: a muted video starts, sound waits, Web Audio waits - and no --autoplay-policy" ($a.attrMuted -and $a.scriptMuted -eq 'played' -and -not $a.attrSound -and $a.scriptSound -eq 'NotAllowedError' -and $a.ctx -eq 'suspended' -and (Engine) -notmatch 'autoplay-policy') ($a | ConvertTo-Json -Compress)
+OpenSettingsAt "content"
+Check "the row is live, and says Stop Media with Sound" ((Live 'autoplay') -eq 'true' -and (Shown 'autoplay') -eq 'Stop Media with Sound') "$(Live 'autoplay') / $(Shown 'autoplay')"
+Pick 'autoplay' 'Never Auto-Play'
+$noted = Noted 'autoplay'; $kept = Setting "xp33c" 'autoplay'
+Pick 'autoplay' 'Stop Media with Sound'
+Check "another choice is saved and says Restart Aviary to apply this change - the first again, it does not" ($noted -eq 'true' -and $kept -eq 'Never Auto-Play' -and (Noted 'autoplay') -eq 'false') "$noted ($kept) then $(Noted 'autoplay')"
+StopAviary $script:pidv
+
+Launch "xp33a" ',"httpsOnly":"false","autoplay":"Allow All Auto-Play"' | Out-Null
+$a = AutoPlay (@(Pages)[0].Substring(7, 8))
+Check "Allow All Auto-Play: everything starts - sound and Web Audio too" ($a.attrMuted -and $a.attrSound -and $a.scriptMuted -eq 'played' -and $a.scriptSound -eq 'played' -and $a.ctx -eq 'running' -and (Engine) -match 'autoplay-policy=no-user-gesture-required') ($a | ConvertTo-Json -Compress)
+StopAviary $script:pidv
+
+Launch "xp33n" ',"httpsOnly":"false","autoplay":"Never Auto-Play"' | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$a = AutoPlay $t0
+Check "Never Auto-Play: nothing starts - not even a muted video" (-not $a.attrMuted -and -not $a.attrSound -and $a.scriptMuted -eq 'NotAllowedError' -and $a.scriptSound -eq 'NotAllowedError' -and (Engine) -match 'autoplay-policy=user-gesture-required') ($a | ConvertTo-Json -Compress)
+Check "and Web Audio waits too: suspended as the page loads, as with the default" ($a.ctxAtLoad -eq 'suspended' -and $a.ctx -eq 'suspended') ($a | ConvertTo-Json -Compress)
+$asked = Val $t0 "document.getElementById('vm').play().then(function(){return 'played'},function(e){return e.name})"
+$ctx = Val $t0 "ac.resume().then(function(){return ac.state})"
+Check "press play - a click - and it plays; a page's sound starts when asked" ($asked -eq 'played' -and $ctx -eq 'running') "$asked; $ctx"
+StopAviary $script:pidv
+LaunchWith "xp33g" ',"httpsOnly":"false"' "--autoplay-policy=user-gesture-required"
+$a = AutoPlay (@(Pages)[0].Substring(7, 8))
+Check "control for that: the engine's rule alone lets Web Audio start at once - what BrowserTab.AutoPlay.cs holds back" ($a.ctxAtLoad -eq 'running' -and -not $a.attrMuted) ($a | ConvertTo-Json -Compress)
+StopAviary $script:pidv
+
+Launch "xp33m" ',"httpsOnly":"false","autoplay":"true"' | Out-Null
+OpenSettingsAt "content"
+Check "a 'true' saved by the old switch reads as Allow All Auto-Play - and the engine got that" ((Shown 'autoplay') -eq 'Allow All Auto-Play' -and (Engine) -match 'no-user-gesture-required') (Shown 'autoplay')
+StopAviary $script:pidv
+
+"34. Preferred language - control: Same as Windows (en-US on this PC)"
+$VALID = "(function(){var i=document.createElement('input');i.required=true;return i.validationMessage})()"
+foreach ($run in @(@('xp34c', '', 'en-US'), @('xp34g', ',"language":"English (United Kingdom)"', 'en-GB'), @('xp34f', ',"language":"Filipino"', 'fil'))) {
+    Launch $run[0] ($run[1] + ',"httpsOnly":"false"') | Out-Null
+    $t0 = @(Pages)[0].Substring(7, 8)
+    $h = Heard $t0; $nav = Val $t0 "navigator.language"; $msg = Val $t0 $VALID
+    if (-not $run[1]) {
+        $script:msg34 = $msg
+        Check "control: sites are asked for en-US - Windows' language - and pages are told so" ($h -match '^en-US' -and $nav -eq 'en-US') "$h; $nav"
+    } else {
+        Check "$($run[2]): sites are asked for $($run[2]) first ($h), and pages are told so" ($h -match "^$($run[2])(,|$)" -and $nav -eq $run[2]) "$h; $nav"
+    }
+    if ($run[2] -eq 'fil') {
+        Check "and the engine's own words on a page are Filipino: '$msg'" ($msg -and $msg -ne $script:msg34) "$msg vs '$script:msg34'"
+        OpenSettingsAt "lang"
+        Check "the row is live, and says Filipino" ((Live 'language') -eq 'true' -and (Shown 'language') -eq 'Filipino') "$(Live 'language') / $(Shown 'language')"
+        Pick 'language' 'Same as Windows'
+        $noted = Noted 'language'
+        Pick 'language' 'Filipino'
+        Check "another choice says Restart Aviary to apply this change - Filipino again, it does not" ($noted -eq 'true' -and (Noted 'language') -eq 'false') "$noted then $(Noted 'language')"
+    }
+    StopAviary $script:pidv
+}
+Launch "xp34m" ',"httpsOnly":"false","language":"Cebuano"' | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$h = Heard $t0
+OpenSettingsAt "lang"
+Check "a saved Cebuano - which the engine cannot ask for - reads as Same as Windows" ((Shown 'language') -eq 'Same as Windows' -and $h -match '^en-US') "$(Shown 'language'); $h"
+StopAviary $script:pidv
+
+"35. Minimum font size - control: None"
+$SIZES = "(function(){var d=document.createElement('div');[8,12,20].forEach(function(px){var s=document.createElement('span');s.style.fontSize=px+'px';s.textContent='text ';d.appendChild(s)});document.body.appendChild(d);return Array.prototype.map.call(d.children,function(s){return getComputedStyle(s).fontSize}).join(' ')})()"
+function Sizes([string]$t) { node cdp.js nav $t "http://127.0.0.1:8797/white" | Out-Null; Start-Sleep 1.5; Val $t $SIZES }
+function Prefs([string]$name) { Get-Content "profiles\$name\WebView2\EBWebView\Default\Preferences" -Raw -ErrorAction SilentlyContinue }
+Launch "xp35c" ',"httpsOnly":"false"' | Out-Null
+$z = Sizes (@(Pages)[0].Substring(7, 8))
+Check "control: text of 8, 12 and 20 px draws at 8, 12 and 20" ($z -eq '8px 12px 20px') $z
+StopAviary $script:pidv
+Launch "xp35" ',"httpsOnly":"false","minFont":"16px"' | Out-Null
+$t0 = @(Pages)[0].Substring(7, 8)
+$z = Sizes $t0
+Check "16px on a profile the engine had never started in: 8 and 12 draw at 16, and 20 stays 20" ($z -eq '16px 16px 20px') $z
+Check "(the engine's own Preferences say minimum_font_size 16)" ((Prefs "xp35") -match '"minimum_font_size":16') "not there"
+$f = @(Select-String -Path "profiles\xp35\user.data.improvementcollection\events.jsonl" -Pattern 'engine-minimum-font-size' | ForEach-Object { $_.Line })
+Check "diagnostics says so: from 0 to 16" (@($f | Where-Object { $_ -match '"from":0' -and $_ -match '"to":16' }).Count -eq 1) ($f -join ' | ')
+OpenSettingsAt "access"
+Check "the row is live, and says 16px" ((Live 'minFont') -eq 'true' -and (Shown 'minFont') -eq '16px') "$(Live 'minFont') / $(Shown 'minFont')"
+Pick 'minFont' 'None'
+Check "None says Restart Aviary to apply this change" ((Noted 'minFont') -eq 'true') (Noted 'minFont')
+[void](CloseClean)
+Launch "xp35" -Keep | Out-Null
+$z = Sizes (@(Pages)[0].Substring(7, 8))
+Check "restarted with None: 8, 12 and 20 again - and the engine's Preferences no longer set a minimum" ($z -eq '8px 12px 20px' -and (Prefs "xp35") -notmatch 'minimum_font_size') $z
+StopAviary $script:pidv
+
+# A private window: its own launch, so the None above could close ONE window the way a person does.
+Launch "xp35p" ',"httpsOnly":"false","minFont":"16px"' | Out-Null
+$before = (node cdp.js list) -join "`n"
+U -Id MenuButton | Out-Null; Start-Sleep 1
+U -Name "New Private Window" | Out-Null; Start-Sleep 3
+$priv = (Pages | ForEach-Object { $_.Substring(7, 8) } | Where-Object { $before -notmatch $_ } | Select-Object -First 1)
+$zp = if ($priv) { Sizes $priv } else { 'no private window' }
+Check "a private window has the same minimum" ($zp -eq '16px 16px 20px') $zp
 StopAviary $script:pidv
 
 # ---------------------------------------------------------------------------------------------

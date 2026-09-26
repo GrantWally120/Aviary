@@ -997,6 +997,7 @@ public sealed partial class MainWindow : Window
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
+                   + " window.__aviaryLaunchText = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedText) + ";"
                    + " window.__aviaryMotion = " + JsonSerializer.Serialize(Motion.PageToken) + ";"
                    + " window.__aviarySpeed = " + JsonSerializer.Serialize(Motion.PageSpeed) + ";"
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"

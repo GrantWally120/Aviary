@@ -46,7 +46,39 @@ internal static class WebViewEnvironment
     public static string Arguments { get; private set; } = string.Empty;
 
     /// <summary>The settings that are engine switches — each needs a restart to change.</summary>
-    public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect", "reduceMotion" };
+    public static readonly string[] RestartKeys = { "thirdPartyCookies", "gpc", "webrtcProtect", "reduceMotion", "gpu" };
+
+    /// <summary>
+    /// M6 stage 5: the launch-time settings that are CHOICES, not switches — what the engine was started
+    /// with, keyed like settings.json, so Settings can say "Restart Aviary to apply this change" for them too.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> LaunchedText => _launchedText;
+
+    private static Dictionary<string, string> _launchedText = new(StringComparer.OrdinalIgnoreCase);
+
+    public static readonly string[] RestartChoices = { "autoplay", "language", "minFont" };
+
+    /// <summary>Settings → Content → Auto-Play: Safari's three choices, in Safari's words.</summary>
+    public const string AutoPlayAll = "Allow All Auto-Play";
+    public const string AutoPlayWithSound = "Stop Media with Sound";
+    public const string AutoPlayNever = "Never Auto-Play";
+
+    /// <summary>Settings → Languages → Preferred language, when nothing is chosen: whatever Windows says.</summary>
+    public const string LanguageOfWindows = "Same as Windows";
+
+    /// <summary>
+    /// The other choices, and the tag the engine is given for each (CoreWebView2EnvironmentOptions.Language:
+    /// its own words on pages, and the Accept-Language header). Measured 26 Sep with the same tags on the
+    /// command line: the engine takes only languages it has words of its own for — en-US, en-GB and fil
+    /// (fil-PH and tl became fil) — and silently ignored Cebuano (ceb, ceb-PH) and English (Philippines),
+    /// sending en-US instead. So those two are not offered: a choice that does nothing would be a lie.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Languages = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["English (United States)"] = "en-US",
+        ["English (United Kingdom)"] = "en-GB",
+        ["Filipino"] = "fil",
+    };
 
     /// <summary>
     /// The engine's browser process, once a tab has started (M6: "Restart Aviary" waits for it to
@@ -151,10 +183,21 @@ internal static class WebViewEnvironment
             if (_creation is null)
             {
                 Arguments = BuildArguments();
+
+                // M6 stage 5: the engine's own minimum font size lives in its Preferences file, which it
+                // reads as it starts - so it is written now, before it does (EnginePreferences.cs).
+                EnginePreferences.ApplyMinimumFontSize(_launchedText["minFont"]);
+
+                CoreWebView2EnvironmentOptions options = new() { AdditionalBrowserArguments = Arguments };
+                if (Languages.TryGetValue(_launchedText["language"], out string? tag))
+                {
+                    options.Language = tag;
+                }
+
                 _creation = CoreWebView2Environment.CreateWithOptionsAsync(
                     string.Empty,
                     UserDataFolder,
-                    new CoreWebView2EnvironmentOptions { AdditionalBrowserArguments = Arguments }).AsTask();
+                    options).AsTask();
             }
 
             return _creation;
@@ -188,6 +231,12 @@ internal static class WebViewEnvironment
         foreach (string key in RestartKeys)
         {
             _launchedWith[key] = AppSettings.GetBool(key);
+        }
+
+        _launchedText = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string key in RestartChoices)
+        {
+            _launchedText[key] = AppSettings.Get(key);
         }
 
         // M6: the experiments that change the engine are launch-time too - read once, here.
@@ -236,6 +285,29 @@ internal static class WebViewEnvironment
         if (_launchedWith["reduceMotion"])
         {
             args.Add("--force-prefers-reduced-motion");
+        }
+
+        // M6 stage 5, Settings → System → Hardware acceleration, off: Windows' software renderer draws
+        // instead. Measured 26 Sep: WebGL moved from the graphics card to "Microsoft Basic Render Driver",
+        // WebGPU found no adapter, and pages still drew at the screen's 241 frames a second.
+        if (!_launchedWith["gpu"])
+        {
+            args.Add("--disable-gpu");
+        }
+
+        // M6 stage 5, Settings → Content → Auto-Play. Measured 26 Sep (tools/test/expsite.js /autoplay):
+        // given nothing, this engine already IS "Stop Media with Sound" — a muted video starts, anything
+        // with sound waits for a click, and so does Web Audio. no-user-gesture-required lets everything
+        // start. user-gesture-required stops every video and sound, muted ones too — but lets Web Audio in
+        // a page's own frame start at once, which BrowserTab.AutoPlay.cs holds back.
+        switch (_launchedText["autoplay"])
+        {
+            case AutoPlayAll:
+                args.Add("--autoplay-policy=no-user-gesture-required");
+                break;
+            case AutoPlayNever:
+                args.Add("--autoplay-policy=user-gesture-required");
+                break;
         }
 
         string? test = Environment.GetEnvironmentVariable("AVIARY_TEST_BROWSER_ARGS");

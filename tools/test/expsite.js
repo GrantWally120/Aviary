@@ -125,7 +125,7 @@ const handler = (req, res) => {
   hits.push({ t: Date.now(), url: req.url, host: req.headers.host, purpose: req.headers['sec-purpose'] || req.headers['purpose'] || '',
               mode: req.headers['sec-fetch-mode'] || '', dest: req.headers['sec-fetch-dest'] || '', gpc: req.headers['sec-gpc'] || '',
               referer: req.headers['referer'] || '', chua: req.headers['sec-ch-ua'] || '', ua: (req.headers['user-agent'] || '').slice(0, 60),
-              probe: req.headers['x-aviary-probe'] || '', pingTo: req.headers['ping-to'] || '' });
+              probe: req.headers['x-aviary-probe'] || '', pingTo: req.headers['ping-to'] || '', lang: req.headers['accept-language'] || '' });
   const u = new URL(req.url, 'http://x');
   // /slow?n=..&cc=no-store|no-cache|max-age=300 - a page that takes 700 ms, with the cache rule real
   // sites use for HTML: does a <link rel=prefetch> of it make the click fast, or is it fetched again?
@@ -202,6 +202,33 @@ window.pip = async function () {
   // M6 stage 4, "Stronger fingerprint protection": /fp computes what fingerprinting scripts read - a canvas
   // drawing's pixels, an audio rendering's samples, the graphics card's names, cores, memory, screen - and
   // window.fp() resolves to them as JSON (hashes, so two runs compare at a glance).
+  // M6 stage 5, Auto-Play: /tone.wav is a SILENT two-second WAV (all zero samples - the autoplay rules
+  // look at whether an element is muted, never at what it plays, so nobody at the PC hears a test).
+  // /autoplay tries every way a page starts media by itself as it loads; state() says what played.
+  if (u.pathname === '/tone.wav') {
+    const rate = 8000, data = Buffer.alloc(rate * 2 * 2), h = Buffer.alloc(44);
+    h.write('RIFF', 0); h.writeUInt32LE(36 + data.length, 4); h.write('WAVE', 8); h.write('fmt ', 12);
+    h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(rate, 24);
+    h.writeUInt32LE(rate * 2, 28); h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
+    res.writeHead(200, { 'content-type': 'audio/wav', 'cache-control': 'no-store' });
+    res.end(Buffer.concat([h, data]));
+    return;
+  }
+  if (u.pathname === '/autoplay') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(`<!doctype html><title>exp autoplay</title><body style="font:20px system-ui;padding:2rem">media that starts by itself
+<video id="vm" src="/tone.wav" muted autoplay loop playsinline></video><audio id="au" src="/tone.wav" autoplay loop></audio>
+<video id="vp" src="/tone.wav" muted loop playsinline></video><script>
+var r = { scriptSound: 'pending', scriptMuted: 'pending' }, ac = new AudioContext(), a2 = new Audio('/tone.wav');
+a2.loop = true; r.ctx0 = ac.state;
+a2.play().then(function () { r.scriptSound = 'played'; }, function (e) { r.scriptSound = e.name; });
+document.getElementById('vp').play().then(function () { r.scriptMuted = 'played'; }, function (e) { r.scriptMuted = e.name; });
+function on(el) { return !el.paused && el.currentTime > 0; }
+window.state = function () { return JSON.stringify({ attrMuted: on(document.getElementById('vm')), attrSound: on(document.getElementById('au')),
+  scriptMuted: r.scriptMuted, scriptSound: r.scriptSound, ctxAtLoad: r.ctx0, ctx: ac.state }); };
+</script></body>`);
+    return;
+  }
   if (u.pathname === '/fp') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     res.end('<!doctype html><title>exp fp</title><body style="font:20px system-ui;padding:2rem">what a fingerprinting script reads<script>' + FP + '</script></body>');

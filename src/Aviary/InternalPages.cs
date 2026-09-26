@@ -580,6 +580,8 @@ document.documentElement.dataset.speed = window.__aviarySpeed || 'standard';
 if (window.__aviaryFocusRing) { document.documentElement.dataset.focus = 'clear'; }
 /* What the running engine STARTED with, for the switches that only apply at launch. */
 var LAUNCH = (typeof window.__aviaryLaunch === 'object' && window.__aviaryLaunch) || {};
+/* M6 stage 5: ...and for the launch-time CHOICES (Auto-Play, Preferred language, Minimum font size). */
+var LAUNCH_TEXT = (typeof window.__aviaryLaunchText === 'object' && window.__aviaryLaunchText) || {};
 var PATHS = (typeof window.__aviaryPaths === 'object' && window.__aviaryPaths) || {};
 var DIAG = (typeof window.__aviaryDiag === 'object' && window.__aviaryDiag) || {};
 /* The ad blocker's filter lists: versions, dates, counts, the last check (Shields, M3). */
@@ -742,8 +744,8 @@ var UPDATES = [
        d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome. Ctrl+Shift+A searches your open tabs. Any site can be set to be forgotten — when you close its last tab, or five minutes, an hour or a day after. Safety Check gathers everything that could be safer into one page, with a button to fix each one. The Start Page gets six backgrounds, five of them drawn by Aviary in whichever look you are using, and the sixth your own picture. Right-click any video for picture in picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
       {n:'M5', t:'The download progress ring and tab groups', when:'25 Sep',
        d:'Safari’s download ring, which fills as your files arrive and bounces when the last one lands, over a downloads list that remembers — cleared on the schedule you choose. Aviary can ask where to save each file, a finished download can be dragged out onto the desktop, and a downloaded program asks before it opens. Ctrl-click and the middle button open a link behind the page you are on, Shift-click in a window of its own. And tab groups: named sets of tabs you put away and bring back, from the sidebar or the button beside it.'},
-      {n:'M6', t:'The Experimental menu, in plain English',
-       d:'Twenty opt-in experiments, each explained in everyday words — and not one of them can make Aviary less safe.'},
+      {n:'M6', t:'The Experimental menu, in plain English', when:'26 Sep',
+       d:'Twenty unfinished features to try in Settings → Experimental, each explained in everyday words with what might happen — and not one of them can make Aviary less safe. If Aviary stops soon after you change one, the next launch switches them all off and asks. And the last four settings that only promised now work: hardware acceleration, Auto-Play, your preferred language and a minimum font size.'},
       {n:'M7', t:'Faster and smoother — and measured',
        d:'Start-up, new tabs, memory and animation tuned, with every improvement proved by the diagnostics numbers rather than by feel.'},
       {n:'M8', t:'Getting ready for Beta Build 1',
@@ -838,6 +840,22 @@ var UPDATES = [
         '<b>Tab groups.</b> Keep a set of tabs under a name and switch between sets — from the <b>Tab Groups</b> pane in the sidebar, from the button with the group’s name beside the sidebar button, or with <b>Move to Tab Group</b> in a tab’s right-click menu. A group saves itself as its tabs change. Not in a private window',
         'Coming back to a group loads only the tab in front; the others wait until you choose them, so even a big group comes back quickly. Pinned tabs stay where they are through every switch',
         'A tab’s right-click menu opens from the keyboard now too — the menu key or <kbd>Shift+F10</kbd>'
+      ]},
+      {h:'The Experimental menu', items:[
+        '<b>Settings → Experimental</b>: twenty unfinished features, each with what it does, <b>what might happen</b>, and a label — <b>Safe to try</b> or <b>Some sites may look wrong</b>. None of them can make Aviary less safe, and <b>Turn All Off</b> puts everything back at once',
+        'If Aviary — or its browser engine — stops unexpectedly soon after you change one, the next launch starts with every experiment off and asks whether to turn them back on',
+        'The ones that change the browser engine say so, with a <b>Restart Aviary</b> button right under the switch',
+        '<b>Speed and memory</b>: turn off smooth scrolling · open pinned tabs only when you click them · mute tabs in the background',
+        '<b>Looks</b>: make every website dark — tab by tab, never Aviary’s own pages · tint the toolbar to match the page · thin scrollbars on websites · remember each website’s zoom · use Reader on every article',
+        '<b>Tabs</b>: a preview when you point at a tab · switch to a tab that is already open instead of opening it twice · pop a playing video out when you switch tabs · close tabs you have not looked at in a week · double-click below your tabs for a new one',
+        '<b>Privacy</b>: forget everything when Aviary closes, except the sites you choose to keep · strip even more tracking from links · block scripts from other websites · stronger fingerprint protection · stop link-click pings',
+        '<b>Troubleshooting</b>: show speed and memory on top of pages · turn off video hardware decoding'
+      ]},
+      {h:'Four settings that only promised, now real', items:[
+        '<b>Hardware acceleration</b> can be switched off: the processor draws instead — a troubleshooting step for pages that flicker, go black or draw wrongly',
+        '<b>Auto-Play</b> has Safari’s three choices: Allow All Auto-Play, Stop Media with Sound — what Aviary has always done — and Never Auto-Play, which keeps every video and sound still until you press play',
+        '<b>Preferred language</b> asks websites for English — United States or United Kingdom — or Filipino, or follows Windows. Cebuano is not offered: the browser engine cannot ask for it',
+        '<b>Minimum font size</b> keeps text on websites from being drawn smaller than 12, 14, 16 or 18 pixels — the browser engine’s own setting, the one Chrome and Edge have'
       ]},
       {h:'Birds News, part three — five picks from Brave, Safari and Chrome', items:[
         '<b>Search your open tabs</b> with <kbd>Ctrl+Shift+A</kbd> — every tab in every window of the same kind, by title or address. Private and ordinary windows are never listed together',
@@ -950,7 +968,13 @@ var UPDATES = [
         'The improvement data’s summary showed file sizes from the session before',
         'A second copy of Aviary from another folder now says Aviary is already open, instead of sharing its data',
         'A download from a link that opens a new tab brought Edge’s own Downloads panel up over Aviary',
-        'Safety Check said Aviary warned before opening a downloaded program, when nothing did. Now it does'
+        'Safety Check said Aviary warned before opening a downloaded program, when nothing did. Now it does',
+        'A website’s own instructions to load pages early could load them around Aviary — past Shields and Global Privacy Control',
+        'Settings → Performance kept measuring after you had left it',
+        'A page in Reader offered “Show Reader” once another tab had loaded, and choosing it did nothing',
+        'Memory saver could put a tab to sleep straight after you had been reading it',
+        '“Underline links” reached Aviary’s own pages while improvement data was on',
+        'Exit in the app menu closed a window of many tabs without asking, and closing the last tab stopped a running download without asking'
       ]}
     ]},
   { phase:6, name:'Testing 1',
@@ -1070,7 +1094,9 @@ var SECTIONS = [
     rows:[
       {t:'Default zoom', d:'Applied to every site that has no zoom of its own.', phase:4, ctl:{type:'select', key:'zoom', opts:['80%','90%','100%','110%','125%','150%'], value:'100%'}},
       {t:'Block pop-ups', d:'Stop sites opening windows you did not ask for. Links you click yourself always open.', ctl:{type:'toggle', key:'popups', value:true}},
-      {t:'Autoplay video', d:'Let sites start video on their own.', phase:5, ctl:{type:'toggle', key:'autoplay', value:false}},
+      /* M6 stage 5 — made real, as Safari's three choices. Measured on this engine first: with nothing
+         chosen it already behaves as "Stop Media with Sound" (WebViewEnvironment.cs). */
+      {t:'Auto-Play', d:'Whether a website may start videos and sounds before you have clicked anything. <b>Stop Media with Sound</b> lets a silent video play — the moving pictures many sites use — and keeps anything with sound waiting for you. <b>Never Auto-Play</b> keeps every video and sound still until you press play.', restart:true, ctl:{type:'select', key:'autoplay', opts:['Allow All Auto-Play','Stop Media with Sound','Never Auto-Play'], value:'Stop Media with Sound'}},
       {t:'Reader', d:'Strip an article back to its text. Open it from the “Aa” button inside the address field, or press Ctrl+Shift+R. Aviary offers it only on pages that actually have an article.', ctl:{type:'none'}},
       {t:'Reader font', d:'The typeface Reader sets articles in.', ctl:{type:'select', key:'readerFont', opts:['San Francisco','New York','Athelas','Charter','Georgia','Iowan','Palatino','Seravek','Times New Roman'], value:'New York'}},
       {t:'Reader background', d:'White, Sepia, Grey or Black — independent of the browser’s own theme, exactly as Safari keeps it.', ctl:{type:'select', key:'readerTheme', opts:['White','Sepia','Grey','Black'], value:'White'}}
@@ -1165,7 +1191,9 @@ var SECTIONS = [
   { id:'lang', icon:'lang', name:'Languages', title:'Languages',
     lede:'What Aviary asks sites for.',
     rows:[
-      {t:'Preferred language', d:'Sent to sites that offer more than one.', phase:5, ctl:{type:'select', key:'language', opts:['English (United States)','English (United Kingdom)','Filipino','Cebuano'], value:'English (United States)'}},
+      /* M6 stage 5 — made real. Only languages the engine has words of its own for can be sent: it
+         ignored Cebuano and English (Philippines), measured, so they are not offered. */
+      {t:'Preferred language', d:'The language Aviary asks websites for when they offer more than one — and the one the browser engine uses for its own words on pages, like form hints and date pickers. It can only be a language the engine speaks: it cannot ask for Cebuano.', restart:true, ctl:{type:'select', key:'language', opts:['Same as Windows','English (United States)','English (United Kingdom)','Filipino'], value:'Same as Windows'}},
       {t:'Offer to translate pages', d:'', never:'After beta', ctl:{type:'toggle', key:'translate', value:false}}
     ]},
 
@@ -1200,7 +1228,9 @@ var SECTIONS = [
          inside the .exe is the blue tile, which is why Explorer keeps showing that one. */
       {t:'App Icon', d:'Which of Aviary’s two icons the <b>taskbar button</b> and <b>Alt-Tab</b> wear — the change is immediate, and the tile below shows which you are on. Aviary draws its own title bar, so there is no icon inside the window itself. The <b>Desktop shortcut and Explorer keep the blue one</b>: that icon lives inside the program file and cannot change while Aviary is running.' + ICON_TILES, ctl:{type:'select', key:'appIcon', opts:['Blue tile','Glass tile'], value:'Blue tile'}},
       {t:'Keyboard shortcuts', d:'Every shortcut Aviary knows. The keys work on a page as well as in the browser: Aviary reads them before a website can swallow them. The link clicks are the other way round on purpose — a website that handles its own clicks, as web apps do, keeps them.', more:'keys', ctl:{type:'none'}},
-      {t:'Minimum font size', d:'Never render text smaller than this.', phase:5, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
+      /* M6 stage 5 — made real through the engine's own setting, the one Chrome and Edge have
+         (EnginePreferences.cs): CSS cannot say "at least" without flattening every size. */
+      {t:'Minimum font size', d:'Never draw text on a website smaller than this. Text below the size grows to it; everything bigger stays as it is. A page built around very small text may wrap differently.', restart:true, ctl:{type:'select', key:'minFont', opts:['None','12px','14px','16px','18px'], value:'None'}},
       {t:'Read pages aloud', d:'Have Aviary read an article out, with the words marked as it goes.', phase:6, ctl:{type:'none'}},
       {t:'Larger toolbar and tabs', d:'Bigger buttons and taller tabs, for touch and for anyone who finds them small.', phase:6, ctl:{type:'none'}},
       {t:'Colour filters for web pages', d:'Adjust the colours of every page for colour blindness.', phase:7, ctl:{type:'none'}}
@@ -1209,8 +1239,10 @@ var SECTIONS = [
   { id:'system', icon:'system', name:'System', title:'System',
     lede:'How Aviary uses the machine.',
     rows:[
-      {t:'Hardware acceleration', d:'Let the GPU draw pages. Turning it off is a troubleshooting step, not an optimisation.', phase:5, ctl:{type:'toggle', key:'gpu', value:true}},
-      {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', phase:5, ctl:{type:'toggle', key:'background', value:false}},
+      /* M6 stage 5 — made real: off starts the engine with --disable-gpu (WebViewEnvironment.cs). */
+      {t:'Hardware acceleration', d:'Let the graphics card draw pages. Turning it off is a troubleshooting step, not an optimisation: the processor draws instead, 3D on websites gets much slower, and the few sites built on WebGPU will not run. Try it when pages flicker, go black or draw wrongly.', restart:true, ctl:{type:'toggle', key:'gpu', value:true}},
+      /* M6 stage 5: phase:6, not 5 — PHASE5-PLAN keeps it for Phase 6, and "Later in AB5" promised otherwise. */
+      {t:'Continue running in the background', d:'Keep Aviary alive after the last window closes.', phase:6, ctl:{type:'toggle', key:'background', value:false}},
       {t:'Memory saver', d:'How hard Aviary works to give memory back. Background tabs always drop their memory priority, and a tab you have not looked at for a while is <b>put to sleep</b> — which really does hand its memory back, a heavy page can be holding hundreds of megabytes. A sleeping tab wakes the moment you click it, on the page you left.<br><b>Chill</b> sleeps a tab after an hour. <b>Balanced</b> after half an hour. <b>Aggressive</b> after five minutes, and lets go of every background tab as soon as you minimise the window. <b>Off</b> never sleeps anything.<br>A tab <b>playing sound or video is never put to sleep</b> — the engine itself refuses — and neither is the tab you are on, one of Aviary’s own pages, or anything in a private window. Performance lists which tabs are asleep.', ctl:{type:'select', key:'memorySaver', opts:['Off','Chill','Balanced','Aggressive'], value:'Balanced'}},
       {t:'Experimental features', d:'Unfinished features you can switch on, each one explained in plain words: what it does, and what might happen. None of them can make Aviary less safe.', ctl:{type:'goto', target:'experimental', label:'Open Experimental'}}
     ]},
@@ -1668,13 +1700,15 @@ window.__aviarySiteData = function(list){
   });
 };
 
-/* Shows the restart note while a launch-time switch differs from what the engine started with. */
-function restartNote(key, on){
+/* Shows the restart note while a launch-time switch - or choice - differs from what the engine started with. */
+function restartNote(key, value){
   var n = document.querySelector('.note[data-restart="' + key + '"]');
-  if (!n || !(key in LAUNCH)) { return; }
-  n.hidden = (LAUNCH[key] === on);
+  if (!n) { return; }
+  if (key in LAUNCH) { n.hidden = (LAUNCH[key] === value); }
+  else if (key in LAUNCH_TEXT) { n.hidden = (LAUNCH_TEXT[key] === String(value)); }
 }
 Object.keys(LAUNCH).forEach(function(k){ restartNote(k, saved(k, LAUNCH[k]) === true); });
+Object.keys(LAUNCH_TEXT).forEach(function(k){ restartNote(k, saved(k, LAUNCH_TEXT[k])); });
 
 var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
@@ -2364,6 +2398,7 @@ main.addEventListener('click', function(e){
     host.querySelector('.sel__btn').setAttribute('aria-expanded','false');
     if (unchanged) { return; }
     sendSetting(host.getAttribute('data-key'), opt.getAttribute('data-v'));
+    restartNote(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     if (host.getAttribute('data-key') === 'searchEngine') { suggestRow(); }
     if (host.getAttribute('data-key') === 'appIcon') { iconTiles(); }
     return;
@@ -2421,6 +2456,7 @@ window.__aviaryApply = function(key, value){
     o.setAttribute('aria-selected', o.getAttribute('data-v') === String(value) ? 'true' : 'false');
   });
   sel.querySelector('.sel__btn span').textContent = String(value);
+  restartNote(key, String(value));
   if (key === 'searchEngine') { suggestRow(); }
 };
 

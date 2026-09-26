@@ -43,20 +43,22 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (25 Sep 2026 — read this first in a new chat)**
-> - Alpha Build 5 **"The Long Run"**: **12 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
->   M4.6, M4.7, M4.8, M4.9, M5). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
+> **WHERE THINGS STAND (26 Sep 2026 — read this first in a new chat)**
+> - Alpha Build 5 **"The Long Run"**: **13 of 15 milestones done** (M0, M1, M2, M2.5, M3, M4, M4.5,
+>   M4.6, M4.7, M4.8, M4.9, M5, M6). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
 >   start M5 … you have the greenlight”) — §26. Then M7 (measured optimisation), M8 (beta prep).
-> - **M6 — the Experimental menu — STARTED 25 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
+> - **M6 — the Experimental menu — STARTED 25 Sep, DONE 26 Sep** (Grant: *“Just go do what ever”*) — **read §27 first.**
 >   The 10-Sep list of 20 was audited against Settings (4 cut as real settings, Screen smoothness cut as
 >   measured worthless, 5 replacements) and split into 5 stages. **Stage 1 COMMITTED `0f6cdbc`. Stage 2
 >   COMMITTED `47ddf0b`** (Grant: "commit and continue"; pinned on click, mute background tabs, the readout,
 >   bugs 91 and 92; preload cut). **Stage 3 COMMITTED `a8c657a`** (Grant: "ok go continue") — tabs and looks, nine
 >   experiments (the 20th, "Switch to a tab that is already open", taken as agreed with his "continue"), and
->   bugs 93, 94, 95 found and fixed on the way (§27's Stage 3, §10). **Stage 4 COMMITTED 26 Sep** (Grant:
+>   bugs 93, 94, 95 found and fixed on the way (§27's Stage 3, §10). **Stage 4 COMMITTED `521bc87`** (Grant:
 >   "commit and continue"; privacy, five experiments — §27's Stage 4; **bug 96** found and fixed on the way: every close
->   Aviary made itself skipped the close questions). Its desktop-input checks (Restart, 26c, 20, 22b, 25) and
->   si-race were committed still waiting for an idle PC. Then stage 5 (the wrap-up).
+>   Aviary made itself skipped the close questions). Its desktop-input checks (Restart, 26c, 20, 22b, 25) were
+>   committed still waiting for an idle PC — and passed in stage 5's full run (26c, a restart forgetting: 4/4). **Stage 5 COMMITTED 26 Sep** (Grant: "commit and dont start M7 yet") — the wrap-up, M6
+>   **DONE (13 of 15):** Hardware acceleration, Auto-Play, Preferred language and Minimum font size made real (§27's
+>   Stage 5). **M7 (measured optimisation) is NOT started — Grant: "dont start M7 yet". Wait for his word.**
 >   (M5's re-check from a clean build, 25 Sep afternoon, is at the end of §26: every number reproduced.)
 > - **M5 stages** (each its own commit, with Grant’s OK): **1 the download surface — `932ea18`** · **2 Ask
 >   where to save + drag out — `cbe522e`** · **3 link clicks — `861dcea`** · **4 tab groups — `eb253d1`** ·
@@ -2780,7 +2782,7 @@ Grant's diagnostics: still unchanged since 06:12 — not exercised.
 
 ---
 
-## 27. Alpha Build 5 M6 — the Experimental menu (25 Sep 2026 — IN PROGRESS)
+## 27. Alpha Build 5 M6 — the Experimental menu (25–26 Sep 2026 — DONE: five stages, 13 of 15)
 
 Grant, 25 Sep: *"Just go do what ever"* — to the M6 plan below (and to the docs commit before it). The
 plan's list of 20 was written on 10 Sep; a lot has shipped since, so it was **audited against Settings
@@ -3117,8 +3119,8 @@ killed → the next launch **4** · 27 link parameters **3** · 28 other sites' 
 mid-download closed Aviary without asking). Settings audit 88 live / 9 badged / 0 inert, 20 experimental rows
 = the registry. Regressions on the same build: downloads **53**, links **27**, groups **40**, pip **14**, forget
 **17** (its Ctrl+W part ran), startbg **13** (no picker), saver-modes and minimise-sleep as before (their controls hold).
-**Not yet run — they need the PC to themselves, and Grant was at it:** the desktop parts (11 Restart, 26c restart
-forgets, 20, 22b, 25 — the scratchpad runner `desktop-only.ps1 -Restart`) and si-race (it stopped itself).
+**The desktop parts needed the PC to themselves and Grant was at it** — they ran with stage 5's full run (26 Sep,
+13:21): 11 Restart **7/7**, 26c a restart forgets **4/4**, 20 **4/4**, 22b **1/1**, 25 **3/3**. si-race: see Stage 5.
 - Forgetting took **59–72 ms** as Aviary closed and 89 ms at a launch; a site kept with "Never — keep it" kept
   its cookie, and its local storage went, as the row says.
 - Fingerprint: two sites read different canvases and audio, one site the same twice in a visit, a restart new
@@ -3135,3 +3137,57 @@ forgets, 20, 22b, 25 — the scratchpad runner `desktop-only.ps1 -Restart`) and 
    byte for byte (a sum was the wrong measure — it hid the difference between "noisy" and "wrong").
 4. Harness: a Shields segment is a ToggleButton — `uia.ps1 -Action Toggle`, not Invoke (Invoke climbed to
    some other control). The next run hit a popup going mid-walk (`ElementNotAvailable`); uia.ps1 retries now.
+
+### Stage 5 — the wrap-up: four badged settings made real, and M6 done (26 Sep, COMMITTED — Grant: "commit and dont start M7 yet")
+
+The plan's "also in M6": the last four Settings rows that only promised (`phase:5` badges) — each **measured on
+this engine first** (`expsite.js` `/autoplay` and a silent `/tone.wav`; Accept-Language in the hit log; WebGL,
+WebGPU and the process list for the GPU; a probe that edited the engine's Preferences).
+- **Hardware acceleration** (System, `gpu`, restart) — off starts the engine with `--disable-gpu`. Measured: WebGL
+  moves from the RTX 5070 Ti to "Microsoft Basic Render Driver" (WARP, in the still-running GPU process with
+  `--use-angle=d3d11-warp-webgl`), WebGPU finds no adapter, and pages still draw at 241 frames a second.
+- **Auto-Play** (Content, `autoplay`, restart) — was a switch; now Safari's three choices. **Measured: given nothing,
+  this engine already IS "Stop Media with Sound"** (a muted video starts, sound is refused with NotAllowedError, Web
+  Audio waits suspended) — so that is the default and changes nothing for anyone. **Allow All Auto-Play** =
+  `--autoplay-policy=no-user-gesture-required` (everything starts, Web Audio running). **Never Auto-Play** =
+  `--autoplay-policy=user-gesture-required`, which stops every video and sound element, muted ones too — **but lets
+  Web Audio in a page's own frame start at once** ("running" at load, where the default holds it), so "Never" would
+  have let a page beep that the default stops. `BrowserTab.AutoPlay.cs` holds it back: a context made before a click
+  starts suspended, and `resume()` waits for one (a `Proxy`, as the fingerprint script). A saved "true"/"false" from
+  the old switch migrates in `AppSettings.Load` (to Allow All / Stop Media with Sound).
+- **Preferred language** (Languages, `language`, restart) — `CoreWebView2EnvironmentOptions.Language`. **Measured:
+  the engine takes only languages it has words of its own for** — en-US, en-GB and fil (fil-PH and tl become fil)
+  — and silently ignored **Cebuano** (ceb, ceb-PH) and **English (Philippines)**, sending en-US. So the choices are
+  Same as Windows (the default — nothing passed), English (United States), English (United Kingdom) and Filipino;
+  the row says Cebuano cannot be asked for, and a saved Cebuano reads as Same as Windows. It changes the engine's own
+  words on pages too (a required field's message: "Pakipunan ang field na ito."), and an existing profile follows.
+- **Minimum font size** (Accessibility, `minFont`, restart) — **not cut: made real through the engine's own
+  setting.** WebView2 has no API for it and CSS cannot say "at least" without flattening every size, but Chromium's
+  `webkit.webprefs.minimum_font_size` (Chrome's and Edge's "Minimum font size") is read from the engine's
+  Preferences file as it starts — `EnginePreferences.cs` writes it there (only when it differs, only before the
+  engine exists, through a temporary file; None removes the key). Measured: at 16, text of 8 and 12 px draws at 16,
+  20 stays 20; on a profile the engine never started in; in a private window too; the engine keeps the value.
+- **Grant's own profile:** the old badged rows had their page defaults stored (settings.json as seen 10 Sep:
+  autoplay "false", language "English (United States)", minFont "None", gpu "true"). "false" migrates to Stop Media
+  with Sound, the default; English (United States) is still a choice — what his Windows says anyway. Nothing changes.
+- Restart notes for CHOICES as well as switches: `WebViewEnvironment.LaunchedText` → `window.__aviaryLaunchText`, and
+  the page's `restartNote` compares either kind.
+
+**The wrap-up:** `BuildInfo.MilestonesDone` 13 — Updates reads "13 of 15 milestones done", M6 dated 26 Sep, M7 next;
+notes groups "The Experimental menu" and "Four settings that only promised, now real"; Fixes gains bugs 91–96 in
+plain words. Aviary.html, PHASES only: M6 dated, "Experimental menu ✓", out of "Still to come" (node-evaluated: it
+parses, M7 is the first undated milestone, 21 of 22 chips ticked).
+
+**Checked** (26 Sep, clean build 12:54): experiments-test **248/248 with -Restart, every desktop part included** (the
+PC was idle when they came). Sections 32–35 **30/30** — each against the engine's own default, "Never"'s
+Web Audio hold against the engine's rule alone, both migrations, every row live with its restart note. Its first run
+was 29/1: a HARNESS bug — `$gl` (the answer) and `$GL` (the script) are ONE variable in PowerShell, so the second run
+evaluated the graphics card's NAME as JavaScript. Settings audit **92 live / 5 badged / 0 inert** — its "badged" counts any row
+carrying a phase mark: On startup (Phase 6), Offer to translate pages (after beta) and Continue running in the
+background wait, as PHASE5-PLAN says; Tab layout and Default zoom carry `phase:4`, the phase they shipped in, and
+draw live. **Continue running in the background said "Later in AB5"** — the plan keeps it for Phase 6, so a badge
+promising this build was wrong: `phase:6` now. The Updates page driven on a
+scratch profile: 13 of 15, M6's line, both groups and the bug 96 line rendered. Regressions on the final build (the clean
+build plus the one-word badge change, rebuilt 13:26): downloads **53**, links **27**, groups **40**, pip **14**, forget **17**,
+startbg **13** (no picker), saver-modes and minimise-sleep as they must be; **si-race 3 of 6 delays OK (0, 20, 50 ms)** —
+it stops itself when someone is at the keyboard, and Grant was; 100, 200 and 400 ms still to run.

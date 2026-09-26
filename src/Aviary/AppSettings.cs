@@ -112,6 +112,12 @@ internal static class AppSettings
         ["focusRing"] = "false",
         ["warnManyTabs"] = "true",
         ["lastTabCloses"] = "Close the window",
+        // M6 stage 5 — the four rows that were badged until now. Each is read as the browser engine
+        // starts (WebViewEnvironment), before Settings has ever been opened.
+        ["gpu"] = "true",
+        ["autoplay"] = WebViewEnvironment.AutoPlayWithSound,
+        ["language"] = WebViewEnvironment.LanguageOfWindows,
+        ["minFont"] = "None",
     };
 
     public static void Load()
@@ -208,6 +214,29 @@ internal static class AppSettings
                 // M4.9: sleepIdleTabs was M4.8's separate row, folded into the mode above before it
                 // ever shipped. Drop it on sight so it cannot sit in the file meaning nothing.
                 _values.Remove("sleepIdleTabs");
+
+                // M6 stage 5: "Autoplay video" was a switch - badged, never live, so a saved value is
+                // only the page's old default - and is now Safari's three choices. Same rule as above.
+                if (_values.TryGetValue("autoplay", out string? autoplay))
+                {
+                    if (autoplay.Equals("true", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["autoplay"] = WebViewEnvironment.AutoPlayAll;
+                    }
+                    else if (autoplay.Equals("false", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _values["autoplay"] = WebViewEnvironment.AutoPlayWithSound;
+                    }
+                }
+
+                // ...and "Preferred language" offered Cebuano, which the engine cannot ask for
+                // (measured): anything it no longer offers is Windows' language again.
+                if (_values.TryGetValue("language", out string? language)
+                    && language != WebViewEnvironment.LanguageOfWindows
+                    && !WebViewEnvironment.Languages.ContainsKey(language))
+                {
+                    _values["language"] = WebViewEnvironment.LanguageOfWindows;
+                }
             }
             catch (Exception ex)
             {

@@ -367,13 +367,18 @@ previews, **switch to a tab that is already open (the 20th, replacing preload �
 video out, close week-old tabs, and double-click below the tabs — built for tabs down the side, because
 along the top the tabs always fill their bar. Found on the way: **bugs 93** (Reader's state per window),
 **94** (Memory saver slept a tab you had just read) and **95** ("Underline links" on Aviary's own pages).
-**Stage 4 committed (26 Sep):** forget everything when Aviary closes (a site set to
+**Stage 4 committed `521bc87` (26 Sep):** forget everything when Aviary closes (a site set to
 "Never — keep it" stays signed in; a crash forgets at the next launch, before any site loads), strip even
 more tracking from links, block scripts from other websites and stronger fingerprint protection (the two
 Shields rows M3 only promised), and stop link-click pings. **"Stop websites asking to show notifications"
 CUT, measured:** this engine refuses every request itself, with no prompt — there was nothing to stop. Found
 on the way: **bug 96** — every close Aviary made itself (Exit, the last tab, a question's yes, Restart) went
 round the close questions, so Exit never asked "Close this window?" and the forgetting never ran.
+**Stage 5 committed (26 Sep) — M6 done, 13 of 15. M7 waits for Grant's word:** the plan's "also in M6". Hardware acceleration,
+Auto-Play (Safari's three choices; the engine's own default measured to BE "Stop Media with Sound") and
+Preferred language (only languages the engine has words for — it ignores Cebuano, so it is not offered) made
+real through the engine's start-up; **Minimum font size made real, not cut** — through the engine's OWN
+setting, written into its Preferences before it starts, since CSS cannot say "at least". Updates reads 13 of 15.
 
 A new **Experimental** section — one entry in `SECTIONS` — built so someone who knows
 nothing about computers can use it without harm.
@@ -443,7 +448,8 @@ Example descriptions, to set the tone:
 **Also in M6:** every remaining inert setting made real or honestly gated — `gpu`,
 `autoplay`, `language` via the environment options; `minFont`, `scrollbars` via injected
 CSS; `reduceMotion` driving chrome animations. `translate`, `background`, `startup` stay
-gated for Phase 6. **Target: zero live, inert rows.**
+gated for Phase 6. **Target: zero live, inert rows.** **Done 26 Sep** (stage 5): `scrollbars` became the "Thin scrollbars" experiment,
+`minFont` went through the engine's Preferences instead of CSS, and `background`'s badge now says Phase 6.
 
 ### M7 — Optimisation and polish, measured by diagnostics
 Nothing is "optimised" on feel. Each change is **measured before and after from

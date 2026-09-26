@@ -298,6 +298,9 @@ internal sealed partial class BrowserTab
 
         // M6 stage 4: "Stronger fingerprint protection", when it is on - also before any page script.
         await RefreshFingerprintAsync();
+
+        // M6 stage 5: Auto-Play's "Never" holds Web Audio back as well (BrowserTab.AutoPlay.cs).
+        await AddAutoPlayScriptAsync(core);
         await core.AddScriptToExecuteOnDocumentCreatedAsync(
             ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken));
         await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);

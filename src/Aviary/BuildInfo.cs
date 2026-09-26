@@ -56,8 +56,10 @@ internal static class BuildInfo
     /// counted here only once all three of its stages had landed, which they have.
     /// M5 — the download ring, link clicks and tab groups (25 Sep) — is the twelfth, counted once
     /// all four of its building stages had landed.
+    /// M6 — the Experimental menu (26 Sep) — is the thirteenth, counted once all five of its stages had
+    /// landed: twenty experiments, and the last four badged settings made real.
     /// </summary>
-    public const int MilestonesDone = 12;
+    public const int MilestonesDone = 13;
 
     public const int Milestones = 15;
 
