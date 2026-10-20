@@ -1,7 +1,8 @@
 # Aviary — project handoff
 
-> **CURRENT — 20 October 2026 (supersedes the September status box below)**
-> - **M7 Super Quik is implemented: 14 of 16 milestones.** Bird News is the product name;
+> **CURRENT — 21 October 2026 (supersedes the September status box below)**
+> - **M7 and M8 are implemented and tested: 15 of 16 milestones.** Final tab-churn repair
+>   passes; see AB5-CONTINUE.md for the current candidates. Bird News is the product name;
 >   the M7 description and release notes explicitly record the rename from Birds News.
 > - Preserved the unfinished stage 2 work; added the measured second prepared tab in Quik
 >   Labs, fixed bugs 85–87, and fixed copying the current page into a new tab. Classic's
@@ -9,10 +10,24 @@
 > - Ten alternating launches per mode on the same warmed scratch profile: regular median
 >   **972.6 ms**, Quik **735.25 ms**, **24.4% faster**. Twenty prepared tabs: median **8.305 ms**.
 >   Full evidence, qualifications and test commands: `tools/test/M7-VERIFICATION-2026-10-20.md`.
-> - Source changes are **uncommitted**; `publish/Aviary` is still the previous published copy.
->   The current Release build is runnable from `src/Aviary/bin/x64/Release/net9.0-windows10.0.19041.0/win-x64`.
-> - **Next is M8**. A many-tab look switch can still pause the UI; it is listed in Quik's
->   Beta limits. **macOS support is deferred** at Grant's request. No new dependency downloads.
+> - Grant approved commits and local replacement on 21 Oct: **M7 f427fe0**, **M8 42c2671**.
+>   M9 preparation is recorded with the updated checkpoint. `publish/Aviary` is now the exact
+>   tested 662-file candidate; the old copy is preserved in `.artifact/ab5-published-before-approved-20261021`.
+> - M8 preserves Start Pages on look swaps: first Glass switch with 22 tabs **75.5 ms**,
+>   warm swaps **24–25 ms**. Loading/audio indicators and manual mute tested with Windows'
+>   audio meter. Animation caches release controls. Zero stalls >50 ms is not achieved.
+> - **Next is M9**: local release/verify scripts, README, SDK 9.0.317 and NuGet lock, safe
+>   Collection sync and revised CI prepared. Grant approved **GrantWally120/Aviary, PUBLIC**
+>   for source/catalog upload. Real CI awaits GitHub authentication. Keep 15/16 and PhaseShipped=4.
+> - Release packaging itself leaves publish untouched. The approved local replacement carries 54/54 exhibits;
+>   source-only package excludes personal payloads. See tools/test/M8-VERIFICATION-2026-10-20.md.
+> - **M9 local preparation is complete.** Both exact candidate ZIPs were extracted and tested;
+>   both closed normally with zero issues/crashes. Full evidence and SHA-256 checksums:
+>   `tools/test/M9-RELEASE-2026-10-21.md`. The executable now reports 0.5.0.0 consistently.
+> - **Waiting only for GitHub connection** before the approved first push. Instructions were
+>   supplied after Grant asked how. No remote CI success is claimed. Continuation stays quiet
+>   while connection is pending; do not repeat questions, builds or tests without new changes.
+> - **macOS support is deferred** at Grant's request. No new dependency downloads.
 > - Original unfinished files were backed up to `.artifact/m7-before-20261020` before changes.
 
 Everything a new session needs to pick this up. Written 6 September 2026 at the end of
@@ -3210,7 +3225,7 @@ before the commit; it stops itself when someone is at the keyboard, and Grant wa
 
 ---
 
-## 28. Alpha Build 5 M7 — "Super Quik": Quik mode, in Beta (26 Sep 2026 — IN PROGRESS)
+## 28. Alpha Build 5 M7 — "Super Quik": Quik mode, in Beta (completed 20 Oct 2026)
 
 Grant, 26 Sep, after M6: *"lets start M7 but push the original m7 to m8 and so on this update is called
 Super Quik the hero card of this update is Quik"* — a mode that makes Aviary "much quicker and faster and less
@@ -3278,7 +3293,7 @@ touches only the loading screen's end, which only quik-test exercises.
 after it loaded — the Skip button, on screen and invokable, was found by a tree walk and by nothing else;
 `uia.ps1` now walks before it says NOT FOUND. And a kill is a crash: `quik-test` closes Aviary with WM_CLOSE.
 
-### M7 completion — 20 October 2026 (stages 2 and 3, not yet committed)
+### M7 completion — 20 October 2026 (stages 2 and 3; committed f427fe0 on 21 Oct with Grant's approval)
 
 Grant asked to finish M7, include the rename **Birds News → Bird News** in its description,
 and leave macOS for later. The current box at the top and

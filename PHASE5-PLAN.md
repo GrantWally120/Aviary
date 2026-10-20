@@ -478,7 +478,12 @@ not work yet is listed plainly.
   `tools/test/M7-VERIFICATION-2026-10-20.md`. Stage 2/3 changes await commit; the installed publish is unchanged.
 - **macOS support is deferred** at Grant’s request on 20 Oct; it is outside M7.
 
-### M8 — Optimisation and polish, measured by diagnostics (was M7 until 26 Sep)
+### M8 — Optimisation and polish, measured by diagnostics · IMPLEMENTED 20 Oct 2026
+Verified details: `tools/test/M8-VERIFICATION-2026-10-20.md`. Look changes preserve the
+documents and tab controls; first Glass swap with 22 tabs fell from 187.9 ms to 75.5 ms,
+warm swaps measured 24–25 ms. Loading/audio controls, cache cleanup and rapid-layout repair
+are tested. The zero-stalls-over-50-ms target remains unmet and is an explicit Beta limit.
+
 Nothing is "optimised" on feel. Each change is **measured before and after from
 `perf.jsonl`**, and the numbers go in the phase notes.
 - **Budgets** (baseline taken in M1, targets confirmed then): cold start to first paint;
@@ -493,6 +498,11 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
   Glass blur still needs Win2D — **ask first.**
 
 ### M9 — Beta preparation (was M8 until 26 Sep)
+**Local preparation complete 21 Oct; PUBLIC GrantWally120/Aviary approved; GitHub connection and real CI pending.**
+README, locked restore, safe Collection sync, verified local/source-only ZIPs and checksums
+are prepared. See `tools/test/M9-RELEASE-2026-10-21.md`. Keep 15/16 and PhaseShipped=4 until
+the hard CI requirement and final release checks are satisfied.
+
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
   repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
 - App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 16` (0.5.0 and the name

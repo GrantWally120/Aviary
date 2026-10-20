@@ -141,6 +141,7 @@ h1{margin:16px 0 0;font:650 clamp(52px,9.5vw,128px)/.92 var(--display);letter-sp
 h1 span{display:inline-block;opacity:0;transform:translateY(.3em);animation:rise .9s var(--ease) forwards}
 @keyframes rise{to{opacity:1;transform:none}}
 .lede{max-width:620px;margin:22px 0 0;font-size:clamp(16px,1.6vw,19px);color:var(--ink-2)}
+.availability{max-width:620px;margin:14px 0 0;font-size:13px;color:var(--ink-3)}
 .stats{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
 .stat{border-radius:18px;padding:12px 18px 11px}
 .stat b{display:block;font:650 30px/1 var(--display);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
@@ -354,8 +355,9 @@ footer b{color:var(--ink-2);font-weight:600}
   <div class="hero__in">
     <div class="kicker">Aviary · everything Grant has built</div>
     <h1 id="title" aria-label="The Collection">The Collection</h1>
-    <p class="lede">Everything Grant has built, alive inside Aviary. Every exhibit is a copy that runs right here with the internet unplugged — the originals stay exactly where they are. Choose one to see its story; press Play to open it.</p>
+    <p class="lede">Grant's projects, collected inside Aviary. Bundled exhibits run with the internet unplugged — the originals stay exactly where they are. Choose one to see its story; press Play to open it.</p>
     <div class="stats" id="stats"></div>
+    <p class="availability" id="availability" role="status">Checking which exhibits are included in this copy…</p>
     <nav class="map" id="map" aria-label="Enclosures"></nav>
   </div>
 </section>
@@ -502,15 +504,29 @@ addEventListener('resize', function(){ clearTimeout(tlTimer); tlTimer = setTimeo
 
 var CAT = null, BYENC = {}, BYID = {};
 
+function renderStats(checked){
+  var all = CAT.exhibits;
+  var available = checked ? all.filter(function(e){ return !MISSING[e.id]; }) : [];
+  var runs = available.filter(function(e){ return e.status !== 'landing'; }).length;
+  var landings = available.filter(function(e){ return e.status === 'landing'; }).length;
+  document.getElementById('stats').innerHTML = [
+    [all.length, 'Catalog exhibits'], [runs, checked ? 'Run right here' : 'Checking files'],
+    [landings, 'Landing pages'], [CAT.enclosures.length, 'Enclosures']
+  ].map(function(s){ return '<div class="stat pane"><b data-to="' + s[0] + '">0</b><span>' + s[1] + '</span></div>'; }).join('');
+  if (checked){
+    var absent = all.length - available.length;
+    document.getElementById('availability').textContent = absent
+      ? available.length + ' of ' + all.length + ' exhibits are included in this copy. ' + absent + ' say “Not in this copy”.'
+      : 'All ' + all.length + ' exhibits are included in this copy.';
+  }
+  countUp();
+}
+
 function render(){
   CAT.enclosures.forEach(function(n){ BYENC[n.id] = n; });
   CAT.exhibits.forEach(function(e){ BYID[e.id] = e; });
-  var all = CAT.exhibits, runs = all.filter(function(e){ return e.status !== 'landing'; }).length;
-  var landings = all.filter(function(e){ return e.status === 'landing'; }).length;
-
-  document.getElementById('stats').innerHTML = [
-    [all.length, 'Exhibits'], [runs, 'Run right here'], [landings, 'Landing pages'], [CAT.enclosures.length, 'Enclosures']
-  ].map(function(s){ return '<div class="stat pane"><b data-to="' + s[0] + '">0</b><span>' + s[1] + '</span></div>'; }).join('');
+  var all = CAT.exhibits;
+  renderStats(false);
 
   document.getElementById('map').innerHTML = CAT.enclosures.map(function(n){
     var count = all.filter(function(e){ return e.enclosure === n.id; }).length;
@@ -543,7 +559,6 @@ function render(){
   document.getElementById('foot').textContent = 'Newest exhibit: ' + day(last) + ' · Offline · collection.aviary';
 
   observe();
-  countUp();
   probe();
   drawTimeline();
   route();
@@ -579,16 +594,21 @@ function countUp(){
    say so instead of opening a 404. One HEAD request each, all local. */
 var MISSING = {};
 function probe(){
-  CAT.exhibits.forEach(function(e){
+  return Promise.all(CAT.exhibits.map(function(e){
     var url = href(e.open);
     /* HEAD first; if the host will not answer one (405/501, or it throws), a real GET decides. */
-    fetch(url, {method:'HEAD', cache:'no-store'}).then(function(r){
-      if (r.ok) { return; }
-      if (r.status === 404) { mark(e.id); return; }
-      return fetch(url, {cache:'no-store'}).then(function(g){ if (!g.ok) { mark(e.id); } });
+    return fetch(url, {method:'HEAD', cache:'no-store'}).then(function(r){
+      if (r.ok) { return true; }
+      if (r.status === 404) { return false; }
+      return fetch(url, {cache:'no-store'}).then(function(g){ return g.ok; });
     }).catch(function(){
-      fetch(url, {cache:'no-store'}).then(function(g){ if (!g.ok) { mark(e.id); } }).catch(function(){ mark(e.id); });
+      return fetch(url, {cache:'no-store'}).then(function(g){ return g.ok; }).catch(function(){ return false; });
+    }).then(function(available){
+      if (!available) { mark(e.id); }
     });
+  })).then(function(){
+    renderStats(true);
+    if (showing !== 'all' || document.getElementById('q').value.trim()) { filter(); }
   });
   function mark(id){
     MISSING[id] = true;

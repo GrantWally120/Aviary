@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- Explorer and assembly metadata use the same version as Settings and Updates. -->
+    <AviaryVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\BuildInfo.cs')), '(?&lt;=public const string Version = &quot;)[0-9]+\.[0-9]+\.[0-9]+').Value)</AviaryVersion>
+    <Version>$(AviaryVersion)</Version>
 
     <!-- net9.0-windows10.0.19041.0 is the TFM the WinUI 3 templates use. The minimum
          platform version stays at 17763 so the app still starts on older Windows 10,
@@ -44,6 +47,7 @@
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>false</PublishReadyToRun>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
 
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -78,11 +82,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- VERSION IS DELIBERATELY FLOATING WITHIN A MINOR BAND.
-         Nobody on this project can restore locally to confirm an exact build number, and a
-         wrong exact pin fails restore outright, whereas a floating patch resolves to
-         whatever really exists on nuget.org. Once CI is green, read the resolved version
-         out of the build log and pin it exactly.
+    <!-- The phase plan calls for an exact project pin after real GitHub CI passes.
+         Until then packages.lock.json fixes the locally verified graph at 1.7.260224002;
+         release scripts and CI restore in locked mode. Do not refresh it implicitly.
 
          Microsoft.Windows.SDK.BuildTools is deliberately NOT referenced here: it arrives
          transitively at the version Windows App SDK 1.7 was validated against, and pinning
@@ -108,8 +110,14 @@
   <ItemGroup>
     <None Update="Library\**\*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <Target Name="WarnWithoutLibraryFiles" BeforeTargets="Build" Condition="!Exists('Library\files')">
+  <ItemGroup Condition="'$(IncludePrivateCollection)' == 'false'">
+    <None Remove="Library\files\**\*;Library\thumbs\**\*;Library\builds\**\*" />
+  </ItemGroup>
+  <Target Name="WarnWithoutLibraryFiles" BeforeTargets="Build" Condition="'$(IncludePrivateCollection)' != 'false' And !Exists('Library\files')">
     <Warning Text="Library\files is missing, so the Collection will list exhibits it cannot open. Run tools\library\sync.ps1 first (it copies Grant's projects in from Documents)." />
+  </Target>
+  <Target Name="ValidateAviaryVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(AviaryVersion)' == ''" Text="BuildInfo.Version must contain a three-part version." />
   </Target>
 
   <!-- The ad blocker's filter lists (FilterLists.cs, M3): EasyList and EasyPrivacy exactly as

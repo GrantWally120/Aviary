@@ -1,222 +1,66 @@
-# Builds Aviary as an unpackaged, self-contained, win-x64 desktop app and leaves
-# a single downloadable .zip on the run's summary page.
-#
-# WHY MSBUILD AND NOT `dotnet publish`:
-#   Microsoft's own "Set up continuous integration for your WinUI app" guidance uses
-#   msbuild /t:Publish + microsoft/setup-msbuild for the UNPACKAGED C# pivot, and the
-#   Windows App SDK targets (XAML compiler, MSIX tooling, the self-contained runtime
-#   copy) are authored against Visual Studio's MSBuild. `dotnet publish` drives the
-#   .NET SDK's own MSBuild, which historically resolves those targets differently; the
-#   failure mode is late and cryptic (an .exe that builds fine and then dies on launch
-#   with "Unable to load DLL 'Microsoft.WindowsAppRuntime.Bootstrap.dll'"). Nobody on
-#   this project can reproduce a build locally, so we take the path Microsoft documents.
-#
-# WHY WE POINT AT THE .csproj AND NOT Aviary.sln:
-#   /p:Platform=x64 against a .sln requires the solution to define a matching x64
-#   solution configuration. If it only has "Any CPU", MSBuild silently falls back and
-#   you get an AnyCPU build that then fails self-contained validation. Building the
-#   project file directly makes Platform unambiguous. Project references still build.
-
+# Windows build from a clean checkout. Personal Collection payloads stay off GitHub.
 name: Build Aviary (win-x64)
-
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  pull_request:
   workflow_dispatch:
-
 permissions:
   contents: read
-
-# A newer push supersedes an in-flight build of the same branch.
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  PROJECT: src\Aviary\Aviary.csproj
-  CONFIGURATION: Release
-  PLATFORM: x64
-  RUNTIME_ID: win-x64
-  ARTIFACT_NAME: Aviary-win-x64
-  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
-  DOTNET_NOLOGO: 'true'
-  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
-
 defaults:
   run:
     shell: pwsh
-
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_NOLOGO: 'true'
 jobs:
   build:
-    name: Publish win-x64
-    runs-on: windows-latest
-
+    runs-on: windows-2022
+    timeout-minutes: 30
     steps:
-      - name: Check out the repository
-        uses: actions/checkout@v7
-
-      - name: Install the .NET 9 SDK
-        uses: actions/setup-dotnet@v6
+      - uses: actions/checkout@v7
         with:
-          dotnet-version: '9.0.x'
-
-      # Puts Visual Studio's MSBuild.exe on PATH. This is the MSBuild the Windows
-      # App SDK targets expect.
-      - name: Put MSBuild on the PATH
-        uses: microsoft/setup-msbuild@v2
-
-      # MSBuild's binary logger will not create a missing directory, so make it first.
-      - name: Create the log folder
-        run: New-Item -ItemType Directory -Force -Path logs | Out-Null
-
-      - name: Show toolchain versions
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Restore the locked package graph
         run: |
-          Write-Host "--- .NET SDKs available on this runner ---"
-          dotnet --list-sdks
-          Write-Host "--- MSBuild ---"
-          msbuild -version
-
-      # RESTORE.
-      # Every property that changes what gets restored must be identical here and in
-      # the publish step below. NuGet writes project.assets.json per RuntimeIdentifier;
-      # if restore runs as AnyCPU and publish runs as win-x64 you get NETSDK1047
-      # ("Assets file ... doesn't have a target for net9.0-windows10.0.19041.0/win-x64").
-      # That mismatch is the single most common CI failure for this exact scenario.
-      - name: Restore
-        run: >
-          msbuild ${{ env.PROJECT }}
-          /t:Restore
-          /p:Configuration=${{ env.CONFIGURATION }}
-          /p:Platform=${{ env.PLATFORM }}
-          /p:RuntimeIdentifier=${{ env.RUNTIME_ID }}
-          /p:SelfContained=true
-          /p:WindowsAppSDKSelfContained=true
-          /p:WindowsPackageType=None
-          /p:PublishSingleFile=false
-          /p:PublishTrimmed=false
-          /p:PublishReadyToRun=false
-          /nr:false
-          /v:minimal
-          /bl:logs/restore.binlog
-
-      # PUBLISH.
-      #   /t:Publish                        the SDK publish target (do NOT combine with
-      #                                     /t:Restore in one invocation; MSBuild
-      #                                     evaluates properties once per invocation).
-      #   /p:Platform=x64                   REQUIRED. Self-contained WinUI rejects
-      #                                     AnyCPU: "The platform 'AnyCPU' is not
-      #                                     supported for Self Contained mode."
-      #   /p:RuntimeIdentifier=win-x64      REQUIRED. SelfContained needs an explicit RID.
-      #   /p:SelfContained=true             bundles the .NET 9 runtime.
-      #   /p:WindowsAppSDKSelfContained=true bundles the Windows App SDK runtime, so the
-      #                                     target machine needs no WinAppSDK installer.
-      #   /p:WindowsPackageType=None        unpackaged: a plain .exe, no MSIX identity.
-      #   /p:PublishSingleFile=false        explicit. Single-file drags in extra required
-      #                                     properties (EnableMsixTooling,
-      #                                     IncludeAllContentForSelfExtract) and a
-      #                                     first-launch temp extraction we don't want yet.
-      #   /p:PublishTrimmed=false           explicit. Trimming breaks WinUI/XAML reflection.
-      #   /p:PublishReadyToRun=false        explicit. Guards against the csproj enabling
-      #                                     R2R, which needs a crossgen pack we don't ask for.
-      #   /p:PublishDir=.../publish/Aviary/ absolute, trailing separator. Forward slashes
-      #                                     on purpose: a trailing backslash would be
-      #                                     eaten by native command-line argument parsing.
-      #   /nr:false                         no MSBuild node reuse; standard CI hygiene.
-      #   /bl:                              binary log, uploaded below so a failed build
-      #                                     can be diagnosed without a local toolchain.
-      - name: Publish (unpackaged, self-contained, win-x64)
-        run: >
-          msbuild ${{ env.PROJECT }}
-          /t:Publish
-          /p:Configuration=${{ env.CONFIGURATION }}
-          /p:Platform=${{ env.PLATFORM }}
-          /p:RuntimeIdentifier=${{ env.RUNTIME_ID }}
-          /p:SelfContained=true
-          /p:WindowsAppSDKSelfContained=true
-          /p:WindowsPackageType=None
-          /p:PublishSingleFile=false
-          /p:PublishTrimmed=false
-          /p:PublishReadyToRun=false
-          /p:PublishDir=${{ github.workspace }}/publish/Aviary/
-          /nr:false
-          /v:minimal
-          /bl:logs/publish.binlog
-
-      # Catch a build that "succeeded" but produced something that cannot run on the
-      # owner's machine, before he downloads it.
-      - name: Verify the publish output
+          dotnet restore src/Aviary/Aviary.csproj --locked-mode -p:Platform=x64 -p:RuntimeIdentifier=win-x64
+          if ($LASTEXITCODE) { throw 'Restore failed' }
+      - name: Check settings, player actions, filter engine and Collection safety
         run: |
-          $publish = Join-Path $env:GITHUB_WORKSPACE 'publish\Aviary'
-
-          if (-not (Test-Path -LiteralPath $publish)) {
-            throw "Publish folder not found at $publish. The Publish target did not honour PublishDir."
-          }
-
-          $exe = Join-Path $publish 'Aviary.exe'
-          if (-not (Test-Path -LiteralPath $exe)) {
-            throw "Aviary.exe was not produced. Check OutputType=WinExe and AssemblyName=Aviary in the csproj."
-          }
-
-          # hostfxr.dll only lands next to the app in a self-contained publish.
-          if (-not (Test-Path -LiteralPath (Join-Path $publish 'hostfxr.dll'))) {
-            throw "hostfxr.dll is missing, so this is a framework-dependent build. SelfContained=true did not take effect."
-          }
-
-          # Windows App SDK runtime, bundled by WindowsAppSDKSelfContained=true.
-          $winAppSdk = @(Get-ChildItem -LiteralPath $publish -Filter 'Microsoft.WindowsAppRuntime*.dll' -File)
-          $winUi     = @(Get-ChildItem -LiteralPath $publish -Filter 'Microsoft.ui.xaml.dll' -File)
-          if ($winAppSdk.Count -eq 0 -and $winUi.Count -eq 0) {
-            Write-Host "::warning::No Windows App SDK runtime DLLs found in the publish folder. WindowsAppSDKSelfContained may not have applied, and the app will fail to start on a machine without the WinAppSDK runtime installed."
-          }
-
-          # WebView2 managed wrapper. The Evergreen runtime itself ships with Windows 11.
-          $webView2 = @(Get-ChildItem -LiteralPath $publish -Filter 'Microsoft.Web.WebView2.Core.dll' -File)
-          if ($webView2.Count -eq 0) {
-            Write-Host "::warning::Microsoft.Web.WebView2.Core.dll is not in the publish folder. The browser view will not load."
-          }
-
-          $files = @(Get-ChildItem -LiteralPath $publish -Recurse -File)
-          $sizeMb = [math]::Round((($files | Measure-Object -Property Length -Sum).Sum / 1MB), 1)
-          Write-Host "Published $($files.Count) files, $sizeMb MB, to $publish"
-          Get-ChildItem -LiteralPath $publish -File |
-            Sort-Object Length -Descending |
-            Select-Object -First 15 -Property Name, Length |
-            Format-Table -AutoSize
-
-      # One file to download. Compress-Archive is used rather than 7-Zip because it is
-      # guaranteed present on every Windows runner image. Pointing -Path at the folder
-      # (no wildcard) keeps an "Aviary" folder inside the zip, so extracting does not
-      # spray several hundred files into whatever folder the owner picked.
-      - name: Zip the app
-        run: |
-          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
-          $zip = Join-Path $env:GITHUB_WORKSPACE ('artifacts\' + $env:ARTIFACT_NAME + '.zip')
-          if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
-          Compress-Archive -Path (Join-Path $env:GITHUB_WORKSPACE 'publish\Aviary') -DestinationPath $zip -CompressionLevel Optimal
-          $zipMb = [math]::Round(((Get-Item -LiteralPath $zip).Length / 1MB), 1)
-          Write-Host "Wrote $zip ($zipMb MB)"
-
-      # archive:false (upload-artifact v7+) uploads our single .zip as-is, so the
-      # download is one zip rather than a zip containing a zip. If the action ever
-      # resolves to an older major the input is ignored with a warning and the download
-      # is double-zipped, which docs/BUILDING.md tells the owner how to handle.
+          node tools/test/settings-audit.js
+          if ($LASTEXITCODE) { throw 'Settings audit failed' }
+          node tools/test/m7-script-test.js
+          if ($LASTEXITCODE) { throw 'Player checks failed' }
+          node tools/test/collection-availability-test.js
+          if ($LASTEXITCODE) { throw 'Collection checks failed' }
+          dotnet run --project tools/test/filters/FilterHarness.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Filter checks failed' }
+          ./tools/test/library-sync-test.ps1
+      - name: Prepare and verify the source-only app
+        run: ./tools/release/prepare.ps1 -NoRestore -SourceOnly -OutputRoot .artifact/release-ci
       - name: Upload the app
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: artifacts/${{ env.ARTIFACT_NAME }}.zip
+          path: .artifact/release-ci/Aviary-AB5-RC-source-win-x64.zip
           archive: false
           if-no-files-found: error
           retention-days: 14
-
-      # Uploaded even when the build fails, which is exactly when it is needed.
-      # NOTE: MSBuild binary logs embed the build environment. Keep this repo private,
-      # or delete this step, if secrets are ever added to the workflow.
-      - name: Upload build logs
-        if: always()
+      - name: Upload file manifest and checksum
         uses: actions/upload-artifact@v7
         with:
-          name: build-logs
-          path: logs/
-          if-no-files-found: warn
-          retention-days: 7
+          name: Aviary-build-evidence
+          path: |
+            .artifact/release-ci/manifest.json
+            .artifact/release-ci/*.sha256
+          if-no-files-found: error
+          retention-days: 14

@@ -190,9 +190,13 @@ internal static class Library
 
                 string id = e.GetProperty("id").GetString() ?? "";
                 string open = e.TryGetProperty("open", out JsonElement o) ? o.GetString() ?? "" : "";
+                string url = Root + EscapePath(open);
+                // Source-only CI copies keep the catalog, but not personal payloads. Their
+                // Start Page must not offer an exhibit that this copy cannot open.
+                if (DiskPath(new Uri(url)) is not { } disk || !File.Exists(disk)) { continue; }
                 items.Add(new Featured(
                     Title: e.GetProperty("title").GetString() ?? id,
-                    Url: Root + EscapePath(open),
+                    Url: url,
                     Thumb: Root + "thumbs/" + id + ".jpg",
                     Accent: e.TryGetProperty("accent", out JsonElement a) ? a.GetString() ?? "#888" : "#888",
                     Note: e.TryGetProperty("short", out JsonElement s) ? s.GetString() ?? "" : "",

@@ -1,5 +1,15 @@
 # Aviary test kit
 
+## M8 and M9 checks — 20–21 October 2026
+
+See [M8 verification](M8-VERIFICATION-2026-10-20.md) and [M9 release evidence](M9-RELEASE-2026-10-21.md).
+`collection-availability-test.js` exercises the shipped Collection probe/summary for full,
+partial and failed file checks. `library-sync-test.ps1` verifies preservation when originals
+are missing and refusal of incomplete pruning, using only `.artifact` fixtures.
+`release-launch.ps1 -Exe <candidate> -Profile <new-scratch-name>` launches an explicit build
+on a new isolated profile, without native input. Release preparation and ZIP/manifest
+verification live in `tools/release`. During Computer Use, native input uses sky only.
+
 ## M7 checks — 20 October 2026
 
 See [M7 verification](M7-VERIFICATION-2026-10-20.md) for the measured results and limits.

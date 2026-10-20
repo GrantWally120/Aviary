@@ -75,5 +75,6 @@ normally. All prior v1/v2 packages are superseded and are not final candidates.
 
 Current local/source package paths are in `M9-RELEASE-2026-10-21.md`; the 20 October
 packages are superseded. Native full and source-only ZIP checks both passed on 21 October.
-M9 still requires owner/repository,
-visibility, account connection, approved first upload and actual successful GitHub CI.
+On 21 October Grant approved the milestone commits, local replacement, and source/catalog
+upload to PUBLIC GrantWally120/Aviary. M9 still requires GitHub connection and actual
+successful CI; the build remains 15/16 with PhaseShipped=4.
