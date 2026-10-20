@@ -13,7 +13,7 @@
       },
       "Microsoft.WindowsAppSDK": {
         "type": "Direct",
-        "requested": "[1.7.*, )",
+        "requested": "[1.7.260224002, 1.7.260224002]",
         "resolved": "1.7.260224002",
         "contentHash": "0lLlJHbK/qFVnciJHr6xw3c/tQ6b6mtQYJs5Rvk5J5IhpxHzuWL+b63tvQxfSKDgLCPl0o2o8d2ynMoln2PDHw==",
         "dependencies": {
@@ -44,7 +44,7 @@
       },
       "Microsoft.WindowsAppSDK": {
         "type": "Direct",
-        "requested": "[1.7.*, )",
+        "requested": "[1.7.260224002, 1.7.260224002]",
         "resolved": "1.7.260224002",
         "contentHash": "0lLlJHbK/qFVnciJHr6xw3c/tQ6b6mtQYJs5Rvk5J5IhpxHzuWL+b63tvQxfSKDgLCPl0o2o8d2ynMoln2PDHw==",
         "dependencies": {

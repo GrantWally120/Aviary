@@ -82,14 +82,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The phase plan calls for an exact project pin after real GitHub CI passes.
-         Until then packages.lock.json fixes the locally verified graph at 1.7.260224002;
-         release scripts and CI restore in locked mode. Do not refresh it implicitly.
+    <!-- Exact version validated by real GitHub CI run 39507147323 on commit 77f54fb.
+         packages.lock.json fixes the same verified graph; release scripts and CI restore
+         in locked mode. Do not refresh it implicitly.
 
          Microsoft.Windows.SDK.BuildTools is deliberately NOT referenced here: it arrives
          transitively at the version Windows App SDK 1.7 was validated against, and pinning
          it ahead of that buys nothing while risking a MakePri/MakeAppx tooling mismatch. -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.*" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.7.260224002]" />
 
     <!-- Win2D, for Liquid Glass (Grant said yes, 14 Sep 2026 — the NuGet ask in HANDOFF §2).
          It draws each glass capsule's three-layer shadow cut away under the glass, the way a
