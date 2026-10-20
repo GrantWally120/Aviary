@@ -2,7 +2,9 @@
 
 **21 October 2026:** the [first Windows CI run](https://github.com/GrantWally120/Aviary/actions/runs/39507147323)
 and the [exact SDK pin's CI run](https://github.com/GrantWally120/Aviary/actions/runs/39508704024)
-both passed. Alpha Build 5 is version 0.5.0, The Long Run.
+both passed. The [final release-source run](https://github.com/GrantWally120/Aviary/actions/runs/39512372624)
+also passed and uploaded the final source-only Windows ZIP. Alpha Build 5 is version 0.5.0,
+The Long Run, with all sixteen milestones complete.
 
 ## Local build
 

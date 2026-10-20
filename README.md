@@ -68,6 +68,8 @@ preflight failure makes no changes. Do not use sync to repair or edit original p
 GitHub builds run on pushes to main, pull requests and manual requests. Both the
 [first run](https://github.com/GrantWally120/Aviary/actions/runs/39507147323) and the
 [pinned SDK run](https://github.com/GrantWally120/Aviary/actions/runs/39508704024) passed.
+The [final release-source run](https://github.com/GrantWally120/Aviary/actions/runs/39512372624)
+also passed and provides the final source-only Windows ZIP.
 The source is not currently offered under an open-source licence. Third-party runtimes
 keep their upstream terms; bundled filter attribution and licences are in
 [Filters/README.txt](src/Aviary/Filters/README.txt). Aviary is independent of Apple,

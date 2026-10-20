@@ -1,30 +1,30 @@
 # Aviary — project handoff
 
-> **CURRENT — 21 October 2026 (supersedes the September status box below)**
-> - **Final AB5 candidate is implemented and tested: 16 of 16 milestones.** BuildInfo is
->   0.5.0, PhaseShipped=5, preRelease=false, after real Windows CI passed twice. Final
->   milestone commits/publication await Grant's concrete approval; do not claim final delivery yet.
-> - Approved commits/pushes: **M7 f427fe0**, **M8 42c2671**, **M9 preparation 77f54fb**,
->   **exact SDK pin 3fd2a8b**. Repository **GrantWally120/Aviary, PUBLIC** is approved.
->   Normal Git authentication works; no need to ask Grant to reconnect.
-> - Actual Windows CI **39507147323** on 77f54fb and **39508704024** on 3fd2a8b both
->   passed locked restore, checks, verified source-only packaging and uploads. SDK pin is
->   exactly [1.7.260224002]; resolved dependencies did not change.
-> - **publish/Aviary still has the earlier approved 15/16 candidate.** Its predecessor is
->   preserved in .artifact/ab5-published-before-approved-20261021. Final replacement is pending.
-> - Current final ZIPs: .artifact/ab5-final-local-20261021 (662 files, 54/54 exhibits) and
->   .artifact/ab5-final-source-20261021 (508 files, 4/54). Exact hashes and full evidence:
->   tools/test/M9-FINAL-2026-10-21.md. Both exact ZIPs were extracted and launched on scratch profiles.
-> - Native Updates reports Latest, version 0.5.0 and final M9 notes; real injected BUILD
->   confirms 16/16. M7/Bird News rename and M8 work are preserved. Both sessions closed normally,
->   no crashes; local QA recorded one known 51.2 ms UI stall, source QA zero issues.
-> - Both landing looks show AB5 complete and betas planned. The small completed-build selector
->   fix and download links outside PHASES are included in final review, not a general redesign.
-> - **Waiting for final M9 commit/push (release plus actual CI/publication record) and tested
->   local replacement approval.** Then validate final-source CI, preserve the current published
->   copy, publish the exact tested candidate and record completion. Pause continuation only then.
-> - AB5-CONTINUE.md is the current checkpoint. While only final approval is pending, stay quiet:
->   do not repeat builds, tests or questions. macOS stays deferred; beta builds remain planned.
+> **CURRENT — 21 October 2026: Alpha Build 5 COMPLETE, 16 of 16**
+> - **0.5.0 — The Long Run** is committed, verified by actual Windows CI and locally published.
+>   BuildInfo is PhaseShipped=5, MilestonesDone=16, preRelease=false. No AB5 approval remains.
+> - Approved source commits: M7 **f427fe0**, M8 **42c2671**, M9 preparation **77f54fb**,
+>   SDK pin **3fd2a8b**, final release **f196ea3**. This completion record is the approved follow-up.
+> - Grant approved PUBLIC **GrantWally120/Aviary**, final M9 commits/push, landing status/link
+>   fixes and the tested local replacement. Normal Git authentication works.
+> - Actual Windows CI passed on preparation (39507147323), exact SDK pin (39508704024) and
+>   final release source (39512372624), including final ZIP naming, checks, verification and uploads.
+>   Windows App SDK is pinned exactly to [1.7.260224002]; resolved dependencies did not change.
+> - **publish/Aviary contains the exact tested final 662-file copy**, installed at 07:06 on
+>   21 Oct. All copied hashes match its manifest; published verification confirms 0.5.0.0,
+>   54/54 Collection exhibits. Personal payloads remain LOCAL.
+> - Prior 15/16 copy: .artifact/ab5-published-rc-before-final-20261021. Older September copy:
+>   .artifact/ab5-published-before-approved-20261021. Both preserved intact.
+> - Final ZIPs and checksums: .artifact/ab5-final-local-20261021 and
+>   .artifact/ab5-final-source-20261021. Full evidence: tools/test/M9-FINAL-2026-10-21.md.
+>   The tested binaries preserve their original base 3fd2a8b/dirty provenance; no post-test rebuild.
+> - Real native Updates says Latest and 16/16 in injected BUILD. M7/Bird News and M8 work remain.
+>   Both scratch QA sessions closed normally, no crashes; local QA had one known 51.2 ms stall,
+>   source QA zero issues. Both landing looks show AB5 complete and betas planned.
+> - **AB5 delivery is complete.** Pause continue-aviary-ab5 if still active. Do not repeat
+>   implementation, tests, publication or approval questions on an unchanged heartbeat.
+>   macOS and starting Beta Build 1 remain deferred until Grant requests new work.
+> - Current checkpoint: AB5-CONTINUE.md; final actual CI/publication proof is recorded there.
 
 Everything a new session needs to pick this up. Written 6 September 2026 at the end of
 Phase 3; updated 7 September 2026 at the end of Phase 4, 11 September 2026 at the end of
@@ -3324,24 +3324,30 @@ Get started summary is current. The many-tab look-swap pause is listed as a Beta
 with actual stalls and the checks that were not rerun documented in the verification file.
 No new packages, no published-copy replacement, and no commit were made.
 
-## 29. M9 final validation — 21 October 2026
+## 29. M9 final delivery — 21 October 2026
 
-The final 16/16 candidate is implemented and locally verified after actual Windows CI
-passed on M9 preparation 77f54fb (run 39507147323) and the explicitly approved SDK pin
-3fd2a8b (run 39508704024). Full current evidence: `tools/test/M9-FINAL-2026-10-21.md`.
-The current box and AB5-CONTINUE.md supersede historical pending-connection/CI statements.
+Alpha Build 5 is complete: 16/16, PhaseShipped=5, version 0.5.0, The Long Run. Grant
+explicitly approved final M9 commits/push (release plus actual CI/publication record),
+the necessary landing-status/download-link fixes and the exact tested local replacement.
 
-Both exact final ZIPs were extracted and tested on scratch profiles. Updates' real BUILD
-reports 16/16 and PhaseShipped=5; public packages exclude personal Collection payloads.
-The final source remains uncommitted and the published copy remains the approved 15/16
-candidate until Grant approves final commits/push and the concrete tested replacement.
-The final request includes the release commit and its actual CI/publication record commit.
+Final source **f196ea3** is pushed to the approved PUBLIC GrantWally120/Aviary. Real Windows
+CI run **39512372624** completed successfully, after preparation run 39507147323 and the
+exact SDK pin's run 39508704024 had also passed. Final-source CI verified the release-state
+checks, final ZIP naming and source-only package upload. Full evidence:
+`tools/test/M9-FINAL-2026-10-21.md`.
 
-The landing page's small completed-build fallback/default-tab fix is a necessary exception
-to PHASES-only edits: without it, finishing the last alpha labels planned BB2 as current.
-Both existing looks also gain working GitHub download links. These are included explicitly
-in the final review; other page design/content is preserved. No landing Artifact publication.
+At **07:06 +08:00**, sync reported 0 copied, 90 unchanged, 0 removed; all 662 staged files
+matched the exact tested candidate's manifest. No published Aviary process was running.
+The prior 15/16 copy was preserved at .artifact/ab5-published-rc-before-final-20261021,
+then the final copy replaced publish/Aviary. Published verification passed: 0.5.0.0 and
+54/54 exhibits. No post-test rebuild or default-profile test launch was used. Personal
+Collection projects stay local. The earlier September copy also remains preserved.
 
-All own QA apps, the temporary browser tab and loopback fixture are closed. Both sessions
-closed normally with no crashes; local QA had one 51.2 ms UI stall, source QA zero issues.
-The known performance limitation remains, as do Quik's Beta status and deferred macOS.
+Both final ZIPs were extracted and tested on explicit scratch profiles. Real Updates'
+BUILD reports 16/16, PhaseShipped=5, preRelease=false. Both sessions closed normally,
+no crashes; local QA had one known 51.2 ms stall, source QA zero issues. The landing selector
+and both download-link exceptions were explicitly approved; this is not general redesign
+permission. No landing Artifact publication. Quik remains in Beta; macOS remains deferred.
+
+The approved follow-up record documents the actual successful CI/publication. AB5 work
+is finished; pause continuation if still active and wait for Grant's next requested work.

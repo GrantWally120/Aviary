@@ -497,10 +497,10 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
   as a loading indicator, a tab audio indicator and per-tab mute, and empty states. Real Liquid
   Glass blur still needs Win2D — **ask first.**
 
-### M9 — Beta preparation (was M8 until 26 Sep) · IMPLEMENTED 21 Oct 2026
-**Final 16/16 candidate verified; final milestone commit/publication approval pending.**
-See `tools/test/M9-FINAL-2026-10-21.md`. The existing published copy remains the earlier
-approved 15/16 candidate until Grant approves its concrete replacement.
+### M9 — Beta preparation (was M8 until 26 Sep) · DONE AND PUBLISHED 21 Oct 2026
+**Alpha Build 5 is complete: 16/16, PhaseShipped=5, version 0.5.0.**
+Grant approved final commits/push and the exact tested replacement. Full actual evidence:
+`tools/test/M9-FINAL-2026-10-21.md`. The former published copy is preserved intact.
 
 - **GitHub repo + CI** (hard requirement 6 satisfied): PUBLIC GrantWally120/Aviary approved
   and pushed; run 39507147323 passed on 77f54fb. Exact Windows App SDK pin [1.7.260224002]
@@ -510,9 +510,11 @@ approved 15/16 candidate until Grant approves its concrete replacement.
   native scratch-profile QA and manifest/checksum validation. Remaining stalls stay documented.
 - Both landing looks show completed AB5 and planned betas; a necessary small status-selector
   fix outside PHASES prevents promoting planned BB2. Final review also includes download links.
-- After final approval: commit/push the final source, observe its real CI, preserve the current
-  published copy, replace it with the exact tested candidate and record the actual results.
-  Pause continuation when delivery is complete. macOS remains deferred.
+- Final source f196ea3 is pushed; actual final CI 39512372624 passed, including the release-state
+  checks and final source-only ZIP upload. At 07:06 on 21 Oct the exact tested 662-file candidate
+  replaced publish/Aviary after all staged hashes matched; published verification confirms
+  0.5.0.0 and 54/54 exhibits. Prior copy: .artifact/ab5-published-rc-before-final-20261021.
+  Pause continuation if still active. macOS and starting Beta Build 1 remain deferred.
 
 ## Critical files
 
