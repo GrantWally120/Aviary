@@ -22,7 +22,7 @@ namespace Aviary;
 /// grow in, a closed one shrinks away where it stood, and the rest glide (Smooth Flight) or
 /// spring (Fluid) into place — an implicit Offset animation armed only around the change, so a
 /// window resize never drags tabs along behind the mouse. A full rebuild remains for what really
-/// needs one: a look swap (tab geometry is StaticResource), a new display scale, site icons
+/// needs one: a new display scale, site icons
 /// switched off or cleared.
 ///
 /// <b>The active tab's chip is one shape</b>, drawn behind the strip in Composition rather than by
@@ -48,7 +48,7 @@ public sealed partial class MainWindow
 
     /// <summary>
     /// Brings the strip in line with <c>_tabs</c>. <paramref name="fresh"/> builds every button
-    /// again — for a look swap, a new scale, or site icons switched off or cleared.
+    /// again — for a new scale, or site icons switched off or cleared.
     /// </summary>
     private void RebuildTabStrip(bool fresh = false)
     {
@@ -161,6 +161,17 @@ public sealed partial class MainWindow
         QueuePill(animate);
     }
 
+    internal static object TabLayoutSnapshot() => OpenWindows.Select(w => new
+    {
+        tabs = w._tabs.Count, children = w.TabStrip.Children.Count, columns = w.TabStrip.ColumnDefinitions.Count,
+        buttons = w._tabButtons.Values.Select(b => new
+        {
+            column = Grid.GetColumn(b), width = b.ActualWidth,
+            x = b.TransformToVisual(w.TabStrip).TransformPoint(new Point(0, 0)).X,
+            offset = Motion.VisualOf(b).Offset.X,
+        }).ToArray(),
+    }).ToArray();
+
     /// <summary>
     /// A tab as Narrator and UI Automation see it (bug 69, found 19 Sep testing M4.5): until now a
     /// tab button had NO accessible name — a screen reader heard "toggle button" — and toggling it
@@ -170,7 +181,7 @@ public sealed partial class MainWindow
     /// </summary>
     private void WireTabAccess(ToggleButton button, BrowserTab tab)
     {
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, ShownTitle(tab));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, TabAccessibleName(tab));
         button.Checked += (_, _) =>
         {
             if (!ReferenceEquals(tab, _active) && _tabs.Contains(tab))

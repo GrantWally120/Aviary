@@ -817,6 +817,7 @@ public sealed partial class MainWindow
         {
             return;
         }
+        if (IsTabAudioTarget(e.OriginalSource, chrome)) { return; }
 
         // Touch gives the ScrollViewer the vertical gesture through direct manipulation, so
         // the drag never starts and arrives as PointerCaptureLost instead. Mouse and pen

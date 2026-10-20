@@ -32,6 +32,38 @@ namespace Aviary;
 /// </summary>
 public sealed partial class MainWindow
 {
+    private bool _applyingLook;
+    private string? _liveThemeCss;
+
+    private void RefreshStartPageThemes()
+    {
+        _liveThemeCss = BuildThemeCss();
+        foreach (BrowserTab tab in TabsAndReady()) { ApplyStartPageTheme(tab); }
+    }
+
+    private async void ApplyStartPageTheme(BrowserTab tab)
+    {
+        try
+        {
+            if (!tab.IsInternalPage || tab.Title is not ("Start Page" or "Bird News")
+                || tab.IsLoading || tab.View.CoreWebView2 is not { } core) { return; }
+            string css = _liveThemeCss ??= BuildThemeCss();
+            if (tab.StartPageThemeCss == css) { return; }
+            tab.StartPageThemeCss = css;
+            // A palette change leaves the document, scroll position and open controls intact.
+            // Check the document token too: a navigation may have replaced our page meanwhile.
+            await core.ExecuteScriptAsync("(function(css,token){if(!window.__aviaryStart||window.__aviaryStart.token!==token)return;"
+                + "var s=document.getElementById('aviary-live-theme');if(!s){s=document.createElement('style');"
+                + "s.id='aviary-live-theme';document.head.appendChild(s);}s.textContent=css;})("
+                + System.Text.Json.JsonSerializer.Serialize(css) + ","
+                + System.Text.Json.JsonSerializer.Serialize(PageToken) + ")");
+        }
+        catch (Exception ex)
+        {
+            tab.StartPageThemeCss = null;
+            Diagnostics.Swallowed(ex, "theme: update Start Page palette");
+        }
+    }
     /// <summary>"Light", "Dark" or "HighContrast" — the dictionary key for what is on screen.</summary>
     private string EffectiveThemeKey()
     {
@@ -385,6 +417,7 @@ public sealed partial class MainWindow
     /// </summary>
     private void OnEffectiveThemeChanged()
     {
+        if (_applyingLook) { return; }
         ApplyWebViewBackground();
         ApplyCaptionColors();
         RefreshPillBrush();
@@ -394,11 +427,14 @@ public sealed partial class MainWindow
         ApplyFocusVisuals();
         RefreshSidebar();
         RefreshGlass();
+        foreach (ToggleButton button in _tabButtons.Values)
+        {
+            if (button.Tag is TabChrome chrome) { RefreshTabActivity(chrome); }
+        }
 
         // The Smart Search popup caches its shell brushes; rebuild it next time it opens.
         _suggestPopup = null;
 
-        // Its palette is baked into the HTML when it is built, so it has to be rebuilt.
-        RefreshStartPages();
+        RefreshStartPageThemes();
     }
 }

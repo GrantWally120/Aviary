@@ -172,6 +172,8 @@ public sealed partial class MainWindow
 
         Grid content = new();
         content.Children.Add(icon);
+        Button audio = BuildTabAudioButton(tab);
+        content.Children.Add(audio);
 
         ToggleButton button = new()
         {
@@ -182,8 +184,9 @@ public sealed partial class MainWindow
         ToolTipService.SetToolTip(button, tab.Title);
         WireTabAccess(button, tab);
 
-        button.Click += (_, _) =>
+        button.Click += (_, e) =>
         {
+            if (button.Tag is TabChrome parts && IsTabAudioTarget(e.OriginalSource, parts)) { return; }
             button.IsChecked = true;
             if (!ReferenceEquals(tab, _active))
             {
@@ -208,7 +211,10 @@ public sealed partial class MainWindow
             Icon = icon,
             Title = new TextBlock(),   // pinned tabs show no title
             ClosePad = new Grid(),
+            Audio = audio,
+            AudioOverIcon = true,
         };
+        RefreshTabActivity((TabChrome)button.Tag);
 
         return button;
     }

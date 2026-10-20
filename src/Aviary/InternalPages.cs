@@ -754,12 +754,18 @@ var UPDATES = [
        d:'Twenty unfinished features to try in Settings → Experimental, each explained in everyday words with what might happen — and not one of them can make Aviary less safe. If Aviary stops soon after you change one, the next launch switches them all off and asks. And the last four settings that only promised now work: hardware acceleration, Auto-Play, your preferred language and a minimum font size.'},
       {n:'M7', t:'Super Quik', when:'20 Oct',
        d:'<b>Quik</b>, in Beta: an earlier engine start, prepared new tabs, a fourth animation speed and optional Quik Labs. Picture in picture works through player overlays and from Aa, background choices and the Forgetful list stay in sync, and Birds News is now <b>Bird News</b>.'},
-      {n:'M8', t:'Faster and smoother — and measured',
-       d:'Start-up, new tabs, memory and animation tuned, with every improvement proved by the diagnostics numbers rather than by feel.'},
+      {n:'M8', t:'Faster and smoother — and measured', when:'20 Oct',
+       d:'Changing looks keeps your tabs and Start Pages in place. Finished animations let go of their controls, tabs show loading and audio, each tab can be muted, and empty Downloads explains what belongs there. Measured, with the remaining stalls recorded.'},
       {n:'M9', t:'Getting ready for Beta Build 1',
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
+      {h:'Measured polish — M8 · 20 October 2026', items:[
+        '<b>Look switches keep the page.</b> Start Pages change palette without reloading, and tab buttons keep their identity. Warm look changes with 22 open tabs measured 24–25 ms on the test PC',
+        '<b>Less retained UI.</b> Finished favicon and hover fades release their controls, and reveal animations use weak keys. Diagnostics records the active fade counts',
+        '<b>Loading and sound.</b> A loading ring replaces the favicon while a page loads, unless motion is reduced. A sound button mutes just that tab, including background and pinned tabs, and its manual choice survives automatic background muting',
+        '<b>Limits remain.</b> The first Liquid Glass switch measured 76 ms in one two-tab run, and rapid tab creation can still stall. Working-set savings from Memory saver do not mean every private allocation is released. M9 and the first real GitHub build are still pending'
+      ]},
       {h:'Super Quik — M7 · 20 October 2026', items:[
         '<b>Quik, in Beta</b>, has its own section in Settings. Switch it on and restart Aviary; its first launch plays the loading screen once, muted, with Skip',
         '<b>A head start for the engine</b> while the window is built, with tab setup requests sent together. A Start Page can appear before website appearance scripts are registered',

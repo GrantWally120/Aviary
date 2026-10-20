@@ -227,6 +227,11 @@ public sealed partial class MainWindow
 
         Add(menu, "New Tab", () => OpenNewTab(null));
         Add(menu, "Duplicate Tab", () => OpenNewTab(tab.Url.Length > 0 ? tab.Url : null));
+        Add(menu, tab.UserMuted ? "Unmute Tab" : "Mute Tab", () =>
+        {
+            tab.SetUserMuted(!tab.UserMuted);
+            DiagFeature("tab-mute", new { tab = tab.Id, muted = tab.UserMuted });
+        }, tab.IsReady);
         menu.Items.Add(new MenuFlyoutSeparator());
 
         ToggleMenuFlyoutItem pin = new() { Text = "Pin Tab", IsChecked = _pinned.Contains(tab), IsEnabled = !_private };

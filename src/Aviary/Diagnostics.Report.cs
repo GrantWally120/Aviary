@@ -809,6 +809,8 @@ internal static partial class Diagnostics
             try
             {
                 RefreshWindow();
+                // Completed animations must leave no strong references to closed tab controls.
+                Perf("animation-cache", new { tabFades = MainWindow.ActiveTabFadeCount, faviconFades = FaviconView.ActiveFadeCount, layout = MainWindow.TabLayoutSnapshot() });
                 CoreWebView2Environment env = await WebViewEnvironment.GetAsync();
                 IReadOnlyList<CoreWebView2ProcessExtendedInfo> infos = await env.GetProcessExtendedInfosAsync();
 

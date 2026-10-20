@@ -8,7 +8,8 @@ namespace Aviary;
 /// Settings → Experimental → "Mute tabs in the background" (Alpha Build 5 M6 stage 2): only the tab
 /// in front of each window can make a sound. The engine's own per-tab mute (<c>IsMuted</c>), set and
 /// cleared by Aviary alone — a tab Aviary did not mute is never unmuted by this, and nothing is ever
-/// sent to a tab while the experiment is off.
+/// sent to a tab for that experiment while it is off. M8's explicit per-tab mute is
+/// independent and stays set when automatic background muting is lifted.
 ///
 /// <para>A tab whose video is in picture in picture keeps its sound: popping a video out is how you
 /// watch one while doing something else. Checked when the tab goes to the back (the page's own
@@ -24,6 +25,15 @@ internal sealed partial class BrowserTab
 
     /// <summary>Aviary muted this tab for being in the background; only then does it unmute it.</summary>
     private bool _mutedForBackground;
+    public bool UserMuted { get; private set; }
+    public bool IsMuted => UserMuted || _mutedForBackground;
+
+    public void SetUserMuted(bool muted)
+    {
+        UserMuted = muted;
+        RefreshMute();
+        Changed?.Invoke(this);
+    }
 
     public static bool MuteBackground => AppSettings.GetBool("exp.muteBackground");
 
@@ -71,16 +81,9 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            if (want && !_mutedForBackground)
-            {
-                core.IsMuted = true;
-                _mutedForBackground = true;
-            }
-            else if (!want && _mutedForBackground)
-            {
-                core.IsMuted = false;
-                _mutedForBackground = false;
-            }
+            _mutedForBackground = want;
+            bool muted = UserMuted || want;
+            if (core.IsMuted != muted) { core.IsMuted = muted; }
         }
         catch (Exception ex)
         {

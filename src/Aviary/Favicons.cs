@@ -114,7 +114,6 @@ internal static class Favicons
     private static Microsoft.UI.Dispatching.DispatcherQueue? _ui;
     private static string? _token;
     private static bool _indexLoaded;
-    private static bool _indexDirty;
 
     /// <summary>
     /// One client for the whole app. A per-request HttpClient exhausts sockets under
@@ -206,7 +205,6 @@ internal static class Favicons
             if (Entries.TryGetValue(key, out Entry? exact))
             {
                 exact.UsedUtc = DateTimeOffset.UtcNow;
-                _indexDirty = true;
                 return exact;
             }
 
@@ -217,7 +215,6 @@ internal static class Favicons
                 && Entries.TryGetValue(domain, out Entry? parent))
             {
                 parent.UsedUtc = DateTimeOffset.UtcNow;
-                _indexDirty = true;
                 return parent;
             }
         }
@@ -313,7 +310,6 @@ internal static class Favicons
                 if (svg && !large && e.Large is null) { e.Large = m; }
 
                 changed = true;
-                _indexDirty = true;
             }
 
             if (changed)
@@ -867,8 +863,6 @@ internal static class Favicons
                         UsedUtc = e.UsedUtc,
                     });
                 }
-
-                _indexDirty = false;
             }
 
             string json = JsonSerializer.Serialize(rows, new JsonSerializerOptions { WriteIndented = false });

@@ -49,7 +49,7 @@ internal static class BuildInfo
 
     /// <summary>
     /// How many of this build's milestones are finished, counted in order (PHASE5-PLAN.md: M0,
-    /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
+    /// M1, M2, M2.5, M3, M4, M4.5–M4.9, and M5–M9: sixteen). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
     /// M4.7 "Immediate Fix" (21 Sep) is the ninth: the menus M4.6 broke, put right.
     /// M4.8 "A Iconic Fix" (21 Sep) is the tenth, and M4.9 "Bird News" (24 Sep) the eleventh —
@@ -60,8 +60,10 @@ internal static class BuildInfo
     /// landed: twenty experiments, and the last four badged settings made real.
     /// M7 — Super Quik (20 Oct) — is the fourteenth: the prepared tabs, measured startup,
     /// Quik Labs, fixes 85–87 and the Bird News rename.
+    /// M8 — measured optimisation and polish (20 Oct) — is the fifteenth: preserved theme
+    /// documents, animation-cache cleanup, loading/audio controls and verified memory behaviour.
     /// </summary>
-    public const int MilestonesDone = 14;
+    public const int MilestonesDone = 15;
 
     /// <summary>
     /// Sixteen since 26 Sep: Grant put M7 "Super Quik" (Quik mode) in, and the measured optimisation and the

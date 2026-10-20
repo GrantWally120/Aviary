@@ -362,7 +362,16 @@ public sealed partial class MainWindow
                 FontSize = 13,
                 Foreground = ThemeBrush("AvLabelSecondaryBrush"),
                 HorizontalAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 36, 0, 36),
+                Margin = new Thickness(0, 28, 0, 8),
+            });
+            list.Children.Add(new TextBlock
+            {
+                Text = "Files you download will appear here.",
+                FontSize = 12,
+                Foreground = ThemeBrush("AvLabelSecondaryBrush"),
+                TextWrapping = TextWrapping.Wrap,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(12, 0, 12, 28),
             });
             return;
         }

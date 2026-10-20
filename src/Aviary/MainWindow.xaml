@@ -159,6 +159,7 @@
                 <Setter Property="MinWidth" Value="0" />
                 <Setter Property="MinHeight" Value="0" />
                 <Setter Property="Height" Value="{StaticResource AvTabHeight}" />
+                <Setter Property="CornerRadius" Value="{StaticResource AvTabCornerRadius}" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -167,7 +168,7 @@
                         <ControlTemplate TargetType="ToggleButton">
                             <Grid x:Name="TabRoot"
                                   Background="{TemplateBinding Background}"
-                                  CornerRadius="{StaticResource AvTabCornerRadius}"
+                                  CornerRadius="{TemplateBinding CornerRadius}"
                                   Padding="8,0,8,0">
                                 <VisualStateManager.VisualStateGroups>
                                     <VisualStateGroup x:Name="CommonStates">

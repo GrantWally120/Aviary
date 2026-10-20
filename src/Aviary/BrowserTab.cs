@@ -78,6 +78,9 @@ internal sealed partial class BrowserTab
     /// </summary>
     public bool IsLoading { get; private set; }
 
+    // The last palette sent to this internal document. Cleared for each navigation.
+    internal string? StartPageThemeCss { get; set; }
+
     /// <summary>Raised whenever anything the chrome displays has changed.</summary>
     public event Action<BrowserTab>? Changed;
 
@@ -308,6 +311,8 @@ internal sealed partial class BrowserTab
         core.NavigationStarting += OnNavigationStarting;
         core.ContentLoading += OnContentLoading;
         core.NavigationCompleted += OnNavigationCompleted;
+        core.IsDocumentPlayingAudioChanged += (_, _) => Changed?.Invoke(this);
+        core.IsMutedChanged += (_, _) => Changed?.Invoke(this);
         core.NewWindowRequested += OnNewWindowRequested;
         core.WindowCloseRequested += OnWindowCloseRequested;
         core.WebMessageReceived += OnWebMessageReceived;
@@ -1522,6 +1527,7 @@ internal sealed partial class BrowserTab
             Favicons.Unpin(IconKey);
             IconKey = string.Empty;
             Title = displayTitle;
+            StartPageThemeCss = null;
             _internalTitle = displayTitle;
             Monogram = displayTitle.Length > 0 ? displayTitle.Substring(0, 1).ToUpperInvariant() : "•";
             Diagnostics.TabUrl(Id, InternalAddress);

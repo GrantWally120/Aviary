@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
@@ -244,6 +245,9 @@ internal static class Motion
     /// tab opened, closed or dragged) and disarmed after it, so resizing the window never drags
     /// the tabs along behind the mouse.
     /// </summary>
+    private sealed class GlideState { public int Generation; }
+    private static readonly ConditionalWeakTable<UIElement, GlideState> GlideStates = new();
+
     public static void GlideNextLayout(IEnumerable<UIElement> elements, TimeSpan? armedFor = null)
     {
         Style style = Current;
@@ -252,7 +256,7 @@ internal static class Motion
             return;
         }
 
-        List<Visual> armed = new();
+        List<(UIElement Element, Visual Visual, GlideState State, int Generation)> armed = new();
         try
         {
             foreach (UIElement element in elements)
@@ -277,7 +281,8 @@ internal static class Motion
                 }
 
                 v.ImplicitAnimations = implicitSet;
-                armed.Add(v);
+                GlideState state = GlideStates.GetValue(element, _ => new GlideState());
+                armed.Add((element, v, state, ++state.Generation));
             }
         }
         catch (Exception ex)
@@ -301,11 +306,18 @@ internal static class Motion
         timer.IsRepeating = false;
         timer.Tick += (_, _) =>
         {
-            foreach (Visual v in armed)
+            foreach ((UIElement element, Visual v, GlideState state, int generation) in armed)
             {
                 try
                 {
+                    if (state.Generation != generation) { continue; }
                     v.ImplicitAnimations = null;
+                    // Offset's base value can also be stale after overlapping implicit springs.
+                    // XAML's layout transform stays correct, so commit that position explicitly.
+                    var parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(element) as UIElement;
+                    var at = parent is null ? default : element.TransformToVisual(parent).TransformPoint(new Windows.Foundation.Point(0, 0));
+                    v.StopAnimation("Offset");
+                    if (parent is not null) { v.Offset = new Vector3((float)at.X, (float)at.Y, v.Offset.Z); }
                 }
                 catch (Exception)
                 {
@@ -399,7 +411,8 @@ internal static class Motion
         }
     }
 
-    private static readonly Dictionary<UIElement, int> RevealTokens = new();
+    private sealed class RevealState { public int Token; }
+    private static readonly ConditionalWeakTable<UIElement, RevealState> RevealTokens = new();
 
     /// <summary>
     /// Shows or hides an element whose XAML Opacity means something (the address field's focus
@@ -409,8 +422,8 @@ internal static class Motion
     /// </summary>
     public static void Reveal(UIElement element, bool show, TimeSpan? duration = null)
     {
-        int token = RevealTokens.TryGetValue(element, out int t) ? t + 1 : 1;
-        RevealTokens[element] = token;
+        RevealState state = RevealTokens.GetValue(element, _ => new RevealState());
+        int token = ++state.Token;
 
         if (Current == Style.Off)
         {
@@ -441,7 +454,7 @@ internal static class Motion
             batch.End();
             batch.Completed += (_, _) =>
             {
-                if (RevealTokens.TryGetValue(element, out int now) && now == token)
+                if (state.Token == token)
                 {
                     element.Opacity = 0;
                 }

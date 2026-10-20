@@ -18,10 +18,9 @@ namespace Aviary;
 ///   dome      Aviary's own mark, for Aviary's own pages
 ///   image     the real favicon
 ///
-/// Safari does not spin here and it does not blank on navigation: it keeps showing the
-/// previous icon until the new one resolves, then cross-fades. This does the same — the
-/// slug only appears when the incoming key has nothing cached AND the outgoing key was
-/// different, so a reload never flickers.
+/// Tabs show a small progress ring while loading (M8), unless motion is reduced. At rest
+/// the previous identity stays until the new one resolves, then cross-fades. The slug
+/// appears only when the incoming key has nothing cached and the outgoing key differs.
 ///
 /// Not hit-testable. In WinUI an element at Opacity 0 is still hit-testable (unlike
 /// Visibility.Collapsed), so if this could take the pointer it would steal the press from
@@ -39,6 +38,8 @@ internal sealed class FaviconView : Grid
     private readonly TextBlock _letter;
     private readonly Microsoft.UI.Xaml.Shapes.Path _dome;
     private readonly Image _image;
+    private readonly ProgressRing _loading;
+    private bool _showLoading;
 
     private readonly Action<string> _onUpdated;
     private bool _subscribed;
@@ -93,6 +94,12 @@ internal sealed class FaviconView : Grid
         Children.Add(_chip);
         Children.Add(_dome);
         Children.Add(_image);
+        _loading = new ProgressRing
+        {
+            Width = logicalSize, Height = logicalSize, MinWidth = 0, MinHeight = 0,
+            IsActive = false, Visibility = Visibility.Collapsed, IsHitTestVisible = false,
+        };
+        Children.Add(_loading);
 
         ApplyLookGeometry(IsGlass());
 
@@ -113,6 +120,7 @@ internal sealed class FaviconView : Grid
 
         Unloaded += (_, _) =>
         {
+            foreach (UIElement child in Children) { Stop(child); }
             if (_subscribed)
             {
                 Favicons.Updated -= _onUpdated;
@@ -213,7 +221,8 @@ internal sealed class FaviconView : Grid
     {
         foreach (UIElement child in Children)
         {
-            double target = ReferenceEquals(child, layer) ? 1 : 0;
+            if (ReferenceEquals(child, _loading)) { continue; }
+            double target = !_showLoading && ReferenceEquals(child, layer) ? 1 : 0;
             if (animate)
             {
                 Animate(child, target);
@@ -226,13 +235,24 @@ internal sealed class FaviconView : Grid
         }
     }
 
+    public void SetLoading(bool loading)
+    {
+        bool show = loading && Motion.On;
+        if (_showLoading == show) { return; }
+        _showLoading = show;
+        _loading.IsActive = show;
+        _loading.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+        Refresh(animate: false);
+    }
+
     // A Storyboard animating Opacity HOLDS its final value, and a later plain assignment to
     // Opacity is then silently ignored. One storyboard per element, stopped before reuse.
     private static readonly Dictionary<UIElement, Storyboard> Fades = new();
+    internal static int ActiveFadeCount => Fades.Count;
 
     private static void Stop(UIElement element)
     {
-        if (Fades.TryGetValue(element, out Storyboard? existing))
+        if (Fades.Remove(element, out Storyboard? existing))
         {
             try { existing.Stop(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "favicon view: stop fade"); }
         }
@@ -254,6 +274,14 @@ internal sealed class FaviconView : Grid
         Storyboard storyboard = new();
         storyboard.Children.Add(animation);
         Fades[element] = storyboard;
+        storyboard.Completed += (_, _) =>
+        {
+            if (Fades.TryGetValue(element, out Storyboard? current) && ReferenceEquals(current, storyboard))
+            {
+                Stop(element);
+                element.Opacity = to;
+            }
+        };
         storyboard.Begin();
     }
 

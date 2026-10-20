@@ -60,6 +60,7 @@ public sealed partial class MainWindow : Window
         }
 
         InitializeComponent();
+        FullScreenHint.Unloaded += (_, _) => StopFade(FullScreenHint);
         Diagnostics.Mark("window-xaml");   // M7: finer launch marks, to see what each step costs
 
         ExtendsContentIntoTitleBar = true;
@@ -1340,6 +1341,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
+            _applyingLook = true;
             bool glass = look.Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
             var merged = Application.Current.Resources.MergedDictionaries;
 
@@ -1360,11 +1362,11 @@ public sealed partial class MainWindow : Window
             RootGrid.RequestedTheme = restore;
 
             ApplyLookGeometry(glass);
+            _applyingLook = false;
             OnEffectiveThemeChanged();
 
-            // Tab geometry is StaticResource, resolved when a button is built: the strip keeps its
-            // buttons now (MainWindow.TabMotion.cs), so a new look needs new ones.
-            RebuildTabStrip(fresh: true);
+            // Geometry is restamped on the existing buttons; changing looks keeps their identity.
+            RebuildTabStrip();
 
             double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds, 1);
             DiagPerf("look-swap", new { look, ms, tabs = _tabs.Count });
@@ -1375,6 +1377,7 @@ public sealed partial class MainWindow : Window
             // A failed look swap should leave the browser usable in whatever it is wearing.
             Diagnostics.Swallowed(ex, "window: apply look " + look);
         }
+        finally { _applyingLook = false; }
     }
 
     /// <summary>
@@ -1427,6 +1430,15 @@ public sealed partial class MainWindow : Window
         // Every live identity cell, for the same reason the rows above are re-applied:
         // AvMonogramRadius is a StaticResource and will not re-resolve on a look swap.
         FaviconView.ApplyLookGeometryToAll(glass);
+        foreach (ToggleButton button in _tabButtons.Values)
+        {
+            if (button.Tag is TabChrome chrome)
+            {
+                button.CornerRadius = chrome.Vertical
+                    ? Res<CornerRadius>("AvSidebarRowRadius", new CornerRadius(6))
+                    : Res<CornerRadius>("AvTabCornerRadius", new CornerRadius(8));
+            }
+        }
         ApplySidebarGeometry(glass);
         RestampSegments();
 
@@ -1754,6 +1766,7 @@ public sealed partial class MainWindow : Window
 
     private void OnTabChanged(BrowserTab tab)
     {
+        ApplyStartPageTheme(tab);
         // M5 stage 4: a page loaded or retitled in the group in front.
         QueueGroupSave();
 
@@ -1761,8 +1774,9 @@ public sealed partial class MainWindow : Window
             && button.Tag is TabChrome chrome)
         {
             chrome.Title.Text = ShownTitle(tab);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, ShownTitle(tab));
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, TabAccessibleName(tab));
             chrome.Icon.SetSource(tab.Url, tab.Monogram, tab.IsInternalPage);
+            RefreshTabActivity(chrome);
 
             // The name - or, with M6's tab previews on, the picture above it (MainWindow.TabsExperiments.cs).
             SetTabTip(button, tab);
@@ -1790,6 +1804,9 @@ public sealed partial class MainWindow : Window
         public required FaviconView Icon { get; init; }
         public required TextBlock Title { get; init; }
         public required Grid ClosePad { get; init; }
+        public bool Vertical { get; init; }
+        public Button? Audio { get; init; }
+        public bool AudioOverIcon { get; init; }
     }
 
     /// <param name="vertical">
@@ -1853,11 +1870,17 @@ public sealed partial class MainWindow : Window
 
         Grid content = new();
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         Grid.SetColumn(slot, 0);
-        Grid.SetColumn(title, 1);
+        Grid.SetColumn(title, 2);
         content.Children.Add(slot);
         content.Children.Add(title);
+        Button audio = BuildTabAudioButton(tab);
+        // Put the action before the shrinking title so it remains reachable in a crowded strip.
+        audio.Margin = new Thickness(4, 0, 0, 0);
+        Grid.SetColumn(audio, 1);
+        content.Children.Add(audio);
 
         ToggleButton button = new()
         {
@@ -1890,8 +1913,10 @@ public sealed partial class MainWindow : Window
             FadeTo(close, always ? 1 : 0, 120);
         };
 
-        button.Click += (_, _) =>
+        button.Click += (_, e) =>
         {
+            // Nested audio controls have their own action and must not select the tab.
+            if (button.Tag is TabChrome parts && IsTabAudioTarget(e.OriginalSource, parts)) { return; }
             // A ToggleButton would otherwise let you un-check the active tab.
             button.IsChecked = true;
             if (!ReferenceEquals(tab, _active))
@@ -1910,7 +1935,14 @@ public sealed partial class MainWindow : Window
         // The buttons are MOVED between grid columns rather than the strip being rebuilt,
         // because rebuilding destroys the element holding the pointer capture and the drag
         // would die on its first swap.
-        button.Tag = new TabChrome { Tab = tab, Icon = icon, Title = title, ClosePad = close };
+        TabChrome chrome = new() { Tab = tab, Icon = icon, Title = title, ClosePad = close, Vertical = vertical, Audio = audio };
+        button.Tag = chrome;
+        RefreshTabActivity(chrome);
+        button.CornerRadius = vertical
+            ? Res<CornerRadius>("AvSidebarRowRadius", new CornerRadius(6))
+            : Res<CornerRadius>("AvTabCornerRadius", new CornerRadius(8));
+        icon.Unloaded += (_, _) => StopFade(icon);
+        close.Unloaded += (_, _) => StopFade(close);
 
         PointerEventHandler pressed = vertical ? VTab_PointerPressed : Tab_PointerPressed;
         PointerEventHandler moved = vertical ? VTab_PointerMoved : Tab_PointerMoved;
@@ -1962,6 +1994,7 @@ public sealed partial class MainWindow : Window
         }
 
         BrowserTab tab = chrome.Tab;
+        if (!_tabs.Contains(tab) || IsTabAudioTarget(e.OriginalSource, chrome)) { return; }
         _dragTab = tab;
         _dragFrom = _tabs.IndexOf(tab);
         _dragStartX = e.GetCurrentPoint(TabStrip).Position.X;
@@ -2077,13 +2110,19 @@ public sealed partial class MainWindow : Window
     /// in-out-in left two of them fighting and an icon could stick at zero.
     /// </summary>
     private static readonly Dictionary<UIElement, Storyboard> Fades = new();
+    internal static int ActiveTabFadeCount => Fades.Count;
 
-    private static void FadeTo(UIElement element, double to, int milliseconds)
+    private static void StopFade(UIElement element)
     {
-        if (Fades.TryGetValue(element, out Storyboard? running))
+        if (Fades.Remove(element, out Storyboard? running))
         {
             try { running.Stop(); } catch (Exception ex) { Diagnostics.Swallowed(ex, "window: stop fade"); }
         }
+    }
+
+    private static void FadeTo(UIElement element, double to, int milliseconds)
+    {
+        StopFade(element);
 
         DoubleAnimation animation = new()
         {
@@ -2097,6 +2136,14 @@ public sealed partial class MainWindow : Window
         Storyboard storyboard = new();
         storyboard.Children.Add(animation);
         Fades[element] = storyboard;
+        storyboard.Completed += (_, _) =>
+        {
+            if (Fades.TryGetValue(element, out Storyboard? current) && ReferenceEquals(current, storyboard))
+            {
+                StopFade(element);
+                element.Opacity = to;
+            }
+        };
         storyboard.Begin();
     }
 
@@ -2918,6 +2965,10 @@ public sealed partial class MainWindow : Window
                 case "animationStyle":
                 case "reduceMotion":
                     PushMotionToPages();
+                    foreach (ToggleButton button in _tabButtons.Values)
+                    {
+                        if (button.Tag is TabChrome chrome) { RefreshTabActivity(chrome); }
+                    }
                     break;
 
                 // M6: at once, in every open tab of every window - no restart.

@@ -13,6 +13,7 @@ const start = src.indexOf("var SECTIONS");
 const end = src.indexOf("function control(row)");
 const body = src.slice(start, end);
 const after = src.slice(end);
+const shipped = Number(fs.readFileSync(dir + "BuildInfo.cs", "utf8").match(/PhaseShipped\s*=\s*(\d+)/)[1]);
 const esc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const rows = body.split(/\{t:/).slice(1);
@@ -22,7 +23,8 @@ for (const r of rows) {
   const km = r.match(/key:'([A-Za-z0-9_.]+)'/);
   const title = (r.match(/^'([^']*)'/) || r.match(/^\s*([^,]*),/) || ["", "?"])[1];
   if (!km) continue;
-  const isGated = /\bphase:\s*\d/.test(head) || /never:/.test(head);
+  const phase = head.match(/\bphase:\s*(\d+)/);
+  const isGated = (phase && Number(phase[1]) > shipped) || /never:/.test(head);
   (isGated ? gated : live).push({ key: km[1], title });
 }
 
@@ -48,6 +50,7 @@ for (const row of live) {
 
 console.log("live keyed rows:  " + live.length);
 console.log("gated keyed rows: " + gated.length);
+for (const row of gated) console.log("   deferred: " + row.key + " (" + row.title + ")");
 console.log("live rows nothing reads: " + (unread.length ? "" : "none"));
 for (const u of unread) console.log("   " + u.key + "   (" + u.title + ")");
 

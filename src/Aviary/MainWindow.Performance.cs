@@ -239,6 +239,8 @@ public sealed partial class MainWindow
                     // Never a private tab's title or address — the page shows "Private tab".
                     title = t.IsPrivate ? null : ShownTitle(t),
                     isPrivate = t.IsPrivate,
+                    audio = t.IsPlayingAudio,
+                    muted = t.IsMuted,
                     own = t.IsInternalPage,
                     // M7 Quik: not a tab yet - the next new tab, made in advance. Nothing to sleep or close.
                     ready,
