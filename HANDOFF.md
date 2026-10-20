@@ -1,34 +1,30 @@
 # Aviary — project handoff
 
 > **CURRENT — 21 October 2026 (supersedes the September status box below)**
-> - **M7 and M8 are implemented and tested: 15 of 16 milestones.** Final tab-churn repair
->   passes; see AB5-CONTINUE.md for the current candidates. Bird News is the product name;
->   the M7 description and release notes explicitly record the rename from Birds News.
-> - Preserved the unfinished stage 2 work; added the measured second prepared tab in Quik
->   Labs, fixed bugs 85–87, and fixed copying the current page into a new tab. Classic's
->   unused glass decorations are now created when Liquid Glass is first selected in Quik.
-> - Ten alternating launches per mode on the same warmed scratch profile: regular median
->   **972.6 ms**, Quik **735.25 ms**, **24.4% faster**. Twenty prepared tabs: median **8.305 ms**.
->   Full evidence, qualifications and test commands: `tools/test/M7-VERIFICATION-2026-10-20.md`.
-> - Grant approved commits and local replacement on 21 Oct: **M7 f427fe0**, **M8 42c2671**.
->   M9 preparation is recorded with the updated checkpoint. `publish/Aviary` is now the exact
->   tested 662-file candidate; the old copy is preserved in `.artifact/ab5-published-before-approved-20261021`.
-> - M8 preserves Start Pages on look swaps: first Glass switch with 22 tabs **75.5 ms**,
->   warm swaps **24–25 ms**. Loading/audio indicators and manual mute tested with Windows'
->   audio meter. Animation caches release controls. Zero stalls >50 ms is not achieved.
-> - **Next is M9**: local release/verify scripts, README, SDK 9.0.317 and NuGet lock, safe
->   Collection sync and revised CI prepared. Grant approved **GrantWally120/Aviary, PUBLIC**
->   for source/catalog upload. Real CI awaits GitHub authentication. Keep 15/16 and PhaseShipped=4.
-> - Release packaging itself leaves publish untouched. The approved local replacement carries 54/54 exhibits;
->   source-only package excludes personal payloads. See tools/test/M8-VERIFICATION-2026-10-20.md.
-> - **M9 local preparation is complete.** Both exact candidate ZIPs were extracted and tested;
->   both closed normally with zero issues/crashes. Full evidence and SHA-256 checksums:
->   `tools/test/M9-RELEASE-2026-10-21.md`. The executable now reports 0.5.0.0 consistently.
-> - **Waiting only for GitHub connection** before the approved first push. Instructions were
->   supplied after Grant asked how. No remote CI success is claimed. Continuation stays quiet
->   while connection is pending; do not repeat questions, builds or tests without new changes.
-> - **macOS support is deferred** at Grant's request. No new dependency downloads.
-> - Original unfinished files were backed up to `.artifact/m7-before-20261020` before changes.
+> - **Final AB5 candidate is implemented and tested: 16 of 16 milestones.** BuildInfo is
+>   0.5.0, PhaseShipped=5, preRelease=false, after real Windows CI passed twice. Final
+>   milestone commits/publication await Grant's concrete approval; do not claim final delivery yet.
+> - Approved commits/pushes: **M7 f427fe0**, **M8 42c2671**, **M9 preparation 77f54fb**,
+>   **exact SDK pin 3fd2a8b**. Repository **GrantWally120/Aviary, PUBLIC** is approved.
+>   Normal Git authentication works; no need to ask Grant to reconnect.
+> - Actual Windows CI **39507147323** on 77f54fb and **39508704024** on 3fd2a8b both
+>   passed locked restore, checks, verified source-only packaging and uploads. SDK pin is
+>   exactly [1.7.260224002]; resolved dependencies did not change.
+> - **publish/Aviary still has the earlier approved 15/16 candidate.** Its predecessor is
+>   preserved in .artifact/ab5-published-before-approved-20261021. Final replacement is pending.
+> - Current final ZIPs: .artifact/ab5-final-local-20261021 (662 files, 54/54 exhibits) and
+>   .artifact/ab5-final-source-20261021 (508 files, 4/54). Exact hashes and full evidence:
+>   tools/test/M9-FINAL-2026-10-21.md. Both exact ZIPs were extracted and launched on scratch profiles.
+> - Native Updates reports Latest, version 0.5.0 and final M9 notes; real injected BUILD
+>   confirms 16/16. M7/Bird News rename and M8 work are preserved. Both sessions closed normally,
+>   no crashes; local QA recorded one known 51.2 ms UI stall, source QA zero issues.
+> - Both landing looks show AB5 complete and betas planned. The small completed-build selector
+>   fix and download links outside PHASES are included in final review, not a general redesign.
+> - **Waiting for final M9 commit/push (release plus actual CI/publication record) and tested
+>   local replacement approval.** Then validate final-source CI, preserve the current published
+>   copy, publish the exact tested candidate and record completion. Pause continuation only then.
+> - AB5-CONTINUE.md is the current checkpoint. While only final approval is pending, stay quiet:
+>   do not repeat builds, tests or questions. macOS stays deferred; beta builds remain planned.
 
 Everything a new session needs to pick this up. Written 6 September 2026 at the end of
 Phase 3; updated 7 September 2026 at the end of Phase 4, 11 September 2026 at the end of
@@ -3327,3 +3323,25 @@ Set up Quik, the rename is explicit in the M7 description/notes and roadmap, and
 Get started summary is current. The many-tab look-swap pause is listed as a Beta limit,
 with actual stalls and the checks that were not rerun documented in the verification file.
 No new packages, no published-copy replacement, and no commit were made.
+
+## 29. M9 final validation — 21 October 2026
+
+The final 16/16 candidate is implemented and locally verified after actual Windows CI
+passed on M9 preparation 77f54fb (run 39507147323) and the explicitly approved SDK pin
+3fd2a8b (run 39508704024). Full current evidence: `tools/test/M9-FINAL-2026-10-21.md`.
+The current box and AB5-CONTINUE.md supersede historical pending-connection/CI statements.
+
+Both exact final ZIPs were extracted and tested on scratch profiles. Updates' real BUILD
+reports 16/16 and PhaseShipped=5; public packages exclude personal Collection payloads.
+The final source remains uncommitted and the published copy remains the approved 15/16
+candidate until Grant approves final commits/push and the concrete tested replacement.
+The final request includes the release commit and its actual CI/publication record commit.
+
+The landing page's small completed-build fallback/default-tab fix is a necessary exception
+to PHASES-only edits: without it, finishing the last alpha labels planned BB2 as current.
+Both existing looks also gain working GitHub download links. These are included explicitly
+in the final review; other page design/content is preserved. No landing Artifact publication.
+
+All own QA apps, the temporary browser tab and loopback fixture are closed. Both sessions
+closed normally with no crashes; local QA had one 51.2 ms UI stall, source QA zero issues.
+The known performance limitation remains, as do Quik's Beta status and deferred macOS.

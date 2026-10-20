@@ -720,7 +720,7 @@ var UPDATES = [
         'The download progress ring and tab groups, rather than shipping either half-built'
       ]}
     ]},
-  { phase:5, name:'The Long Run',
+  { phase:5, name:'The Long Run', when:'21 Oct 2026',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
     short:'Shields, the Collection and Smooth Flight — now joined by Quik, in Beta: prepared new tabs, an earlier engine start and optional Quik Labs. The news section is called Bird News.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
@@ -756,15 +756,21 @@ var UPDATES = [
        d:'<b>Quik</b>, in Beta: an earlier engine start, prepared new tabs, a fourth animation speed and optional Quik Labs. Picture in picture works through player overlays and from Aa, background choices and the Forgetful list stay in sync, and Birds News is now <b>Bird News</b>.'},
       {n:'M8', t:'Faster and smoother — and measured', when:'20 Oct',
        d:'Changing looks keeps your tabs and Start Pages in place. Finished animations let go of their controls, tabs show loading and audio, each tab can be muted, and empty Downloads explains what belongs there. Measured, with the remaining stalls recorded.'},
-      {n:'M9', t:'Getting ready for Beta Build 1',
-       d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
+      {n:'M9', t:'Getting ready for Beta Build 1', when:'21 Oct',
+       d:'A home on GitHub with verified automatic Windows builds, checked ZIP packages and finished release notes. Personal Collection projects stay out of the public build.'}
     ],
     notes:[
+      {h:'Ready for the next build — M9 · 21 October 2026', items:[
+        '<b>Alpha Build 5 is complete.</b> All sixteen milestones of The Long Run are finished. Quik remains in Beta, with its measured limits explained in Settings',
+        '<b>Automatic Windows builds on GitHub.</b> The first build and the build with the pinned Windows App SDK both passed their checks and package verification',
+        '<b>Checked ZIP packages.</b> Keep the extracted Aviary folder together. Public builds include the Collection catalog and landing pages; personal projects stay in the local copy, and unavailable exhibits say Not in this copy',
+        '<b>Still ahead.</b> Aviary is unsigned, with an installer and automatic updates planned for beta. Some operations still exceed the 50 ms target. macOS support comes later'
+      ]},
       {h:'Measured polish — M8 · 20 October 2026', items:[
         '<b>Look switches keep the page.</b> Start Pages change palette without reloading, and tab buttons keep their identity. Warm look changes with 22 open tabs measured 24–25 ms on the test PC',
         '<b>Less retained UI.</b> Finished favicon and hover fades release their controls, and reveal animations use weak keys. Diagnostics records the active fade counts',
         '<b>Loading and sound.</b> A loading ring replaces the favicon while a page loads, unless motion is reduced. A sound button mutes just that tab, including background and pinned tabs, and its manual choice survives automatic background muting',
-        '<b>Limits remain.</b> The first Liquid Glass switch measured 76 ms in one two-tab run, and rapid tab creation can still stall. Working-set savings from Memory saver do not mean every private allocation is released. M9 and the first real GitHub build are still pending'
+        '<b>Limits remain.</b> The first Liquid Glass switch measured 76 ms in one two-tab run, and rapid tab creation can still stall. Working-set savings from Memory saver do not mean every private allocation is released'
       ]},
       {h:'Super Quik — M7 · 20 October 2026', items:[
         '<b>Quik, in Beta</b>, has its own section in Settings. Switch it on and restart Aviary; its first launch plays the loading screen once, muted, with Skip',

@@ -1,13 +1,14 @@
 # Getting Aviary onto your PC
 
-**20 October 2026: the repository connection and first successful GitHub CI run are
-still pending.** A local release candidate can be reviewed before that happens.
+**21 October 2026:** the [first Windows CI run](https://github.com/GrantWally120/Aviary/actions/runs/39507147323)
+and the [exact SDK pin's CI run](https://github.com/GrantWally120/Aviary/actions/runs/39508704024)
+both passed. Alpha Build 5 is version 0.5.0, The Long Run.
 
-## Local release candidate
+## Local build
 
 Open the prepared release folder, extract its ZIP, then double-click `Aviary.exe`
 inside the extracted `Aviary` folder. Keep the whole folder together. This does not
-replace the older published copy. Your profile is stored separately.
+replace an existing published copy automatically. Your profile is stored separately.
 
 There are two package types:
 
@@ -19,11 +20,12 @@ There are two package types:
 Both packages carry .NET and Windows App SDK. They require Microsoft Edge WebView2
 Runtime, normally present on Windows 11. The app is unsigned. macOS is planned later.
 
-## Download a GitHub build once connected
+## Download a GitHub build
 
 1. Open the Aviary repository on GitHub and choose **Actions**.
 2. Choose **Build Aviary (win-x64)**, then a run with a green check.
-3. Under **Artifacts**, download **Aviary-AB5-RC-source-win-x64.zip**.
+3. Under **Artifacts**, download **Aviary-AB5-source-win-x64.zip**. Earlier pre-release
+   runs use **Aviary-AB5-RC-source-win-x64.zip**.
 4. Extract it and open **Aviary.exe** inside the **Aviary** folder.
 
 A grey or yellow run is still waiting or building. A red run failed; it does not

@@ -45,7 +45,7 @@ internal static class BuildInfo
     /// they arrive in and stay badged until that build is done; when this number is bumped,
     /// they all go live together, by which point they all work.
     /// </summary>
-    public const int PhaseShipped = 4;
+    public const int PhaseShipped = 5;
 
     /// <summary>
     /// How many of this build's milestones are finished, counted in order (PHASE5-PLAN.md: M0,
@@ -62,8 +62,10 @@ internal static class BuildInfo
     /// Quik Labs, fixes 85–87 and the Bird News rename.
     /// M8 — measured optimisation and polish (20 Oct) — is the fifteenth: preserved theme
     /// documents, animation-cache cleanup, loading/audio controls and verified memory behaviour.
+    /// M9 — beta preparation (21 Oct) — is the sixteenth: real Windows CI, the exact SDK pin,
+    /// verified distribution packages and completed release notes.
     /// </summary>
-    public const int MilestonesDone = 15;
+    public const int MilestonesDone = 16;
 
     /// <summary>
     /// Sixteen since 26 Sep: Grant put M7 "Super Quik" (Quik mode) in, and the measured optimisation and the

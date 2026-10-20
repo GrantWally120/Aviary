@@ -1,13 +1,13 @@
 # Aviary
 
 A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. Alpha Build 5
-is **The Long Run**, version 0.5.0. It remains a pre-release while M9's first GitHub CI
-run and final release are pending. macOS support is deferred.
+is **The Long Run**, version 0.5.0, with all sixteen milestones complete. The first
+Windows CI run and the exact SDK pin's CI run both passed. macOS support is deferred.
 
 Classic and Liquid Glass looks, tabs and tab groups, Bird News, Shields, offline
 Collection exhibits, and optional Quik prepared tabs are implemented. Quik is in Beta;
 its spare tabs use additional memory. Per-tab audio controls and loading indicators
-arrive in M8. Measurements and limitations are recorded in the verification notes.
+arrived in M8. Measurements and limitations are recorded in the verification notes.
 
 ## Run
 
@@ -30,6 +30,7 @@ dotnet run --project tools/test/filters/FilterHarness.csproj -c Release
 node tools/test/settings-audit.js
 node tools/test/m7-script-test.js
 node tools/test/collection-availability-test.js
+node tools/test/release-state-test.js
 ./tools/test/library-sync-test.ps1
 ./tools/release/prepare.ps1 -NoRestore -SourceOnly
 ```
@@ -39,8 +40,8 @@ Node 22+ runs the small JavaScript checks. `prepare.ps1` makes a new folder unde
 and a manifest of every packaged file. It never replaces `publish/Aviary`. Omit
 `-SourceOnly` only for a local package with the existing private Collection payload.
 The SDK and NuGet lock file make dependency selection repeatable. Windows App SDK's
-resolved version is 1.7.260224002; its project reference will be pinned after real CI
-passes, as required by the phase plan.
+exact version is 1.7.260224002, pinned in the project and lock after real CI passed.
+The lock was refreshed deliberately without changing resolved dependencies.
 
 ## Collection and source-only builds
 
@@ -60,12 +61,13 @@ preflight failure makes no changes. Do not use sync to repair or edit original p
 - [Alpha Build 5 plan](PHASE5-PLAN.md)
 - [M7 verification](tools/test/M7-VERIFICATION-2026-10-20.md)
 - [M8 verification](tools/test/M8-VERIFICATION-2026-10-20.md)
-- [M9 release evidence](tools/test/M9-RELEASE-2026-10-21.md)
+- [M9 final validation](tools/test/M9-FINAL-2026-10-21.md)
 - [Continuation checkpoint](AB5-CONTINUE.md)
 - [Test kit](tools/test/README.md)
 
-GitHub builds are configured for pushes to main, pull requests and manual runs. No
-remote CI result is claimed until a repository is connected and its first build passes.
+GitHub builds run on pushes to main, pull requests and manual requests. Both the
+[first run](https://github.com/GrantWally120/Aviary/actions/runs/39507147323) and the
+[pinned SDK run](https://github.com/GrantWally120/Aviary/actions/runs/39508704024) passed.
 The source is not currently offered under an open-source licence. Third-party runtimes
 keep their upstream terms; bundled filter attribution and licences are in
 [Filters/README.txt](src/Aviary/Filters/README.txt). Aviary is independent of Apple,

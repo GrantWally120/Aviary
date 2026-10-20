@@ -43,6 +43,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Player checks failed' }
           node tools/test/collection-availability-test.js
           if ($LASTEXITCODE) { throw 'Collection checks failed' }
+          node tools/test/release-state-test.js
+          if ($LASTEXITCODE) { throw 'Release state checks failed' }
           dotnet run --project tools/test/filters/FilterHarness.csproj -c Release
           if ($LASTEXITCODE) { throw 'Filter checks failed' }
           ./tools/test/library-sync-test.ps1
@@ -51,7 +53,7 @@ jobs:
       - name: Upload the app
         uses: actions/upload-artifact@v7
         with:
-          path: .artifact/release-ci/Aviary-AB5-RC-source-win-x64.zip
+          path: .artifact/release-ci/Aviary-*-source-win-x64.zip
           archive: false
           if-no-files-found: error
           retention-days: 14

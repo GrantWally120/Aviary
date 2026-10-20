@@ -9,32 +9,41 @@ if (Test-Path -LiteralPath $output) { throw 'Use a new release staging folder; e
 New-Item -ItemType Directory -Path $output | Out-Null
 $app = Join-Path $output 'Aviary'
 $project = Join-Path $repo 'src\Aviary\Aviary.csproj'
+$buildInfo = Get-Content -LiteralPath (Join-Path $repo 'src\Aviary\BuildInfo.cs') -Raw
+$phaseNumber = [regex]::Match($buildInfo, 'public const int PhaseNumber = (\d+);')
+$phaseShipped = [regex]::Match($buildInfo, 'public const int PhaseShipped = (\d+);')
+if (!$phaseNumber.Success -or !$phaseShipped.Success) { throw 'BuildInfo must declare the current and shipped phases.' }
+$preRelease = [int]$phaseShipped.Groups[1].Value -lt [int]$phaseNumber.Groups[1].Value
 if (!$NoRestore) {
     & dotnet restore $project --locked-mode -p:Platform=x64 -p:RuntimeIdentifier=win-x64
     if ($LASTEXITCODE) { throw 'Restore failed.' }
 }
 & dotnet publish $project --no-restore -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 "-p:IncludePrivateCollection=$((!$SourceOnly).ToString().ToLowerInvariant())" -o $app -v:minimal
 if ($LASTEXITCODE) { throw 'Publish failed.' }
-$notice = @'
-Aviary — Alpha Build 5 release candidate (Windows x64)
+$releaseName = if ($preRelease) { 'release candidate' } else { 'The Long Run' }
+$releaseNotice = if ($preRelease) { 'This is an unsigned pre-release. Final AB5 release approval is pending.' } else { 'This is an unsigned Alpha Build 5 app. Quik remains in Beta.' }
+$notice = @"
+Aviary — Alpha Build 5 $releaseName (Windows x64)
 
 Extract this entire Aviary folder, then double-click Aviary.exe. Keep its files together.
 .NET and Windows App SDK are included. Microsoft Edge WebView2 Runtime is also required
 (normally present on Windows 11). macOS support is planned for later.
 
-This is an unsigned pre-release. GitHub CI and final AB5 release approval are pending.
+$releaseNotice
 Your profile is stored separately in %LOCALAPPDATA%\Aviary.
 Filters\README.txt contains the bundled filter lists' attribution and licences.
 The Collection contains copies; it never edits the original projects.
-'@
+"@
 if ($SourceOnly) { $notice += "`r`nThis source-only build excludes personal Collection files, thumbnails and game builds.`r`nUnavailable exhibits say 'Not in this copy'.`r`n" }
 [IO.File]::WriteAllText((Join-Path $app 'README.txt'), $notice)
 $manifest = & (Join-Path $PSScriptRoot 'verify.ps1') -Folder $app -SourceOnly:$SourceOnly
 $commit = & git -C $repo rev-parse HEAD
 $dirty = [bool](& git -C $repo status --porcelain)
-$record = [ordered]@{ created=(Get-Date -Format o); commit=$commit; workingTreeDirty=$dirty; sdk=(& dotnet --version); verification=$manifest }
+$record = [ordered]@{ created=(Get-Date -Format o); commit=$commit; workingTreeDirty=$dirty; sdk=(& dotnet --version); preRelease=$preRelease; verification=$manifest }
 $record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding utf8
-$label = if ($SourceOnly) { 'Aviary-AB5-RC-source-win-x64' } else { 'Aviary-AB5-RC-local-win-x64' }
+$stage = if ($preRelease) { 'RC-' } else { '' }
+$distribution = if ($SourceOnly) { 'source' } else { 'local' }
+$label = 'Aviary-AB5-'+$stage+$distribution+'-win-x64'
 $zip = Join-Path $output ($label+'.zip')
 Compress-Archive -LiteralPath $app -DestinationPath $zip -CompressionLevel Optimal
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()

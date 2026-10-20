@@ -2,7 +2,9 @@
 
 ## M8 and M9 checks — 20–21 October 2026
 
-See [M8 verification](M8-VERIFICATION-2026-10-20.md) and [M9 release evidence](M9-RELEASE-2026-10-21.md).
+See [M8 verification](M8-VERIFICATION-2026-10-20.md) and [M9 final validation](M9-FINAL-2026-10-21.md).
+`node tools/test/release-state-test.js` checks completed AB5, the real landing-page
+selectors, planned beta state and dated M9 Updates data (8 checks).
 `collection-availability-test.js` exercises the shipped Collection probe/summary for full,
 partial and failed file checks. `library-sync-test.ps1` verifies preservation when originals
 are missing and refusal of incomplete pruning, using only `.artifact` fixtures.

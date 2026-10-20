@@ -497,17 +497,22 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
   as a loading indicator, a tab audio indicator and per-tab mute, and empty states. Real Liquid
   Glass blur still needs Win2D — **ask first.**
 
-### M9 — Beta preparation (was M8 until 26 Sep)
-**Local preparation complete 21 Oct; PUBLIC GrantWally120/Aviary approved; GitHub connection and real CI pending.**
-README, locked restore, safe Collection sync, verified local/source-only ZIPs and checksums
-are prepared. See `tools/test/M9-RELEASE-2026-10-21.md`. Keep 15/16 and PhaseShipped=4 until
-the hard CI requirement and final release checks are satisfied.
+### M9 — Beta preparation (was M8 until 26 Sep) · IMPLEMENTED 21 Oct 2026
+**Final 16/16 candidate verified; final milestone commit/publication approval pending.**
+See `tools/test/M9-FINAL-2026-10-21.md`. The existing published copy remains the earlier
+approved 15/16 candidate until Grant approves its concrete replacement.
 
-- **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
-  repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
-- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 16` (0.5.0 and the name
-  "Alpha Build 5" already arrived on 13 Sep — until M9 they are labelled pre-release). Updates'
-  AB5 entry finished, landing page and HANDOFF updated.
+- **GitHub repo + CI** (hard requirement 6 satisfied): PUBLIC GrantWally120/Aviary approved
+  and pushed; run 39507147323 passed on 77f54fb. Exact Windows App SDK pin [1.7.260224002]
+  was approved/committed as 3fd2a8b; its second CI run 39508704024 passed too.
+- App icon present. Final candidate has `PhaseShipped=5`, `MilestonesDone=16`, version 0.5.0,
+  with final dated M9 notes and the preserved M7/Bird News/M8 work. Both exact ZIPs passed
+  native scratch-profile QA and manifest/checksum validation. Remaining stalls stay documented.
+- Both landing looks show completed AB5 and planned betas; a necessary small status-selector
+  fix outside PHASES prevents promoting planned BB2. Final review also includes download links.
+- After final approval: commit/push the final source, observe its real CI, preserve the current
+  published copy, replace it with the exact tested candidate and record the actual results.
+  Pause continuation when delivery is complete. macOS remains deferred.
 
 ## Critical files
 
