@@ -46,7 +46,7 @@ public sealed partial class MainWindow
                 StartBackground.Forget();
                 AppSettings.Set("startBackground", choice);
                 DiagFeature("start-background", new { choice, from });
-                PushToSettingsPage("startBackground", choice);
+                PushToEverySettingsPage("startBackground", choice);
                 RefreshStartPages();
                 return;
             }
@@ -56,6 +56,7 @@ public sealed partial class MainWindow
             {
                 // Cancelled. The page has already ticked the row it was told to tick, so it is
                 // sent back what is actually saved.
+                PushToEverySettingsPage("startBackground", AppSettings.Get("startBackground"));
                 RefreshStartPages();
                 return;
             }
@@ -64,6 +65,7 @@ public sealed partial class MainWindow
             {
                 // Said on the page, where the choice was made - not left in a log nobody reads.
                 _backgroundProblem = "Aviary could not use that file. Pick a PNG, JPEG, GIF, WebP or BMP under 24 MB.";
+                PushToEverySettingsPage("startBackground", AppSettings.Get("startBackground"));
                 RefreshStartPages();
                 return;
             }
@@ -73,12 +75,13 @@ public sealed partial class MainWindow
             // The file's name and where it came from are not recorded: a path is a piece of the
             // person's disk, and the only thing worth knowing is that they chose a picture.
             DiagFeature("start-background", new { choice = StartBackground.OwnPicture, from });
-            PushToSettingsPage("startBackground", StartBackground.OwnPicture);
+            PushToEverySettingsPage("startBackground", StartBackground.OwnPicture);
             RefreshStartPages();
         }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "start background: choose");
+            PushToEverySettingsPage("startBackground", AppSettings.Get("startBackground"));
         }
     }
 

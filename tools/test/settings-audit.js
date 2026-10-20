@@ -6,7 +6,7 @@
 // page does not show - the name appears in the question after a problem, and a switch with no
 // row would be an experiment nobody can turn off.
 const fs = require("fs");
-const dir = "C:/Users/user/Documents/Claude CoWork Enclosed/Zoo/src/Aviary/";
+const dir = require("path").resolve(__dirname, "../../src/Aviary") + "/";
 const src = fs.readFileSync(dir + "InternalPages.cs", "utf8");
 
 const start = src.indexOf("var SECTIONS");
@@ -33,7 +33,9 @@ for (const r of rows) {
 const others = fs.readdirSync(dir).filter(f => f.endsWith(".cs") && f !== "InternalPages.cs" && f !== "Experiments.cs")
   .map(f => fs.readFileSync(dir + f, "utf8")).join("\n");
 const regSrc = fs.readFileSync(dir + "Experiments.cs", "utf8");
-const byEngine = new Set([...regSrc.matchAll(/new\("(exp\.[A-Za-z0-9_]+)"[^;]*?(?:Features:\s*new\[\][^}]*\}|Switches:\s*new\[\][^}]*\})/gs)].map(m => m[1]));
+const byEngine = new Set(regSrc.split(/(?=new\("exp\.)/).slice(1)
+  .filter(entry => /(?:Features|Switches):\s*new\[\]/.test(entry))
+  .map(entry => entry.match(/^new\("(exp\.[A-Za-z0-9_]+)"/)[1]));
 
 const unread = [];
 for (const row of live) {
@@ -64,3 +66,4 @@ for (const e of registry) {
 }
 console.log("experimental rows: " + expRows.length + " (registry " + registry.length + "), mismatches: " + (problems.length ? "" : "none"));
 for (const p of problems) console.log("   " + p);
+if (unread.length || problems.length) process.exitCode = 1;

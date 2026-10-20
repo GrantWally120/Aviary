@@ -451,7 +451,7 @@ CSS; `reduceMotion` driving chrome animations. `translate`, `background`, `start
 gated for Phase 6. **Target: zero live, inert rows.** **Done 26 Sep** (stage 5): `scrollbars` became the "Thin scrollbars" experiment,
 `minFont` went through the engine's Preferences instead of CSS, and `background`'s badge now says Phase 6.
 
-### M7 — Super Quik: Quik mode, in Beta · **STARTED 26 Sep 2026 — stage 1 committed** (HANDOFF §28)
+### M7 — Super Quik: Quik mode, in Beta · **IMPLEMENTED 20 Oct 2026** (HANDOFF §28)
 Grant, 26 Sep: a new M7, **Super Quik** — the measured optimisation moved to M8 and the beta
 preparation to M9, so Alpha Build 5 has sixteen milestones. The hero is **Quik**, a mode that
 makes Aviary quicker and more responsive — in Beta: fixes and speed come gradually, and what does
@@ -471,6 +471,12 @@ not work yet is listed plainly.
 - Three stages, each its own commit: 1 the frame (Settings → Quik, the loading screen, the Quik
   speed, the renumbering) · 2 the speed (engine with the window, the ready tab, the debloated
   launch, recent tabs awake) · 3 Quik Labs, bugs 85–87, the wrap-up.
+- **20 Oct completion:** preserves the unfinished stage 2 work, adds the measured second ready tab
+  in Quik Labs, fixes 85–87, and renames Birds News to **Bird News** in the app and M7 description.
+  Classic startup: 10 alternating launches per mode on the same scratch profile, regular median
+  **972.6 ms**, Quik **735.25 ms** (**24.4% faster**). Detailed checks and limits are in
+  `tools/test/M7-VERIFICATION-2026-10-20.md`. Stage 2/3 changes await commit; the installed publish is unchanged.
+- **macOS support is deferred** at Grant’s request on 20 Oct; it is outside M7.
 
 ### M8 — Optimisation and polish, measured by diagnostics (was M7 until 26 Sep)
 Nothing is "optimised" on feel. Each change is **measured before and after from
@@ -489,7 +495,7 @@ Nothing is "optimised" on feel. Each change is **measured before and after from
 ### M9 — Beta preparation (was M8 until 26 Sep)
 - **GitHub repo + CI** (hard requirement 6, still unmet): prepare everything; creating the
   repo and first push need Grant's account. Pin `Microsoft.WindowsAppSDK` once CI is green.
-- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 10` (0.5.0 and the name
+- App icon. `BuildInfo` → `PhaseShipped = 5`, `MilestonesDone = 16` (0.5.0 and the name
   "Alpha Build 5" already arrived on 13 Sep — until M9 they are labelled pre-release). Updates'
   AB5 entry finished, landing page and HANDOFF updated.
 

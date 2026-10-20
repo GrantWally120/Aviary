@@ -152,7 +152,22 @@ internal sealed partial class BrowserTab
 
         _unveiled = true;
         View.Opacity = 1;
+
+        // M7: a new tab's time, from the request to its page on screen - the measure Quik's ready tab is held to.
+        if (OpenRequested != 0)
+        {
+            double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(OpenRequested).TotalMilliseconds, 2);
+            OpenRequested = 0;
+            Diagnostics.Perf("tab-open", new { tab = Id, ms, ready = false });
+            Quik.Test("tab-open " + ms + " ms (made)");
+        }
     }
+
+    /// <summary>When a new tab was asked for (Stopwatch), for its tab-open time; 0 when nobody is timing it.</summary>
+    public long OpenRequested { get; set; }
+
+    /// <summary>M7 Quik: a ready tab is shown the moment it is taken, so it must not still be waiting to unveil.</summary>
+    public void EnsureUnveiled() => Unveil();
 
     private async Task UnveilAfterAsync(int ms)
     {

@@ -10,6 +10,12 @@
 # Also a standing check of bug 50: this is a launch that is minimised before its first page.
 #
 #   launch-quiet.ps1 -Profile b68 -Fresh -SettingsJson '{"tabLayout":"Top bar"}' [-Size 1280x860]
+#
+# -AsShipped (1 Oct 2026): the engine as Aviary ships it - WITHOUT the three keep-drawing flags, which
+# exist to change what the engine counts as on screen and what it throttles. So anything about sleeping,
+# page visibility or background throttling is measured -AsShipped (bug 97 was: it shows either way). The
+# cost: a window parked behind Grant's may count as covered, and its pages as hidden - find tabs by id or
+# by when their page started, not by "the visible one".
 param(
     [string]$Profile = "p1",
     [switch]$Fresh,
@@ -17,7 +23,8 @@ param(
     [int]$Port = 9222,
     [string]$ExtraArgs = "",
     [string]$Size = "1280x860",
-    [string]$Exe = ""
+    [string]$Exe = "",
+    [switch]$AsShipped
 )
 
 $sp = $PSScriptRoot
@@ -108,7 +115,7 @@ public static class Quiet {
 '@
 
 $env:AVIARY_PROFILE_DIR = $profileDir
-$keepDrawing = "--disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-background-timer-throttling"
+$keepDrawing = if ($AsShipped) { "" } else { "--disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-background-timer-throttling" }
 $env:AVIARY_TEST_BROWSER_ARGS = ("--remote-debugging-port=$Port $keepDrawing " + $ExtraArgs).Trim()
 $fgBefore = [Quiet]::GetForegroundWindow()
 $procId = [Quiet]::Start($Exe, (Split-Path $Exe))

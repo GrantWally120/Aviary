@@ -14,7 +14,7 @@ using System.Xml.Linq;
 namespace Aviary;
 
 /// <summary>
-/// Birds News (Alpha Build 5 M4.9) — Grant: <i>"add a news call it Birds News which gives live
+/// Bird News (Alpha Build 5 M4.9) — Grant: <i>"add a news call it Bird News which gives live
 /// accurate news from the internet always updates"</i>.
 ///
 /// <para><b>The only part of Aviary that reaches the internet on its own.</b> Everything else
@@ -32,7 +32,7 @@ namespace Aviary;
 /// link, when they published it. No summary, no ranking, nothing Aviary writes.</item>
 /// <item><b>An unchanged feed costs one short request</b> — ETag and Last-Modified are kept and
 /// sent back, and a 304 keeps the stories already held.</item>
-/// <item><b>Off means off.</b> With Birds News switched off on the Start Page nothing is
+/// <item><b>Off means off.</b> With Bird News switched off on the Start Page nothing is
 /// fetched at all; nobody is reading it.</item>
 /// <item>Feeds are fetched side by side with a short timeout each, so one slow or broken site
 /// holds up none of the others and the Start Page never waits for any of them.</item>
@@ -43,7 +43,7 @@ namespace Aviary;
 /// </summary>
 internal static class BirdsNews
 {
-    /// <summary>A news source. <c>SettingKey</c> is the switch in Settings → Birds News.</summary>
+    /// <summary>A news source. <c>SettingKey</c> is the switch in Settings → Bird News.</summary>
     public sealed record Feed(string Id, string Name, string Region, string Url, string? SettingKey);
 
     public sealed record Story(string Title, string Link, string Source, string Region, DateTimeOffset? Published);
@@ -177,7 +177,7 @@ internal static class BirdsNews
 
     /// <summary>
     /// Starts, restarts or stops the timer to match the settings. Called at start-up and whenever
-    /// Birds News or its refresh rate changes. A few seconds' delay before the first fetch, so
+    /// Bird News or its refresh rate changes. A few seconds' delay before the first fetch, so
     /// Aviary's own start-up is never sharing the network with six news sites.
     /// </summary>
     public static void Reschedule()
@@ -199,7 +199,7 @@ internal static class BirdsNews
     private static Timer? _settle;
 
     /// <summary>
-    /// A Birds News setting changed. The timer follows the new rate at once and every open page is
+    /// A Bird News setting changed. The timer follows the new rate at once and every open page is
     /// told straight away — a feed switched off takes its stories with it — and a fetch follows
     /// a moment later, once the person has stopped flicking switches: six switches turned on in a
     /// row are one fetch, not six (and not five skipped because one was already running).
@@ -265,7 +265,7 @@ internal static class BirdsNews
         _ = RefreshAsync(force: false);
     }
 
-    /// <summary>How long after launch before Birds News may use the network.</summary>
+    /// <summary>How long after launch before Bird News may use the network.</summary>
     private static readonly TimeSpan StartupGrace = TimeSpan.FromSeconds(6);
 
     // ══ FETCHING ═══════════════════════════════════════════════════════════
@@ -287,7 +287,7 @@ internal static class BirdsNews
 
         // The conventional form for a reader fetching for itself: honest about what it is, and
         // shaped like the user agents sites already expect from feed readers.
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; Aviary/" + BuildInfo.Version + "; Birds News)");
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; Aviary/" + BuildInfo.Version + "; Bird News)");
         http.DefaultRequestHeaders.Accept.ParseAdd("application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5");
         return http;
     }
@@ -447,7 +447,7 @@ internal static class BirdsNews
         }
         catch (XmlException)
         {
-            // Bad XML is the SITE's fault, and it is already in Birds News' own status and in the
+            // Bad XML is the SITE's fault, and it is already in Bird News' own status and in the
             // news-fetch perf line. Reported as a hidden error it sat under "Needs attention" in
             // the summary as though Aviary were broken - bug 79's lesson, the same day.
             Fail(held, "its feed couldn’t be read");
@@ -814,7 +814,7 @@ internal static class BirdsNews
         object Column(string region) => all
             .Where(s => s.Region == region)
             .OrderByDescending(s => s.Published ?? DateTimeOffset.MinValue)
-            // Every story a column holds: the Birds News page shows them all, and the Start Page picks
+            // Every story a column holds: the Bird News page shows them all, and the Start Page picks
             // a mix from them itself. Six feeds of twenty is 60 a column; 100 leaves room for your own.
             .Take(100)
             .Select(s => new

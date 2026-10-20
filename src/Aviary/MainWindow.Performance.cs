@@ -139,11 +139,12 @@ public sealed partial class MainWindow
     {
         IReadOnlyList<CoreWebView2ProcessExtendedInfo> infos = await environment.GetProcessExtendedInfosAsync();
 
-        // Every window's tabs, by the id of the frame that is their page.
+        // Every window's tabs, by the id of the frame that is their page - and Quik's ready tab, whose memory is
+        // what its row says it costs.
         Dictionary<uint, BrowserTab> byFrame = new();
         foreach (MainWindow window in OpenWindows)
         {
-            foreach (BrowserTab tab in window._tabs)
+            foreach (BrowserTab tab in window.TabsAndReady())
             {
                 try
                 {
@@ -215,8 +216,9 @@ public sealed partial class MainWindow
         List<object> tabs = new();
         foreach (MainWindow window in OpenWindows)
         {
-            foreach (BrowserTab t in window._tabs)
+            foreach (BrowserTab t in window.TabsAndReady())
             {
+                bool ready = window.IsQuikReadyTab(t);
                 int pid = _perfTabsByPid.FirstOrDefault(p => p.Value.Contains(t)).Key;
                 byPid.TryGetValue(pid, out LiveStats.Figures? f);
                 int sharing = pid == 0 ? 0 : _perfTabsByPid[pid].Count;
@@ -238,7 +240,9 @@ public sealed partial class MainWindow
                     title = t.IsPrivate ? null : ShownTitle(t),
                     isPrivate = t.IsPrivate,
                     own = t.IsInternalPage,
-                    state = asleep ? "asleep" : active ? "active" : Saver != Mode.Off ? "saver" : "background",
+                    // M7 Quik: not a tab yet - the next new tab, made in advance. Nothing to sleep or close.
+                    ready,
+                    state = ready ? "ready" : asleep ? "asleep" : active ? "active" : Saver != Mode.Off ? "saver" : "background",
                     pid = pid == 0 ? (int?)null : pid,
                     memory = f?.MemoryMB,
                     cpu = f?.CpuPercent,
@@ -250,7 +254,7 @@ public sealed partial class MainWindow
                     // declared it, and how many responses never said.
                     data = t.DataBytes,
                     dataUnknown = t.DataUnknown,
-                    canSleep = !active && !asleep && !t.IsInternalPage,
+                    canSleep = !ready && !active && !asleep && !t.IsInternalPage,
                 });
             }
         }
@@ -338,6 +342,17 @@ public sealed partial class MainWindow
                 try
                 {
                     bool slept = await core.TrySuspendAsync();
+
+                    // Bug 97: refused perhaps only because a new engine counted it as on screen again - out of
+                    // sight once more (MainWindow.MemorySaver.cs), and asked again a moment later: asked straight
+                    // after, the engine had not taken the hide in yet.
+                    if (!slept && window.NeedsRehide(tab))
+                    {
+                        Rehide(tab);
+                        await Task.Delay(250);
+                        slept = window.NeedsRehide(tab) && await core.TrySuspendAsync();
+                    }
+
                     DiagFeature("perf-sleep-tab", new { tab = id, slept });
                     if (!slept && _perfPage is CoreWebView2 page)
                     {

@@ -41,10 +41,13 @@ internal static class Experiments
         Badge Kind,
         bool NeedsRestart,
         string[] Features,
-        string[] Switches);
+        string[] Switches,
+        bool QuikOnly = false);
 
     public static readonly Experiment[] All =
     {
+        new("exp.quikTwoReady", "Keep two new tabs ready", Badge.Safe, NeedsRestart: false,
+            Features: Array.Empty<string>(), Switches: Array.Empty<string>(), QuikOnly: true),
         // Measured 25 Sep: one Page Down glides through 37 positions without it, and jumps
         // 0 -> 667 in one frame with it.
         new("exp.smoothScrollOff", "Turn off smooth scrolling", Badge.Safe, NeedsRestart: true,
@@ -158,7 +161,7 @@ internal static class Experiments
     public static bool IsExperiment(string key) =>
         key.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase) && All.Any(e => e.Key.Equals(key, StringComparison.OrdinalIgnoreCase));
 
-    public static bool IsOn(Experiment e) => AppSettings.GetBool(e.Key);
+    public static bool IsOn(Experiment e) => (!e.QuikOnly || Quik.On) && AppSettings.GetBool(e.Key);
 
     public static List<Experiment> On() => All.Where(IsOn).ToList();
 
@@ -187,7 +190,7 @@ internal static class Experiments
         List<string> were = new();
         foreach (Experiment e in All)
         {
-            if (IsOn(e))
+            if (AppSettings.GetBool(e.Key))
             {
                 AppSettings.Set(e.Key, "false");
                 were.Add(e.Key);

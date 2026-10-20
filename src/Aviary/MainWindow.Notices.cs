@@ -182,6 +182,28 @@ public sealed partial class MainWindow
     /// </summary>
     private void OnPageGone(BrowserTab tab, string reason)
     {
+        // M7 Quik: the ready tab is nobody's page yet - a dead one is put away and made again, never handed to
+        // the next new tab with this panel on it.
+        if (IsQuikReadyTab(tab))
+        {
+            _readyTabs.Remove(tab);
+            _readyTabBuilt.Remove(tab);
+            if (ReferenceEquals(tab, _warmingReadyTab))
+            {
+                tab.Notice = new TabNotice { Kind = "page-gone", Title = "Page stopped", Detail = reason };
+                return; // The builder owns disposal while creation is in flight.
+            }
+            Quik.Test("ready tab's page stopped (" + reason + "): made again");
+
+            // Put away once the engine's own event has returned: a WebView is not closed from inside its own event.
+            DispatcherQueue.TryEnqueue(() =>
+            {
+                DisposeReadyTab(tab);
+                QueueReadyTab();
+            });
+            return;
+        }
+
         string why = reason switch
         {
             nameof(CoreWebView2ProcessFailedReason.Crashed) => "crashed",

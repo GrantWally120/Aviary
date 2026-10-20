@@ -34,8 +34,8 @@ public sealed partial class MainWindow
 
     /// <summary>
     /// async void on purpose: the event is raised by the engine, so there is no caller to hand a
-    /// Task to. Everything inside is in one try, and a right-click on a video is the only path that
-    /// awaits anything (M4.9, picture in picture).
+    /// Task to. Everything inside is in one try. Video and page targets ask whether a video
+    /// under the pointer can use picture in picture, including beneath player controls.
     /// </summary>
     private async void OnContextMenuRequested(CoreWebView2 sender, CoreWebView2ContextMenuRequestedEventArgs args)
     {
@@ -98,9 +98,9 @@ public sealed partial class MainWindow
             }
 
             // ── a video (M4.9) ──
-            // Only here is the page asked anything, and only here is the menu held back while it
-            // answers: every other right-click builds and shows exactly as it did before.
-            if (kind == CoreWebView2ContextMenuTargetKind.Video)
+            // A player's overlay is reported as Page. Ask the elements under the pointer too;
+            // unrelated page areas offer no video action.
+            if (kind is CoreWebView2ContextMenuTargetKind.Video or CoreWebView2ContextMenuTargetKind.Page)
             {
                 deferral = args.GetDeferral();
                 double vx = args.Location.X, vy = args.Location.Y;

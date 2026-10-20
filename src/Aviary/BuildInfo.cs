@@ -52,14 +52,16 @@ internal static class BuildInfo
     /// M1, M2, M2.5 — Grant's "middle update", added 13 Sep — then M3 to M8, so ten). Bump it
     /// when a milestone ships; Updates ticks them off from this one number.
     /// M4.7 "Immediate Fix" (21 Sep) is the ninth: the menus M4.6 broke, put right.
-    /// M4.8 "A Iconic Fix" (21 Sep) is the tenth, and M4.9 "Birds News" (24 Sep) the eleventh —
+    /// M4.8 "A Iconic Fix" (21 Sep) is the tenth, and M4.9 "Bird News" (24 Sep) the eleventh —
     /// counted here only once all three of its stages had landed, which they have.
     /// M5 — the download ring, link clicks and tab groups (25 Sep) — is the twelfth, counted once
     /// all four of its building stages had landed.
     /// M6 — the Experimental menu (26 Sep) — is the thirteenth, counted once all five of its stages had
     /// landed: twenty experiments, and the last four badged settings made real.
+    /// M7 — Super Quik (20 Oct) — is the fourteenth: the prepared tabs, measured startup,
+    /// Quik Labs, fixes 85–87 and the Bird News rename.
     /// </summary>
-    public const int MilestonesDone = 13;
+    public const int MilestonesDone = 14;
 
     /// <summary>
     /// Sixteen since 26 Sep: Grant put M7 "Super Quik" (Quik mode) in, and the measured optimisation and the

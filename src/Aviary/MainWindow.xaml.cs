@@ -60,22 +60,34 @@ public sealed partial class MainWindow : Window
         }
 
         InitializeComponent();
+        Diagnostics.Mark("window-xaml");   // M7: finer launch marks, to see what each step costs
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(DragRegion);
 
         IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+
+        // M7 "Super Quik": the window has a handle now - Quik warms the engine with it while the rest of the
+        // window is built, ~180 ms before the first tab (MainWindow.QuikEngine.cs).
+        if (Quik.On && !isPrivate && !forLink && !_quikEngineWarmed)
+        {
+            _quikEngineWarmed = true;
+            _ = QuikWarmEngineAsync(hWnd);
+        }
+
         _appWindow = GetAppWindow(hWnd);
         WatchForSessionEnd(hWnd);
         WatchForManyTabsClose();
         ApplyFocusVisuals();
         ApplyAppIcon();
         ApplyMemorySaver();
+        HookRehide();
         StartForgetting();
         WireDownloads();
         WireTabGroups();
         ConfigureTitleBar();
         InitialiseActivationDim();
+        Diagnostics.Mark("window-wired");
 
         // AppWindow.Resize takes PHYSICAL pixels, so a fixed size opens small on a
         // scaled display. Scale by the window's DPI.
@@ -87,10 +99,11 @@ public sealed partial class MainWindow : Window
         RootGrid.ActualThemeChanged += (_, _) => OnEffectiveThemeChanged();
         Closed += MainWindow_Closed;
 
-        // M4.9: Birds News. Each window hears when the stories change and pushes them into its own
+        // M4.9: Bird News. Each window hears when the stories change and pushes them into its own
         // Start Pages; the schedule itself is started once, by whichever window comes first.
         BirdsNews.Changed += OnNewsChanged;
         BirdsNews.EnsureStarted();
+        Diagnostics.Mark("window-news");
 
         AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control, (_, _) => OpenNewTab(null));
         AddAccelerator(VirtualKey.W, VirtualKeyModifiers.Control, (_, _) => { if (_active is not null) CloseTab(_active); });
@@ -276,6 +289,7 @@ public sealed partial class MainWindow : Window
         Favicons.Initialise(DispatcherQueue);
         Favicons.Updated += OnFaviconUpdated;
         ApplyPrivateChrome();
+        Diagnostics.Mark("favicons-ready");
 
         // Dragging the window to a monitor at a different scale invalidates every decoded
         // bitmap — 16 logical pixels stops being 16 physical ones.
@@ -292,14 +306,21 @@ public sealed partial class MainWindow : Window
             };
         }
 
-        // Phase 0's glass capsule on each bar — before the look is applied, which switches it on.
-        InitialiseGlass();
+        // Quik in Classic creates the unused glass capsules on the first switch to
+        // Liquid Glass. Their setup measured 12–21 ms on the startup path.
+        if (!Quik.On || AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase))
+        {
+            InitialiseGlass();
+        }
+        Diagnostics.Mark("glass-ready");
 
         RestorePreferences();
         InitialiseSidebar();
+        Diagnostics.Mark("sidebar-ready");
 
         // Never create the session's first WebView on a minimised window (bug 50).
         await WaitUntilNotMinimisedAsync();
+        Diagnostics.Mark("window-shown");
 
         // M5 stage 3: a window opened for a link holds that link's tab and nothing else. The tab is
         // handed back EMPTY: for a Shift+click the engine navigates it itself.
@@ -320,7 +341,8 @@ public sealed partial class MainWindow : Window
         {
             // Pinned tabs belong to the normal window; a private one starts with just the
             // Start Page, and there is no crash test to arm here.
-            await OpenNewTabAsync(null);
+            await OpenNewTabAsync(null, timed: false);
+            QueueReadyTab();   // M7 Quik: a private window keeps a private one
             _ = ApplyPerfOverlayAsync();
             return;
         }
@@ -339,8 +361,10 @@ public sealed partial class MainWindow : Window
         _forgetCheckedThisLaunch = true;
         await RestorePinnedAsync(forceDormant: forgetOwed);
         Diagnostics.Mark("pinned-tabs-restored");
-        await OpenNewTabAsync(null);
+        await OpenNewTabAsync(null, timed: false);
         Diagnostics.Mark("first-tab-created");
+        QuikWarmDone();
+        QueueReadyTab();
         if (forgetOwed)
         {
             await ForgetOwedAtLaunchAsync();
@@ -705,17 +729,15 @@ public sealed partial class MainWindow : Window
         tab.AskWhereToSave = AskWhereToSaveAsync;
     }
 
-    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null)
+    /// <summary>
+    /// Where a new tab in front goes. M4.6 - "New tab position": Safari opens a new tab right after the one you
+    /// were on; "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the pins
+    /// whichever way round it is. (M7: one place, for a made tab and Quik's ready one.)
+    /// </summary>
+    private int NewTabSlot()
     {
-        long created = System.Diagnostics.Stopwatch.GetTimestamp();
-        BrowserTab tab = new(_private);
-        WireTab(tab);
-
-        // M4.6 - "New tab position": Safari opens a new tab right after the one you were on;
-        // "At the end" is Chrome's. A pinned tab is never displaced: the new one lands after the
-        // pins whichever way round it is.
-        int at = slot ?? _tabs.Count;
-        if (slot is null && select && _active is { } from
+        int at = _tabs.Count;
+        if (_active is { } from
             && AppSettings.Get("newTabPosition").StartsWith("After", StringComparison.OrdinalIgnoreCase))
         {
             int after = _tabs.IndexOf(from);
@@ -725,6 +747,19 @@ public sealed partial class MainWindow : Window
             }
         }
 
+        return Math.Clamp(at, 0, _tabs.Count);
+    }
+
+    private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null, bool startPage = false)
+    {
+        long created = System.Diagnostics.Stopwatch.GetTimestamp();
+        BrowserTab tab = new(_private);
+
+        // M7 Quik: a tab that opens on the Start Page registers its Shields scripts once that page is up.
+        tab.DeferShieldsScripts = startPage && Quik.On;
+        WireTab(tab);
+
+        int at = slot ?? (select ? NewTabSlot() : _tabs.Count);
         _tabs.Insert(Math.Clamp(at, 0, _tabs.Count), tab);
 
         // The colour Aviary's pages sit on, from the start. The tab itself stays invisible until
@@ -807,22 +842,49 @@ public sealed partial class MainWindow : Window
     }
 
     /// <param name="focus">For a Start Page: a section to open it scrolled to (see BuildStartPageHtml).</param>
-    private async Task OpenNewTabAsync(string? url, string? focus = null)
+    /// <param name="timed">False for a window's first tab: its time is the window's start-up, and is recorded as that.</param>
+    private async Task OpenNewTabAsync(string? url, string? focus = null, bool timed = true)
     {
-        BrowserTab? tab = await CreateTabAsync(select: true, reason: url is null ? "new tab" : "open in new tab");
-        if (tab is null)
+        long requested = System.Diagnostics.Stopwatch.GetTimestamp();
+
+        // M7 "Super Quik": the Start Page is built WHILE the engine starts the tab - the window's thread is only
+        // waiting then - instead of after it (55 ms at a launch, measured). Only for a plain Start Page: anything
+        // "New tab opens with" might carry is decided below, as before.
+        bool startPageOnly = url is null && focus is null
+                             && !AppSettings.Get("newTabShowsPage").StartsWith("The page", StringComparison.OrdinalIgnoreCase);
+
+        // M7 Quik: a new tab kept ready - shown, not made (MainWindow.QuikTab.cs).
+        if (startPageOnly && Quik.On && TakeReadyTab(requested))
         {
             return;
         }
 
-        // M4.6 - "New tab opens with": the Start Page, or the page you are already on. Never for
-        // one of Aviary's own pages, and never when a section of the Start Page was asked for.
+        bool plainStartPage = Quik.On && startPageOnly;
+        // Capture the current page before creating/selecting the new tab. Once creation
+        // starts, _active is the empty destination, which has no address to copy.
         string? carry = url is null && focus is null
                         && AppSettings.Get("newTabShowsPage").StartsWith("The page", StringComparison.OrdinalIgnoreCase)
                         && _active is { IsInternalPage: false, Url.Length: > 0 } from
             ? from.Url
             : null;
+        Task<BrowserTab?> creating = CreateTabAsync(select: true, reason: url is null ? "new tab" : "open in new tab", startPage: plainStartPage);
+        string? built = plainStartPage ? BuildStartPageHtml() : null;
 
+        BrowserTab? tab = await creating;
+        if (tab is null)
+        {
+            return;
+        }
+
+        // Timed from the request to its page on screen (its first paint - BrowserTab.Background.cs): the same
+        // measure as a ready tab's, so the two can be compared.
+        if (startPageOnly && timed)
+        {
+            tab.OpenRequested = requested;
+        }
+
+        // M4.6 - "New tab opens with": the Start Page, or the page you are already on. Never for
+        // one of Aviary's own pages, and never when a section of the Start Page was asked for.
         if (url is null && carry is null)
         {
             if (tab.View.CoreWebView2 is CoreWebView2 startCore)
@@ -830,7 +892,7 @@ public sealed partial class MainWindow : Window
                 startCore.WebMessageReceived += StartPage_WebMessageReceived;
             }
 
-            tab.NavigateToHtml(BuildStartPageHtml(focus), "Start Page");
+            tab.NavigateToHtml(built ?? BuildStartPageHtml(focus), "Start Page");
         }
         else if (url is null)
         {
@@ -1011,7 +1073,7 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";"
                    // M4.9: Forgetful sites, for Privacy.
                    + " window.__aviaryForget = " + JsonSerializer.Serialize(ForgetList()) + ";"
-                   // M4.9: Birds News' "Right now" row.
+                   // M4.9: Bird News' "Right now" row.
                    + " window.__aviaryNews = " + JsonSerializer.Serialize(BirdsNews.Snapshot()) + ";")
             // The engine version is known by now: this page is loading in a tab that has started.
             .Replace("/*__AVIARY_BUILD__*/", "window.__aviaryBuild = " + BuildInfo.Json(Diagnostics.EngineVersion) + ";")
@@ -1178,7 +1240,7 @@ public sealed partial class MainWindow : Window
             frequent,
             reading,
             privacy = BuildPrivacyPayload(),
-            // M4.9: whatever Birds News is holding right now. The page never waits for a fetch.
+            // M4.9: whatever Bird News is holding right now. The page never waits for a fetch.
             news = BirdsNews.Snapshot(),
             focus,
         };
@@ -1420,6 +1482,7 @@ public sealed partial class MainWindow : Window
 
         _active = tab;
         tab.LastActiveUtc = DateTime.UtcNow;
+        tab.SleepRetried = false;   // bug 97: a new stay behind starts when it leaves again
         Diagnostics.TabActive(tab.Id);
 
         // Gentle memory saving: only the tab you are looking at keeps normal priority.
@@ -2083,7 +2146,7 @@ public sealed partial class MainWindow : Window
     private void ApplyWebViewBackground()
     {
         Windows.UI.Color page = ThemePageColour();
-        foreach (BrowserTab tab in _tabs)
+        foreach (BrowserTab tab in TabsAndReady())
         {
             tab.SetThemePageColour(page);
         }
@@ -2471,7 +2534,7 @@ public sealed partial class MainWindow : Window
                         "start" + char.ToUpperInvariant(name[0]) + name.Substring(1),
                         on ? "true" : "false");
 
-                    // M4.9: the Start Page switch IS Birds News' master switch - off stops fetching.
+                    // M4.9: the Start Page switch IS Bird News' master switch - off stops fetching.
                     if (name == "news")
                     {
                         BirdsNews.SettingsChanged();
@@ -2492,10 +2555,10 @@ public sealed partial class MainWindow : Window
 
                     break;
 
-                // M4.9: "All the stories in Birds News" - this page, opened on the news alone.
+                // M4.9: "All the stories in Bird News" - this page, opened on the news alone.
                 case "newsAll":
                     DiagFeature("birds-news-all", new { from = "start page" });
-                    _active?.NavigateToHtml(BuildStartPageHtml("news"), "Birds News");
+                    _active?.NavigateToHtml(BuildStartPageHtml("news"), "Bird News");
                     UpdateChrome();
                     break;
 
@@ -2558,22 +2621,22 @@ public sealed partial class MainWindow : Window
     /// <summary>Re-renders any open Start Page after its data changed underneath it.</summary>
     private void RefreshStartPages()
     {
-        foreach (BrowserTab tab in _tabs)
+        foreach (BrowserTab tab in TabsAndReady())
         {
             if (tab.IsInternalPage && tab.Title == "Start Page")
             {
                 tab.NavigateToHtml(BuildStartPageHtml(), "Start Page");
             }
-            else if (tab.IsInternalPage && tab.Title == "Birds News")
+            else if (tab.IsInternalPage && tab.Title == "Bird News")
             {
-                tab.NavigateToHtml(BuildStartPageHtml("news"), "Birds News");
+                tab.NavigateToHtml(BuildStartPageHtml("news"), "Bird News");
             }
         }
     }
 
     /// <summary>
-    /// Birds News has new stories, or a feed's status changed (M4.9). Raised on a worker thread.
-    /// Pushed IN to every Start Page, the Birds News page and Settings rather than redrawing them,
+    /// Bird News has new stories, or a feed's status changed (M4.9). Raised on a worker thread.
+    /// Pushed IN to every Start Page, the Bird News page and Settings rather than redrawing them,
     /// so a page someone is reading does not jump every fifteen minutes. Only Aviary's own pages
     /// hear it — the rule since bug 62: a host push must never reach a website.
     /// </summary>
@@ -2582,14 +2645,14 @@ public sealed partial class MainWindow : Window
         try
         {
             string json = JsonSerializer.Serialize(BirdsNews.Snapshot());
-            foreach (BrowserTab tab in _tabs)
+            foreach (BrowserTab tab in TabsAndReady())
             {
                 if (!tab.IsInternalPage || tab.View.CoreWebView2 is not CoreWebView2 core)
                 {
                     continue;
                 }
 
-                if (tab.Title is "Start Page" or "Birds News")
+                if (tab.Title is "Start Page" or "Bird News")
                 {
                     _ = core.ExecuteScriptAsync("window.__aviaryNews && window.__aviaryNews(" + json + ")");
                 }
@@ -2783,14 +2846,18 @@ public sealed partial class MainWindow : Window
 
                     string settingKey = k.GetString() ?? string.Empty;
                     JsonElement settingValue = root.TryGetProperty("value", out JsonElement sv) ? sv : default;
+                    if (Experiments.Find(settingKey) is { QuikOnly: true } && !Quik.On)
+                    {
+                        PushToSettingsPage(settingKey, AppSettings.GetBool(settingKey));
+                        return;
+                    }
 
                     // M4.9: "Your picture" is not a value that can simply be saved - it means "open
                     // a picker", and the setting must only change if a picture is really adopted.
                     // Saving first here would leave the row claiming a picture that does not exist.
-                    if (settingKey == "startBackground"
-                        && string.Equals(AsString(settingValue), StartBackground.OwnPicture, StringComparison.OrdinalIgnoreCase))
+                    if (settingKey == "startBackground")
                     {
-                        _ = ChooseStartBackgroundAsync(StartBackground.OwnPicture, "settings");
+                        _ = ChooseStartBackgroundAsync(AsString(settingValue), "settings");
                         return;
                     }
 
@@ -2953,7 +3020,7 @@ public sealed partial class MainWindow : Window
                     Diagnostics.ApplyFrameTiming();
                     break;
 
-                // M4.9: Birds News - its master switch, how often it checks, and which feeds.
+                // M4.9: Bird News - its master switch, how often it checks, and which feeds.
                 case BirdsNews.ShowKey:
                 case BirdsNews.RefreshKey:
                 case BirdsNews.CustomKey:
@@ -3021,6 +3088,16 @@ public sealed partial class MainWindow : Window
                 // M7 "Super Quik": takes effect at the next launch (Quik.cs) - the Settings note says so.
                 case "quik":
                     Quik.Switched(AppSettings.GetBool(Quik.Key));
+                    break;
+
+                // M7 Quik, "Keep a new tab ready" - at once, in every window (MainWindow.QuikTab.cs).
+                case QuikReadyTabKey:
+                case QuikTwoReadyKey:
+                    foreach (MainWindow w in OpenWindows)
+                    {
+                        w.ReconcileReadyTabs();
+                    }
+
                     break;
 
                 case "focusRing":
@@ -3366,7 +3443,7 @@ public sealed partial class MainWindow : Window
                     PushSafety(page);
                     break;
 
-                // ── Birds News (M4.9): "Check now" ──
+                // ── Bird News (M4.9): "Check now" ──
                 case "newsCheck":
                     DiagFeature("birds-news-check", new { from = "settings" });
                     // Bug 82: never a full round per press - see BirdsNews.ManualGap.
@@ -3938,6 +4015,13 @@ public sealed partial class MainWindow : Window
 
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
+        _quikClosing = true;
+        QuikWarmDone();
+        // M7 Quik: the ready tab was never a tab - it goes before anything counts tabs.
+        _readyTabTimer?.Stop();
+        DropReadyTab();
+        StopRehide();   // bug 97: nothing more to put out of sight
+
         // M4.9: before this window leaves OpenWindows, while its tabs still count as open.
         if (!_private && OpenWindows.Count(w => !w._private) == 1)
         {

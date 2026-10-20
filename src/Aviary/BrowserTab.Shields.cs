@@ -84,14 +84,49 @@ internal sealed partial class BrowserTab
     /// <summary>The last few things stopped on this page, newest first. Memory only (M4.5).</summary>
     public IReadOnlyList<(string Url, string Rule, string List)> RecentBlocked => _recentOrder;
 
+    /// <summary>
+    /// M7 "Super Quik", a slightly debloated launch: a tab that opens on the Start Page - Aviary's own page, which
+    /// Shields leaves alone - registers its page scripts (the element-hiding one is ~786 KB, parsed in EVERY
+    /// document) just after that page has appeared, not before it (<see cref="RegisterDeferredShieldsScripts"/>).
+    /// </summary>
+    public bool DeferShieldsScripts { get; set; }
+
+    private bool _shieldsScriptsDeferred;
+
     private void AttachShields()
     {
         FilterLists.EngineChanged += OnFilterEngineChanged;
         Shields.Changed += OnShieldsChanged;
+        if (DeferShieldsScripts)
+        {
+            _shieldsScriptsDeferred = true;
+            return;
+        }
+
         _ = RefreshCosmeticAsync();
 
         // The accessibility stylesheet rides the same mechanism (M4.5), and is nothing at all
         // when its switches are off.
+        if (!ReadingAids.Nothing)
+        {
+            _ = RefreshAidsAsync();
+        }
+    }
+
+    /// <summary>
+    /// The first page has appeared - or a website is about to load, whichever comes first: the deferred scripts go
+    /// now. A person cannot type an address and reach a website in the few milliseconds this takes; a website the
+    /// tab starts to load before its first page has appeared registers them at its NavigationStarting.
+    /// </summary>
+    private void RegisterDeferredShieldsScripts()
+    {
+        if (!_shieldsScriptsDeferred)
+        {
+            return;
+        }
+
+        _shieldsScriptsDeferred = false;
+        _ = RefreshCosmeticAsync();
         if (!ReadingAids.Nothing)
         {
             _ = RefreshAidsAsync();

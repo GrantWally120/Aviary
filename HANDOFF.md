@@ -1,5 +1,20 @@
 # Aviary — project handoff
 
+> **CURRENT — 20 October 2026 (supersedes the September status box below)**
+> - **M7 Super Quik is implemented: 14 of 16 milestones.** Bird News is the product name;
+>   the M7 description and release notes explicitly record the rename from Birds News.
+> - Preserved the unfinished stage 2 work; added the measured second prepared tab in Quik
+>   Labs, fixed bugs 85–87, and fixed copying the current page into a new tab. Classic's
+>   unused glass decorations are now created when Liquid Glass is first selected in Quik.
+> - Ten alternating launches per mode on the same warmed scratch profile: regular median
+>   **972.6 ms**, Quik **735.25 ms**, **24.4% faster**. Twenty prepared tabs: median **8.305 ms**.
+>   Full evidence, qualifications and test commands: `tools/test/M7-VERIFICATION-2026-10-20.md`.
+> - Source changes are **uncommitted**; `publish/Aviary` is still the previous published copy.
+>   The current Release build is runnable from `src/Aviary/bin/x64/Release/net9.0-windows10.0.19041.0/win-x64`.
+> - **Next is M8**. A many-tab look switch can still pause the UI; it is listed in Quik's
+>   Beta limits. **macOS support is deferred** at Grant's request. No new dependency downloads.
+> - Original unfinished files were backed up to `.artifact/m7-before-20261020` before changes.
+
 Everything a new session needs to pick this up. Written 6 September 2026 at the end of
 Phase 3; updated 7 September 2026 at the end of Phase 4, 11 September 2026 at the end of
 Phase 5 milestone M1 (the diagnostics folder — section 13), 12 September 2026 for M2
@@ -43,7 +58,7 @@ Collection given the same look, a page per exhibit and five more exhibits (secti
 Glass in the app brought to Phase 0's capsules, with **Win2D approved** (section 20 — every check
 run, the sidebar and Classic included).
 
-> **WHERE THINGS STAND (26 Sep 2026 — read this first in a new chat)**
+> **PREVIOUS STATE (26 Sep 2026 — historical; see the current box above)**
 > - Alpha Build 5 **"The Long Run"**: **13 of 16 milestones done** (sixteen since M7 "Super Quik" went in, 26 Sep: M0, M1, M2, M2.5, M3, M4, M4.5,
 >   M4.6, M4.7, M4.8, M4.9, M5, M6). **M5 DONE 25 Sep** — started 24 Sep at Grant’s word (“officially go
 >   start M5 … you have the greenlight”) — §26. Then **M7 "Super Quik"** (Quik mode — STARTED 26 Sep, §28), M8 (measured optimisation), M9 (beta prep).
@@ -1404,7 +1419,7 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     the only reason this was caught is that the test counted, instead of asking whether it worked.**
     (And a caution about reading: the count was first misread from a four-line tail as "it forgot
     twice". Tail a log to see what happened LAST, never to count.)
-85. **OPEN — Picture in picture never reaches a video under a player's control layer** (found 24 Sep,
+85. **FIXED in M7, 20 Oct — Picture in picture never reaches a video under a player's control layer** (found 24 Sep,
     the M4.9 re-check). A bare video gets the item; the same video under a transparent div — which is
     how YouTube, Vimeo and most sites build their players — gets NONE: the engine reports the target
     as Page, not Video, so the "fall back to the page's videos" code in `PipScript` is never reached.
@@ -1412,14 +1427,14 @@ Ctrl+1..9 / Ctrl+Shift+Tab / Ctrl+H / Ctrl+J / Ctrl+Shift+D / Ctrl+Shift+L / Ctr
     overlay → item). The Updates line "Right-click any video for picture in picture" overclaims.
     Fix when Grant says: on a plain page right-click, ask `elementsFromPoint` (plural) for a video
     under the point. `pip-test.ps1` only ever right-clicks a bare video — add the overlay case.
-86. **OPEN — the Start Page background row in SETTINGS takes a different path from the popover**
+86. **FIXED in M7, 20 Oct — the Start Page background row in SETTINGS takes a different path from the popover**
     (found 24 Sep, the re-check; `startbg-test.ps1` drives only the Customise popover). (a) choosing
     a drawn background in Settings keeps the copied photograph in the profile — the popover deletes
     it (control run: popover → copy gone; Settings → copy stays); (b) cancelling the picker from
     Settings leaves the row saying "Your picture" while the store holds the old value until the page
     reloads. Fix: route the Settings row through `ChooseStartBackgroundAsync` for every choice, and
     push the real value back to Settings on cancel/refuse.
-87. **OPEN — an open Settings page's "Forgetful sites" list never learns what the sweep did** (found
+87. **FIXED in M7, 20 Oct — an open Settings page's "Forgetful sites" list never learns what the sweep did** (found
     24 Sep, the re-check). Store went due → forgotten, exactly once; the open page kept saying only
     "5 minutes after"; a freshly opened Settings page shows "closed, and forgotten" (the control).
     `PushForgetToSettings` is called from the Shields popover and Stop, never from `ForgetSweepAsync`.
@@ -3262,3 +3277,38 @@ touches only the loading screen's end, which only quik-test exercises.
 **Found on the way (harness):** UI Automation's `FindAll` never sees a control added to the window's own root
 after it loaded — the Skip button, on screen and invokable, was found by a tree walk and by nothing else;
 `uia.ps1` now walks before it says NOT FOUND. And a kill is a crash: `quik-test` closes Aviary with WM_CLOSE.
+
+### M7 completion — 20 October 2026 (stages 2 and 3, not yet committed)
+
+Grant asked to finish M7, include the rename **Birds News → Bird News** in its description,
+and leave macOS for later. The current box at the top and
+`tools/test/M7-VERIFICATION-2026-10-20.md` are the authoritative completion state.
+
+The unfinished stage 2 source was backed up before editing and retained. The engine warmup,
+batched setup, deferred website appearance scripts, recent-tab protection and bug 97's rehide
+logic remain. The prepared-tab implementation now owns a bounded pool: one by default, two
+with the new **Keep two new tabs ready** Quik Labs experiment. It is off by default, costs an
+extra page, is locked outside a running Quik launch, reconciles on live changes, and is reset
+by both crash protection and Turn All Off. In-flight creation is generation-checked and
+disposed by its builder; closing or disabling the pool cannot hand out an orphan page.
+
+Bugs 85–87 are fixed and were driven in the real app. PiP sees beneath overlays and Aa can
+offer the playing video. Every Settings background choice uses the native chooser path,
+and cancel/refusal pushes the saved value to all Settings pages. The Forgetful sweep pushes
+only when its due/done state changes. New-tab copying also now captures the source URL
+before creation selects the empty destination.
+
+The initial three-pair startup comparison improved only 17.09%. The marks exposed unused
+glass-decoration construction in Classic, costing 12–21 ms. Quik now builds that art when
+Liquid Glass is actually selected; a real look switch and a real click inside a prepared
+Start Page were verified afterwards. Final Classic comparison: **10 regular / 10 Quik**,
+same warmed scratch profile, alternating, **972.60 / 735.25 ms medians (24.4% faster)**.
+**20 prepared tab opens: median 8.305 ms, range 6.78–11.57 ms**. A burst used the ordinary
+path on its second open with one spare (168.08 ms), and both were prepared with Labs
+(9.96 and 6.07 ms). These are handoff timings, not promises about website loading.
+
+The counter is **14 of 16**, M7 is dated 20 Oct, What's new leads with a Quik hero and
+Set up Quik, the rename is explicit in the M7 description/notes and roadmap, and the
+Get started summary is current. The many-tab look-swap pause is listed as a Beta limit,
+with actual stalls and the checks that were not rerun documented in the verification file.
+No new packages, no published-copy replacement, and no commit were made.

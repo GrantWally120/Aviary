@@ -179,6 +179,7 @@ public sealed partial class MainWindow
             return;
         }
 
+        bool changed = false;
         try
         {
             List<(string Site, string Mode)> forgetful = SiteSettings.SitesWithAny(Forgetful.ModeKey);
@@ -217,11 +218,13 @@ public sealed partial class MainWindow
                     if (due.Length > 0)
                     {
                         SiteSettings.Remove(site, Forgetful.DueKey);
+                        changed = true;
                     }
 
                     if (SiteSettings.Get(site, Forgetful.DoneKey).Length > 0)
                     {
                         SiteSettings.Remove(site, Forgetful.DoneKey);
+                        changed = true;
                     }
 
                     continue;
@@ -237,6 +240,7 @@ public sealed partial class MainWindow
                 {
                     dueAt = now + (long)delay.TotalMilliseconds;
                     SiteSettings.Set(site, Forgetful.DueKey, dueAt.ToString(CultureInfo.InvariantCulture));
+                    changed = true;
                 }
 
                 if (dueAt > now)
@@ -254,6 +258,7 @@ public sealed partial class MainWindow
                 await ClearSiteDataAsync(page, site);
                 SiteSettings.Set(site, Forgetful.DoneKey, "1");
                 SiteSettings.Remove(site, Forgetful.DueKey);
+                changed = true;
                 DiagFeature("site-forgotten", new { site, mode });
             }
         }
@@ -264,6 +269,10 @@ public sealed partial class MainWindow
         finally
         {
             System.Threading.Interlocked.Exchange(ref _forgetting, 0);
+            if (changed)
+            {
+                PushForgetToSettings();
+            }
         }
     }
 

@@ -1,5 +1,15 @@
 # Aviary test kit
 
+## M7 checks — 20 October 2026
+
+See [M7 verification](M7-VERIFICATION-2026-10-20.md) for the measured results and limits.
+`m7-launch.ps1 -Mode regular|quik|labs -Profile scratch-name [-Timers]` launches the current
+local Release build with an isolated profile and no native input automation. Existing
+profiles retain their saved settings. `m7-site.js` serves localhost-only video/data fixtures
+on port 8877. `m7-script-test.js` checks the actual PiP script, and `m7-metrics.js <profile>`
+summarises startup and tab-open diagnostics. Use the Computer Use plugin for native UI
+input during a Computer Use session; do not mix the older PowerShell input harnesses in.
+
 How Aviary gets tested in the real app without touching Grant's profile or fighting him for the
 mouse. Built during Phase 5 M2 (12 Sep 2026); HANDOFF §5 explains why each piece exists. Read
 the **container** box there first: every tool here runs inside the Claude app's MSIX container,

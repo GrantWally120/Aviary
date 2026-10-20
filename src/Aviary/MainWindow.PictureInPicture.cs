@@ -31,8 +31,8 @@ namespace Aviary;
 /// but not whether THAT video will accept picture in picture — a site can refuse with
 /// <c>disablePictureInPicture</c>, and a video inside a cross-origin frame is not reachable from
 /// the main frame at all. So the menu takes a deferral, asks the page, and offers the item only
-/// when there is something it can really do. A right-click on anything other than a video is
-/// untouched and just as fast as before.</para>
+/// when there is something it can really do. Page targets are checked too, so player overlays
+/// work; the Aa menu can reach a playing video even when the player consumes right-clicks.</para>
 /// </summary>
 public sealed partial class MainWindow
 {
@@ -40,10 +40,9 @@ public sealed partial class MainWindow
     /// Finds the video that was right-clicked and either reports on it or toggles it.
     ///
     /// The point comes from the engine in the web view's own coordinates, which is what
-    /// <c>elementFromPoint</c> wants. When the point misses (a player's own overlay sits on top of
-    /// its video, which is the normal case) it falls back to the page's videos, playing ones first
-    /// and biggest first — on a page with one video that is the video, and on a page with several
-    /// it is the one being watched.
+    /// <c>elementsFromPoint</c> wants. It sees through player overlays without choosing an
+    /// unrelated video elsewhere. Negative coordinates are the Aa menu: there, prefer the
+    /// current PiP video, otherwise the largest playing video the main frame can reach.
     /// </summary>
     private const string PipScript = """
 (function (x, y, act) {
@@ -53,17 +52,24 @@ public sealed partial class MainWindow
         && v.getAttribute('disablepictureinpicture') === null
         && v.readyState >= 1 && v.videoWidth > 0;
   }
-  var at = null;
-  try { at = document.elementFromPoint(x, y); } catch (e) { at = null; }
-  var v = usable(at) ? at : null;
-  if (!v) {
+  var v = null, under = [];
+  try { under = document.elementsFromPoint(x, y); } catch (e) {}
+  for (var i = 0; i < under.length && !v; i++) {
+    if (usable(under[i])) { v = under[i]; }
+  }
+  /* Negative coordinates mean the Aa menu. A right-click elsewhere on a page
+     must never select an unrelated video. */
+  if (!v && x < 0 && y < 0) {
+    if (usable(document.pictureInPictureElement)) { v = document.pictureInPictureElement; }
     var found = [], all = document.querySelectorAll('video');
-    for (var i = 0; i < all.length; i++) { if (usable(all[i])) { found.push(all[i]); } }
+    for (var i = 0; i < all.length; i++) {
+      if (usable(all[i]) && !all[i].paused && !all[i].ended) { found.push(all[i]); }
+    }
     found.sort(function (a, b) {
       if (a.paused !== b.paused) { return a.paused ? 1 : -1; }
       return b.clientWidth * b.clientHeight - a.clientWidth * a.clientHeight;
     });
-    v = found[0] || null;
+    v = v || found[0] || null;
   }
   if (!v) { return 'none'; }
   var inPip = document.pictureInPictureElement === v;

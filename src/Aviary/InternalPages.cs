@@ -722,7 +722,7 @@ var UPDATES = [
     ]},
   { phase:5, name:'The Long Run',
     summary:'The last alpha — Brave-inspired, and built so that every privacy switch really does what it says.',
-    short:'Shields, a real ad blocker you control site by site, joins privacy switches that really do what they say — Grant’s own projects live inside Aviary, in the Collection — and with Smooth Flight the whole browser moves, measures itself, and hands you the controls.',
+    short:'Shields, the Collection and Smooth Flight — now joined by Quik, in Beta: prepared new tabs, an earlier engine start and optional Quik Labs. The news section is called Bird News.',
     /* `n` is the milestone's own label: M2.5 was added between M2 and M3 on 13 Sep (Grant's
        "middle update"), so labels are written, not counted. `d` says what it is in plain words. */
     milestones:[
@@ -746,20 +746,30 @@ var UPDATES = [
        d:'The menus work again. The arrival M4.6 gave every menu was landing on the wrong part of it, so a menu looked right and answered nothing you clicked — the app menu, Settings and the Collection with it.'},
       {n:'M4.8', t:'A Iconic Fix', when:'21 Sep',
        d:'The app icon really changes the taskbar now, and the row shows you which tile you are on. Performance reads like Task Manager — every part of Aviary on its own line, with the tabs it draws under it. Memory saver stops hinting and starts handing memory back: an idle tab goes to sleep and wakes when you click it.'},
-      {n:'M4.9', t:'Birds News', when:'24 Sep',
+      {n:'M4.9', t:'Bird News', when:'24 Sep',
        d:'Live news from the world and the Philippines on the Start Page, and five things from Brave, Safari and Chrome. Ctrl+Shift+A searches your open tabs. Any site can be set to be forgotten — when you close its last tab, or five minutes, an hour or a day after. Safety Check gathers everything that could be safer into one page, with a button to fix each one. The Start Page gets six backgrounds, five of them drawn by Aviary in whichever look you are using, and the sixth your own picture. Right-click any video for picture in picture. Memory saver becomes four modes, and improvement data gets 700 MB and collects everything but secrets.'},
       {n:'M5', t:'The download progress ring and tab groups', when:'25 Sep',
        d:'Safari’s download ring, which fills as your files arrive and bounces when the last one lands, over a downloads list that remembers — cleared on the schedule you choose. Aviary can ask where to save each file, a finished download can be dragged out onto the desktop, and a downloaded program asks before it opens. Ctrl-click and the middle button open a link behind the page you are on, Shift-click in a window of its own. And tab groups: named sets of tabs you put away and bring back, from the sidebar or the button beside it.'},
       {n:'M6', t:'The Experimental menu, in plain English', when:'26 Sep',
        d:'Twenty unfinished features to try in Settings → Experimental, each explained in everyday words with what might happen — and not one of them can make Aviary less safe. If Aviary stops soon after you change one, the next launch switches them all off and asks. And the last four settings that only promised now work: hardware acceleration, Auto-Play, your preferred language and a minimum font size.'},
-      {n:'M7', t:'Super Quik',
-       d:'<b>Quik</b>, in Beta: a mode that makes Aviary quicker — a faster start, new tabs in a blink, and a speed of its own for everything that moves. It has its own place in Settings.'},
+      {n:'M7', t:'Super Quik', when:'20 Oct',
+       d:'<b>Quik</b>, in Beta: an earlier engine start, prepared new tabs, a fourth animation speed and optional Quik Labs. Picture in picture works through player overlays and from Aa, background choices and the Forgetful list stay in sync, and Birds News is now <b>Bird News</b>.'},
       {n:'M8', t:'Faster and smoother — and measured',
        d:'Start-up, new tabs, memory and animation tuned, with every improvement proved by the diagnostics numbers rather than by feel.'},
       {n:'M9', t:'Getting ready for Beta Build 1',
        d:'An app icon, a home on GitHub with automatic builds, and everything tidied up for the first beta.'}
     ],
     notes:[
+      {h:'Super Quik — M7 · 20 October 2026', items:[
+        '<b>Quik, in Beta</b>, has its own section in Settings. Switch it on and restart Aviary; its first launch plays the loading screen once, muted, with Skip',
+        '<b>A head start for the engine</b> while the window is built, with tab setup requests sent together. A Start Page can appear before website appearance scripts are registered',
+        '<b>Keep a new tab ready</b> prepares one Start Page in advance. <b>Quik Labs</b> can prepare a second for two quick opens. Each prepared page uses extra memory; links and copied-page tabs use the ordinary path',
+        '<b>Keep recent tabs awake</b> gives tabs used in the last 30 minutes more time before Memory saver sleeps them. <b>Quik</b> animation speed is available in Quik’s section',
+        '<b>Picture in picture</b> can find a video underneath player controls. The <b>Aa</b> menu also offers it for a playing video the page allows Aviary to reach',
+        '<b>Background choices in Settings</b> now use the same chooser as the Start Page. Cancelling restores the saved choice, and choosing a drawn background removes the copied picture',
+        '<b>The Forgetful sites list updates while it is open</b> when a site is forgotten or reopened',
+        '<b>Birds News is now Bird News</b> throughout Aviary'
+      ]},
       {h:'Search', items:[
         '<b>Brave Search</b>, <b>Mojeek</b> and <b>Ecosia</b> join DuckDuckGo, Startpage, Bing and Google in Settings → Search engine. DuckDuckGo is still where Aviary starts',
         '<b>Suggestions from your search engine</b> as you type — off until you switch them on, and only ever sent to the engine you chose. Never from a private window, and never a web address',
@@ -865,22 +875,22 @@ var UPDATES = [
         '<b>Preferred language</b> asks websites for English — United States or United Kingdom — or Filipino, or follows Windows. Cebuano is not offered: the browser engine cannot ask for it',
         '<b>Minimum font size</b> keeps text on websites from being drawn smaller than 12, 14, 16 or 18 pixels — the browser engine’s own setting, the one Chrome and Edge have'
       ]},
-      {h:'Birds News, part three — five picks from Brave, Safari and Chrome', items:[
+      {h:'Bird News, part three — five picks from Brave, Safari and Chrome', items:[
         '<b>Search your open tabs</b> with <kbd>Ctrl+Shift+A</kbd> — every tab in every window of the same kind, by title or address. Private and ordinary windows are never listed together',
         '<b>Forgetful browsing.</b> Choose, from the shield, for any site to be forgotten — its cookies and everything it stores — when you close its last tab, or five minutes, an hour or a day after. Opening it again in time cancels it. Settings lists every forgetful site',
         '<b>Safety Check</b> in Settings reads back what could be safer — Shields lowered for sites, HTTPS, cookies, the age of the filter lists — with a button to fix each one',
         '<b>Start Page backgrounds</b>: five drawn by Aviary out of the look you are using, so each follows Classic, Liquid Glass, light and dark, and a sixth that is your own picture',
         '<b>Picture in picture</b> from the right-click menu of any video whose site allows it'
       ]},
-      {h:'Birds News', items:[
+      {h:'Bird News', items:[
         '<b>Live news on your Start Page</b>, right under Favourites: <b>The World</b> from BBC News, Al Jazeera and The Guardian, and <b>The Philippines</b> from Inquirer, Rappler and GMA News, side by side. Each publisher gets a turn, newest first',
         '<b>Every headline exactly as its site wrote it</b>, with who wrote it and when. Aviary never rewrites, summarises or ranks anything — press a story and you are on the publisher’s own page',
         '<b>It keeps itself up to date</b> — every 15 minutes by default, or every 30, every hour, or only when you open the Start Page. A site with nothing new answers in a few bytes',
-        '<b>All the stories in Birds News</b> opens the full list; Settings → <b>Birds News</b> has a switch for every publisher, room for any other news feed you like, and a <b>Right now</b> line saying what each site answered last time',
-        'Aviary asks each site as itself, sends no cookies, and never fetches from a private window. <b>Switch Birds News off and nothing is fetched at all</b>',
+        '<b>All the stories in Bird News</b> opens the full list; Settings → <b>Bird News</b> has a switch for every publisher, room for any other news feed you like, and a <b>Right now</b> line saying what each site answered last time',
+        'Aviary asks each site as itself, sends no cookies, and never fetches from a private window. <b>Switch Bird News off and nothing is fetched at all</b>',
         'One of the six stamps its stories with the wrong time zone; Aviary corrects it from that site’s own clock and says so, rather than showing its news as eight hours in the future'
       ]},
-      {h:'Birds News, part one — memory saver and improvement data', items:[
+      {h:'Bird News, part one — memory saver and improvement data', items:[
         '<b>Memory saver has four modes.</b> <b>Chill</b> sleeps a tab you have left alone for an hour; <b>Balanced</b>, the default, after half an hour; <b>Aggressive</b> after five minutes, and it lets go of every background tab the moment you minimise the window. <b>Off</b> sleeps nothing. The same rules keep every mode safe: never a tab playing sound or video, never the tab you are on',
         'If memory saver was on before, it is Balanced now; if it was off, it stays off',
         '<b>Improvement data can keep 700 MB</b> — it was 650',
@@ -1043,13 +1053,13 @@ var SECTIONS = [
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
       {t:'Show Reading List', d:'', ctl:{type:'toggle', key:'startReading', value:true}},
       {t:'Show Privacy Report', d:'', ctl:{type:'toggle', key:'startPrivacy', value:true}},
-      {t:'Birds News', d:'Live headlines from the world and the Philippines, right under Favourites. Its own page has every switch.', ctl:{type:'goto', target:'news', label:'Birds News settings'}},
+      {t:'Bird News', d:'Live headlines from the world and the Philippines, right under Favourites. Its own page has every switch.', ctl:{type:'goto', target:'news', label:'Bird News settings'}},
       /* Was "What works today", hand-written in Alpha Build 3 and still promising Alpha Build
          4's features two builds later. Now it is the current build's own line from UPDATES. */
       {t: CURRENT ? 'What’s new in ' + nameOf(CURRENT.phase) : 'What’s new', d: CURRENT ? CURRENT.short : '', ctl:{type:'goto', target:'updates', label:'See updates'}}
     ]},
 
-  /* M4.9 — Birds News (BirdsNews.cs). The one part of Aviary that goes online by itself, so this
+  /* M4.9 — Bird News (BirdsNews.cs). The one part of Aviary that goes online by itself, so this
      page says exactly what it fetches, from whom, how often, and what it sends. */
   /* Alpha Build 5 M7 "Super Quik" (Grant, 26 Sep) — Quik.cs. Its switch applies at the next launch;
      its options (quik:true) are locked until Aviary is running Quik. Drawn by renderQuik. */
@@ -1057,12 +1067,19 @@ var SECTIONS = [
     lede:'A quicker Aviary, in Beta. Switch it on and restart Aviary, and Quik’s own settings open up.',
     rows:[
       {t:'Quik', hero:true, d:'Quik changes how Aviary starts, so it takes effect when Aviary restarts — the first time, with a loading screen.', restart:true, ctl:{type:'toggle', key:'quik', value:false}},
-      {t:'Animation speed', quik:true, d:'The Appearance row’s three speeds, and one more: <b>Quik</b>, about half the length of Quick. It is only offered here, and moves that fast only while Quik is running.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick','Quik'], value:'Standard'}}
+      {t:'Animation speed', quik:true, d:'The Appearance row’s three speeds, and one more: <b>Quik</b>, about half the length of Quick. It is only offered here, and moves that fast only while Quik is running.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick','Quik'], value:'Standard'}},
+      /* M7 stage 2 — MainWindow.QuikTab.cs and MainWindow.MemorySaver.cs. Each says what it costs. */
+      {t:'Keep a new tab ready', quik:true, d:'Quik keeps one tab made in advance — its engine started, its Start Page drawn, out of sight — so a new tab is shown, not made. The next one is made a moment later. <b>What it costs:</b> one more page kept in memory.', ctl:{type:'toggle', key:'quikReadyTab', value:true}},
+      {t:'Keep recent tabs awake', quik:true, d:'Memory saver leaves any tab you used in the last half hour alone, so going back to it is instant. <b>What it costs:</b> the memory those tabs keep.', ctl:{type:'toggle', key:'quikKeepAwake', value:true}},
+      {t:'Keep two new tabs ready', quik:true, lab:true, exp:'safe',
+       d:'Prepare a second Start Page so two quick new-tab opens can both use a ready tab. Requires <b>Keep a new tab ready</b> above.',
+       might:'Two extra pages stay in memory instead of one, and preparing them uses a little more processor time. Switch this off to keep only one ready.',
+       ctl:{type:'toggle', key:'exp.quikTwoReady', value:false}}
     ]},
-  { id:'news', icon:'news', name:'Birds News', title:'Birds News',
+  { id:'news', icon:'news', name:'Bird News', title:'Bird News',
     lede:'Live headlines on your Start Page, straight from the people who publish them. Aviary asks each site for its own news feed — as Aviary, not dressed up as a person’s browser — sends no cookies, and shows every headline exactly as its site wrote it. Nothing about what you read is sent anywhere.',
     rows:[
-      {t:'Birds News', d:'Show the latest stories on the Start Page. <b>While this is off Aviary fetches nothing at all</b> — nobody is reading it. The same switch as <b>Birds News</b> in the Start Page’s Customise button.', ctl:{type:'toggle', key:'startNews', value:true}},
+      {t:'Bird News', d:'Show the latest stories on the Start Page. <b>While this is off Aviary fetches nothing at all</b> — nobody is reading it. The same switch as <b>Bird News</b> in the Start Page’s Customise button.', ctl:{type:'toggle', key:'startNews', value:true}},
       {t:'Check for new stories', d:'How often Aviary asks the news sites for anything new, while it is open. A site that has nothing new answers in a few bytes, so checking often costs almost nothing. <b>Only when I open the Start Page</b> never checks in the background.', ctl:{type:'select', key:'newsRefresh', opts:['Every 15 minutes','Every 30 minutes','Every hour','Only when I open the Start Page'], value:'Every 15 minutes'}},
       {t:'The World', d:'', ctl:{type:'none'}},
       {t:'BBC News', d:'World news from the BBC, London.', ctl:{type:'toggle', key:'newsBbc', value:true}},
@@ -1495,13 +1512,24 @@ var BOLT = '<svg class="hero__mark" viewBox="0 0 24 24" fill="none" aria-hidden=
   '<path d="M13.8 2.6 5.1 13.4h6.3l-1.2 8L18.9 10.6h-6.3l1.2-8Z" stroke="var(--accent)" stroke-width="1.1" stroke-linejoin="round"/></svg>';
 /* What Quik does — ONLY what is built and measured, stage by stage (HANDOFF §28). Nothing promised. */
 var QUIK_DOES = [
+  {t:'Measured on 20 October', d:'On the development PC in Classic, startup took a median <b>735 ms</b> with Quik and <b>973 ms</b> without it — <b>24.4% faster</b>, across ten launches each on the same warmed profile. Twenty prepared new-tab opens took a median <b>8.3 ms</b>. Your results will vary; websites still need time to load.'},
+  {t:'The engine gets a head start', d:'Quik starts the browser engine while the first window is being built and sends the tab’s setup requests together.'},
+  {t:'A new tab kept ready', d:'The next Start Page is prepared while you read. Opening a new tab can show it immediately, with one extra page kept in memory.'},
+  {t:'Less work before the Start Page', d:'Website appearance scripts are registered after the Start Page loads. Network blocking and privacy protections remain active.'},
+  {t:'Glass when you choose it', d:'In Classic, Quik waits to build the Liquid Glass decorations until you switch to that look.'},
+  {t:'Keep recent tabs awake', d:'Tabs you used in the last half hour can stay awake, so returning to them does not need a reload.'},
   {t:'A fourth animation speed', d:'<b>Quik</b> — about half the length of Quick, for the whole browser and its own pages. Choose it below.'}
 ];
-/* Beta: what does not work yet, said plainly. Empty until something is found. */
-var QUIK_ISSUES = [];
+/* Beta: what does not work yet, said plainly - each one measured (HANDOFF §28). */
+var QUIK_ISSUES = [
+  {t:'Changing looks with many tabs', d:'Switching between Classic and Liquid Glass still rebuilds open Start Pages and tab decorations. With many tabs, it can briefly pause the window; Quik does not remove that cost yet.'},
+  {t:'When the ready tabs run out', d:'Quik normally keeps <b>one</b> tab ready, or two with Quik Labs. Opening more before replacements finish uses the ordinary path. A fresh window also needs time to prepare its first ready tab.'},
+  {t:'Only an empty new tab is ready', d:'A link opened in a new tab, and a new tab set to open with the page you are on, are made the ordinary way.'}
+];
 function renderQuik(s){
   var main = s.rows.filter(function(r){ return r.hero; });
-  var opts = s.rows.filter(function(r){ return !r.hero; });
+  var opts = s.rows.filter(function(r){ return !r.hero && !r.lab; });
+  var labs = s.rows.filter(function(r){ return r.lab; });
   var h = '<div class="group hero">' + BOLT +
     '<div class="hero__kicker">' + (QUIK.on ? 'Running now' : 'Super Quik') + '</div>' +
     '<div class="hero__title"><h2>Quik</h2><span class="chip chip--pre">Beta</span></div>' +
@@ -1512,6 +1540,9 @@ function renderQuik(s){
   h += '<h2 class="upd-h">Quik’s settings</h2>' +
     (QUIK.on ? '' : '<p class="lede">These open up once Aviary is running Quik: switch it on above, then restart.</p>') +
     '<div class="group">' + opts.map(rowHtml).join('') + '</div>';
+  h += '<h2 class="upd-h">Quik Labs</h2>' +
+    '<p class="lede">Optional experiments for Quik, off until you choose them. If Aviary stops unexpectedly soon after a change, its next launch switches Quik and its experiments off. Turn All Off in Experimental also resets these experiments.</p>' +
+    '<div class="group">' + labs.map(rowHtml).join('') + '</div>';
   h += '<h2 class="upd-h">Beta — what doesn’t work yet</h2><div class="group">' +
     (QUIK_ISSUES.length ? QUIK_ISSUES.map(rowHtml).join('')
       : rowHtml({t:'Nothing known yet', d:'Quik is new. Anything found slower or broken in Quik is listed here, plainly, as soon as it is known.'})) +
@@ -1614,8 +1645,14 @@ function renderUpdates(s){
   if (s.rows.length) { h += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
 
   if (CURRENT && CURRENT.notes){
-    h += '<h2 class="upd-h">What’s new in ' + esc(nameOf(now)) + (BUILD.preRelease ? ' so far' : '') + '</h2>' +
-         '<div class="group notes">' + notesHtml(CURRENT.notes) + '</div>';
+    h += '<h2 class="upd-h">What’s new in ' + esc(nameOf(now)) + (BUILD.preRelease ? ' so far' : '') + '</h2>';
+    if (now === 5) {
+      h += '<div class="group hero"><div class="hero__kicker">M7 · Super Quik</div>' +
+        '<div class="hero__title"><h2>Quik</h2><span class="chip chip--pre">Beta</span></div>' +
+        '<p class="lede">An earlier start for the engine, a new tab prepared in advance, and a speed of its own.</p>' +
+        '<button class="btn" data-goto="quik">Set up Quik</button></div>';
+    }
+    h += '<div class="group notes">' + notesHtml(CURRENT.notes) + '</div>';
   }
 
   var next = UPDATES.filter(function(u){ return u.phase > now; });
@@ -2188,7 +2225,7 @@ suggestRow();
 
 /* M4.8 (bug 77) — ring whichever tile is in force. Reads the row rather than a stored copy, so
    it is right whether the value came from the store, from a Reset, or from a click just now. */
-/* M4.9 — Birds News, "Right now": what each feed answered the last time it was asked. Built
+/* M4.9 — Bird News, "Right now": what each feed answered the last time it was asked. Built
    with DOM text, never markup — a feed's name for one of your own addresses is its host name,
    which came off the internet. */
 function nwAgo(ms){
@@ -2212,7 +2249,7 @@ window.__aviaryNewsStatus = function(n){
     s.appendChild(document.createTextNode(text));
     el.appendChild(s);
   }
-  if (!n.on) { line('', 'Birds News is switched off, so nothing is being fetched.'); return; }
+  if (!n.on) { line('', 'Bird News is switched off, so nothing is being fetched.'); return; }
   var feeds = n.feeds || [];
   if (!feeds.length) { line('', 'Every feed is switched off, so nothing is being fetched.'); }
   feeds.forEach(function(f){
@@ -2856,7 +2893,7 @@ window.__aviaryPerf = function(d){
   }
   var se = document.getElementById('pf-session');
   if (se) {
-    var t = d.tabs.length;
+    var t = d.tabs.filter(function(tb){ return !tb.ready; }).length;   /* Quik's ready tab is not a tab yet */
     se.textContent = 'Running for ' + pfDuration(d.session.uptimeSeconds) +
       (d.session.startupMs ? ' · opened in ' + (d.session.startupMs / 1000).toFixed(2) + ' s' : '') +
       ' · ' + t + (t === 1 ? ' tab' : ' tabs') + ' in ' + d.session.windows + (d.session.windows === 1 ? ' window' : ' windows') +
@@ -2908,7 +2945,8 @@ window.__aviaryPerf = function(d){
       });
     });
     tabs.appendChild(head);
-    var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it'};
+    var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it',
+                  ready:'Kept ready by Quik — your next new tab'};
     var tMaxMem = pfMax(list, 'memory'), tMaxCpu = pfMax(list, 'cpu'), tMaxGpu = pfMax(list, 'gpu');
     list.forEach(function(tb){
       var name = tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled');
@@ -2919,7 +2957,7 @@ window.__aviaryPerf = function(d){
           (tb.blocked ? ' · ' + tb.blocked + ' blocked' : '');
       var buttons = [];
       if (tb.canSleep) { buttons.push({label:'Sleep', cmd:'sleep:' + tb.id}); }
-      buttons.push({label:'Close', cmd:'close:' + tb.id});
+      if (!tb.ready) { buttons.push({label:'Close', cmd:'close:' + tb.id}); }
       tabs.appendChild(pfRow(name, sub,
         [tb.memory == null ? '—' : {v: pfSizeText(tb.memory), heat: pfHeat(tb.memory, tMaxMem, 20)},
          tb.cpu == null ? '—' : {v: pfPctText(tb.cpu), heat: pfHeat(tb.cpu, tMaxCpu, 0.5)},

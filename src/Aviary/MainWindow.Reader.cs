@@ -192,8 +192,9 @@ public sealed partial class MainWindow
 
     private void PageSettingsButton_Click(object sender, RoutedEventArgs e) => ShowPageMenu();
 
-    private void ShowPageMenu()
+    private async void ShowPageMenu()
     {
+        BrowserTab? pageTab = _active;
         MenuFlyout menu = new() { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
         Themed(menu, "page settings (Aa)");
 
@@ -302,6 +303,25 @@ public sealed partial class MainWindow
                 }
             };
             menu.Items.Add(auto);
+        }
+
+        // The page menu reaches a playing video even when its player consumes right-clicks.
+        // Recheck the selected tab after the asynchronous probe so a late answer cannot open
+        // a menu for the page the person has just left.
+        if (pageTab is { IsInternalPage: false } && pageTab.View.CoreWebView2 is { } core)
+        {
+            string? pip = await PipStateAsync(core, -1, -1);
+            if (!ReferenceEquals(pageTab, _active) || !OpenWindows.Contains(this))
+            {
+                return;
+            }
+
+            if (pip is not null)
+            {
+                menu.Items.Add(new MenuFlyoutSeparator());
+                Add(menu, pip == "in" ? "Leave Picture in Picture" : "Picture in Picture",
+                    () => _ = TogglePictureInPictureAsync(core, -1, -1));
+            }
         }
 
         menu.ShowAt(PageSettingsButton);

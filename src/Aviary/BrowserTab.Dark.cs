@@ -15,7 +15,7 @@ namespace Aviary;
 /// tools/test/scheme-probe.js). So it is the per-tab DevTools override instead,
 /// <c>Emulation.setAutoDarkModeOverride</c> — the same darkening, measured to reach the page, to
 /// last across the tab's navigations, and to come off again — set ON for websites and OFF for
-/// Aviary's own pages (Settings, the Start Page, Birds News) and while Reader is showing, whose
+/// Aviary's own pages (Settings, the Start Page, Bird News) and while Reader is showing, whose
 /// background is a choice the person already made. It also means the row needs no restart.</para>
 /// </summary>
 internal sealed partial class BrowserTab

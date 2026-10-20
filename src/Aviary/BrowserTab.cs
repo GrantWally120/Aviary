@@ -225,6 +225,9 @@ internal sealed partial class BrowserTab
         };
     }
 
+    /// <summary>Bug 97: a tab's engine was just made - every window puts the pages behind it back out of sight.</summary>
+    public static event Action<BrowserTab>? EngineMade;
+
     public async Task InitialiseAsync()
     {
         if (IsReady)
@@ -233,6 +236,7 @@ internal sealed partial class BrowserTab
         }
 
         CoreWebView2Environment environment = await WebViewEnvironment.GetAsync();
+        Diagnostics.Mark("engine-ready");   // M7: the session's first tab only - a mark is kept once
         _environment = environment;
 
         if (IsPrivate)
@@ -253,6 +257,10 @@ internal sealed partial class BrowserTab
         {
             throw new InvalidOperationException("WebView2 initialised without a core.");
         }
+        Diagnostics.Mark("webview-ready");
+
+        // Bug 97: making an engine turns the pages of the tabs already behind back to "visible" (MainWindow.MemorySaver.cs).
+        EngineMade?.Invoke(this);
 
         // The colour under the page (BrowserTab.Background.cs) was set before the engine existed;
         // hand it over again now that there is one, before anything navigates. And never leave a
@@ -270,10 +278,27 @@ internal sealed partial class BrowserTab
         // tab's engine. Per tab, before anything navigates — private tabs included.
         Library.Attach(core);
 
+        // M7 "Super Quik": in Quik the engine calls below go out together and are awaited once - measured, each
+        // await was a round trip to the engine, and the first tab waited for seven of them in a row. The engine
+        // takes them in the order they are sent, so the scripts keep their order; all are done before the first
+        // navigation, which is what matters. Regular Aviary sends them one at a time, as before.
+        List<Task>? batch = Quik.On ? new List<Task>() : null;
+        async Task Step(Task call)
+        {
+            if (batch is null)
+            {
+                await call;
+            }
+            else
+            {
+                batch.Add(call);
+            }
+        }
+
         // Before the first navigation. Setting it later only affects subsequent ones.
         _defaultUserAgent = core.Settings.UserAgent;
-        await ApplyUserAgentAsync();
-        await ApplyReferrerScriptAsync();
+        await Step(ApplyUserAgentAsync());
+        await Step(ApplyReferrerScriptAsync());
         core.Settings.IsStatusBarEnabled = false;
 
         core.SourceChanged += OnSourceChanged;
@@ -294,18 +319,18 @@ internal sealed partial class BrowserTab
         // working while the caret is inside a text box on somebody else's website. Carries the
         // per-launch shortcut token (see ShortcutToken).
         // Bug 91: FIRST, before any of the page's own script can add speculation rules.
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(NoSpeculationScript);
+        await Step(core.AddScriptToExecuteOnDocumentCreatedAsync(NoSpeculationScript).AsTask());
 
         // M6 stage 4: "Stronger fingerprint protection", when it is on - also before any page script.
-        await RefreshFingerprintAsync();
+        await Step(RefreshFingerprintAsync());
 
         // M6 stage 5: Auto-Play's "Never" holds Web Audio back as well (BrowserTab.AutoPlay.cs).
-        await AddAutoPlayScriptAsync(core);
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(
-            ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken));
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script);
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(IconHarvestScript);
-        await core.AddScriptToExecuteOnDocumentCreatedAsync(Reader.Script);
+        await Step(AddAutoPlayScriptAsync(core));
+        await Step(core.AddScriptToExecuteOnDocumentCreatedAsync(
+            ShortcutScript.Replace("__AVIARY_KEYTOKEN__", ShortcutToken)).AsTask());
+        await Step(core.AddScriptToExecuteOnDocumentCreatedAsync(FindInPage.Script).AsTask());
+        await Step(core.AddScriptToExecuteOnDocumentCreatedAsync(IconHarvestScript).AsTask());
+        await Step(core.AddScriptToExecuteOnDocumentCreatedAsync(Reader.Script).AsTask());
 
         core.DownloadStarting += OnDownloadStarting;
         core.IsDefaultDownloadDialogOpenChanged += OnDefaultDownloadDialog;
@@ -344,7 +369,12 @@ internal sealed partial class BrowserTab
         Diagnostics.EnabledChanged += OnDiagnosticsChanged;
         if (Records)
         {
-            await SetDiagnosticsAsync(true);
+            await Step(SetDiagnosticsAsync(true));
+        }
+
+        if (batch is not null)
+        {
+            await Task.WhenAll(batch);
         }
 
         IsReady = true;
@@ -885,6 +915,9 @@ internal sealed partial class BrowserTab
     /// tab only after it has been left alone for a while, so it needs to know how long.
     /// </summary>
     public DateTime LastActiveUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Bug 97: Memory saver has already put this tab out of sight again and asked twice, this stay behind.</summary>
+    public bool SleepRetried { get; set; }
 
     /// <summary>Whether the engine has this tab suspended right now.</summary>
     public bool IsAsleep
@@ -1713,6 +1746,12 @@ internal sealed partial class BrowserTab
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        // M7 Quik: a website before the Start Page had even appeared - its Shields scripts go now, not later.
+        if (args.Uri.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            RegisterDeferredShieldsScripts();
+        }
+
         // A Collection folder opens its index.html, as a web server would. WebView2's folder
         // mapping answers files only, so a bare https://collection.aviary/ — typed, or a link to a
         // folder — was a failed navigation and Aviary's error panel (found in M2.5's first run).
@@ -1826,6 +1865,9 @@ internal sealed partial class BrowserTab
         {
             Diagnostics.Mark("first-page-loaded");
         }
+
+        // M7 Quik: a Start Page tab's Shields scripts, held back until its page had appeared (BrowserTab.Shields.cs).
+        RegisterDeferredShieldsScripts();
 
         // Read before anything can move on: the next navigation overwrites both.
         long navStart = _navStart;

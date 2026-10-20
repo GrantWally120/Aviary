@@ -158,7 +158,7 @@ internal static class StartPage
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
   .rl__age{font-size:11px;color:var(--ink-3);}
 
-  /* ── Birds News (M4.9) ─────────────────────────────────────────────────────
+  /* ── Bird News (M4.9) ─────────────────────────────────────────────────────
      Columns by where the news is from; cards in the Reading List's own shape so the page reads
      as one design. The publisher's name leads each card, because whose words these are matters
      more than anything Aviary could add. */
@@ -438,11 +438,11 @@ function section(id, heading, body){
   return '<section data-sec="' + id + '"><h2>' + esc(heading) + '</h2>' + body + '</section>';
 }
 
-/* ── Birds News (M4.9) ───────────────────────────────────────────────────────
+/* ── Bird News (M4.9) ───────────────────────────────────────────────────────
    Everything here came off the internet: every string goes through esc(), and every address was
    checked to be http or https by the host before it got here. */
 var NEWS_FULL = D.focus === 'news';
-if (NEWS_FULL) { document.title = 'Birds News'; }
+if (NEWS_FULL) { document.title = 'Bird News'; }
 
 function ago(ms){
   if (!ms) { return ''; }
@@ -456,7 +456,7 @@ function ago(ms){
 /* The Start Page's few slots are dealt round the publishers — each one's newest, then each one's
    next — and then shown newest first. Strictly newest-first let one busy desk take every slot:
    on the first real fetch (21 Sep) the World column was four stories from The Guardian while BBC
-   and Al Jazeera had news an hour old. The Birds News page keeps the plain timeline. */
+   and Al Jazeera had news an hour old. The Bird News page keeps the plain timeline. */
 function mixSources(items, per){
   var bySource = {}, order = [];
   items.forEach(function(s){
@@ -503,8 +503,8 @@ function newsHtml(){
     body = '<p class="empty">' + (waiting && !down.length
       ? 'Fetching the latest stories…'
       : feeds.length
-        ? 'Birds News couldn’t reach any news sites just now. It will try again on its own.'
-        : 'Every feed is switched off. Settings → Birds News turns them on.') + '</p>';
+        ? 'Bird News couldn’t reach any news sites just now. It will try again on its own.'
+        : 'Every feed is switched off. Settings → Bird News turns them on.') + '</p>';
   } else {
     body = '<div class="nw__cols">' + body + '</div>';
   }
@@ -519,9 +519,9 @@ function newsHtml(){
             down.map(function(f){ return esc(f.name) + ': ' + esc(f.why || 'no answer'); }).join(' · ') +
             '. Anything already here stays until ' + (down.length === 1 ? 'it answers' : 'they answer') + '.</div>';
   }
-  if (!NEWS_FULL && total) { foot += '<button class="nw__all" data-news-all="1">All the stories in Birds News &rarr;</button>'; }
+  if (!NEWS_FULL && total) { foot += '<button class="nw__all" data-news-all="1">All the stories in Bird News &rarr;</button>'; }
 
-  return section('news', 'Birds News', '<div class="nw__meta">' + meta + '</div>' + body + foot);
+  return section('news', 'Bird News', '<div class="nw__meta">' + meta + '</div>' + body + foot);
 }
 
 /* The host pushes fresh stories in; only this section is redrawn, so a page you are reading
@@ -532,10 +532,10 @@ window.__aviaryNews = function(n){
   var old = document.querySelector('#panes > section[data-sec="news"]');
   var html = newsHtml();
 
-  /* On the Birds News page the news IS the page: switched off, it says so rather than going blank;
+  /* On the Bird News page the news IS the page: switched off, it says so rather than going blank;
      switched back on, it fills the page rather than calling the Start Page's full render. */
   if (NEWS_FULL && !html) {
-    panes.innerHTML = '<p class="empty">Birds News is switched off. Settings → Birds News turns it on.</p>';
+    panes.innerHTML = '<p class="empty">Bird News is switched off. Settings → Bird News turns it on.</p>';
     return;
   }
   if (NEWS_FULL && !old) { panes.innerHTML = html; return; }
@@ -559,10 +559,10 @@ document.addEventListener('click', function(e){
 function render(){
   var out = '';
 
-  /* The Birds News page is this same page opened on the news alone, every story shown. */
+  /* The Bird News page is this same page opened on the news alone, every story shown. */
   if (NEWS_FULL) {
     document.getElementById('panes').innerHTML = newsHtml() ||
-      '<p class="empty">Birds News is switched off. Settings → Birds News turns it on.</p>';
+      '<p class="empty">Bird News is switched off. Settings → Bird News turns it on.</p>';
     return;
   }
 
@@ -581,7 +581,7 @@ function render(){
     favs.length ? '<div class="grid">' + favs.map(tile).join('') + '</div>'
                 : '<p class="empty">Press Ctrl+D on a page to keep it here.</p>');
 
-  /* Birds News sits right under Favourites: the news is what changes between visits. */
+  /* Bird News sits right under Favourites: the news is what changes between visits. */
   out += newsHtml();
 
   /* Grant's projects, offline, from Aviary's own folder — absent in a build without them. */
@@ -741,7 +741,7 @@ document.addEventListener('click', function(e){
 /* ── customise ─────────────────────────────────────────────────────────── */
 /* `menagerie` is the Collection's section id and settings key (startMenagerie) from before its
    rename — kept so a saved choice survives. Only the words changed. */
-var LABELS = {favourites:'Favourites', news:'Birds News', menagerie:'The Collection', frequent:'Frequently Visited',
+var LABELS = {favourites:'Favourites', news:'Bird News', menagerie:'The Collection', frequent:'Frequently Visited',
               reading:'Reading List', privacy:'Privacy Report'};
 if (!D.menagerie) { delete LABELS.menagerie; }
 

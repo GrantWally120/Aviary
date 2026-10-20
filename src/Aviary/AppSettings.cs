@@ -94,7 +94,7 @@ internal static class AppSettings
         // M4.9 — frame timing, the one measurement that costs what it measures, so it is off even
         // while collection is on (Diagnostics.Frames.cs).
         ["frameTiming"] = "false",
-        // M4.9 — Birds News (BirdsNews.cs). The Start Page section is its master switch: nothing
+        // M4.9 — Bird News (BirdsNews.cs). The Start Page section is its master switch: nothing
         // is fetched while nobody is reading it. The six feeds Grant approved on 21 Sep, each on.
         ["startBackground"] = "Glasshouse",
         ["startNews"] = "true",
@@ -120,6 +120,9 @@ internal static class AppSettings
         ["minFont"] = "None",
         // M7 "Super Quik" — off until switched on in Settings → Quik; read once, at launch (Quik.cs).
         ["quik"] = "false",
+        // M7 stage 2 - Quik's own options, on while Quik runs (Settings -> Quik).
+        ["quikReadyTab"] = "true",
+        ["quikKeepAwake"] = "true",
     };
 
     public static void Load()

@@ -1,4 +1,4 @@
-// Birds News' offline test server (M4.9). Every shipped feed is pointed here with
+// Bird News' offline test server (M4.9). Every shipped feed is pointed here with
 // AVIARY_TEST_NEWS_BASE=http://127.0.0.1:8790, so the whole feature is tested without touching a
 // real news site. Each feed exercises one thing:
 //
@@ -8,7 +8,7 @@
 //   /guardian.xml   ETag "v1": a 200 the first time, a 304 when asked with If-None-Match
 //   /inquirer.xml   a "billion laughs" entity bomb - must fail fast and cheaply, never expand
 //   /rappler.xml    403, the way a site refusing an unknown reader answers
-//   /gma.xml        answers after 20 s - past Birds News' 15 s timeout
+//   /gma.xml        answers after 20 s - past Bird News' 15 s timeout
 //   /broken.xml     not XML at all (for "Your own feeds")
 //   /hits           every request seen, with the headers that matter (UA, Cookie, If-None-Match)
 //

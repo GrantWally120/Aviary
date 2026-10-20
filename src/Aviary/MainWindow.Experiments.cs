@@ -43,6 +43,7 @@ public sealed partial class MainWindow
         bool previews = AppSettings.GetBool("exp.tabPreview");
         foreach (MainWindow w in OpenWindows.ToList())
         {
+            w.ReconcileReadyTabs();
             foreach (BrowserTab t in w._tabs)
             {
                 t.RefreshDark();
@@ -162,8 +163,7 @@ public sealed partial class MainWindow
                     Text = "Last time Aviary ran, " + off.Why + ", soon after experimental features were changed. "
                          + "To be safe, they are all off:" + Environment.NewLine + Environment.NewLine + names
                          + Environment.NewLine + Environment.NewLine
-                         + "You can turn any of them on again in Settings → Experimental"
-                         + (off.Keys.Contains(Quik.Key) ? ", and Quik in Settings → Quik." : "."),
+                         + "You can change these choices in Settings → Experimental or Settings → Quik.",
                     TextWrapping = TextWrapping.Wrap,
                 },
                 PrimaryButtonText = "Keep Them Off",

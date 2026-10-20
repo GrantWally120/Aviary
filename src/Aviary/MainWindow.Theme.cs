@@ -128,10 +128,13 @@ public sealed partial class MainWindow
 
     private GlassCapsule? _glassToolbar, _glassTabs, _glassSidebar;
     private bool _glassOn;
+    private bool _glassInitialised;
 
     /// <summary>Made once, before the look is first applied — which is what switches them on or off.</summary>
     private void InitialiseGlass()
     {
+        if (_glassInitialised) { return; }
+        _glassInitialised = true;
         try
         {
             _glassToolbar = new GlassCapsule(ToolbarRow, ToolbarRow, RootGrid, ThemeValue);
@@ -158,6 +161,9 @@ public sealed partial class MainWindow
     /// <summary>From ApplyLookGeometry: on under Liquid Glass, off under Classic.</summary>
     private void ApplyGlass(bool glass)
     {
+        // Quik in Classic does not draw these capsules. Build them when Liquid Glass
+        // is first chosen, rather than spending its measured startup time on hidden art.
+        if (glass && !_glassInitialised) { InitialiseGlass(); }
         _glassOn = glass;
         _glassToolbar?.SetEnabled(glass);
         _glassTabs?.SetEnabled(glass);
