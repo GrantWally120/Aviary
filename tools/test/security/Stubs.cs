@@ -3,6 +3,7 @@
 namespace Aviary;
 internal static partial class Diagnostics
 {
+    public static TimeSpan Uptime => TimeSpan.FromMinutes(1);
     public static void Shields(string name, object? data) { }
     public static void Perf(string name, object? data) { }
     public static void Anomaly(string name, string text, object? data) { }

@@ -33,6 +33,21 @@ Google sign-in, Bird/Birds, cloud sync and diagnostic email are not implemented.
   or personal information are removed; the policy and collection UI now say so.
 - Engine crash dumps are configured for local custom reporting. SmartScreen and other
   WebView2/Windows reporting are separate and are disclosed in the policy.
+- Supplementary site-icon downloads apply Shields image rules and targeted exceptions at
+  every redirect. Cookies/credentials are disabled, HTTPS downgrades and public-page to
+  literal loopback targets are rejected, redirects are capped at three, and the decompressed
+  body is capped at 256 KiB with an eight-second whole-request deadline. This is not a
+  complete DNS/private-network isolation layer; ordinary website requests remain governed
+  by WebView2. Bird News now carries its 15-second deadline through the response body and
+  releases the refresh gate after a timeout.
+- Diagnostics scripts never attach to private tabs. Registered diagnostic/cosmetic/reading
+  aid scripts use generation ownership so an on/off/on race cannot leave orphan scripts.
+  Disabling diagnostics removes its listeners from the current document as well as future
+  documents. The secret scrubber handles truncated JSON, escaped property names, arrays,
+  objects, numeric codes and repeatedly encoded parameter names; it remains best effort.
+- Native JSON messages have size/depth/type limits before dispatch. Larger Settings editor
+  payloads are accepted only on an engine-confirmed internal document; the random page token
+  remains required before any command is handled.
 
 The policy in Settings and the shipped PRIVACY.md use PrivacyPolicy.cs as their source.
 The public copy must include the real operator and an appropriate private contact channel

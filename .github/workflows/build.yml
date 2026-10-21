@@ -41,6 +41,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Settings audit failed' }
           node tools/test/m7-script-test.js
           if ($LASTEXITCODE) { throw 'Player checks failed' }
+          node tools/test/diagnostics-script-test.js
+          if ($LASTEXITCODE) { throw 'Diagnostics script checks failed' }
           node tools/test/collection-availability-test.js
           if ($LASTEXITCODE) { throw 'Collection checks failed' }
           node tools/test/release-state-test.js

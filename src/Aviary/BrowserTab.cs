@@ -188,8 +188,9 @@ internal sealed partial class BrowserTab
     private int _pageErrorsThisPage;
     private string _lastTitleLogged = string.Empty;
     private long _lastTitleAt;
-    private string? _diagScriptId;
+    private readonly DocumentScriptSlot _diagScript = new();
     private bool _diagnosticsWired;
+    private bool _disposed;
     private static int _firstPage;
 
     /// <summary>
@@ -395,6 +396,7 @@ internal sealed partial class BrowserTab
     /// </summary>
     private async System.Threading.Tasks.Task SetDiagnosticsAsync(bool on)
     {
+        on = on && !IsPrivate && !_disposed;
         try
         {
             if (View.CoreWebView2 is not CoreWebView2 core || on == _diagnosticsWired)
@@ -407,20 +409,12 @@ internal sealed partial class BrowserTab
             if (on)
             {
                 core.WebResourceResponseReceived += OnWebResourceResponseReceived;
-                string id = await core.AddScriptToExecuteOnDocumentCreatedAsync(PageErrorScript);
-
-                // Switched off again while that was in flight: take it straight back out.
-                if (!_diagnosticsWired)
-                {
-                    core.RemoveScriptToExecuteOnDocumentCreated(id);
-                    return;
-                }
-
-                _diagScriptId = id;
+                bool current = await _diagScript.SetAsync(PageErrorScript,
+                    async script => await core.AddScriptToExecuteOnDocumentCreatedAsync(script), core.RemoveScriptToExecuteOnDocumentCreated);
 
                 // The document already showing has not run it; arm it too, so switching on
                 // does not wait for the next navigation.
-                if (_internalTitle is null)
+                if (current && _diagnosticsWired && !_disposed && _internalTitle is null)
                 {
                     _ = core.ExecuteScriptAsync(PageErrorScript);
                 }
@@ -428,17 +422,19 @@ internal sealed partial class BrowserTab
             else
             {
                 core.WebResourceResponseReceived -= OnWebResourceResponseReceived;
-                if (_diagScriptId is not null)
-                {
-                    core.RemoveScriptToExecuteOnDocumentCreated(_diagScriptId);
-                    _diagScriptId = null;
-                }
-
                 _inFlight.Clear();
+                await _diagScript.SetAsync(null, async script => await core.AddScriptToExecuteOnDocumentCreatedAsync(script),
+                    core.RemoveScriptToExecuteOnDocumentCreated);
+                if (!_disposed) { await core.ExecuteScriptAsync(PageErrorStopScript); }
             }
         }
         catch (Exception ex)
         {
+            if (!_diagScript.Requested && _diagnosticsWired)
+            {
+                _diagnosticsWired = false;
+                if (View.CoreWebView2 is { } core) { core.WebResourceResponseReceived -= OnWebResourceResponseReceived; }
+            }
             Diagnostics.Swallowed(ex, "tab: wire diagnostics");
         }
     }
@@ -1035,7 +1031,8 @@ internal sealed partial class BrowserTab
     {
         try
         {
-            using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
+            using JsonDocument? doc = SecurityPolicy.ParseMessage(args.TryGetWebMessageAsString());
+            if (doc is null) { return; }
             JsonElement root = doc.RootElement;
 
             if (root.ValueKind != JsonValueKind.Object
@@ -1111,15 +1108,21 @@ internal sealed partial class BrowserTab
                     string origin = args.Source;
 
                     List<IconCandidate> candidates = new();
+                    int examined = 0;
                     foreach (JsonElement link in links.EnumerateArray())
                     {
-                        if (candidates.Count >= 32) break;
+                        if (examined++ >= 32) break;
+                        if (link.ValueKind != JsonValueKind.Object) { continue; }
+                        string Field(string name) => link.TryGetProperty(name, out JsonElement value)
+                            && value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : "";
+                        string href = Field("href");
+                        if (href.Length is 0 or > 4096) { continue; }
                         candidates.Add(new IconCandidate
                         {
-                            Href = link.TryGetProperty("href", out JsonElement h) ? h.GetString() ?? "" : "",
-                            Rel = link.TryGetProperty("rel", out JsonElement r) ? r.GetString() ?? "" : "",
-                            Px = link.TryGetProperty("px", out JsonElement p) && p.TryGetInt32(out int px) ? px : 0,
-                            Type = link.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "",
+                            Href = href,
+                            Rel = Field("rel"),
+                            Px = link.TryGetProperty("px", out JsonElement p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out int px) ? px : 0,
+                            Type = Field("type"),
                         });
                     }
 
@@ -1221,7 +1224,6 @@ internal sealed partial class BrowserTab
     private const string PageErrorScript = """
 (function(){
   if (window.__aviaryDiag) { return; }
-  window.__aviaryDiag = 1;
 
   var sent = 0;
 
@@ -1258,7 +1260,7 @@ internal sealed partial class BrowserTab
     try { window.chrome.webview.postMessage(JSON.stringify(o)); } catch (e) {}
   }
 
-  window.addEventListener('error', function(e){
+  function onError(e){
     var t = e.target;
     if (t && t !== window && t.tagName) {
       post({ kind:'resource', tag:String(t.tagName).toLowerCase(),
@@ -1268,16 +1270,26 @@ internal sealed partial class BrowserTab
     var vals = typed();
     post({ kind:'js', message:clean(e.message, vals), source:String(e.filename || '').slice(0, 2000),
            line:e.lineno | 0, col:e.colno | 0, stack:clean(e.error && e.error.stack, vals) });
-  }, true);
+  }
 
-  window.addEventListener('unhandledrejection', function(e){
+  function onRejection(e){
     var vals = typed();
     var r = e.reason;
     var message = r && typeof r === 'object' ? (r.message || String(r)) : String(r);
     post({ kind:'promise', message:clean(message, vals), stack:clean(r && r.stack, vals) });
-  });
+  }
+  window.addEventListener('error', onError, true);
+  window.addEventListener('unhandledrejection', onRejection);
+  window.__aviaryDiag = function(){
+    sent = 60;
+    window.removeEventListener('error', onError, true);
+    window.removeEventListener('unhandledrejection', onRejection);
+    delete window.__aviaryDiag;
+  };
 })();
 """;
+
+    private const string PageErrorStopScript = "if (typeof window.__aviaryDiag === 'function') { window.__aviaryDiag(); }";
 
     /// <summary>
     /// The page's own account of how its load went, read once after it completes, while
@@ -2292,6 +2304,8 @@ internal sealed partial class BrowserTab
 
     public void Dispose()
     {
+        _disposed = true;
+        _diagnosticsWired = false;
         // M5: a download this tab was running dies with its engine. Say so in the list, rather
         // than leave a row that claims to be downloading for ever.
         Downloads.OwnerGone(Id);
@@ -2300,6 +2314,9 @@ internal sealed partial class BrowserTab
         {
             if (View.CoreWebView2 is CoreWebView2 core)
             {
+                _diagScript.Close(core.RemoveScriptToExecuteOnDocumentCreated);
+                _cosmeticScripts.Close(core.RemoveScriptToExecuteOnDocumentCreated);
+                _aidsScripts.Close(core.RemoveScriptToExecuteOnDocumentCreated);
                 core.SourceChanged -= OnSourceChanged;
                 core.HistoryChanged -= OnHistoryChanged;
                 core.DocumentTitleChanged -= OnDocumentTitleChanged;

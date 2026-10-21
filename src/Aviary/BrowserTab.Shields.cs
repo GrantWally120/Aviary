@@ -32,12 +32,13 @@ internal sealed partial class BrowserTab
     private string _mainDocument = string.Empty;
 
     private string? _cosmeticScript;
-    private string? _cosmeticScriptId;
+    private readonly DocumentScriptSlot _cosmeticScripts = new();
     private Task _cosmeticPending = Task.CompletedTask;
 
     /// <summary>The accessibility stylesheet for websites (M4.5): its script, and its id.</summary>
     private string? _aidsScript;
-    private string? _aidsScriptId;
+    private readonly DocumentScriptSlot _aidsScripts = new();
+    private long _aidsGeneration;
 
     /// <summary>A host the person chose to open anyway after Strict's warning — this tab, until it leaves that host.</summary>
     private string? _openedAnyway;
@@ -222,6 +223,7 @@ internal sealed partial class BrowserTab
     /// </summary>
     public Task RefreshCosmeticAsync()
     {
+        if (_disposed) { return Task.CompletedTask; }
         string? script = Shields.CosmeticScript(IsPrivate);
         if (ReferenceEquals(script, _cosmeticScript))
         {
@@ -242,33 +244,30 @@ internal sealed partial class BrowserTab
     {
         try
         {
-            if (View.CoreWebView2 is not CoreWebView2 core)
+            if (_disposed || View.CoreWebView2 is not CoreWebView2 core)
             {
                 return;
             }
 
-            string? script = ReadingAids.Nothing && _aidsScriptId is null ? null : ReadingAids.Script();
+            string? script = ReadingAids.Nothing && !_aidsScripts.Requested ? null : ReadingAids.Script();
             if (string.Equals(script, _aidsScript, StringComparison.Ordinal))
             {
                 return;
             }
 
             _aidsScript = script;
-            if (_aidsScriptId is not null)
-            {
-                core.RemoveScriptToExecuteOnDocumentCreated(_aidsScriptId);
-                _aidsScriptId = null;
-            }
+            long generation = ++_aidsGeneration;
+            await _aidsScripts.SetAsync(ReadingAids.Nothing ? null : script,
+                async text => await core.AddScriptToExecuteOnDocumentCreatedAsync(text), core.RemoveScriptToExecuteOnDocumentCreated);
 
             if (script is null)
             {
                 return;
             }
 
-            // The page on screen first (it is already past document-created), then every page
-            // after it. The script takes its own last stylesheet off, so running it twice on one
-            // document leaves exactly one.
-            if (!IsInternalPage)
+            // Apply only the latest choice to the current page. The slot owns its future
+            // registrations even if an on/off/on sequence completes out of order.
+            if (generation == _aidsGeneration && !_disposed && !IsInternalPage)
             {
                 await core.ExecuteScriptAsync(script);
             }
@@ -281,17 +280,10 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            string id = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
-            if (!string.Equals(script, _aidsScript, StringComparison.Ordinal))
-            {
-                core.RemoveScriptToExecuteOnDocumentCreated(id);
-                return;
-            }
-
-            _aidsScriptId = id;
         }
         catch (Exception ex)
         {
+            if (!_aidsScripts.Requested) { _aidsScript = null; }
             Diagnostics.Swallowed(ex, "tab: accessibility stylesheet");
         }
     }
@@ -300,35 +292,17 @@ internal sealed partial class BrowserTab
     {
         try
         {
-            if (View.CoreWebView2 is not CoreWebView2 core)
+            if (_disposed || View.CoreWebView2 is not CoreWebView2 core)
             {
                 return;
             }
 
-            if (_cosmeticScriptId is not null)
-            {
-                core.RemoveScriptToExecuteOnDocumentCreated(_cosmeticScriptId);
-                _cosmeticScriptId = null;
-            }
-
-            if (script is null)
-            {
-                return;
-            }
-
-            string id = await core.AddScriptToExecuteOnDocumentCreatedAsync(script);
-
-            // Superseded while it was on its way in: take it straight back out.
-            if (!ReferenceEquals(script, _cosmeticScript))
-            {
-                core.RemoveScriptToExecuteOnDocumentCreated(id);
-                return;
-            }
-
-            _cosmeticScriptId = id;
+            await _cosmeticScripts.SetAsync(script,
+                async text => await core.AddScriptToExecuteOnDocumentCreatedAsync(text), core.RemoveScriptToExecuteOnDocumentCreated);
         }
         catch (Exception ex)
         {
+            if (!_cosmeticScripts.Requested) { _cosmeticScript = null; }
             Diagnostics.Swallowed(ex, "tab: element-hiding script");
         }
     }

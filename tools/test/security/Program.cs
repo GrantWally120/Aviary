@@ -33,6 +33,12 @@ Masked("Unterminated JSON credential", "{\"refresh_token\":\"SECRET_UNTERMINATED
 Masked("Numeric one-time code in JSON", "{\"code\":123456,\"error\":\"invalid\"}", "123456");
 Masked("Numeric PIN in JSON", "{\"pin\":987654}", "987654");
 Masked("Double-encoded OAuth parameter name", "https://example.test/?%2563%256F%2564%2565=SECRET_ENCODED_NAME", "SECRET_ENCODED_NAME");
+Masked("Escaped JSON credential key", "{\"pass\\u0077ord\":\"SECRET_ESCAPED_KEY\"}", "SECRET_ESCAPED_KEY");
+Masked("JSON credential array", "{\"tokens\":[\"SECRET_ARRAY\",\"other\"],\"message\":\"kept\"}", "SECRET_ARRAY");
+Masked("JSON nested credential object", "{\"credentials\":{\"value\":\"SECRET_OBJECT\",\"nested\":[1,2]}}", "SECRET_OBJECT");
+Masked("Truncated JSON credential array", "{\"tokens\":[\"SECRET_TRUNC_ARRAY", "SECRET_TRUNC_ARRAY");
+Check("Ordinary JSON numeric value retained", Diagnostics.Scrub("{\"count\":123456,\"message\":\"ordinary\"}") == "{\"count\":123456,\"message\":\"ordinary\"}");
+Check("Structured redaction preserves following message", Diagnostics.Scrub("{\"credentials\":{\"value\":\"secret\"},\"message\":\"ordinary\"}").Contains("\"message\":\"ordinary\""));
 Masked("Cookie header", "Cookie: sessionid=SECRET_COOKIE; other=abc", "SECRET_COOKIE");
 Masked("Set-Cookie header", "Set-Cookie: id=SECRET_HEADER; Secure", "SECRET_HEADER");
 Masked("Short HTTP authorization", "Authorization: Basic SHORT", "SHORT");
@@ -44,6 +50,15 @@ Masked("Card", "card 4111 1111 1111 1111", "4111");
 Check("Ordinary search retained", Diagnostics.Scrub("https://example.test/?q=ordinary+birds&zipcode=1234") == "https://example.test/?q=ordinary+birds&zipcode=1234");
 Check("Ordinary JSON retained", Diagnostics.Scrub("{\"message\":\"test\"}") == "{\"message\":\"test\"}");
 Check("Bounded long error", Diagnostics.Scrub(new string('a', 50_000)).Length < 4100);
+foreach (string malformed in new[] { "{", "[]", "null", "{\"type\":17}", "{\"type\":\"\"}", "{\"type\":\"" + new string('a', 65) + "\"}" })
+    Check("Malformed message rejected " + malformed[..Math.Min(malformed.Length, 30)], SecurityPolicy.ParseMessage(malformed) is null);
+using (var validMessage = SecurityPolicy.ParseMessage("{\"type\":\"icons\",\"links\":[]}"))
+    Check("Valid bounded message retained", validMessage is not null);
+string largeMessage = "{\"type\":\"setting\",\"value\":\"" + new string('a', 70_000) + "\"}";
+Check("Website message payload is capped", SecurityPolicy.ParseMessage(largeMessage) is null);
+using (var internalMessage = SecurityPolicy.ParseMessage(largeMessage, SecurityPolicy.MaxInternalMessageChars))
+    Check("Authenticated internal editor can send larger settings", internalMessage is not null);
+Check("Deep message rejected", SecurityPolicy.ParseMessage("{\"type\":\"icons\",\"links\":" + new string('[', 40) + "0" + new string(']', 40) + "}") is null);
 
 foreach (var item in new[] {
     ("https://example.test/", true), ("http://example.test/", false), ("http://127.0.0.1:1234/", true),
@@ -141,6 +156,8 @@ update = await FilterLists.UpdateAsync("redirect-test"); await redirectServer;
 Check("All enabled updates failing reports failure", !update.Ok && !update.Changed);
 Check("Rejected redirect preserves known list", File.ReadAllText(Path.Combine(FilterLists.UpdatedFolder, "easylist.txt")) == saved);
 listener.Stop();
+await ScriptChecks.RunAsync(Check);
+await DownloadChecks.RunAsync(Check);
 Check("Policy covers future separate sharing consent", PrivacyPolicy.Markdown().Contains("Local recording consent is not consent to send data."));
 Check("Policy discloses Microsoft services", PrivacyPolicy.Markdown().Contains("SmartScreen"));
 string policyPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../PRIVACY.md"));

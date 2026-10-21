@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,6 +13,24 @@ namespace Aviary;
 internal static class SecurityPolicy
 {
     public const int MaxFilterBytes = 40_000_000;
+    public const int MaxWebMessageChars = 65_536;
+    public const int MaxInternalMessageChars = 4 * 1024 * 1024;
+
+    internal static JsonDocument? ParseMessage(string? text, int limit = MaxWebMessageChars)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length > limit) { return null; }
+        try
+        {
+            JsonDocument doc = JsonDocument.Parse(text, new JsonDocumentOptions { MaxDepth = 32 });
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("type", out JsonElement type)
+                && type.ValueKind == JsonValueKind.String && type.GetString() is { Length: > 0 and <= 64 })
+                return doc;
+            doc.Dispose();
+        }
+        catch (JsonException) { /* An arbitrary website can post malformed messages. */ }
+        return null;
+    }
 
     public static bool IsSecurePermissionOrigin(string address) =>
         Uri.TryCreate(address, UriKind.Absolute, out Uri? uri)

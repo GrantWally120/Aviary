@@ -59,7 +59,7 @@ internal sealed class IconCandidate
 /// </summary>
 internal static class Favicons
 {
-    private const int MaxIconBytes = 256 * 1024;
+    private const int MaxIconBytes = IconDownload.MaxBytes;
     private const int MaxEntries = 400;
 
     /// <summary>Raised with the affected key when an icon becomes available. Always on the UI thread.</summary>
@@ -115,21 +115,6 @@ internal static class Favicons
     private static string? _token;
     private static bool _indexLoaded;
 
-    /// <summary>
-    /// One client for the whole app. A per-request HttpClient exhausts sockets under
-    /// TIME_WAIT. Cookies are OFF on purpose: with them on, an icon fetch would carry the
-    /// user's session cookie to whatever URL the page happened to nominate.
-    /// </summary>
-    private static readonly HttpClient Http = new(new SocketsHttpHandler
-    {
-        UseCookies = false,
-        AllowAutoRedirect = true,
-        MaxAutomaticRedirections = 3,
-        AutomaticDecompression = System.Net.DecompressionMethods.All,
-    })
-    {
-        Timeout = TimeSpan.FromSeconds(8),
-    };
 
     private static string Folder => AppPaths.Of("favicons");
 
@@ -151,9 +136,6 @@ internal static class Favicons
         }
 
         _ui = ui;
-        Http.DefaultRequestHeaders.UserAgent.ParseAdd(
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
-          + "(KHTML, like Gecko) Version/18.0 Safari/605.1.15");
 
         _ = Task.Run(LoadIndex);
     }
@@ -394,12 +376,12 @@ internal static class Favicons
 
         if (touch is not null && (existing?.Large is null || existing.Large.Rank < IconRank.Touch))
         {
-            _ = FetchAsync(key, Absolute(pageOrigin, touch.Href), IconRank.Touch);
+            _ = FetchAsync(key, pageOrigin, Absolute(pageOrigin, touch.Href), IconRank.Touch);
         }
 
         if (icon is not null && (existing?.Small is null || existing.Small.Rank < IconRank.Declared))
         {
-            _ = FetchAsync(key, Absolute(pageOrigin, icon.Href), IconRank.Declared);
+            _ = FetchAsync(key, pageOrigin, Absolute(pageOrigin, icon.Href), IconRank.Declared);
         }
     }
 
@@ -437,7 +419,7 @@ internal static class Favicons
         return resolved.Scheme is "http" or "https" ? resolved.AbsoluteUri : string.Empty;
     }
 
-    private static async Task FetchAsync(string key, string url, IconRank rank)
+    private static async Task FetchAsync(string key, string pageOrigin, string url, IconRank rank)
     {
         if (string.IsNullOrEmpty(url))
         {
@@ -457,13 +439,8 @@ internal static class Favicons
             return;
         }
 
-        // Never fetch through a host the blocker would have stopped, and never fetch the
-        // same URL twice concurrently.
-        if (TrackerBlocker.ShouldBlock(url))
-        {
-            return;
-        }
-
+        // Never fetch the same URL twice concurrently. IconDownload checks Shields on
+        // the original destination and every redirect before any request leaves.
         string guard = key + "|" + url;
         lock (Gate)
         {
@@ -480,24 +457,13 @@ internal static class Favicons
 
         try
         {
-            using HttpResponseMessage response = await Http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-            status = (int)response.StatusCode;
-            length = response.Content.Headers.ContentLength;
-            type = response.Content.Headers.ContentType?.MediaType;
-
-            if (!response.IsSuccessStatusCode)
-            {
-                return;
-            }
-
-            if (response.Content.Headers.ContentLength is > MaxIconBytes)
-            {
-                return;
-            }
-
-            byte[] bytes = await response.Content.ReadAsByteArrayAsync();
+            IconDownload.Result? result = await IconDownload.FetchAsync(pageOrigin, url);
+            if (result is null) { return; }
+            status = result.Status;
+            type = result.MediaType;
+            byte[] bytes = result.Bytes;
             length = bytes.Length;
-            Offer(key, bytes, url, rank);
+            Offer(key, bytes, result.Url, rank);
         }
         catch (Exception ex)
         {

@@ -2533,7 +2533,10 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
+            int limit = SecurityPolicy.IsInternalMessageSource(args.Source, sender.Source)
+                ? SecurityPolicy.MaxInternalMessageChars : SecurityPolicy.MaxWebMessageChars;
+            using JsonDocument? doc = SecurityPolicy.ParseMessage(args.TryGetWebMessageAsString(), limit);
+            if (doc is null) { return; }
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
             bool trusted = FromAviaryPage(root, sender, args.Source);
@@ -2831,7 +2834,10 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
+            int limit = SecurityPolicy.IsInternalMessageSource(args.Source, sender.Source)
+                ? SecurityPolicy.MaxInternalMessageChars : SecurityPolicy.MaxWebMessageChars;
+            using JsonDocument? doc = SecurityPolicy.ParseMessage(args.TryGetWebMessageAsString(), limit);
+            if (doc is null) { return; }
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
             bool trusted = FromAviaryPage(root, sender, args.Source);

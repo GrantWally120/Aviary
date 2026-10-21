@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Aviary;
@@ -73,8 +74,8 @@ internal static partial class Diagnostics
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     // Error messages can contain JSON or complete HTTP headers, not just URLs.
-    private static readonly Regex JsonSecretPattern = new(
-        """(?<lead>"(?<name>[A-Za-z0-9_.-]{1,80})"\s*:\s*)(?:"(?:\\.|[^"\\])*(?:"|\\?\z)|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?=\s*[,}\]]|\z))""",
+    private static readonly Regex JsonPropertyPattern = new(
+        @"""(?<name>(?:\\.|[^""\\]){1,160})""\s*:\s*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
     private static readonly Regex SecretHeaderPattern = new(
@@ -331,8 +332,19 @@ internal static partial class Diagnostics
         try
         {
             text = SecretHeaderPattern.Replace(text, m => m.Groups["name"].Value + ": " + Mask);
-            return JsonSecretPattern.Replace(text, m => IsSecretName(m.Groups["name"].Value)
-                ? m.Groups["lead"].Value + "\"" + Mask + "\"" : m.Value);
+            StringBuilder? masked = null;
+            int copied = 0;
+            foreach (Match property in JsonPropertyPattern.Matches(text))
+            {
+                if (property.Index < copied || !IsSecretName(property.Groups["name"].Value)) { continue; }
+                int start = property.Index + property.Length;
+                int end = JsonValueEnd(text, start);
+                if (end <= start) { continue; }
+                masked ??= new StringBuilder(text.Length);
+                masked.Append(text, copied, start - copied).Append('"').Append(Mask).Append('"');
+                copied = end;
+            }
+            return masked is null ? text : masked.Append(text, copied, text.Length - copied).ToString();
         }
         catch (RegexMatchTimeoutException)
         {
@@ -341,9 +353,52 @@ internal static partial class Diagnostics
         }
     }
 
+    // A diagnostic may contain a JSON fragment rather than a complete document, or be
+    // cut off at MaxString. Scan just the recognized secret's value, including arrays
+    // and objects, without requiring a valid closing quote/bracket before masking it.
+    private static int JsonValueEnd(string text, int start)
+    {
+        if (start >= text.Length) { return start; }
+        bool quoted = text[start] == '"';
+        bool container = text[start] is '[' or '{';
+        if (!quoted && !container)
+        {
+            int end = start;
+            while (end < text.Length && !char.IsWhiteSpace(text[end]) && text[end] is not (',' or '}' or ']')) { end++; }
+            return end;
+        }
+        int depth = container ? 1 : 0;
+        bool inString = quoted;
+        for (int index = start + 1; index < text.Length; index++)
+        {
+            char c = text[index];
+            if (inString)
+            {
+                if (c == '\\') { index++; }
+                else if (c == '"')
+                {
+                    inString = false;
+                    if (quoted) { return index + 1; }
+                }
+            }
+            else if (c == '"') { inString = true; }
+            else if (c is '[' or '{') { depth++; }
+            else if (c is ']' or '}')
+            {
+                if (--depth == 0) { return index + 1; }
+            }
+        }
+        return text.Length;
+    }
+
     internal static bool IsSecretName(string raw)
     {
         string name = raw;
+        if (name.IndexOf('\\') >= 0)
+        {
+            try { name = JsonSerializer.Deserialize<string>("\"" + name + "\"") ?? name; }
+            catch (JsonException) { /* a non-JSON parameter name is kept as written */ }
+        }
         if (name.IndexOf('%') >= 0)
         {
             try

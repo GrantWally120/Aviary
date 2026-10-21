@@ -7,6 +7,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../../src/Aviary/SecurityPolicy.cs" Link="SecurityPolicy.cs" />
+    <Compile Include="../../../src/Aviary/BoundedDownload.cs" Link="BoundedDownload.cs" />
+    <Compile Include="../../../src/Aviary/DocumentScriptSlot.cs" Link="DocumentScriptSlot.cs" />
+    <Compile Include="../../../src/Aviary/IconDownload.cs" Link="IconDownload.cs" />
+    <Compile Include="../../../src/Aviary/BirdsNews.cs" Link="BirdsNews.cs" />
     <Compile Include="../../../src/Aviary/PrivacyPolicy.cs" Link="PrivacyPolicy.cs" />
     <Compile Include="../../../src/Aviary/Diagnostics.Scrub.cs" Link="Diagnostics.Scrub.cs" />
     <Compile Include="../../../src/Aviary/Diagnostics.Limits.cs" Link="Diagnostics.Limits.cs" />

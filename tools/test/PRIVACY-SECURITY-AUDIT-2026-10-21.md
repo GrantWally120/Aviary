@@ -40,3 +40,37 @@ The security harness passes 73/73 locally, including ordinary JSON/search preser
 Production changed after the prepared package. Those earlier candidates are superseded for
 installation; a fresh package and verification are required. The ordinary copy has not yet been
 replaced; successful CI is still required.
+
+## Successful CI and continued repairs
+
+Run **39624810327**, source **e40a003**, succeeded on the actual Windows runner, including
+the complete source-only package/archive and uploads. The sentinel/layout repair therefore
+exercises the previously failing legacy-counter path on Server 2022 as well as the supported
+counter locally. The ordinary copy still awaits the final continued-review candidate.
+
+Further source review found and repaired:
+
+- Supplementary icon requests checked only the original URL against the built-in tracker
+  table. They now honor the page's complete Shields image rules/targeted exceptions on each
+  redirect, reject embedded credentials/downgrades and remote-to-literal-loopback nominations,
+  cap redirects and wait for the initial filter load. This does not claim full DNS/private
+  network isolation.
+- Unknown-length icon bodies could allocate beyond the 256 KiB cap before being rejected.
+  A shared streamed reader enforces the limit on decompressed bytes while reading.
+- ResponseHeadersRead ends HttpClient.Timeout at headers: icon/news bodies could hang
+  forever. Tokens now cover the entire body (8/15 seconds). An actual loopback stalled news
+  response times out, then a second refresh succeeds, proving the refresh gate recovered.
+- Rapid on/off/on diagnostics registration could orphan an earlier script. A tested script
+  slot owns generation-specific IDs, including close and failure/retry. The same ownership
+  now protects cosmetic/reading aid registrations. Private tabs never attach diagnostics;
+  switching off removes the current document's error listeners too.
+- Four more redaction failures were reproduced before repair: escaped JSON secret keys,
+  credential arrays, nested objects and truncated arrays. A bounded value scan masks the
+  whole recognized secret value while preserving following ordinary fields.
+- Arbitrary native JSON messages now have size/depth/type limits before dispatch. Icon
+  candidates tolerate malformed entries and cap examined entries and URL lengths.
+
+Current local results: security **112/112**, native Performance **30**, app build zero
+warnings/errors, Settings **100 live / none unread / 3 deferred**, diagnostic-script lifecycle
+check passed. Download fixtures send no browser cookies and never contact external publishers.
+Fresh final packaging/native QA and actual CI for these continued repairs are next.

@@ -397,7 +397,11 @@ internal static class BirdsNews
                 request.Headers.TryAddWithoutValidation("If-Modified-Since", modified);
             }
 
-            using HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead).ConfigureAwait(false);
+            // HttpClient.Timeout stops at the headers with ResponseHeadersRead. Carry
+            // the same deadline through the body so a stalled publisher cannot hold
+            // the refresh gate forever.
+            using CancellationTokenSource deadline = new(FeedTimeout);
+            using HttpResponseMessage response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
             status = (int)response.StatusCode;
 
             if (response.StatusCode == HttpStatusCode.NotModified)
@@ -422,7 +426,7 @@ internal static class BirdsNews
                 return;
             }
 
-            byte[] body = await ReadCappedAsync(response).ConfigureAwait(false);
+            byte[] body = await BoundedDownload.ReadAsync(response.Content, MaxFeedBytes, deadline.Token).ConfigureAwait(false);
             bytes = body.Length;
             if (body.Length == 0)
             {
@@ -456,7 +460,7 @@ internal static class BirdsNews
         {
             Fail(held, "too large to be a headline feed");
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             Fail(held, "no answer within " + (int)FeedTimeout.TotalSeconds + " seconds");
         }
@@ -490,25 +494,6 @@ internal static class BirdsNews
         held.State = "failed";
         held.Why = why;
         held.At = DateTimeOffset.Now;
-    }
-
-    private static async Task<byte[]> ReadCappedAsync(HttpResponseMessage response)
-    {
-        await using Stream stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-        using MemoryStream copy = new();
-        byte[] buffer = new byte[81920];
-        int read;
-        while ((read = await stream.ReadAsync(buffer).ConfigureAwait(false)) > 0)
-        {
-            if (copy.Length + read > MaxFeedBytes)
-            {
-                throw new InvalidDataException("feed larger than " + MaxFeedBytes + " bytes");
-            }
-
-            copy.Write(buffer, 0, read);
-        }
-
-        return copy.ToArray();
     }
 
     // ══ READING A FEED ═════════════════════════════════════════════════════
