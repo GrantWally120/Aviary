@@ -1,17 +1,21 @@
 # Aviary AB5 continuation checkpoint — 21 October 2026
 
-> **LATEST — PRIVACY/SECURITY FOLLOW-UP INSTALLED, 21 October 23:52 +08.**
-> Combined Settings/security source is committed/pushed through **75f627e**. Actual Windows
-> CI **39628223414** succeeded, including 112 security and 30 Performance checks, source-only
+> **LATEST — PRIVACY/SECURITY FOLLOW-UP INSTALLED, 22 October 00:07 +08.**
+> Combined Settings/security source is committed/pushed through **102abec**. Actual Windows
+> CI **39630732602** succeeded, including 112 security and 30 Performance checks, source-only
 > package/archive verification and uploads. AB5 remains 0.5.0, 16/16.
 > `publish/Aviary` is the exact verified **663-file, 54/54** local candidate from
-> `.artifact/ab5-privacy-security-audit-local-20261021`. Previous 662-file Settings copy is
-> preserved at `.artifact/ab5-published-before-privacy-security-20261021`. All 508 common
-> source-only/local app files match. Both packages were built from clean 75f627e.
+> `.artifact/ab5-privacy-security-policy-local-20261021`. Previous audit copy is preserved at
+> `.artifact/ab5-published-privacy-audit-before-policy-20261021`; the 662-file Settings copy
+> is at `.artifact/ab5-published-before-privacy-security-20261021`. All 508 common app files
+> match. Both final packages were built from clean 102abec. Native policy/Safety Check QA
+> closed normally with zero issues, crashes and diagnostic write errors.
 > Full evidence and remaining scope limits: `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md`.
 > Earlier prepared packages below are superseded. Personal payloads remain local. Do not
-> repeat unchanged QA/publication. Automation stays paused; macOS, Beta Build 1, accounts
-> and email remain deferred. No work may continue after Grant's 02:00 Manila cutoff.
+> repeat unchanged QA/publication. Current pass is finished and stopped before 02:00.
+> Automation stays paused; macOS, Beta Build 1, accounts and email remain deferred.
+> Remaining SDK/filter maintenance needs approval: `docs/SECURITY-MAINTENANCE-PROPOSAL.md`.
+> SDK 1.7 is out of support; no dependency/list downloads have been made for that proposal.
 
 > **ACTIVE CONTINUATION — Grant directed completion after the prepared update.**
 > Finish its commit/push/installation, then review privacy/security for more bugs until

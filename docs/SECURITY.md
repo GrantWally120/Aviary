@@ -50,10 +50,21 @@ Google sign-in, Bird/Birds, cloud sync and diagnostic email are not implemented.
   remains required before any command is handled.
 
 The policy in Settings and the shipped PRIVACY.md use PrivacyPolicy.cs as their source.
+They explain that the page error filter checks current form text locally, including password
+inputs, to mask errors; those field values are not separately sent/stored as diagnostic fields.
+This is distinct from excluding form submissions, cookie stores and clipboard contents as
+diagnostic sources. Masking remains best effort.
 The public copy must include the real operator and an appropriate private contact channel
 before an account/reporting service is offered. The current copy identifies the project
 maintainer and directs questions to the person supplying the app or the repository;
 public issues must never receive diagnostic attachments or credentials.
+
+The current NuGet audit reported no known vulnerable packages, but Microsoft's servicing
+policy lists the pinned Windows App SDK 1.7 as out of support. Bundled filter snapshots also
+need freshness maintenance. These remaining items are prepared, with exact proposed package
+targets and publisher URLs, in [the maintenance proposal](SECURITY-MAINTENANCE-PROPOSAL.md).
+NuGet/list downloads await the specific approvals required by HANDOFF. Do not treat this
+pass as establishing a fully supported account-service foundation until that work is resolved.
 
 ## Required design for future accounts and reports
 

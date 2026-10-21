@@ -138,6 +138,54 @@ No collection behavior or consent default changed. The final policy candidate ne
 packaging/CI and installed-copy verification; the installed 75f627e copy above remains the
 first verified activation until that clarification is applied.
 
+### Final clarification verified and installed — 22 October 00:07 +08
+
+Clean source **102abec2b1403d57fb691ba2c6f7c37bcc8bf899** passed actual Windows CI
+[39630732602](https://github.com/GrantWally120/Aviary/actions/runs/39630732602). The logs confirm
+112 security, 125 filter and 30 Performance checks, the diagnostics script check, Settings
+100 live rows, all remaining checks and the complete 509-file source-only ZIP verification/upload.
+The change from tested 75f627e is disclosure text/comments only; collection behavior is unchanged.
+
+| Distribution | Final folder under .artifact | Files | Exhibits | ZIP SHA256 |
+| --- | --- | ---: | ---: | --- |
+| Source-only | ab5-privacy-security-policy-source-20261021 | 509 | 4/54 | 5526b82a3edb1123631e61a05c972595360e23778d21745b81cc73c79f67925f |
+| Local/private | ab5-privacy-security-policy-local-20261021 | 663 | 54/54 | b0420c97b884189f939f65a890387919f80d60c7ca270862ceecec2034b0e9d3 |
+
+Both manifests record clean 102abec; all 508 common app files match. Native full-candidate
+QA confirmed the policy's ten sections, explicit local field/password inspection for masking,
+separate sharing consent, and Safety Check's best-effort warning without the old guarantee.
+The scratch session closed with zero issues, crashes and diagnostic write errors. Evidence is
+the local final folder's `native-policy-summary.json`, `native-safety-summary.json`,
+`native-session-summary.json` and `qa-policy` profile. Prior behavior/isolation evidence above
+still applies to the unchanged security code.
+
+At **00:07:31 +08 on 22 October**, the final 663-file copy replaced `publish/Aviary`; every
+installed hash matches the tested final candidate and all 54 exhibits are present. The earlier
+75f627e audit copy is preserved at `.artifact/ab5-published-privacy-audit-before-policy-20261021`.
+The older 662-file Settings copy remains at `.artifact/ab5-published-before-privacy-security-20261021`.
+The final local folder contains `applied-local.json`, `actual-ci.json` and equality evidence.
+The user's normal profile was not used for tests or modified by either replacement.
+
+### Remaining maintenance found by the audit
+
+The read-only NuGet advisory query (including transitive packages, nuget.org source) explicitly
+reported no vulnerable packages. JSON and console receipts are in the final local folder.
+This does not cover support lifecycle or every native/runtime vulnerability.
+
+Microsoft's [servicing table](https://learn.microsoft.com/windows/apps/windows-app-sdk/release-channels)
+lists Windows App SDK 1.7 as out of support since 18 March 2026. Current stable package 2.5.1
+and paired Win2D candidate 1.4.0 introduce the split SDK dependency graph. No package
+additions or lockfile changes have been made; HANDOFF requires approval first. Bundled lists
+were 38 days old in the scratch Safety Check; current profile downloads may differ. A refresh
+of the already-approved EasyList/EasyPrivacy publishers also awaits download approval.
+
+The concrete scope, package versions, publisher URLs, compatibility checks and primary sources
+are recorded in `docs/SECURITY-MAINTENANCE-PROPOSAL.md`. This is material remaining work before
+planned accounts, not evidence of an observed exploit. Accounts/email/cloud transport are
+still deferred. Current implementation/QA/installation is complete; the follow-up is awaiting
+specific approval, with no scheduled work. Final documentation skips redundant CI because
+production source remains identical to successful 102abec.
+
 ## Stop instructions and scope
 
 Stop when the final clarification is verified/applied, or at Grant's 02:00 Manila cutoff;

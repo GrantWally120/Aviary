@@ -1,6 +1,6 @@
 # Privacy/security and policy follow-up — 21 October 2026
 
-> Historical preparation/QA record. These packages are superseded by clean source **75f627e**
+> Historical preparation/QA record. These packages are superseded by clean source **102abec**
 > and the installed audit candidate. Commit/push/installation were subsequently authorized
 > and completed. See `PRIVACY-SECURITY-AUDIT-2026-10-21.md` for actual CI, newer repairs and
 > installation proof. The pending-approval/no-CI statements below describe the earlier checkpoint.
