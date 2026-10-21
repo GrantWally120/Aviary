@@ -47,6 +47,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Release state checks failed' }
           dotnet run --project tools/test/filters/FilterHarness.csproj -c Release
           if ($LASTEXITCODE) { throw 'Filter checks failed' }
+          dotnet run --project tools/test/security/SecurityHarness.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Privacy and security checks failed' }
+          dotnet run --project tools/test/performance/PerformanceHarness.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Performance measurement checks failed' }
+          dotnet run --project tools/test/storage/StorageHarness.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Storage measurement checks failed' }
           ./tools/test/library-sync-test.ps1
       - name: Prepare and verify the source-only app
         run: ./tools/release/prepare.ps1 -NoRestore -SourceOnly -OutputRoot .artifact/release-ci

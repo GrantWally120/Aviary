@@ -44,6 +44,7 @@ internal static class Shields
 
     /// <summary>Sites lowered in a private window: this session only, never saved.</summary>
     private static readonly HashSet<string> PrivateDown = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> PrivateUp = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Sites given their own Standard/Strict in a private window: this session only.</summary>
     private static readonly Dictionary<string, string> PrivateMode = new(StringComparer.OrdinalIgnoreCase);
@@ -92,6 +93,10 @@ internal static class Shields
         {
             lock (Gate)
             {
+                if (PrivateUp.Contains(SiteOf(host)))
+                {
+                    return false;
+                }
                 if (PrivateDown.Contains(SiteOf(host)))
                 {
                     return true;
@@ -115,14 +120,8 @@ internal static class Shields
         {
             lock (Gate)
             {
-                if (down) { PrivateDown.Add(site); } else { PrivateDown.Remove(site); }
-            }
-
-            // Raising Shields in a private window must also raise a saved "down" — otherwise
-            // the switch would appear to do nothing there.
-            if (!down && SiteSettings.GetBool(host, SiteKey))
-            {
-                SiteSettings.Remove(host, SiteKey);
+                if (down) { PrivateDown.Add(site); PrivateUp.Remove(site); }
+                else { PrivateDown.Remove(site); PrivateUp.Add(site); }
             }
         }
         else if (down)
@@ -267,7 +266,9 @@ internal static class Shields
     {
         if (isPrivate)
         {
-            lock (Gate) { PrivateMode.Remove(site); }
+            // This session's default override ignores any saved site mode.
+            lock (Gate) { PrivateMode[site] = "default"; }
+            return;
         }
 
         if (SiteSettings.Get(site, ModeKey).Length > 0)
@@ -313,6 +314,7 @@ internal static class Shields
         lock (Gate)
         {
             PrivateDown.Clear();
+            PrivateUp.Clear();
             PrivateMode.Clear();
         }
 
@@ -328,6 +330,18 @@ internal static class Shields
             _script = null;
             _privateScript = null;
         }
+    }
+
+    /// <summary>Private exceptions expire with the last private window, not the app.</summary>
+    public static void ForgetPrivate()
+    {
+        lock (Gate)
+        {
+            PrivateDown.Clear();
+            PrivateUp.Clear();
+            PrivateMode.Clear();
+        }
+        Invalidate();
     }
 
     /// <summary>
@@ -365,7 +379,7 @@ internal static class Shields
 
             if (isPrivate)
             {
-                return _privateScript ??= engine.CosmeticScript(DownSites().Concat(PrivateDown).Distinct(StringComparer.OrdinalIgnoreCase), OwnHosts);
+                return _privateScript ??= engine.CosmeticScript(DownSites().Where(s => !PrivateUp.Contains(s)).Concat(PrivateDown).Distinct(StringComparer.OrdinalIgnoreCase), OwnHosts);
             }
 
             return _script ??= engine.CosmeticScript(DownSites(), OwnHosts);

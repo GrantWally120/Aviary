@@ -52,6 +52,8 @@ internal static class AppSettings
         ["stripTracking"] = "true",
         ["httpsOnly"] = "true",
         ["trimReferrer"] = "true",
+        ["blockLinkPings"] = "true",
+        ["improvementCollection"] = "false",
         ["privacyRange"] = "Last 7 days",
         ["formAutofill"] = "false",
         ["downloadHistory"] = "After one day",

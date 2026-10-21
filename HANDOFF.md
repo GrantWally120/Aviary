@@ -1,5 +1,40 @@
 # Aviary — project handoff
 
+> **ACTIVE PRIVACY REVIEW — 21 October, 23:08 +08 onward.**
+> Grant directed finishing the prepared update, then finding more privacy/security bugs.
+> Proceed with the prepared commit/push/install. Hard cutoff: 02:00 Manila, 22 October;
+> no new work after it, finish only an in-progress operation and stop. AB5 automation stays
+> paused. Current evidence: `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md`.
+> The prepared checkpoint below predates this authorization.
+
+> **LATEST PREPARED FOLLOW-UP — 21 October 2026: PRIVACY/SECURITY, NOT INSTALLED**
+> Grant requested stronger privacy/security/ad blocking and a policy before future accounts.
+> Ready local candidate: `.artifact/ab5-privacy-security-final-local-20261021/Aviary`,
+> 663 files, 54/54 exhibits. Native-tested final-source counterpart: 509 files, 4/54.
+> All 508 shared app files match. Earlier privacy review is superseded; do not install it.
+> Offline policy, default link-ping protection, private Shields isolation, certificate-event
+> preservation, bounded updates, message/permission boundaries and masking are implemented.
+> Security 68 and existing focused checks pass; native certificate, blocking/control and policy
+> pass. Four scratch sessions closed, zero crashes, one deliberate attack anomaly; no helpers
+> remain. Read `tools/test/PRIVACY-SECURITY-2026-10-21.md` for evidence and limitations.
+> No accounts/email sender, packages or new remote lists. No commit/push/CI or installation.
+> Preserve prior Settings work; backup `.artifact/privacy-security-before-20261021`.
+> Ordinary copy remains the 20:27 installation below. Ask Grant for new commit/push/replacement
+> approval. Full ZIP/Collection stay local. AB5 0.5.0, 16/16 complete; automation paused;
+> macOS/Beta Build 1 deferred. Don't rerun unchanged QA.
+
+> **LATEST LOCAL FOLLOW-UP — 21 October 2026, 20:27 +08**
+> Grant requested live/more accurate Settings, an AB5 milestone dropdown, automatic MB/KB
+> units, and explicitly asked to apply the fix to his ordinary copy. `publish/Aviary` now
+> contains the exact tested 662-file `.artifact/ab5-settings-mb-20261021/Aviary` candidate;
+> all hashes verified. Desktop/taskbar point there and the normal copy was reopened and
+> visually verified. Prior copy: `.artifact/ab5-published-before-settings-mb-20261021`.
+> Size labels now use decimal KB/MB/GB with matching calculation and automatic scaling.
+> Follow-up source is **uncommitted/unpushed**; its CI has not run. Local application is
+> authorized/completed, so do not ask again. Git commits/push still follow ask-first rules.
+> Full current checkpoint: AB5-CONTINUE.md; validation: tools/test/SETTINGS-LIVE-2026-10-21.md.
+> The completed AB5 continuation remains paused; macOS and Beta Build 1 remain deferred.
+
 > **CURRENT — 21 October 2026: Alpha Build 5 COMPLETE, 16 of 16**
 > - **0.5.0 — The Long Run** is committed, verified by actual Windows CI and locally published.
 >   BuildInfo is PhaseShipped=5, MilestonesDone=16, preRelease=false. No AB5 approval remains.

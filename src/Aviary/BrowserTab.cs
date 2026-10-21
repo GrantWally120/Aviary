@@ -303,6 +303,7 @@ internal sealed partial class BrowserTab
         await Step(ApplyUserAgentAsync());
         await Step(ApplyReferrerScriptAsync());
         core.Settings.IsStatusBarEnabled = false;
+        AttachSecurity(core);
 
         core.SourceChanged += OnSourceChanged;
         core.HistoryChanged += OnHistoryChanged;
@@ -514,7 +515,8 @@ internal sealed partial class BrowserTab
         // Timed for diagnostics' blocker-cost figure. GetTimestamp is a few nanoseconds;
         // FilterCost returns at once while collection is off.
         long matchStart = System.Diagnostics.Stopwatch.GetTimestamp();
-        (string Rule, string List)? verdict = ShieldsVerdict(uri, args.ResourceContext);
+        (string Rule, string List)? verdict = ShieldsVerdict(uri, args.ResourceContext,
+            args.Request.Headers.Contains("Ping-To"));
         long matchTicks = System.Diagnostics.Stopwatch.GetTimestamp() - matchStart;
         Diagnostics.FilterCost(matchTicks);
         LiveStats.NoteBlocker(matchTicks);
@@ -1097,19 +1099,21 @@ internal sealed partial class BrowserTab
 
                 case "icons":
                 {
-                    if (!root.TryGetProperty("links", out JsonElement links)
+                    if (IsPrivate || !SecurityPolicy.IsCurrentWebDocument(args.Source, sender.Source)
+                        || !root.TryGetProperty("links", out JsonElement links)
                         || links.ValueKind != JsonValueKind.Array)
                     {
                         return;
                     }
 
-                    string origin = root.TryGetProperty("origin", out JsonElement o)
-                        ? o.GetString() ?? string.Empty
-                        : string.Empty;
+                    // The message's claimed origin is website-controlled. Bind icon offers
+                    // to the engine's current document, and cap a hostile candidate list.
+                    string origin = args.Source;
 
                     List<IconCandidate> candidates = new();
                     foreach (JsonElement link in links.EnumerateArray())
                     {
+                        if (candidates.Count >= 32) break;
                         candidates.Add(new IconCandidate
                         {
                             Href = link.TryGetProperty("href", out JsonElement h) ? h.GetString() ?? "" : "",
@@ -1119,10 +1123,7 @@ internal sealed partial class BrowserTab
                         });
                     }
 
-                    if (!IsPrivate)
-                    {
-                        Favicons.OfferCandidates(IconKey, origin, candidates);
-                    }
+                    Favicons.OfferCandidates(IconKey, origin, candidates);
                     break;
                 }
 
@@ -1752,6 +1753,7 @@ internal sealed partial class BrowserTab
 
     private void OnNavigationStarting(CoreWebView2 sender, CoreWebView2NavigationStartingEventArgs args)
     {
+        if (!args.IsRedirected) _certificateFailureStatus = null;
         // M7 Quik: a website before the Start Page had even appeared - its Shields scripts go now, not later.
         if (args.Uri.StartsWith("http", StringComparison.OrdinalIgnoreCase))
         {
@@ -1878,7 +1880,7 @@ internal sealed partial class BrowserTab
         // Read before anything can move on: the next navigation overwrites both.
         long navStart = _navStart;
         ulong navId = args.NavigationId;
-        CoreWebView2WebErrorStatus status = args.WebErrorStatus;
+        CoreWebView2WebErrorStatus status = _certificateFailureStatus ?? args.WebErrorStatus;
 
         // A navigation the privacy step replaced with a cleaner one: its "cancelled" ending is
         // expected, and the replacement is already on its way.
@@ -2303,6 +2305,7 @@ internal sealed partial class BrowserTab
                 core.DocumentTitleChanged -= OnDocumentTitleChanged;
                 core.FaviconChanged -= OnFaviconChanged;
                 core.NavigationStarting -= OnNavigationStarting;
+                DetachSecurity(core);
                 core.ContentLoading -= OnContentLoading;
                 core.NavigationCompleted -= OnNavigationCompleted;
                 core.NewWindowRequested -= OnNewWindowRequested;

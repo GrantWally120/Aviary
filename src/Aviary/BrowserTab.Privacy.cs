@@ -314,6 +314,8 @@ internal sealed partial class BrowserTab
     /// </summary>
     private static readonly HashSet<string> PrivateHttpAllowed = new(StringComparer.OrdinalIgnoreCase);
 
+    internal static void ForgetPrivatePrivacyChoices() => PrivateHttpAllowed.Clear();
+
     /// <summary>
     /// Addresses that almost never have a certificate a browser would accept: this computer,
     /// the local network, and single-word intranet names. HTTPS-Only leaves them alone, as
@@ -384,7 +386,7 @@ internal sealed partial class BrowserTab
         _upgradeTimer?.Stop();
         _upgrade = null;
 
-        if (args.IsSuccess)
+        if (args.IsSuccess || _certificateFailureStatus is not null)
         {
             return false;
         }
@@ -394,11 +396,6 @@ internal sealed partial class BrowserTab
         _upgradeTimedOut = false;
 
         bool noHttps = timedOut || status is
-            CoreWebView2WebErrorStatus.CertificateCommonNameIsIncorrect or
-            CoreWebView2WebErrorStatus.CertificateExpired or
-            CoreWebView2WebErrorStatus.ClientCertificateContainsErrors or
-            CoreWebView2WebErrorStatus.CertificateRevoked or
-            CoreWebView2WebErrorStatus.CertificateIsInvalid or
             CoreWebView2WebErrorStatus.CannotConnect or
             CoreWebView2WebErrorStatus.ConnectionAborted or
             CoreWebView2WebErrorStatus.ConnectionReset or

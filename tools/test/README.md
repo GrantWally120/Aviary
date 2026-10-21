@@ -1,5 +1,18 @@
 # Aviary test kit
 
+## Settings measurement checks — 21 October 2026
+
+`dotnet run --project tools/test/performance/PerformanceHarness.csproj -c Release` exercises
+actual-interval CPU accounting, GPU engine aggregation, native memory availability, concurrent
+Shields windows and sampler start/stop ownership (26 checks). It needs Windows x64.
+`dotnet run --project tools/test/storage/StorageHarness.csproj -c Release` checks snapshot
+reconciliation, sparse files, hard links, junctions, overlapping roots, missing entries and
+coalesced requests (18 checks). Fixtures use temporary directories, never a normal profile.
+Both harnesses compile the production measurement sources. Their Windows CI steps are
+prepared locally; this uncommitted Settings follow-up has not run on GitHub CI yet.
+See [Settings verification](SETTINGS-LIVE-2026-10-21.md) for the native results, automatic
+decimal KB/MB/GB display checks and the approved update to the ordinary local copy.
+
 ## M8 and M9 checks — 20–21 October 2026
 
 See [M8 verification](M8-VERIFICATION-2026-10-20.md) and [M9 final validation](M9-FINAL-2026-10-21.md).
@@ -126,3 +139,11 @@ forward slashes in PublishDir: a trailing `\"` swallows the rest of the argument
 | `bg-battery.ps1 -Label name [-Only 1,5] [-Repeat n]` | 26 cases through `flash-watch.ps1` — same-/cross-site, slow CSS, slow server, link clicks, Start Page ↔ website, Settings and Ctrl+T in new tabs, links opening new tabs (plain, dark, slow, empty, text), tab switches (including a tab loaded while hidden). Writes `shots/bg-<label>.txt`. Needs `bgsite.js` and a test instance. |
 
 Output (`pub/`, `profiles/`, `shots/`, `pid.txt`, `lastinput.txt`, `filters/bin`, `filters/obj`) is ignored by git.
+
+## Privacy/security follow-up checks
+
+`dotnet run --project tools/test/security/SecurityHarness.csproj -c Release` exercises
+shipping redaction, private Shields state, filter exceptions, trusted document checks,
+permission-origin boundaries and bounded downloads, including a loopback update server.
+All stores are isolated test stores. It never opens the ordinary Aviary profile or downloads
+external filter lists. `-- policy` prints the policy shared by Settings and PRIVACY.md.

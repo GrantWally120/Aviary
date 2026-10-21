@@ -50,10 +50,7 @@ internal static partial class Diagnostics
     /// cap is built from this number — the only places a figure is written by hand are the
     /// Updates page's HISTORY entries, which must keep saying what was true at the time.
     /// </summary>
-    public const int CapMB = 700;
-
-    public const long CapBytes = CapMB * 1024L * 1024;
-    public const int RetentionDays = 30;
+    // Values live in Diagnostics.Limits.cs, also compiled by the policy check.
 
     /// <summary>A category file is moved into archive/ once it reaches this size.</summary>
     private const long RotateBytes = 16L * 1024 * 1024;

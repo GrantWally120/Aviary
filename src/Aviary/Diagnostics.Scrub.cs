@@ -72,6 +72,15 @@ internal static partial class Diagnostics
         @"\b(?<scheme>Bearer|Basic|Token)\s+[A-Za-z0-9._~+/\-]{12,}=*",
         RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
+    // Error messages can contain JSON or complete HTTP headers, not just URLs.
+    private static readonly Regex JsonSecretPattern = new(
+        "(?<lead>\"(?<name>[A-Za-z0-9_.-]{1,80})\"\\s*:\\s*)\"(?:\\\\.|[^\"\\\\])*\"",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
+
+    private static readonly Regex SecretHeaderPattern = new(
+        @"(?im)^(?<name>Authorization|Proxy-Authorization|Cookie|Set-Cookie|X-Api-Key)\s*:[^\r\n]*",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
+
     /// <summary>
     /// 13-19 digits, optionally grouped by spaces, dashes, '+' or an encoded space (%20).
     ///
@@ -105,6 +114,7 @@ internal static partial class Diagnostics
     private static readonly HashSet<string> SecretWords = new(StringComparer.Ordinal)
     {
         "key", "sig", "code", "pin", "otp", "pwd", "pw", "pass", "ticket", "sid", "verifier",
+        "state", "nonce", "assertion",
     };
 
     /// <summary>A path containing one of these may carry a credential as a path segment.</summary>
@@ -150,6 +160,8 @@ internal static partial class Diagnostics
         {
             s = MaskParams(s, 0);
         }
+
+        s = MaskStructuredSecrets(s);
 
         if (s.Contains("eyJ", StringComparison.Ordinal))
         {
@@ -289,6 +301,11 @@ internal static partial class Diagnostics
                         inner = MaskParams(inner, depth + 1);
                     }
 
+                    if (inner.Contains("://", StringComparison.Ordinal))
+                        inner = UrlPattern.Replace(inner, m => MaskAddress(m.Value));
+                    inner = MaskStructuredSecrets(inner);
+                    inner = BearerPattern.Replace(inner, m => m.Groups["scheme"].Value + " " + Mask);
+
                     if (CountDigits(inner) >= 13)
                     {
                         inner = CardPattern.Replace(inner, MaskCard);
@@ -308,6 +325,21 @@ internal static partial class Diagnostics
 
             return m.Value;
         });
+
+    private static string MaskStructuredSecrets(string text)
+    {
+        try
+        {
+            text = SecretHeaderPattern.Replace(text, m => m.Groups["name"].Value + ": " + Mask);
+            return JsonSecretPattern.Replace(text, m => IsSecretName(m.Groups["name"].Value)
+                ? m.Groups["lead"].Value + "\"" + Mask + "\"" : m.Value);
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            // A hostile page error must not force a slow match or reach disk unsanitised.
+            return "[diagnostic text omitted: redaction limit]";
+        }
+    }
 
     internal static bool IsSecretName(string raw)
     {

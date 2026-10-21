@@ -396,11 +396,17 @@ internal static class FilterLists
 
         long started = System.Diagnostics.Stopwatch.GetTimestamp();
         List<string> updated = new(), failed = new();
+        int attempted = 0;
         try
         {
             await Loading.ConfigureAwait(false);
 
-            using HttpClient http = new(new HttpClientHandler { UseCookies = false, AllowAutoRedirect = true })
+            using HttpClient http = new(new HttpClientHandler
+            {
+                UseCookies = false,
+                UseDefaultCredentials = false,
+                AllowAutoRedirect = false,
+            })
             {
                 Timeout = TimeSpan.FromSeconds(60),
             };
@@ -416,10 +422,19 @@ internal static class FilterLists
                     continue;
                 }
 
+                attempted++;
                 string url = TestBase is { Length: > 0 } b ? b.TrimEnd('/') + "/" + info.File : info.Url;
                 try
                 {
-                    string text = await http.GetStringAsync(url).ConfigureAwait(false);
+                    bool test = TestBase is { Length: > 0 };
+                    if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? listUri)
+                        || (test && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AVIARY_PROFILE_DIR")))
+                        || !SecurityPolicy.IsAllowedFilterUri(listUri, test))
+                        throw new InvalidDataException("Unapproved filter download address.");
+                    using CancellationTokenSource deadline = new(TimeSpan.FromSeconds(60));
+                    using HttpResponseMessage response = await http.GetAsync(listUri,
+                        HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
+                    string text = await SecurityPolicy.ReadFilterTextAsync(response, deadline.Token).ConfigureAwait(false);
                     if (!LooksLike(info, text, out Loaded fresh))
                     {
                         failed.Add(info.Name + " (not a filter list)");
@@ -450,8 +465,9 @@ internal static class FilterLists
                 Load(why);
             }
 
-            string message = failed.Count == Lists.Length
-                ? "Couldn't reach easylist.to — the lists you have keep working."
+            string message = attempted == 0 ? "No lists are switched on."
+                : failed.Count == attempted
+                ? "Couldn't update the enabled lists — the lists you have keep working."
                 : updated.Count == 0
                     ? (failed.Count == 0 ? "Already up to date." : "Up to date, except " + string.Join(", ", failed) + ".")
                     : "Updated " + Listed(updated) + (failed.Count > 0 ? "; " + string.Join(", ", failed) + " failed." : ".");
@@ -467,7 +483,7 @@ internal static class FilterLists
                 ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds),
             });
 
-            return new UpdateResult(failed.Count < Lists.Length, updated.Count > 0, message);
+            return new UpdateResult(attempted == 0 || failed.Count < attempted, updated.Count > 0, message);
         }
         catch (Exception ex)
         {

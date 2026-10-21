@@ -790,7 +790,7 @@ internal sealed partial class FilterEngine
     /// request to the page's own site is never blocked by the lists.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public Verdict Match(string url, ReqType type, Page page, bool thirdPartyOnly)
+    public Verdict Match(string url, ReqType type, Page page, bool thirdPartyOnly, string? fallbackHost = null)
     {
         if (page.Allowed || url.Length < 8)
         {
@@ -826,7 +826,7 @@ internal sealed partial class FilterEngine
         }
 
         NetRule? hit = FindBlock(ref r, out string? plainHost);
-        if (hit is null && plainHost is null)
+        if (hit is null && plainHost is null && fallbackHost is null)
         {
             return Verdict.None;
         }
@@ -838,7 +838,9 @@ internal sealed partial class FilterEngine
 
         return hit is not null
             ? Blocked(hit)
-            : new Verdict(true, "||" + plainHost + "^", NameOf(_plainHostList.TryGetValue(plainHost!, out byte l) ? l : (byte)0));
+            : plainHost is not null
+                ? new Verdict(true, "||" + plainHost + "^", NameOf(_plainHostList.TryGetValue(plainHost, out byte l) ? l : (byte)0))
+                : new Verdict(true, "||" + fallbackHost + "^", "Aviary");
     }
 
     private Verdict Blocked(NetRule rule) => new(true, rule.Text, NameOf(rule.List));

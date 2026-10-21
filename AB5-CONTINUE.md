@@ -1,6 +1,89 @@
 # Aviary AB5 continuation checkpoint — 21 October 2026
 
+> **ACTIVE CONTINUATION — Grant directed completion after the prepared update.**
+> Finish its commit/push/installation, then review privacy/security for more bugs until
+> 02:00 Manila, 22 October. No new work after that cutoff; finish only what is in progress
+> and stop. No automation restart. See `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md`.
+> The prepared state below is retained as the pre-publication checkpoint.
+
+## Prepared privacy/security follow-up — awaiting approval
+
+Grant requested stronger privacy/security/blocking and a Privacy Policy before future
+Google/Bird/Birds accounts. Implementation and local QA are complete; see
+`tools/test/PRIVACY-SECURITY-2026-10-21.md` and `docs/SECURITY.md`.
+No accounts, email sender or remote diagnostics were added. AB5 stays 0.5.0, 16/16.
+
+- Final local candidate: `.artifact/ab5-privacy-security-final-local-20261021/Aviary`,
+  663 files, 54/54 exhibits. Source-only: `ab5-privacy-security-final-source-20261021`,
+  509 files, 4/54 exhibits. All 508 shared app files match; full package stays local.
+- Offline policy, default link-ping protection, private Shields isolation, bounded filter
+  downloads, message/permission boundaries, SmartScreen, local engine crash reporting and
+  stronger secret masking including crash.log. See the verification record for limits.
+- Native QA caught that certificate cancellation ends as ConnectionAborted. Final candidate
+  retains the certificate event and shows its error with no HTTP Continue. Native blocking/
+  control and policy passed; all four scratch sessions closed, zero crashes. One deliberate
+  attack anomaly is documented. No QA/helper process remains.
+- Security 68, filters 125, Performance 26, Storage 18, player 11, availability 7,
+  release-state 8; Settings 100 live/none unread. No new dependency or remote list downloads.
+- Earlier `.artifact/ab5-privacy-security-review-20261021` is superseded; do not install it.
+- Prior work backed up at `.artifact/privacy-security-before-20261021`. Changes remain
+  uncommitted/unpushed; no remote CI, installation or upload. Ordinary Desktop/taskbar copy
+  still uses the 20:27 Settings update below. New commit/push/replacement approval is required.
+- Do not repeat unchanged QA. Completed automation remains paused; macOS/Beta Build 1
+  deferred; account name/operator/transport still require a separate design.
+
 ## Status: Alpha Build 5 complete — 16/16, published and verified
+
+### Follow-up requested 21 October: live Settings and AB5 dropdown — applied locally
+
+- Grant requested an AB5 badge dropdown, then expanded the request to clearer Performance
+  details, more accurate measurements, real-time Storage, Settings optimisation and bug fixes.
+- Grant then requested automatic MB/KB display and explicitly asked to fix his ordinary copy.
+  That authorizes this local replacement; do not ask for local application approval again.
+- The current tested candidate is `.artifact/ab5-settings-mb-20261021/Aviary`:
+  0.5.0.0, 662 files, 54/54 Collection exhibits. It supersedes the dropdown-only candidate and
+  both `ab5-settings-live-20261021` and `ab5-settings-live-final-20261021` candidates.
+- Performance now has stable expandable cards/tab/process details, real CPU intervals,
+  per-Aviary physical-engine GPU aggregation, honest unavailable/partial readings, decimal
+  B/KB/MB/GB/TB display, shared-process explanations, atomic Shields windows and correct peak wording.
+  Byte measurements retain precision until display. Small values automatically use KB;
+  1 KB = 1,000 bytes and 1 MB = 1,000,000 bytes, in Storage, Performance and the overlay.
+  Sorting cannot add chart samples. Closed details are filled lazily. Watcher startup,
+  multiwindow ownership, queued deliveries and native close cleanup are fixed.
+- Storage samples each file once, reconciles site/category totals, uses Windows allocation,
+  deduplicates hard-link allocation, exposes skips/estimates, and coalesces simultaneous scans.
+  Live polling waits 2–10 s after a completed scan (based on its cost), only while visible.
+  Open categories and keyboard focus survive updates. Programmatic navigation stops watchers.
+- AB5 opens all 16 dated milestone descriptions with click/keyboard support. Settings notes
+  describe this follow-up; release counters remain 16/16, PhaseShipped=5, preRelease=false.
+- Verification: 26 performance + 18 storage checks pass; settings audit 99 live/none unread;
+  release-state 8, player 11 and Collection availability 7 pass. Both new harnesses are added
+  to Windows CI, but this follow-up has NOT run on GitHub yet (no commit/push approval yet).
+- Real native QA observed a 4 MiB scratch file appear/disappear automatically, exact category
+  reconciliation, preserved expanded details/focus, keyboard sorting without duplicate graph
+  timestamps, and both pages stopping when left. Final sampler read 8/8 processes, actual
+  0.999 s interval, 0.94 ms sampler cost. These are observations, not universal targets.
+- All three scratch sessions closed normally, zero crashes/issues; no QA process remains. Earlier final
+  profile: `ab5-settings-live-final-qa-20261021`; earlier: `ab5-settings-live-qa-20261021`.
+  Decimal-unit QA: `ab5-settings-mb-qa-20261021`, port 9433, 11 unit boundary/conversion
+  cases and 26 performance checks passed again after the precision change. Native Storage
+  showed 66.5 KB for 66,547 bytes; Performance showed 345.7 MB for 345,673,728 bytes.
+  All native input used sky on an idle desktop. Scratch tests did not use the normal profile.
+- Full record: `tools/test/SETTINGS-LIVE-2026-10-21.md`. Final manifest, native model reads
+  and screenshots are in the final candidate folder. Sync: 0 copied, 90 unchanged, 0 removed.
+- Applied at 20:27 +08 on 21 October to `publish/Aviary`, after closing ordinary Aviary
+  normally. All 662 installed hashes match the tested candidate. Previous copy preserved at
+  `.artifact/ab5-published-before-settings-mb-20261021`; proof: candidate `applied-local.json`.
+  Reopened the normal copy (PID 38968), verified its exact publish path and both shortcuts.
+  Its native Storage displays live decimal MB/KB; Updates expands all 16 milestones;
+  Performance shows new expandable details. Left ordinary Aviary open on Performance.
+- Follow-up source remains uncommitted/unpushed. Grant has not approved new Settings
+  commits/push; historical M9 approval does not cover these. Do not repeat tests/builds or
+  local replacement on unchanged continuation. AB5 remains complete; continuation stays
+  paused and macOS/Beta Build 1 remain deferred.
+- Grant's normal Desktop and taskbar shortcuts now both target this workspace's
+  `publish/Aviary/Aviary.exe`; their former C: targets were older builds. Shortcut backups and
+  verified normal launch: `.artifact/aviary-shortcuts-20261021-096d4a92/`.
 
 Grant authorized completing the remaining AB5 milestones and continuing after usage resets.
 Preserve all M7/M8 work. macOS and starting Beta Build 1 remain deferred. Use this chat's model.

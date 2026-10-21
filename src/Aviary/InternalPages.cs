@@ -334,9 +334,18 @@ internal static class InternalPages
   .hero__mark{position:absolute;right:-14px;top:-36px;width:168px;height:168px;opacity:.07;pointer-events:none;}
   .hero__kicker{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);}
   .hero__title{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin-top:8px;}
-  .hero__title h2{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.024em;}
+  .hero__title h2,.hero__build-title{margin:0;font-size:25px;line-height:1.15;font-weight:650;letter-spacing:-.024em;}
   .hero__name{margin-top:4px;font-size:15px;font-weight:500;}
   .hero__meta{margin-top:5px;font-size:12.5px;color:var(--ink-2);-webkit-user-select:text;user-select:text;}
+  .hero__build{display:block;padding-bottom:14px;list-style:none;}
+  summary.hero__build{cursor:pointer;}
+  .hero__build::-webkit-details-marker{display:none;}
+  .hero__build:focus-visible{outline:2px solid var(--accent);outline-offset:6px;border-radius:5px;}
+  .hero__build > .hero__kicker,.hero__build > .hero__name,.hero__build > .hero__meta{display:block;}
+  .hero__build .chip--code{display:inline-flex;align-items:center;gap:6px;}
+  .hero__build:hover .chip--code{background:var(--sel);}
+  .hero--build[open] > .hero__build{padding-bottom:0;}
+  .hero--build[open] > .hero__build .bld__chev{transform:rotate(180deg);}
   /* M7: the Quik pane's title leans like the wordmark in Grant's loading screen. */
   #pane-quik .hero__title h2{font-style:italic;font-weight:800;letter-spacing:-.035em;}
   .bar{display:grid;gap:4px;margin-top:20px;}
@@ -448,10 +457,22 @@ internal static class InternalPages
   .st-parts i{font-style:normal;font-variant-numeric:tabular-nums;white-space:nowrap;}
   .st-actions{display:flex;gap:8px;flex-wrap:wrap;}
   .st-empty{padding:16px 18px;color:var(--ink-2);font-size:13px;}
+  .st-bar{gap:0;}
+  .st-bar i{min-width:0;animation:none;}
+  .st-live{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;color:var(--ink-2);font-size:12px;}
+  .st-warning{color:var(--warn);}
+  .live-facts{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 16px;margin:10px 0 14px;font-size:12px;}
+  .live-facts dt{color:var(--ink-2);}
+  .live-facts dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;}
+  .live-facts dd,.st-parts i{color:var(--ink);}
+  .live-heading{font-size:12px;font-weight:600;color:var(--ink);margin:12px 0 6px;}
+  .st-cat > summary{cursor:pointer;}
+  .st-cat > summary:focus-visible,.pf-entry > summary:focus-visible,.pf-card > summary:focus-visible{outline:2px solid var(--accent);outline-offset:-3px;border-radius:9px;}
 
   /* ── Performance (M4.5) — four live cards, then the details ─────────────── */
-  .pf-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px;}
+  .pf-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:10px;margin-bottom:18px;}
   @media (max-width:980px){.pf-cards{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media (max-width:720px){.pf-cards{grid-template-columns:minmax(0,1fr);}}
   .pf-card{background:var(--panel);border:1px solid var(--line-soft);border-radius:12px;padding:14px 14px 10px;min-width:0;}
   .pf-k{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
   .pf-v{display:block;font-size:24px;font-weight:650;letter-spacing:-.02em;margin-top:6px;font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -504,6 +525,30 @@ internal static class InternalPages
   .pf-pill{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:5px;background:var(--fill);color:var(--ink-2);margin-left:6px;vertical-align:1px;}
   .pf-pill--on{color:var(--accent);background:var(--sel);}
   .pf-empty{padding:12px 18px;font-size:12.5px;color:var(--ink-2);}
+  .pf-card > summary{list-style:none;cursor:pointer;}
+  .pf-card > summary::-webkit-details-marker,.pf-entry > summary::-webkit-details-marker{display:none;}
+  .pf-card .pf-k::after{content:' +';font-size:13px;}
+  .pf-card[open] .pf-k::after{content:' −';}
+  .pf-card .pf-detail{padding:10px 0 2px;margin-top:10px;border-top:1px solid var(--line-soft);font-size:12px;}
+  .pf-spark .pf-trace{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke;}
+  .pf-spark .pf-area{fill:color-mix(in srgb,var(--accent) 14%,transparent);stroke:none;}
+  .pf-entry + .pf-entry,.pf-entry + .pf-tot{border-top:1px solid var(--line-soft);}
+  .pf-entry > summary{list-style:none;cursor:pointer;}
+  .pf-entry > summary:hover,.pf-entry[open] > summary{background:var(--fill);}
+  .pf-entry > summary .pf-n{position:relative;padding-left:14px;}
+  .pf-entry > summary .pf-n::before{content:'';position:absolute;left:0;top:6px;width:5px;height:5px;border-right:1.5px solid var(--ink-2);border-bottom:1.5px solid var(--ink-2);transform:rotate(-45deg);}
+  .pf-entry[open] > summary .pf-n::before{transform:rotate(45deg);}
+  .pf-detail{padding:2px 18px 14px;font-size:12.5px;color:var(--ink-2);}
+  .pf-detail p{margin:8px 0;}
+  .pf-detail .st-actions{margin-top:12px;}
+  .pf-head .pf-num button{border:0;padding:3px 0;background:transparent;color:inherit;font:inherit;cursor:pointer;}
+  .pf-head .pf-num button[aria-pressed="true"]{color:var(--accent);}
+  .pf-head .pf-num button[aria-pressed="true"]::after{content:' ↓';}
+  #pf-tabs .pf-row{grid-template-columns:minmax(0,1fr) 78px 62px 56px 72px;}
+  .pf-row .pf-n b,.pf-row .pf-n span{overflow-wrap:anywhere;}
+  .pf-entry[open] .pf-n b{white-space:normal;}
+  .pf-live{margin:0 2px 12px;color:var(--ink-2);font-size:12px;font-variant-numeric:tabular-nums;}
+  .btn[aria-disabled="true"]{opacity:.55;cursor:wait;}
 
   /* ── Motion (Alpha Build 5 M4.5) ───────────────────────────────────────────
      <html data-motion> is "flight" (Smooth Flight — Classic's: quick ease-outs, no overshoot),
@@ -760,6 +805,12 @@ var UPDATES = [
        d:'A home on GitHub with verified automatic Windows builds, checked ZIP packages and finished release notes. Personal Collection projects stay out of the public build.'}
     ],
     notes:[
+      {h:'Settings, live and clearer — 21 October 2026', items:[
+        '<b>Performance details stay open as readings change.</b> Expand a memory, processor or graphics card, a tab or a process for its measurements and what they mean. Sorting works from the keyboard and adds no samples to the graphs',
+        '<b>More accurate readings.</b> CPU uses the real elapsed interval; graphics counts Aviary’s own processes and its busiest physical engine. Unavailable readings are shown as missing, shared renderer figures are identified, and separate process peaks are explained',
+        '<b>Live Storage Usage.</b> Counts refresh while the page is visible, with time between scans to limit their cost. Expanded categories keep their place and show exact content and allocated byte counts. Partial scans, estimates, shared site data and excluded folders are explained',
+        '<b>Less work while you are elsewhere.</b> Measurements pause when you leave their page, hidden tabs stop polling, and closed Performance details are filled only when you open them'
+      ]},
       {h:'Ready for the next build — M9 · 21 October 2026', items:[
         '<b>Alpha Build 5 is complete.</b> All sixteen milestones of The Long Run are finished. Quik remains in Beta, with its measured limits explained in Settings',
         '<b>Automatic Windows builds on GitHub.</b> The first build and the build with the pinned Windows App SDK both passed their checks and package verification',
@@ -1178,6 +1229,8 @@ var SECTIONS = [
   { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
     lede:'What Aviary keeps, and what it tells sites about you. Every switch on this page does what it says — nothing here is for show. Blocking ads and trackers has its own page: Shields.',
     rows:[
+      {t:'Privacy Policy', d:'Read what this build stores, what optional diagnostics record, the Microsoft services involved, and what would need separate consent before future account reporting.', ctl:{type:'goto', target:'privacyPolicy', label:'Read policy'}},
+      {t:'Block link tracking pings', d:'Stops the extra audit request attached to a clicked link, including pings to the same site. The link still opens. Applies while Shields is up; ordinary page requests and background save requests are left to the filter lists.', ctl:{type:'toggle', key:'blockLinkPings', value:true}},
       /* Phase 5 M2 — privacy that actually works. The three rows marked restart:true are
          switches in the browser engine itself, read once when Aviary starts; the page shows a
          note when the saved value differs from what the running engine started with. */
@@ -1198,10 +1251,13 @@ var SECTIONS = [
          blunt: it records every address, title and search, and the row has to say so in those
          words. Live, not phase-gated: it works now, and every later milestone is measured by it. */
       {t:'Allow data collection for improvements', d:'Records everything Aviary does \u2014 every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash \u2014 into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
-      {t:'What Aviary collects', d:'One switch, all or nothing. While it is on, all sixteen of these are recorded; passwords, what you type into websites, cookies, login tokens, card numbers and your clipboard never are.', more:'diag', ctl:{type:'none'}},
+      {t:'What Aviary collects', d:'All sixteen categories below. Aviary does not intentionally read password fields, website form bodies, cookie values or the clipboard for diagnostics. Secret masking is best effort: addresses, titles and errors can still contain sensitive details. Read the Privacy Policy before sharing any records.', more:'diag', ctl:{type:'none'}},
       {t:'Also measure frame timing', d:'How smoothly Aviary draws, once a minute: how many frames, the usual gap between them, and how many were slow. <b>Off even while collection is on, and it should stay off unless you are chasing a stutter.</b> Windows only offers per-frame times to a program that asks the graphics card to redraw <i>continuously</i> — so measuring smoothness this way is the one measurement in Aviary that costs the very thing it is measuring. Everything else here is free. The figures are marked, so a session measured this way is never compared against a normal one.', ctl:{type:'toggle', key:'frameTiming', value:false}},
       {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
     ]},
+
+  { id:'privacyPolicy', icon:'privacy', name:'Privacy Policy', title:'Privacy Policy', policy:true,
+    lede:'How this build handles your information. Available offline.', rows:[] },
 
   /* M4.9 — Safety Check (SafetyCheck.cs): the settings Aviary already holds, read back as a list of
      what is safe, what could be safer, and what is a choice worth knowing about. */
@@ -1400,13 +1456,13 @@ var SECTIONS = [
   /* Alpha Build 5 M4.5 — StorageUsage.cs measures every file under Aviary's folder and its profile
      when this pane opens; the categories add up to the total exactly. */
   { id:'storage', icon:'storage', name:'Storage Usage', title:'Storage Usage', storage:true,
-    lede:'Everything Aviary keeps on this computer, sorted into what it is — measured from the files themselves each time you open this page, so the parts add up to the whole, to the byte.',
+    lede:'A live view of Aviary’s program files and this profile. Expand a category for exact byte counts and its largest items. Measurements refresh while this page is visible; files can change during each scan.',
     rows:[] },
 
   /* Alpha Build 5 M4.5 — live figures from LiveStats.cs, pushed once a second, only while this
      pane is on screen in the visible Settings tab. Nothing here is recorded. */
   { id:'perf', icon:'perf', name:'Performance', title:'Performance', perf:true,
-    lede:'What Aviary is using right now, while this page is open: memory, processor and graphics card, for Aviary itself and every part of its browser engine. The same figures Windows’ Task Manager shows. Nothing here is recorded.',
+    lede:'Live readings for Aviary and its browser engine. Select a card, tab or process to see what its figures mean. Shared processes and unavailable readings are identified; this page does not record its samples.',
     rows:[
       /* M4.6 — the rate LiveStats samples at. Since M6 (bug 92) a change takes effect at once
          (LiveStats.Retime), and the foot of the page says the rate the sampler is really using. */
@@ -1625,31 +1681,32 @@ function renderUpdates(s){
     if (BUILD.builtOn) { meta.push('Built ' + esc(BUILD.builtOn)); }
     if (BUILD.engine) { meta.push('Engine ' + esc(BUILD.engine)); }
 
-    h += '<div class="group hero">' + DOME +
-      '<div class="hero__kicker">You’re on</div>' +
-      '<div class="hero__title"><h2>' + esc(nameOf(now)) + '</h2>' +
-        '<span class="chip chip--code">' + esc(codeOf(now)) + '</span>' +
+    var heroTag = ms.length ? 'details' : 'div';
+    var headTag = ms.length ? 'summary' : 'div';
+    h += '<' + heroTag + ' class="group hero hero--build"' + (ms.length && BUILD.preRelease ? ' open' : '') + '>' + DOME +
+      '<' + headTag + ' class="hero__build"' + (ms.length ? ' aria-label="' + esc(nameOf(now)) + ' milestones"' : '') + '>' +
+      '<span class="hero__kicker">You’re on</span>' +
+      '<span class="hero__title"><b class="hero__build-title">' + esc(nameOf(now)) + '</b>' +
+        '<span class="chip chip--code">' + esc(codeOf(now)) + (ms.length ? CHEV : '') + '</span>' +
         (BUILD.preRelease ? '<span class="chip chip--pre">Pre-release</span>' : '<span class="chip chip--ok">Latest</span>') +
-      '</div>' +
-      '<div class="hero__name">' + CURRENT.name + '</div>' +
-      '<div class="hero__meta">' + meta.join(' &middot; ') + '</div>';
+      '</span>' +
+      '<span class="hero__name">' + CURRENT.name + '</span>' +
+      '<span class="hero__meta">' + meta.join(' &middot; ') + '</span></' + headTag + '>';
 
-    if (BUILD.preRelease && ms.length){
+    if (ms.length){
       h += '<div class="bar" style="grid-template-columns:repeat(' + ms.length + ',1fr)">' +
         ms.map(function(m, i){ return '<i style="--i:' + i + '" class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
         '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> milestones done</span>' +
         (done < ms.length ? '<span>Next: ' + esc(ms[done].n || '') + ' · ' + ms[done].t + '</span>' : '') + '</div>' +
-        '<ol class="ms">' + ms.map(function(m, i){
+        '<ol class="ms" aria-label="Build milestones">' + ms.map(function(m, i){
           var st = i < done ? 'done' : (i === done ? 'next' : 'todo');
           return '<li class="' + st + '"><span class="ms__dot">' + TICK + '</span>' +
                  '<span class="ms__n">' + esc(m.n || ('M' + i)) + '</span>' +
                  '<span class="ms__t">' + m.t + (m.d ? '<small>' + m.d + '</small>' : '') + '</span>' +
                  '<span class="ms__w">' + (st === 'done' ? (m.when || '') : (st === 'next' ? 'Next' : '')) + '</span></li>';
         }).join('') + '</ol>';
-    } else {
-      h += '<div style="height:14px"></div>';
     }
-    h += '</div>';
+    h += '</' + heroTag + '>';
   }
 
   /* The pane's own rows go through the same renderer as every other pane's, so a gated row
@@ -1692,7 +1749,7 @@ function renderUpdates(s){
 /* A row's expandable detail. The body is filled by script from injected data, never pasted
    into this markup — see the diagnostics list below. */
 var MORE = {
-  diag: '<details class="more"><summary>Show all sixteen, and what is never collected</summary>' +
+  diag: '<details class="more"><summary>Show all sixteen categories and masking limits</summary>' +
         '<div class="more__body" id="diaglist"></div></details>',
   /* Filled by the host when "Show" is pressed — site names are website-controlled, so every
      one goes in through textContent. */
@@ -1737,7 +1794,10 @@ SECTIONS.forEach(function(s, i){
       '<div><dt>Identifies as</dt><dd><code id="ua"></code></dd></div>' +
       '</div></div></div>' +
       '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
-      'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>';
+      'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>' +
+      '<button class="btn" data-goto="privacyPolicy">Privacy Policy</button>';
+  } else if (s.policy){
+    body += '<article class="group" id="privacy-policy-copy" style="padding:24px;max-width:780px;user-select:text"></article>';
   } else if (s.safety){
     body += '<div class="sc-head"><b id="sc-sum">Checking…</b><button class="btn" id="sc-again">Check again</button></div>' +
             '<div class="group" id="sc-list"></div>';
@@ -1760,12 +1820,31 @@ SECTIONS.forEach(function(s, i){
   main.appendChild(pane);
 });
 
+/* Plain text from the same source as PRIVACY.md. No remote policy, HTML injection or tracking. */
+var policyCopy = document.getElementById('privacy-policy-copy');
+var policy = window.__aviaryPrivacyPolicy;
+if (policyCopy && policy) {
+  var revision = document.createElement('p');
+  revision.textContent = 'Revision: ' + policy.revision;
+  policyCopy.appendChild(revision);
+  var policySummary = document.createElement('p');
+  policySummary.textContent = policy.summary;
+  policyCopy.appendChild(policySummary);
+  (policy.sections || []).forEach(function(section){
+    var h = document.createElement('h2'); h.textContent = section.title; policyCopy.appendChild(h);
+    (section.paragraphs || []).forEach(function(paragraph){
+      var p = document.createElement('p'); p.textContent = paragraph; policyCopy.appendChild(p);
+    });
+  });
+}
+
 /* Website data, from the host: [{site, cookies, bytes}]. */
 function sizeText(b){
-  if (b <= 0) { return ''; }
-  var u = ['B','KB','MB','GB'], i = 0;
-  while (b >= 1024 && i < u.length - 1) { b /= 1024; i++; }
-  return (i === 0 ? String(Math.round(b)) : b.toFixed(1)) + ' ' + u[i];
+  if (typeof b !== 'number' || !isFinite(b) || b < 0) { return '—'; }
+  var u = ['B','KB','MB','GB','TB'], i = 0;
+  while (b >= 1000 && i < u.length - 1) { b /= 1000; i++; }
+  if (i && Number(b.toFixed(b < 10 ? 2 : 1)) >= 1000 && i < u.length - 1) { b /= 1000; i++; }
+  return (i === 0 ? String(Math.round(b)) : b.toFixed(b < 10 ? 2 : 1)) + ' ' + u[i];
 }
 window.__aviarySiteData = function(list){
   var box = document.getElementById('sitedata');
@@ -2374,7 +2453,7 @@ if (diagList && DIAG.categories){
 
   var never = document.createElement('p');
   never.className = 'more__h';
-  never.textContent = 'Never collected';
+  never.textContent = 'What is not read, and what masking attempts to remove';
   diagList.appendChild(never);
 
   var ul = document.createElement('ul');
@@ -2422,6 +2501,8 @@ function showPane(id){
   pane.classList.add('on');
   main.scrollTop = 0;
   if (id === 'safety') { safetyRun(); }
+  storageWatch();
+  perfWatch();
 }
 
 staggerRows(document.querySelector('.pane.on') || document.body);
@@ -2536,7 +2617,7 @@ main.addEventListener('click', function(e){
 
   closeAllPopups(null);
 
-  var btn = e.target.closest('.btn');
+  var btn = e.target.closest('.btn[data-cmd]');
   if (btn && !btn.disabled) {
     var cmd = btn.getAttribute('data-cmd');
     sendCommand(cmd);
@@ -2578,512 +2659,317 @@ window.__aviaryApply = function(key, value){
 /* ══ STORAGE USAGE (M4.5) ═══════════════════════════════════════════════════
    Measured by the host when this pane opens and on Refresh; drawn with textContent (paths hold
    backslashes, and nothing here should ever be read as markup). */
+/* Stable nodes keep expanded sections, keyboard focus and controls intact between samples. */
+function liveText(el, value){
+  var text = value == null ? '—' : String(value);
+  if (el && el.textContent !== text) { el.textContent = text; }
+}
+function liveList(box, items, keyOf, make, update){
+  var map = box._liveRows || (box._liveRows = new Map()), keep = new Set();
+  var focused = document.activeElement, hadFocus = box.contains(focused);
+  var cursor = box.firstElementChild;
+  items.forEach(function(item){
+    var key = String(keyOf(item)); keep.add(key);
+    var node = map.get(key);
+    if (!node) { node = make(item); map.set(key, node); }
+    update(node, item);
+    if (node === cursor) { cursor = cursor.nextElementSibling; }
+    else { box.insertBefore(node, cursor); }
+  });
+  map.forEach(function(node, key){ if (!keep.has(key)) { node.remove(); map.delete(key); } });
+  if (hadFocus && focused.isConnected && document.activeElement !== focused) { focused.focus({preventScroll:true}); }
+}
+function liveFacts(box, rows){
+  liveList(box, rows, function(r){ return r[0]; }, function(){
+    var row = document.createElement('div'); row.style.display = 'contents';
+    row.appendChild(document.createElement('dt')); row.appendChild(document.createElement('dd')); return row;
+  }, function(row, r){ liveText(row.firstChild, r[0]); liveText(row.lastChild, r[1]); });
+}
+function liveParts(box, items){
+  liveList(box, items, function(i){ return i.label; }, function(){
+    var row = document.createElement('div'); row.appendChild(document.createElement('b')); row.appendChild(document.createElement('i')); return row;
+  }, function(row, i){ liveText(row.firstChild, i.label); row.firstChild.title = i.label;
+    liveText(row.lastChild, stSize(i.bytes) + ' · ' + i.files.toLocaleString() + (i.files === 1 ? ' file' : ' files')); });
+}
+function stSize(b){
+  return sizeText(b);
+}
+function stBytes(b){ return Math.max(0, Number(b) || 0).toLocaleString() + ' bytes'; }
 function renderStorage(){
   return '<div class="group st-hero" id="st-hero"><div class="st-total" id="st-total">Measuring…</div>' +
-      '<div class="st-sub" id="st-sub">Counting every file Aviary keeps.</div>' +
-      '<div class="st-bar" id="st-bar" role="img" aria-label="Storage by category"></div>' +
-      '<div class="st-tip" id="st-tip" hidden></div></div>' +
-    '<div class="group" id="st-cats"><div class="st-empty">Measuring…</div></div>' +
+    '<div class="st-sub" id="st-sub">Counting files in Aviary and this profile.</div>' +
+    '<div class="st-live"><span id="st-status">Live while this page is visible</span><span id="st-cadence"></span></div>' +
+    '<div class="st-bar" id="st-bar" role="img" aria-label="Storage by category"></div><div class="st-tip" id="st-tip" hidden></div></div>' +
+    '<div class="group" id="st-cats"></div>' +
     '<div class="group"><div class="row"><div class="row__t"><b>Where it lives</b>' +
-      '<span>Aviary itself<span class="path" id="st-install"></span></span>' +
-      '<span>Your profile<span class="path" id="st-profile"></span></span></div>' +
-      '<div class="btns"><button class="btn" id="st-refresh">Measure again</button></div></div></div>' +
-    '<p class="lede upd-foot" id="st-foot"></p>';
+    '<span>Aviary itself<span class="path" id="st-install"></span></span><span>Your profile<span class="path" id="st-profile"></span></span></div>' +
+    '<div class="btns"><button class="btn" id="st-refresh">Measure again</button></div></div></div><p class="lede upd-foot" id="st-foot"></p>';
 }
-
-function stSize(b){
-  var u = ['bytes','KB','MB','GB','TB'], v = b, i = 0;
-  while (v >= 1024 && i < u.length - 1) { v /= 1024; i++; }
-  return (i === 0 ? String(v) : v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2)) + ' ' + u[i];
+var ST = {on:false, busy:false, timer:0, timeout:0, last:null, delay:2000};
+function storageVisible(){ var p = document.getElementById('pane-storage'); return !!p && p.classList.contains('on') && !document.hidden; }
+function storageSchedule(){
+  clearTimeout(ST.timer); ST.timer = 0;
+  if (ST.on && !ST.busy) { ST.timer = setTimeout(storageMeasure, ST.delay); }
 }
-var stRequested = false;
-function storageMeasure(){
-  var t = document.getElementById('st-total');
-  if (t && stRequested) { t.textContent = 'Measuring…'; }
-  stRequested = true;
-  post({type:'command', name:'storageMeasure'});
-}
-var stTimer = 0;
-function storageWatch(){
-  var pane = document.getElementById('pane-storage');
-  var on = !!(pane && pane.classList.contains('on'));
-  if (on && !stRequested) { storageMeasure(); }
-
-  /* M4.6: while the page is the one on screen it measures again every ten seconds, so a
-     download or a cleared cache shows up without being asked. It stops the moment you leave. */
-  if (on && !stTimer) {
-    stTimer = setInterval(function(){
-      if (document.hidden) { return; }
-      var p = document.getElementById('pane-storage');
-      if (!p || !p.classList.contains('on')) { clearInterval(stTimer); stTimer = 0; return; }
-      stRequested = false;
-      storageMeasure();
-    }, 10000);
-  } else if (!on && stTimer) {
-    clearInterval(stTimer); stTimer = 0;
+function storageBusy(on){
+  ST.busy = on; clearTimeout(ST.timeout); ST.timeout = 0;
+  var refresh = document.getElementById('st-refresh'); if (refresh) { refresh.setAttribute('aria-disabled', String(on)); }
+  var cats = document.getElementById('st-cats'); if (cats) { cats.setAttribute('aria-busy', String(on)); }
+  if (cats) { cats.querySelectorAll('[data-action="cache"],[data-action="gpu"]').forEach(function(b){ b.setAttribute('aria-disabled', String(on)); }); }
+  if (on) {
+    liveText(document.getElementById('st-status'), ST.last ? 'Refreshing · previous snapshot stays visible' : 'Measuring…');
+    ST.timeout = setTimeout(function(){ window.__aviaryStorageError('The measurement has not answered yet. Retrying while this page is open.'); }, 60000);
   }
 }
-nav.addEventListener('click', function(){ setTimeout(storageWatch, 0); });
-
-window.__aviaryStorage = function(d){
-  window.__aviaryStorageLast = d;   /* for tools/test/storage-compare.ps1 */
-  var total = document.getElementById('st-total');
-  if (!total) { return; }
-  total.textContent = stSize(d.bytes);
-  var small = document.createElement('small');
-  small.textContent = 'used by Aviary on this computer';
-  total.appendChild(small);
-  document.getElementById('st-sub').textContent = stSize(d.onDisk) + ' on disk · ' + d.files.toLocaleString() +
-    ' files · measured at ' + d.at + ', in ' + Math.round(d.ms) + ' ms';
-
-  var bar = document.getElementById('st-bar');
-  var tip = document.getElementById('st-tip');
-  bar.textContent = '';
-  var shown = d.categories.filter(function(c){ return c.bytes > 0; });
-  shown.forEach(function(c, i){
-    var seg = document.createElement('i');
-    seg.style.flex = String(Math.max(c.bytes / Math.max(d.bytes, 1), 0.002));
-    seg.style.background = 'var(--st-' + c.key + ')';
-    seg.style.animationDelay = (i * 40) + 'ms';
-    seg.setAttribute('aria-label', c.name + ', ' + stSize(c.bytes));
+function storageMeasure(){
+  if (!storageVisible() || ST.busy) { return; }
+  storageBusy(true); post({type:'command', name:'storageMeasure'});
+}
+function storageAction(name, arg){
+  if (ST.busy) { return; }
+  clearTimeout(ST.timer); storageBusy(true);
+  post({type:'command', name:name, arg:arg || ''});
+}
+function storageWatch(){
+  var want = storageVisible();
+  if (want === ST.on) { return; }
+  ST.on = want; clearTimeout(ST.timer); ST.timer = 0;
+  if (want) { if (ST.last) { storageDraw(ST.last); } storageMeasure(); }
+}
+function storageCategory(c){
+  var det = document.createElement('details'); det.className = 'st-cat'; det.dataset.category = c.key;
+  det.innerHTML = '<summary><span class="st-chip"></span><span class="st-name"><b></b><span></span></span><span class="st-size"></span>' +
+    '<span class="st-pct"><b></b><i class="st-share"></i></span>' + CHEV + '</summary>' +
+    '<div class="st-body"><p class="st-plain"></p><dl class="live-facts"></dl><p class="st-extra"></p><div class="st-cap" hidden><i></i></div>' +
+    '<div class="live-heading st-sites-title" hidden>Site-specific stores</div><div class="st-parts st-sites"></div>' +
+    '<div class="live-heading st-big-title">Largest items</div><div class="st-parts st-big"></div><p class="st-pending"></p><div class="st-actions"></div></div>';
+  det.querySelector('.st-chip').style.background = 'var(--st-' + c.key + ')';
+  var acts = det.querySelector('.st-actions');
+  function action(label, fn, kind){
+    var b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.dataset.action = kind;
+    b.addEventListener('click', function(){ fn(det._snapshot); }); acts.appendChild(b);
+  }
+  if (c.key === 'cache') {
+    action('Clear cached files', function(){ storageAction('storageClearCache'); }, 'cache');
+    action('Clear graphics caches at the next launch', function(d){ storageAction('storageClearGpu', d.gpuPending ? 'off' : 'on'); }, 'gpu');
+  }
+  if (['sites','secrets','diagnostics'].indexOf(c.key) >= 0) {
+    action('Manage in Privacy', function(){ showPane(c.key === 'secrets' ? 'autofill' : 'privacy'); }, 'privacy');
+  }
+  return det;
+}
+function storageDraw(d){
+  var total = document.getElementById('st-total'); if (!total) { return; }
+  var partial = d.complete === false;
+  liveText(total, (partial ? 'At least ' : '') + stSize(d.bytes));
+  liveText(document.getElementById('st-sub'), stSize(d.onDisk) + (d.diskEstimatedFiles ? ' estimated on disk' : ' allocated on disk') + ' · ' + d.files.toLocaleString() + ' files · ' + Math.round(d.ms) + ' ms to scan');
+  var status = document.getElementById('st-status'); status.classList.toggle('st-warning', partial);
+  liveText(status, (partial ? 'Partial snapshot' : 'Live snapshot') + ' · measured ' + (d.atSeconds || d.at));
+  liveText(document.getElementById('st-cadence'), (ST.delay / 1000).toFixed(0) + ' s between scans');
+  var bar = document.getElementById('st-bar'), tip = document.getElementById('st-tip'); tip.hidden = true;
+  liveList(bar, d.categories.filter(function(c){ return c.bytes > 0; }), function(c){ return c.key; }, function(c){
+    var seg = document.createElement('i'); seg.style.background = 'var(--st-' + c.key + ')';
     seg.addEventListener('mouseenter', function(){
-      tip.textContent = '';
-      var b = document.createElement('b'); b.textContent = c.name;
-      var s = document.createElement('span');
-      s.textContent = stSize(c.bytes) + ' · ' + (100 * c.bytes / Math.max(d.bytes, 1)).toFixed(1) + '% · ' + c.files.toLocaleString() + (c.files === 1 ? ' file' : ' files');
-      tip.appendChild(b); tip.appendChild(s);
-      tip.hidden = false;
+      var c = seg._category; liveText(tip, c.name + ' · ' + stSize(c.bytes) + ' · ' + (100 * c.bytes / Math.max(ST.last.bytes, 1)).toFixed(1) + '%'); tip.hidden = false;
       var host = document.getElementById('st-hero').getBoundingClientRect(), r = seg.getBoundingClientRect();
-      tip.style.left = Math.max(8, Math.min(r.left - host.left + r.width / 2 - tip.offsetWidth / 2, host.width - tip.offsetWidth - 8)) + 'px';
-      tip.style.top = (r.bottom - host.top + 8) + 'px';
+      tip.style.left = Math.max(8, Math.min(r.left - host.left, host.width - tip.offsetWidth - 8)) + 'px'; tip.style.top = r.bottom - host.top + 8 + 'px';
     });
-    seg.addEventListener('mouseleave', function(){ tip.hidden = true; });
-    bar.appendChild(seg);
-  });
-
-  var cats = document.getElementById('st-cats');
-  cats.textContent = '';
-  d.categories.forEach(function(c){
-    var det = document.createElement('details');
-    det.className = 'st-cat';
-    var sum = document.createElement('summary');
-    var chip = document.createElement('span'); chip.className = 'st-chip'; chip.style.background = 'var(--st-' + c.key + ')';
-    var name = document.createElement('span'); name.className = 'st-name';
-    var nb = document.createElement('b'); nb.textContent = c.name;
-    var ns = document.createElement('span'); ns.textContent = c.files.toLocaleString() + (c.files === 1 ? ' file' : ' files') + ' · ' + stSize(c.onDisk) + ' on disk';
-    name.appendChild(nb); name.appendChild(ns);
-    var size = document.createElement('span'); size.className = 'st-size'; size.textContent = stSize(c.bytes);
-
-    /* M4.8: the share drawn as well as written. The stacked bar at the top of the page shows
-       the split, but only on hover and only if you go looking for it — a bar on the row itself
-       makes "which of these is actually big" answerable by running your eye down the list. */
+    seg.addEventListener('mouseleave', function(){ tip.hidden = true; }); return seg;
+  }, function(seg, c){ seg._category = c; seg.style.flex = String(c.bytes / Math.max(d.bytes, 1)); seg.setAttribute('aria-label', c.name + ', ' + stSize(c.bytes)); });
+  liveList(document.getElementById('st-cats'), d.categories, function(c){ return c.key; }, storageCategory, function(det, c){
+    det._snapshot = d;
+    liveText(det.querySelector('.st-name b'), c.name);
+    liveText(det.querySelector('.st-name > span'), c.files.toLocaleString() + ' files · ' + stSize(c.onDisk) + (d.diskEstimatedFiles ? ' on disk (some estimates)' : ' on disk'));
+    liveText(det.querySelector('.st-size'), stSize(c.bytes));
     var share = 100 * c.bytes / Math.max(d.bytes, 1);
-    var pct = document.createElement('span'); pct.className = 'st-pct';
-    var pctBar = document.createElement('i');
-    pctBar.className = 'st-share';
-    pctBar.style.setProperty('--w', Math.max(share, share > 0 ? 1.5 : 0) + '%');
-    pctBar.style.setProperty('--c', 'var(--st-' + c.key + ')');
-    var pctNum = document.createElement('b');
-    pctNum.textContent = share.toFixed(1) + '%';
-    pct.appendChild(pctNum); pct.appendChild(pctBar);
-
-    sum.appendChild(chip); sum.appendChild(name); sum.appendChild(size); sum.appendChild(pct);
-    sum.insertAdjacentHTML('beforeend', CHEV);
-    det.appendChild(sum);
-
-    var body = document.createElement('div'); body.className = 'st-body';
-    var p = document.createElement('p'); p.textContent = c.plain; body.appendChild(p);
-    if (c.key === 'diagnostics') {
-      var capP = document.createElement('p');
-      var used = Math.min(1, c.bytes / Math.max(d.capBytes, 1));
-      capP.textContent = stSize(c.bytes) + ' of ' + stSize(d.capBytes) + ' used — ' + (100 * used).toFixed(1) +
-        '% of what improvement data may keep. The oldest goes first when it fills.';
-      body.appendChild(capP);
-
-      /* M4.6: the cap drawn, not just described. */
-      var capBar = document.createElement('div'); capBar.className = 'st-cap';
-      var capFill = document.createElement('i'); capFill.style.width = Math.max(0.6, 100 * used) + '%';
-      capBar.appendChild(capFill);
-      body.appendChild(capBar);
-    }
-
-    /* M4.6 — which sites keep something of their own, and how much is in the shared stores. */
+    liveText(det.querySelector('.st-pct b'), share.toFixed(1) + '%');
+    det.querySelector('.st-share').style.setProperty('--w', share + '%'); det.querySelector('.st-share').style.setProperty('--c', 'var(--st-' + c.key + ')');
+    liveText(det.querySelector('.st-plain'), c.plain);
+    liveFacts(det.querySelector('.live-facts'), [['File content', stBytes(c.bytes)], [d.diskEstimatedFiles ? 'On disk (some estimates)' : 'Allocated on disk', stBytes(c.onDisk)], ['Files counted', c.files.toLocaleString()], ['Share of measured content', share.toFixed(2) + '%']]);
+    var extra = '', cap = det.querySelector('.st-cap');
+    if (c.key === 'diagnostics') { extra = stSize(c.bytes) + ' of ' + stSize(d.capBytes) + ' allowed. The oldest data is removed when the limit is reached.'; cap.hidden = false; cap.firstChild.style.width = Math.min(100, 100 * c.bytes / Math.max(d.capBytes, 1)) + '%'; }
     if (c.key === 'sites') {
-      var siteP = document.createElement('p');
-      siteP.textContent = (d.sites && d.sites.length)
-        ? 'Sites with a store of their own, biggest first. The rest — ' + stSize(d.sitesShared || 0) +
-          ' — is in the cookie and local-storage databases, which every site shares, so it cannot be split by site here.'
-        : 'No site has a store of its own yet. What sites keep so far — ' + stSize(d.sitesShared || 0) +
-          ' — is in the cookie and local-storage databases they all share.';
-      body.appendChild(siteP);
-
-      if (d.sites && d.sites.length) {
-        var siteBox = document.createElement('div'); siteBox.className = 'st-parts';
-        d.sites.forEach(function(it){
-          var row = document.createElement('div');
-          var lb = document.createElement('b'); lb.textContent = it.label;   /* a site's name: text, never markup */
-          var sz = document.createElement('i'); sz.textContent = stSize(it.bytes) + ' · ' + it.files.toLocaleString() + (it.files === 1 ? ' file' : ' files');
-          row.appendChild(lb); row.appendChild(sz); siteBox.appendChild(row);
-        });
-        body.appendChild(siteBox);
-      }
+      extra = (d.siteCount || (d.sites || []).length) + ' site-specific stores. ' + stSize(d.sitesShared || 0) + ' is shared between sites and cannot be assigned to one site here.';
+      if (d.sitesOtherBytes) { extra += ' Other site-specific stores account for ' + stSize(d.sitesOtherBytes) + '.'; }
+      det.querySelector('.st-sites-title').hidden = !(d.sites || []).length; liveParts(det.querySelector('.st-sites'), d.sites || []);
     }
-    if (c.biggest.length) {
-      var parts = document.createElement('div'); parts.className = 'st-parts';
-      c.biggest.forEach(function(it){
-        var row = document.createElement('div');
-        var lb = document.createElement('b'); lb.textContent = it.label;
-        var sz = document.createElement('i'); sz.textContent = stSize(it.bytes) + ' · ' + it.files.toLocaleString() + (it.files === 1 ? ' file' : ' files');
-        row.appendChild(lb); row.appendChild(sz); parts.appendChild(row);
-      });
-      body.appendChild(parts);
-    }
-    var acts = document.createElement('div'); acts.className = 'st-actions';
-    function act(label, fn){ var b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.addEventListener('click', function(e){ e.stopPropagation(); fn(b); }); acts.appendChild(b); }
-    if (c.key === 'cache' && c.bytes > 0) {
-      act('Clear cached files', function(b){ b.disabled = true; b.textContent = 'Clearing…'; post({type:'command', name:'storageClearCache'}); });
-
-      /* M4.6: the compiled-shader caches are open from the moment the engine starts, so they
-         can only go before it does - at the next launch. The button says exactly that. */
-      var pending = document.createElement('p');
-      pending.textContent = d.gpuPending
-        ? 'The graphics caches will be cleared the next time Aviary starts.'
-        : 'The compiled graphics shaders cannot be cleared while Aviary is running — the engine holds them open from the moment it starts.';
-      body.appendChild(pending);
-      act(d.gpuPending ? 'Don’t clear them' : 'Clear graphics caches at the next launch', function(b){
-        b.disabled = true;
-        post({type:'command', name:'storageClearGpu', arg: d.gpuPending ? 'off' : 'on'});
-      });
-    }
-    if (c.key === 'sites' || c.key === 'secrets') { act('Manage in Privacy', function(){ showPane(c.key === 'sites' ? 'privacy' : 'autofill'); }); }
-    if (c.key === 'diagnostics') { act('Manage in Privacy', function(){ showPane('privacy'); }); }
-    if (acts.children.length) { body.appendChild(acts); }
-    det.appendChild(body);
-    cats.appendChild(det);
+    liveText(det.querySelector('.st-extra'), extra); det.querySelector('.st-extra').hidden = !extra;
+    var biggest = c.biggest || []; det.querySelector('.st-big-title').hidden = !biggest.length; liveParts(det.querySelector('.st-big'), biggest);
+    liveText(det.querySelector('.st-pending'), c.key === 'cache' ? (d.gpuPending ? 'Graphics caches will be cleared at the next launch.' : 'Graphics shader caches stay open until Aviary restarts.') : '');
+    var gpu = det.querySelector('[data-action="gpu"]'); if (gpu) { liveText(gpu, d.gpuPending ? 'Don’t clear graphics caches' : 'Clear graphics caches at the next launch'); }
+    var clear = det.querySelector('[data-action="cache"]'); if (clear) { clear.disabled = c.bytes === 0; }
   });
-
-  document.getElementById('st-install').textContent = d.install;
-  document.getElementById('st-profile').textContent = d.profile;
-  document.getElementById('st-foot').textContent = 'Every file is counted once, and its size is asked of the file itself rather than a folder listing, ' +
-    'so the parts add up to the total exactly. “On disk” is the space the files really take up — a little more, because disks store files in whole blocks.';
+  liveText(document.getElementById('st-install'), d.install); liveText(document.getElementById('st-profile'), d.profile);
+  var limitations = 'Only this installation and profile are counted: other Aviary copies, downloads outside the profile and the shared WebView runtime are excluded. Sizes switch automatically between B, KB, MB and GB (1 KB = 1,000 bytes; 1 MB = 1,000,000 bytes). Allocated disk space can be smaller for sparse or compressed files. Folder entries and filesystem metadata are not included. Files can change during a scan.';
+  if (d.diskEstimatedFiles) { limitations += ' Allocation was estimated for ' + d.diskEstimatedFiles + ' files.'; }
+  if (d.skippedEntries || d.skippedDirectories) { limitations += ' Could not read ' + (d.skippedEntries || 0) + ' entries and ' + (d.skippedDirectories || 0) + ' folders; totals are incomplete.'; }
+  if (d.reparsePointsSkipped) { limitations += ' Skipped ' + d.reparsePointsSkipped + ' links/junctions to avoid leaving the measured folders.'; }
+  if (d.hardLinkDuplicates) { limitations += ' Hard links retain each path’s file content size, while their shared disk allocation is counted once.'; }
+  liveText(document.getElementById('st-foot'), limitations);
+}
+window.__aviaryStorage = function(d){
+  window.__aviaryStorageLast = d; storageBusy(false); ST.last = d;
+  ST.delay = Math.max(2000, Math.min(10000, Math.ceil((d.ms || 0) * 4 / 1000) * 1000));
+  if (storageVisible()) { storageDraw(d); } storageSchedule();
+};
+window.__aviaryStorageError = function(message){
+  storageBusy(false); ST.delay = 5000;
+  liveText(document.getElementById('st-status'), String(message || 'Storage could not be measured. Retrying.'));
+  document.getElementById('st-status').classList.add('st-warning');
+  if (!ST.last) { liveText(document.getElementById('st-total'), 'Unavailable'); }
+  storageSchedule();
 };
 main.addEventListener('click', function(e){ if (e.target.closest('#st-refresh')) { storageMeasure(); } });
 
-/* ══ PERFORMANCE (M4.5) ═════════════════════════════════════════════════════
-   The host (LiveStats.cs) measures once a second while this pane is on screen; perfWatch tells
-   it when that is. Every tab title arrives from websites, so the tables are built with
-   textContent, never markup. */
+/* Performance: only new host samples enter the graphs; sorting only redraws stable rows. */
 function renderPerf(){
-  function card(id, k, s){
-    return '<div class="pf-card" id="pf-' + id + '"><span class="pf-k">' + k + '</span><b class="pf-v">—</b>' +
-      '<span class="pf-s">' + s + '</span><svg class="pf-spark" viewBox="0 0 60 30" preserveAspectRatio="none" aria-hidden="true">' +
-      '<polygon points=""/><polyline points=""/></svg></div>';
+  function card(id, label, sub){
+    return '<details class="pf-card" id="pf-' + id + '"><summary aria-label="' + label + ' details"><span class="pf-k">' + label + '</span><b class="pf-v">—</b><span class="pf-s">' + sub + '</span>' +
+      '<svg class="pf-spark" viewBox="0 0 60 30" preserveAspectRatio="none" aria-hidden="true"><path class="pf-area"/><path class="pf-trace"/></svg></summary><div class="pf-detail"><p></p></div></details>';
   }
-  return '<div class="pf-cards">' +
-      card('mem', 'Memory', 'All of Aviary') +
-      card('cpu', 'Processor', 'Of the whole processor') +
-      card('gpu', 'Graphics', 'Its busiest part, for Aviary') +
-      card('gmem', 'Graphics memory', 'The card’s own memory') +
-    '</div>' +
-    '<div class="group">' +
-      '<div class="row"><div class="row__t"><b>How quickly Aviary answers</b><span id="pf-ui">Measuring…</span></div></div>' +
-      '<div class="row"><div class="row__t"><b>Shields’ work</b><span id="pf-blocker">Measuring…</span></div></div>' +
-      '<div class="row"><div class="row__t"><b>This session</b><span id="pf-session">Measuring…</span></div></div>' +
-      /* M4.6 */
-      '<div class="row"><div class="row__t"><b>Memory, in full</b><span id="pf-mem2">Measuring…</span></div></div>' +
-      '<div class="row"><div class="row__t"><b>What the graphics card was doing</b><span id="pf-gpuwork">Measuring…</span></div></div>' +
-    '</div>' +
-    '<h2 class="upd-h">Tabs</h2><div class="group pf-table" id="pf-tabs"><div class="pf-empty">Measuring…</div></div>' +
-    '<h2 class="upd-h">Aviary’s processes</h2><div class="group pf-table" id="pf-procs"><div class="pf-empty">Measuring…</div></div>' +
-    '<p class="lede upd-foot" id="pf-foot"></p>';
+  return '<div class="pf-cards">' + card('mem','Memory','Private resident memory') + card('cpu','Processor','Of the whole processor') + card('gpu','Graphics','Aviary’s busiest GPU engine') + card('gmem','Graphics memory','Dedicated GPU allocation') + '</div>' +
+    '<p class="pf-live" id="pf-live">Waiting for a measurement…</p>' +
+    '<div class="group"><div class="row"><div class="row__t"><b>How quickly Aviary answers</b><span id="pf-ui">Measuring…</span></div></div>' +
+    '<div class="row"><div class="row__t"><b>Shields’ work</b><span id="pf-blocker">Measuring…</span></div></div>' +
+    '<div class="row"><div class="row__t"><b>This session</b><span id="pf-session">Measuring…</span></div></div>' +
+    '<div class="row"><div class="row__t"><b>Memory, in full</b><span id="pf-mem2">Measuring…</span></div></div>' +
+    '<div class="row"><div class="row__t"><b>What the graphics card was doing</b><span id="pf-gpuwork">Measuring…</span></div></div></div>' +
+    '<h2 class="upd-h">Tabs</h2><div class="group pf-table" id="pf-tabs"></div><h2 class="upd-h">Aviary’s processes</h2><div class="group pf-table" id="pf-procs"></div><p class="lede upd-foot" id="pf-foot"></p>';
 }
-
-var PF = {mem:[], cpu:[], gpu:[], gmem:[]};
-function pfSize(mb){
-  if (mb == null) { return '—'; }
-  return mb >= 1024 ? (mb / 1024).toFixed(2) + '<small>GB</small>' : Math.round(mb) + '<small>MB</small>';
+var PF = {mem:[], cpu:[], gpu:[], gmem:[]}, PF_SORT = 'memory', PF_PSORT = 'none', PF_LAST = null, PF_SAMPLE = null;
+var PF_NOTES = {}, PF_PENDING = {};
+function pfNumber(n){ return typeof n === 'number' && isFinite(n) && n >= 0; }
+function pfSizeText(n){ return !pfNumber(n) ? '—' : sizeText(n * 1048576); }
+function pfPctText(n){ return !pfNumber(n) ? '—' : n.toFixed(n < 10 ? 1 : 0) + '%'; }
+function pfDuration(s){ return s < 60 ? s + ' s' : s < 3600 ? Math.floor(s / 60) + ' min' : Math.floor(s / 3600) + ' h ' + Math.floor(s % 3600 / 60) + ' min'; }
+function pfSpark(id, value, at, append){
+  var arr = PF[id], card = document.getElementById('pf-' + id); if (!card) { return; }
+  if (append) { arr.push({at:at, value:pfNumber(value) ? value : null}); }
+  while (arr.length && (at - arr[0].at > 60000 || arr.length > 120)) { arr.shift(); }
+  var max = arr.reduce(function(m,p){ return Math.max(m,p.value || 0); },0) * 1.15 || 1;
+  var trace = '', area = '', segment = [], lastAt = null;
+  function finish(){ if (!segment.length) { return; } trace += 'M' + segment.join(' L') + ' '; area += 'M' + segment[0].split(',')[0] + ',30 L' + segment.join(' L') + ' L' + segment[segment.length-1].split(',')[0] + ',30 Z '; segment = []; }
+  arr.forEach(function(p){
+    if (p.value == null || (lastAt != null && p.at - lastAt > 12000)) { finish(); }
+    if (p.value != null) { segment.push((60 - (at - p.at) / 1000).toFixed(2) + ',' + (30 - p.value / max * 28).toFixed(2)); }
+    lastAt = p.at;
+  }); finish();
+  card.querySelector('.pf-trace').setAttribute('d',trace); card.querySelector('.pf-area').setAttribute('d',area);
 }
-function pfSizeText(mb){ return mb == null ? '—' : (mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : Math.round(mb) + ' MB'); }
-function pfPct(v){ return v == null ? '—' : (v < 10 ? v.toFixed(1) : String(Math.round(v))) + '<small>%</small>'; }
-function pfPctText(v){ return v == null ? '—' : (v < 10 ? v.toFixed(1) : String(Math.round(v))) + '%'; }
-function pfSpark(id, arr, v){
-  arr.push(v == null ? 0 : v);
-  if (arr.length > 60) { arr.shift(); }
-  var card = document.getElementById('pf-' + id);
-  if (!card) { return; }
-  var top = Math.max(Math.max.apply(null, arr) * 1.15, 0.0001);
-  var pts = arr.map(function(x, i){ return (i + 60 - arr.length) + ',' + (30 - (x / top) * 28).toFixed(2); }).join(' ');
-  card.querySelector('polyline').setAttribute('points', pts);
-  card.querySelector('polygon').setAttribute('points', (60 - arr.length) + ',30 ' + pts + ' 59,30');
+function pfHeat(v,max,floor){ return !pfNumber(v) || max <= 0 || v < floor ? 0 : v / max >= .66 ? 3 : v / max >= .33 ? 2 : v / max >= .12 ? 1 : 0; }
+function pfMax(list,key){ return list.reduce(function(m,p){ return Math.max(m,p[key] || 0); },0); }
+function pfRow(name,sub,nums,tag){
+  var row = document.createElement(tag || 'div'); row.className = 'pf-row';
+  var n = document.createElement('div'); n.className = 'pf-n'; n.appendChild(document.createElement('b')); n.appendChild(document.createElement('span')); row.appendChild(n);
+  row._cells = nums.map(function(){ var cell=document.createElement('div'); cell.className='pf-num'; row.appendChild(cell); return cell; }); pfRowUpdate(row,name,sub,nums); return row;
 }
-function pfDuration(s){
-  if (s < 60) { return s + ' s'; }
-  if (s < 3600) { return Math.floor(s / 60) + ' min'; }
-  return Math.floor(s / 3600) + ' h ' + Math.floor((s % 3600) / 60) + ' min';
+function pfRowUpdate(row,name,sub,nums){
+  liveText(row.querySelector('.pf-n b'),name); liveText(row.querySelector('.pf-n span'),sub || ''); row.querySelector('.pf-n span').hidden = !sub;
+  nums.forEach(function(v,i){ var cell=row._cells[i], obj=v && typeof v==='object'; liveText(cell,obj?v.v:v); cell.classList.toggle('pf-opt',!!(obj&&v.opt)); if(obj&&v.heat){cell.dataset.heat=v.heat;}else{cell.removeAttribute('data-heat');} });
 }
-function pfRow(name, sub, nums, buttons, head){
-  var row = document.createElement('div');
-  row.className = 'pf-row' + (head ? ' pf-head' : '');
-  var n = document.createElement('div');
-  n.className = 'pf-n';
-  var b = document.createElement('b');
-  b.textContent = name;
-  n.appendChild(b);
-  if (sub) { var s = document.createElement('span'); s.textContent = sub; n.appendChild(s); }
-  row.appendChild(n);
-  nums.forEach(function(v){
-    var c = document.createElement('div');
-    c.className = 'pf-num';
-    /* A cell may be {v:'12.4 MB', heat:2} - the text, and how hard that part is working. */
-    if (v && typeof v === 'object') {
-      c.textContent = v.v;
-      if (v.heat) { c.setAttribute('data-heat', v.heat); }
-      if (v.opt) { c.className += ' pf-opt'; }
-    } else {
-      c.textContent = v;
-    }
-    row.appendChild(c);
+function pfHead(box,kind){
+  var labels=kind==='tabs'?['Memory','Processor','Graphics','Data']:['Process','Memory','Processor','Graphics','GPU mem','Handles'];
+  var keys=kind==='tabs'?['memory','cpu','gpu','data']:['pid','memory','cpu','gpu','gpuMemory','handles'];
+  var head=pfRow(kind==='tabs'?'Tab':'Part of Aviary','',labels); head.classList.add('pf-head');
+  head._cells.forEach(function(cell,i){
+    if(kind!=='tabs'&&i>=4){cell.classList.add('pf-opt');}
+    var b=document.createElement('button');b.type='button';b.textContent=labels[i];b.dataset.sort=keys[i];b.title='Sort by '+labels[i];
+    b.addEventListener('click',function(){if(kind==='tabs'){PF_SORT=PF_SORT===keys[i]?'none':keys[i];}else{PF_PSORT=PF_PSORT===keys[i]?'none':keys[i];}if(PF_LAST){pfRender(PF_LAST,false);}});cell.textContent='';cell.appendChild(b);
   });
-  var btns = document.createElement('div');
-  btns.className = 'btns';
-  (buttons || []).forEach(function(bt){
-    var x = document.createElement('button');
-    x.textContent = bt.label;
-    x.setAttribute('data-perf-tab', bt.cmd);
-    btns.appendChild(x);
+  var rows=document.createElement('div'); rows.className='pf-rows'; box.appendChild(head);box.appendChild(rows);box._head=head;box._rows=rows;
+  if(kind!=='tabs'){box._total=pfRow('All of Aviary','',labels);box._total.classList.add('pf-tot');box.appendChild(box._total);}
+}
+function pfEntry(){
+  var det=document.createElement('details');det.className='pf-entry';
+  det.appendChild(pfRow('','',[], 'summary'));
+  var body=document.createElement('div');body.className='pf-detail';body.innerHTML='<p class="pf-explain"></p><dl class="live-facts"></dl><p class="pf-data-note"></p><div class="st-parts"></div><div class="st-actions"></div>';det.appendChild(body);
+  det.addEventListener('toggle',function(){if(det.open&&det._data){pfDetails(det);}});return det;
+}
+function pfEntryRow(det,name,sub,nums){
+  var sum=det.firstElementChild;
+  if(!sum._cells.length){nums.forEach(function(){var c=document.createElement('div');c.className='pf-num';sum.appendChild(c);sum._cells.push(c);});}
+  pfRowUpdate(sum,name,sub,nums);
+}
+function pfSort(list,key){ return key==='none'?list:list.sort(function(a,b){var av=a[key],bv=b[key];if(!pfNumber(av)){return pfNumber(bv)?1:0;}if(!pfNumber(bv)){return -1;}return bv-av;}); }
+function pfState(tb){ return ({active:'On screen',background:'In the background',saver:'In the background · memory saver',asleep:'Asleep — wakes when selected',ready:'Prepared by Quik'})[tb.state] || ''; }
+function pfDetails(det){
+  if(det._kind==='tab'){
+    var tb=det._data;
+    liveText(det.querySelector('.pf-explain'),tb.pid?'Figures belong to renderer process '+tb.pid+(tb.shared?', shared by '+tb.shared+' tabs':'')+'. They are not an isolated allocation for this tab; embedded frames may also use other processes.':'The engine has not assigned a measurable renderer process to this tab.');
+    liveFacts(det.querySelector('.live-facts'),[['Process',tb.pid==null?'Not available':String(tb.pid)],['Private resident memory',pfSizeText(tb.memory)],['Private committed memory',pfSizeText(tb.commit)],['Total working set (includes shared pages)',pfSizeText(tb.workingSet)],['Processor, whole computer',pfPctText(tb.cpu)],['Graphics, busiest engine',pfPctText(tb.gpu)],['Declared response data',stBytes(tb.data)],['Responses observed',String(tb.dataResponses||0)],['Responses without a declared length',String(tb.dataUnknown||0)],['Blocked requests',String(tb.blocked||0)]]);
+    liveText(det.querySelector('.pf-data-note'),'Data counts declared response lengths while Performance is being watched. Streaming or missing lengths are not included. '+(tb.audio?(tb.muted?'Audio is muted.':'Playing audio.') : ''));
+    var buttons=[];if(tb.canSleep){buttons.push({cmd:'sleep:'+tb.id,label:'Sleep'});}if(!tb.ready){buttons.push({cmd:'close:'+tb.id,label:'Close tab'});}
+    liveList(det.querySelector('.st-actions'),buttons,function(b){return b.cmd;},function(){var b=document.createElement('button');b.className='btn';return b;},function(b,it){liveText(b,it.label);b.dataset.perfTab=it.cmd;b.disabled=!!(PF_PENDING[it.cmd]&&PF_PENDING[it.cmd]>Date.now());});
+  }else{
+    var p=det._data,kids=det._kids;
+    liveText(det.querySelector('.pf-explain'),'One Windows process. This row is counted once in Aviary’s total. Its associated tabs share these resources; their displayed process figures must not be added together.');
+    liveFacts(det.querySelector('.live-facts'),[['Process ID',String(p.pid)],['Private resident memory',pfSizeText(p.memory)],['Private committed memory',pfSizeText(p.commit)],['Total working set (includes shared pages)',pfSizeText(p.workingSet)],['Lifetime peak working set',pfSizeText(p.peak)],['Processor, whole computer',pfPctText(p.cpu)],['Graphics, busiest engine',pfPctText(p.gpu)],['Dedicated GPU memory',pfSizeText(p.gpuMemory)],['Open handles',p.handles==null?'Unavailable':String(p.handles)]]);
+    liveList(det.querySelector('.st-parts'),kids,function(t){return t.id;},function(){var r=document.createElement('div');r.appendChild(document.createElement('b'));r.appendChild(document.createElement('i'));return r;},function(r,t){liveText(r.firstChild,t.isPrivate?'Private tab':t.title||'Untitled');liveText(r.lastChild,pfState(t));});
+    liveText(det.querySelector('.pf-data-note'),kids.length?'Associated main-frame tabs are listed below. Embedded frames may run elsewhere.':'This process has no associated main-frame tab.');
+  }
+}
+function pfTabs(d){
+  var box=document.getElementById('pf-tabs');if(!box._head){pfHead(box,'tabs');}
+  box._head.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.sort===PF_SORT));});
+  var list=pfSort((d.tabs||[]).slice(),PF_SORT), maxM=pfMax(list,'memory'),maxC=pfMax(list,'cpu'),maxG=pfMax(list,'gpu');
+  liveList(box._rows,list,function(tb){return tb.id;},pfEntry,function(det,tb){
+    var name=tb.isPrivate?'Private tab':tb.title||'Untitled',note=PF_NOTES[tb.id];
+    var sub=note&&note.until>Date.now()?note.text:pfState(tb)+(tb.shared?' · shared process':'')+(tb.own?' · Aviary page':'');
+    pfEntryRow(det,name,sub,[{v:pfSizeText(tb.memory),heat:pfHeat(tb.memory,maxM,20)},{v:pfPctText(tb.cpu),heat:pfHeat(tb.cpu,maxC,.5)},{v:pfPctText(tb.gpu),heat:pfHeat(tb.gpu,maxG,.5)},stSize(tb.data)]);
+    det._kind='tab';det._data=tb;if(det.open){pfDetails(det);}
   });
-  row.appendChild(btns);
-  return row;
 }
-
-var PF_SORT = 'memory';
-var PF_PSORT = 'none';
-var PF_LAST = null;
-
-/* How busy is this, on a scale a colour can show? (M4.8.)
-   Shaded against the BUSIEST row rather than against fixed numbers: absolute thresholds meant a
-   quiet browser had no shading at all (measured — every cell came back blank on an idle machine),
-   which is exactly the "it seems to have no effect" that M4.8 exists to stop. `floor` keeps a
-   genuinely idle table plain: nothing is shaded until it is worth looking at, and then the
-   heaviest part always is. Three steps, not a gradient — a tint that is always slightly on reads
-   as noise. */
-function pfHeat(v, max, floor){
-  if (v == null || max == null || max <= 0 || v < floor) { return 0; }
-  var share = v / max;
-  return share >= 0.66 ? 3 : share >= 0.33 ? 2 : share >= 0.12 ? 1 : 0;
+function pfProcesses(d){
+  var box=document.getElementById('pf-procs');if(!box._head){pfHead(box,'processes');}
+  box._head.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.sort===PF_PSORT));});
+  var list=pfSort((d.processes||[]).slice(),PF_PSORT),maxM=pfMax(list,'memory'),maxC=pfMax(list,'cpu'),maxG=pfMax(list,'gpu');
+  var byPid=new Map();(d.tabs||[]).forEach(function(t){if(t.pid!=null){if(!byPid.has(t.pid)){byPid.set(t.pid,[]);}byPid.get(t.pid).push(t);}});
+  liveList(box._rows,list,function(p){return p.pid;},pfEntry,function(det,p){
+    var kids=byPid.get(p.pid)||[];
+    pfEntryRow(det,p.kind,kids.length+' associated '+(kids.length===1?'tab':'tabs'),[String(p.pid),{v:pfSizeText(p.memory),heat:pfHeat(p.memory,maxM,20)},{v:pfPctText(p.cpu),heat:pfHeat(p.cpu,maxC,.5)},{v:pfPctText(p.gpu),heat:pfHeat(p.gpu,maxG,.5)},{v:pfSizeText(p.gpuMemory),opt:true},{v:p.handles==null?'—':String(p.handles),opt:true}]);
+    det._kind='process';det._data=p;det._kids=kids;if(det.open){pfDetails(det);}
+  });
+  pfRowUpdate(box._total,'All of Aviary',list.length+' processes',['',pfSizeText(d.memory),pfPctText(d.cpu),pfPctText(d.gpu),{v:pfSizeText(d.gpuMemory),opt:true},{v:'',opt:true}]);
 }
-function pfMax(list, key){
-  return list.reduce(function(m, x){ return Math.max(m, x[key] || 0); }, 0);
+function pfRender(d,append){
+  var at=Date.parse(d.sampledAt)||Date.now(), seconds=pfNumber(d.sampleSeconds)?d.sampleSeconds:(d.everySeconds||1), baseline=seconds===0;
+  [['mem',d.memory],['cpu',d.cpu],['gpu',d.gpu],['gmem',d.gpuMemory]].forEach(function(p){
+    var card=document.getElementById('pf-'+p[0]);liveText(card.querySelector('.pf-v'),p[0]==='cpu'||p[0]==='gpu'?pfPctText(p[1]):pfSizeText(p[1]));pfSpark(p[0],p[1],at,append);
+  });
+  liveText(document.querySelector('#pf-mem .pf-s'),d.memory==null?'Windows could not read it':'Private resident memory');
+  liveText(document.querySelector('#pf-cpu .pf-s'),d.cpu==null?'Warming up / incomplete sample':'Of the whole processor');
+  liveText(document.querySelector('#pf-gpu .pf-s'),d.gpu==null?'Not reported / warming up':'Aviary’s busiest GPU engine');
+  liveText(document.querySelector('#pf-gmem .pf-s'),d.gpuMemory==null?'Windows is not reporting it':'Dedicated GPU allocation');
+  liveText(document.querySelector('#pf-mem .pf-detail p'),'Private resident memory is physical memory used only by each process. Private committed: '+pfSizeText(d.commit)+'. Shared resident pages are excluded from the headline.');
+  liveText(document.querySelector('#pf-cpu .pf-detail p'),'CPU time divided by elapsed time and all '+(d.logicalProcessors||'available')+' logical processors. '+(baseline?'This is the baseline; waiting for an elapsed interval.':'This reading covers '+seconds.toFixed(2)+' seconds.')+' A new process needs two samples; an unreadable process makes the total incomplete.');
+  liveText(document.querySelector('#pf-gpu .pf-detail p'),'Windows GPU engine counters for Aviary’s process IDs only. The headline uses the busiest physical engine, not the sum of percentages from processes or parallel engines. Unavailable samples are gaps, not zero.');
+  liveText(document.querySelector('#pf-gmem .pf-detail p'),'Dedicated GPU allocation reported by Windows for Aviary’s processes. Allocations shared between processes may appear more than once, so this is not whole-card physical occupancy. Shared system graphics memory is excluded. Zero means measured zero; a dash means unavailable.');
+  liveText(document.getElementById('pf-live'),'Measured '+new Date(at).toLocaleTimeString()+' · '+(d.measuredProcesses==null?(d.processes||[]).length:d.measuredProcesses)+' of '+(d.expectedProcesses==null?(d.processes||[]).length:d.expectedProcesses)+' processes readable · graphs show the last 60 seconds');
+  liveText(document.getElementById('pf-ui'),d.ui&&d.ui.available!==false&&pfNumber(d.ui.now)?'UI queue delay '+d.ui.now.toFixed(1)+' ms · worst observed in the last minute '+d.ui.worst.toFixed(1)+' ms. This measures dispatch delay, not page-load time.':'Waiting for a UI queue reading.');
+  var bl=d.blocker||{},windowLabel=seconds.toFixed(2)+'-second measurement window';
+  liveText(document.getElementById('pf-blocker'),baseline?'Collecting the first measurement window.':bl.checks?'Checked '+bl.checks.toLocaleString()+' requests during the '+windowLabel+' · '+bl.average+' µs average · '+bl.worst+' µs worst.':'No Shields checks during the '+windowLabel+'.');
+  var se=d.session||{},tabCount=(d.tabs||[]).filter(function(t){return !t.ready;}).length;
+  liveText(document.getElementById('pf-session'),'Running for '+pfDuration(se.uptimeSeconds||0)+' · '+tabCount+' tabs in '+(se.windows||1)+' windows'+(se.startupMs?' · opened in '+(se.startupMs/1000).toFixed(2)+' s':'')+' · '+(se.rules||0).toLocaleString()+' Shields rules.');
+  liveText(document.getElementById('pf-mem2'),'Private resident '+pfSizeText(d.memory)+' · private committed '+pfSizeText(d.commit)+' · sum of individual process lifetime peaks '+pfSizeText(d.peak)+'. These peaks did not necessarily happen at the same time.');
+  var engines=d.gpuEngines||[];
+  liveText(document.getElementById('pf-gpuwork'),d.gpu==null?'Windows GPU counters are unavailable or still warming up.':engines.length?engines.map(function(e){return e.name+' '+pfPctText(e.percent);}).join(' · ')+'. Parallel engines are not added for the headline.':'No GPU engine activity above the display threshold in this sample.');
+  pfTabs(d);pfProcesses(d);
+  liveText(document.getElementById('pf-foot'),'Sampling about every '+(d.everySeconds||1)+' s; last sample cost '+(d.samplerMs||0).toFixed(1)+' ms. '+(d.overlay?'The Experimental corner readout keeps the sampler active after this page is left.':'Sampling pauses when this page is hidden or left.')+' Sizes switch automatically between B, KB, MB and GB (1 KB = 1,000 bytes; 1 MB = 1,000,000 bytes). Shared renderer figures are shown per process, not allocated to individual tabs. GPU percentages are not additive.');
 }
 window.__aviaryPerf = function(d){
-  PF_LAST = d;
-  function set(id, html, v, arr){
-    var card = document.getElementById('pf-' + id);
-    if (card) { card.querySelector('.pf-v').innerHTML = html; }
-    pfSpark(id, arr, v);
-  }
-  set('mem', pfSize(d.memory), d.memory, PF.mem);
-  set('cpu', pfPct(d.cpu), d.cpu, PF.cpu);
-  set('gpu', d.gpu == null ? '—' : pfPct(d.gpu), d.gpu, PF.gpu);
-  set('gmem', d.gpuMemory == null ? '—' : pfSize(d.gpuMemory), d.gpuMemory, PF.gmem);
-  if (d.gpu == null) {
-    var gs = document.querySelector('#pf-gpu .pf-s');
-    if (gs) { gs.textContent = 'Windows is not reporting it'; }
-  }
-
-  var ui = document.getElementById('pf-ui');
-  if (ui) {
-    ui.textContent = 'Aviary answered in ' + d.ui.now.toFixed(1) + ' ms just now · slowest in the last minute: ' +
-      d.ui.worst.toFixed(1) + ' ms. Anything under 50 ms feels instant.';
-  }
-  var bl = document.getElementById('pf-blocker');
-  if (bl) {
-    bl.textContent = d.blocker.checks
-      ? 'Checked ' + d.blocker.checks + (d.blocker.checks === 1 ? ' request' : ' requests') + ' in the last second · ' +
-        d.blocker.average + ' µs each on average, ' + d.blocker.worst + ' µs at most.'
-      : 'Nothing to check in the last second — no page was loading anything.';
-  }
-  var se = document.getElementById('pf-session');
-  if (se) {
-    var t = d.tabs.filter(function(tb){ return !tb.ready; }).length;   /* Quik's ready tab is not a tab yet */
-    se.textContent = 'Running for ' + pfDuration(d.session.uptimeSeconds) +
-      (d.session.startupMs ? ' · opened in ' + (d.session.startupMs / 1000).toFixed(2) + ' s' : '') +
-      ' · ' + t + (t === 1 ? ' tab' : ' tabs') + ' in ' + d.session.windows + (d.session.windows === 1 ? ' window' : ' windows') +
-      ' · ' + (d.session.rules || 0).toLocaleString() + ' Shields rules loaded.';
-  }
-
-  /* M4.6 — memory Aviary has asked Windows for, and the most it has ever held at once. */
-  var m2 = document.getElementById('pf-mem2');
-  if (m2) {
-    m2.textContent = 'In use now ' + pfSizeText(d.memory) + ' · asked for ' + pfSizeText(d.commit || 0) +
-      ' · the most held at once ' + pfSizeText(d.peak || 0) +
-      '. "Asked for" does not fall when Windows pages memory out, so a tab that really gave memory back shows it here.';
-  }
-
-  var gw = document.getElementById('pf-gpuwork');
-  if (gw) {
-    var eng = d.gpuEngines || [];
-    gw.textContent = !eng.length
-      ? 'Nothing measurable in the last second.'
-      : eng.map(function(e){ return e.name + ' ' + pfPctText(e.percent); }).join(' · ') +
-        '. Aviary\'s headline figure is its busiest part, not the sum — the card runs them at once.';
-  }
-
-  var tabs = document.getElementById('pf-tabs');
-  if (tabs) {
-    tabs.textContent = '';
-
-    /* M4.6 — sorted by what you choose; the heading cells say so and can be clicked. */
-    var order = PF_SORT;
-    var list = d.tabs.slice().sort(function(a, b){
-      if (order === 'cpu') { return (b.cpu || 0) - (a.cpu || 0); }
-      if (order === 'data') { return (b.data || 0) - (a.data || 0); }
-      if (order === 'memory') { return (b.memory || 0) - (a.memory || 0); }
-      return 0;
-    });
-
-    var head = pfRow('Tab', '', ['Memory', 'Processor', 'Graphics', 'Data'], [], true);
-    head.querySelectorAll('.pf-num').forEach(function(cell, i){
-      var key = ['memory', 'cpu', null, 'data'][i];
-      if (!key) { return; }
-      cell.setAttribute('data-sort', key);
-      /* M4.8: the column that is sorting says so with an arrow, as a table should, instead of
-         the heading spelling it out in words beside "Tab". */
-      cell.setAttribute('data-on', order === key ? 'true' : 'false');
-      cell.title = 'Sort by this';
-      cell.addEventListener('click', function(){
-        PF_SORT = (PF_SORT === key) ? 'none' : key;
-        if (PF_LAST) { window.__aviaryPerf(PF_LAST); }
-      });
-    });
-    tabs.appendChild(head);
-    var states = {active:'On screen', background:'In the background', saver:'In the background · memory saver', asleep:'Asleep — wakes when you click it',
-                  ready:'Kept ready by Quik — your next new tab'};
-    var tMaxMem = pfMax(list, 'memory'), tMaxCpu = pfMax(list, 'cpu'), tMaxGpu = pfMax(list, 'gpu');
-    list.forEach(function(tb){
-      var name = tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled');
-      var note = PF_NOTES[tb.id];
-      var sub = (note && note.until > Date.now()) ? note.text
-        : (states[tb.state] || '') + (tb.own ? ' · Aviary’s own page' : '') +
-          (tb.shared ? ' · shares its process with ' + (tb.shared - 1) + (tb.shared === 2 ? ' other tab' : ' other tabs') : '') +
-          (tb.blocked ? ' · ' + tb.blocked + ' blocked' : '');
-      var buttons = [];
-      if (tb.canSleep) { buttons.push({label:'Sleep', cmd:'sleep:' + tb.id}); }
-      if (!tb.ready) { buttons.push({label:'Close', cmd:'close:' + tb.id}); }
-      tabs.appendChild(pfRow(name, sub,
-        [tb.memory == null ? '—' : {v: pfSizeText(tb.memory), heat: pfHeat(tb.memory, tMaxMem, 20)},
-         tb.cpu == null ? '—' : {v: pfPctText(tb.cpu), heat: pfHeat(tb.cpu, tMaxCpu, 0.5)},
-         tb.gpu == null ? '—' : {v: pfPctText(tb.gpu), heat: pfHeat(tb.gpu, tMaxGpu, 0.5)},
-         tb.data ? stSize(tb.data) : '—'],
-        buttons));
-    });
-  }
-
-  /* ── M4.8: Aviary's processes, the way Task Manager lists them ─────────────
-     Every part on its own line with its own figures in their own columns, sortable by any of
-     them, the tabs a page process draws nested underneath it, and a total at the foot. Before
-     this the PID, the handles and the graphics memory were prose in a subtitle, which is the
-     one thing you cannot scan down. */
-  var procs = document.getElementById('pf-procs');
-  if (procs) {
-    procs.textContent = '';
-
-    var keys = [null, 'memory', 'cpu', 'gpu', 'gpuMemory', 'handles'];
-    var head = pfRow('Part of Aviary', '', ['Process', 'Memory', 'Processor', 'Graphics',
-                                            {v:'GPU mem', opt:true}, {v:'Handles', opt:true}], [], true);
-    head.querySelectorAll('.pf-num').forEach(function(cell, i){
-      var key = keys[i];
-      if (!key) { return; }
-      cell.setAttribute('data-sort', key);
-      cell.setAttribute('data-on', PF_PSORT === key ? 'true' : 'false');
-      cell.title = 'Sort by this';
-      cell.addEventListener('click', function(){
-        PF_PSORT = (PF_PSORT === key) ? 'none' : key;
-        if (PF_LAST) { window.__aviaryPerf(PF_LAST); }
-      });
-    });
-    procs.appendChild(head);
-
-    /* Sorting keeps Aviary's own order when nothing is chosen — the host already sends the
-       parts in the order they matter (Aviary, engine, graphics, helpers, then pages). */
-    var plist = d.processes.slice();
-    if (PF_PSORT !== 'none') {
-      plist.sort(function(a, b){ return (b[PF_PSORT] || 0) - (a[PF_PSORT] || 0); });
-    }
-
-    /* Which tabs each page process is drawing, so they can hang under it. */
-    var kidsOf = {};
-    d.tabs.forEach(function(tb){
-      if (tb.pid == null) { return; }
-      (kidsOf[tb.pid] = kidsOf[tb.pid] || []).push(tb);
-    });
-
-    var pMaxMem = pfMax(plist, 'memory'), pMaxCpu = pfMax(plist, 'cpu'), pMaxGpu = pfMax(plist, 'gpu');
-    var totMem = 0, totCpu = 0, totGpu = 0;
-    plist.forEach(function(p){
-      totMem += p.memory || 0; totCpu += p.cpu || 0; totGpu += p.gpu || 0;
-      var kids = kidsOf[p.pid] || [];
-      var sub = kids.length
-        ? (kids.length === 1 ? 'draws 1 tab' : 'draws ' + kids.length + ' tabs')
-        : '';
-      procs.appendChild(pfRow(p.kind, sub, [
-        String(p.pid),
-        {v: pfSizeText(p.memory), heat: pfHeat(p.memory, pMaxMem, 20)},
-        {v: pfPctText(p.cpu),    heat: pfHeat(p.cpu, pMaxCpu, 0.5)},
-        {v: pfPctText(p.gpu),    heat: pfHeat(p.gpu, pMaxGpu, 0.5)},
-        {v: p.gpuMemory ? pfSizeText(p.gpuMemory) : '—', opt:true},
-        {v: String(p.handles), opt:true}
-      ], []));
-
-      kids.forEach(function(tb){
-        var kid = pfRow(tb.isPrivate ? 'Private tab' : (tb.title || 'Untitled'), '',
-          ['', '', '', '', {v:'', opt:true}, {v:'', opt:true}], []);
-        kid.className += ' pf-kid';
-        procs.appendChild(kid);
-      });
-    });
-
-    var tot = pfRow('All of Aviary', plist.length + (plist.length === 1 ? ' process' : ' processes'),
-      ['', pfSizeText(totMem), pfPctText(totCpu), pfPctText(totGpu), {v:'', opt:true}, {v:'', opt:true}], []);
-    tot.className += ' pf-tot';
-    procs.appendChild(tot);
-  }
-
-  var every = d.everySeconds || 1;
-  var foot = document.getElementById('pf-foot');
-  if (foot) {
-    foot.textContent = 'Measured ' + (every === 1 ? 'every second' : 'every ' + every + ' seconds') +
-      ', which takes Aviary ' + d.samplerMs.toFixed(1) + ' ms each time' +
-      (d.overlay ? '. It carries on after you leave this page, for the readout in the corner (Settings → Experimental → Show speed and memory on top of pages). '
-                 : ', and stops the moment you leave this page. ') +
-      'Memory is each part’s private working set and processor is its share of the whole processor — the figures Task Manager shows. ' +
-      'Data is what the sites said they were sending, counted only while this page is open; anything streamed without a length is not counted.';
-  }
+  PF_LAST=d;
+  if(!perfVisible()){return;}
+  var key=d.sampledAt||Date.now(),fresh=key!==PF_SAMPLE;PF_SAMPLE=key;pfRender(d,fresh);
 };
+window.__aviaryPerfNote = function(id,text){PF_NOTES[id]={text:String(text),until:Date.now()+8000};delete PF_PENDING['sleep:'+id];if(PF_LAST&&perfVisible()){pfRender(PF_LAST,false);}};
+main.addEventListener('click',function(e){var b=e.target.closest('button[data-perf-tab]');if(b){b.disabled=true;var cmd=b.dataset.perfTab;PF_PENDING[cmd]=Date.now()+8000;post({type:'command',name:'perfTab',arg:cmd});}});
+var perfOn=false;
+function perfVisible(){var p=document.getElementById('pane-perf');return !!p&&p.classList.contains('on')&&!document.hidden;}
+function perfWatch(){var want=perfVisible();if(want!==perfOn){perfOn=want;if(want&&PF_LAST){pfRender(PF_LAST,false);}post({type:'command',name:'perfWatch',arg:want?'on':'off'});}}
+document.addEventListener('visibilitychange',function(){storageWatch();perfWatch();});
+window.addEventListener('pageshow',function(){storageWatch();perfWatch();});
+window.addEventListener('pagehide',function(){ST.on=false;clearTimeout(ST.timer);clearTimeout(ST.timeout);if(perfOn){perfOn=false;post({type:'command',name:'perfWatch',arg:'off'});}});
 
-/* The host's word on a tab it could not put to sleep; shown under that tab's row for a while. */
-var PF_NOTES = {};
-window.__aviaryPerfNote = function(id, text){ PF_NOTES[id] = {text: String(text), until: Date.now() + 8000}; };
-
-main.addEventListener('click', function(e){
-  var b = e.target.closest('button[data-perf-tab]');
-  if (b) { b.disabled = true; post({type:'command', name:'perfTab', arg: b.getAttribute('data-perf-tab')}); }
-});
-
-/* The host measures only while this pane is actually on screen. */
-var perfOn = false;
-function perfWatch(){
-  var pane = document.getElementById('pane-perf');
-  var want = !!pane && pane.classList.contains('on') && document.visibilityState === 'visible';
-  if (want !== perfOn) {
-    perfOn = want;
-    post({type:'command', name:'perfWatch', arg: want ? 'on' : 'off'});
-  }
-}
-document.addEventListener('visibilitychange', perfWatch);
-window.addEventListener('pagehide', function(){ if (perfOn) { perfOn = false; post({type:'command', name:'perfWatch', arg:'off'}); } });
-nav.addEventListener('click', function(){ setTimeout(perfWatch, 0); });
-main.addEventListener('click', function(e){ if (e.target.closest('button[data-goto]')) { setTimeout(perfWatch, 0); } });
 
 /* Opened from the app menu's "About Aviary", which used to land you on Get started. */
 if (window.__aviarySection){ showPane(window.__aviarySection); }

@@ -179,7 +179,7 @@ public sealed partial class MainWindow
             {
                 if (tabs.Contains(tab) && r.Processes.FirstOrDefault(p => p.Pid == pid) is { } f)
                 {
-                    thisTab = Mb(f.MemoryMB) + (tabs.Count > 1 ? " (shared)" : string.Empty);
+                    thisTab = f.MemoryAvailable ? Mb(f.MemoryMB) + (tabs.Count > 1 ? " (shared)" : string.Empty) : "—";
                     found = true;
                     break;
                 }
@@ -196,9 +196,9 @@ public sealed partial class MainWindow
         }
 
         _overlayText.Text =
-            "Aviary     " + Mb(r.MemoryMB) + "\n" +
+            "Aviary     " + (r.MemoryAvailable ? Mb(r.MemoryMB) : "—") + "\n" +
             "This tab   " + thisTab + "\n" +
-            "Processor  " + Math.Round(r.CpuPercent, 1).ToString("0.0") + " %" +
+            "Processor  " + (r.CpuReady ? Math.Round(r.CpuPercent, 1).ToString("0.0") + " %" : "Measuring…") +
             (r.GpuAvailable ? "\nGraphics   " + Math.Round(r.GpuPercent, 1).ToString("0.0") + " %" : string.Empty);
 
         // The readout is NOT in the UI Automation tree - nothing laid over the web view is, and it is
@@ -239,5 +239,18 @@ public sealed partial class MainWindow
         }
     }
 
-    private static string Mb(double mb) => mb >= 1024 ? (mb / 1024).ToString("0.00") + " GB" : Math.Round(mb).ToString("0") + " MB";
+    private static string Mb(double mb)
+    {
+        if (!double.IsFinite(mb) || mb < 0) { return "—"; }
+        string[] units = ["B", "KB", "MB", "GB", "TB"];
+        double value = mb * 1048576;
+        int unit = 0;
+        while (value >= 1000 && unit < units.Length - 1) { value /= 1000; unit++; }
+        if (unit > 0 && Math.Round(value, value < 10 ? 2 : 1, MidpointRounding.AwayFromZero) >= 1000 && unit < units.Length - 1)
+        {
+            value /= 1000;
+            unit++;
+        }
+        return value.ToString(unit == 0 ? "0" : value < 10 ? "0.00" : "0.0") + " " + units[unit];
+    }
 }

@@ -32,9 +32,10 @@ internal static class LiveStats
     public sealed record Proc(int Pid, string Kind);
 
     /// <summary>One process, measured.</summary>
-    public sealed record Figures(int Pid, string Kind, double MemoryMB, double CpuPercent, double GpuPercent, double GpuMemoryMB, int Handles, double CommitMB, double PeakMB);
+    public sealed record Figures(int Pid, string Kind, double MemoryMB, double CpuPercent, double GpuPercent, double GpuMemoryMB, int Handles, double CommitMB, double PeakMB,
+        double WorkingSetMB, bool MemoryAvailable, bool CpuReady, bool HandlesAvailable);
 
-    /// <summary>One second's reading.</summary>
+    /// <summary>One interval's reading. MB-named fields use binary MiB (1,048,576 bytes).</summary>
     public sealed record Reading(
         IReadOnlyList<Figures> Processes,
         double MemoryMB,
@@ -49,13 +50,26 @@ internal static class LiveStats
         long BlockerChecks,
         double SamplerMs,
 
-        // M4.6: memory Aviary has ASKED for (commit) and the most it has ever held (peak), and
-        // what each kind of GPU engine was doing.
+        // Private commit, sum of current processes' separate lifetime total-working-set peaks
+        // (not a simultaneous aggregate peak), and what each kind of GPU engine was doing.
         double CommitMB,
         double PeakMB,
-        IReadOnlyDictionary<string, double> GpuByEngine);
+        IReadOnlyDictionary<string, double> GpuByEngine,
+        DateTimeOffset SampledAt,
+        double SampleSeconds,
+        bool CpuReady,
+        bool MemoryAvailable,
+        bool GpuMemoryAvailable,
+        int ExpectedProcesses,
+        bool UiAvailable);
 
     private static readonly object Gate = new();
+    // A timer may re-enter when collecting GPU counters runs longer than its period. Stop must
+    // not close a Win32 handle/PDH query while a sample uses it, or block the UI waiting for PDH.
+    private static readonly object SampleGate = new();
+    private static int _generation;
+    private static int _sampleGeneration = -1;
+    private static long _lastSample;
     private static volatile IReadOnlyList<Proc> _procs = Array.Empty<Proc>();
     private static volatile bool _watching;
     private static Timer? _timer;
@@ -66,6 +80,9 @@ internal static class LiveStats
     private static readonly Dictionary<int, (IntPtr Handle, long Cpu, long At)> Seen = new();
 
     public static bool Watching => _watching;
+    // Environment.ProcessorCount may reflect a process/job affinity limit; the UI promises a
+    // share of the whole machine, so normalize against all active Windows processor groups.
+    public static int LogicalProcessors { get; } = Math.Max(1, (int)GetActiveProcessorCount(0xffff));
 
     public static void SetProcesses(IReadOnlyList<Proc> procs) => _procs = procs;
 
@@ -83,8 +100,13 @@ internal static class LiveStats
             }
 
             _watching = true;
+            _generation++;
             ResetBlocker();
-            _uiWorst.Clear();
+            lock (_uiWorst)
+            {
+                _uiWorst.Clear();
+                _uiNow = 0;
+            }
             _everyMs = SettingMs();
             _timer = new Timer(_ => Tick(), null, 0, _everyMs);
         }
@@ -132,24 +154,50 @@ internal static class LiveStats
     {
         lock (Gate)
         {
-            Listeners.Remove(who);
+            if (!Listeners.Remove(who))
+            {
+                return;
+            }
+
             if (Listeners.Count > 0)
             {
                 return;
             }
 
             _watching = false;
+            _generation++;
             _timer?.Dispose();
             _timer = null;
-            _gpu?.Dispose();
-            _gpu = null;
-            foreach ((IntPtr handle, _, _) in Seen.Values)
+            // Dispose on the worker after the last in-flight sample. A new watch may already
+            // have started by then; its first Tick resets the previous generation instead.
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-                CloseHandle(handle);
-            }
-
-            Seen.Clear();
+                lock (SampleGate)
+                {
+                    lock (Gate)
+                    {
+                        if (!_watching)
+                        {
+                            ClearSampleResources();
+                        }
+                    }
+                }
+            });
         }
+    }
+
+    // SampleGate is held whenever these handles or the GPU query are used or released.
+    private static void ClearSampleResources()
+    {
+        _gpu?.Dispose();
+        _gpu = null;
+        foreach ((IntPtr handle, _, _) in Seen.Values)
+        {
+            CloseHandle(handle);
+        }
+
+        Seen.Clear();
+        _lastSample = 0;
     }
 
     // ── What the window reports in ─────────────────────────────────────────────
@@ -172,9 +220,35 @@ internal static class LiveStats
         }
     }
 
-    private static long _blockerChecks;
-    private static long _blockerTicks;
-    private static long _blockerMax;
+    private static readonly BlockerWindow Blocker = new();
+
+    /// <summary>A request's count, elapsed ticks and maximum belong to the same measurement
+    /// window. Separate Interlocked exchanges can split one request across two windows.</summary>
+    internal sealed class BlockerWindow
+    {
+        private readonly object _gate = new();
+        private long _checks, _ticks, _worst;
+
+        internal void Add(long ticks)
+        {
+            lock (_gate)
+            {
+                _checks++;
+                _ticks += ticks;
+                _worst = Math.Max(_worst, ticks);
+            }
+        }
+
+        internal (long Checks, long Ticks, long Worst) Take()
+        {
+            lock (_gate)
+            {
+                var result = (_checks, _ticks, _worst);
+                _checks = _ticks = _worst = 0;
+                return result;
+            }
+        }
+    }
 
     /// <summary>From every request's blocker check (BrowserTab.Decide) — a volatile read when not watched.</summary>
     public static void NoteBlocker(long ticks)
@@ -184,32 +258,38 @@ internal static class LiveStats
             return;
         }
 
-        Interlocked.Increment(ref _blockerChecks);
-        Interlocked.Add(ref _blockerTicks, ticks);
-        long max;
-        while (ticks > (max = Interlocked.Read(ref _blockerMax)))
-        {
-            if (Interlocked.CompareExchange(ref _blockerMax, ticks, max) == max)
-            {
-                break;
-            }
-        }
+        Blocker.Add(ticks);
     }
 
     private static void ResetBlocker()
     {
-        Interlocked.Exchange(ref _blockerChecks, 0);
-        Interlocked.Exchange(ref _blockerTicks, 0);
-        Interlocked.Exchange(ref _blockerMax, 0);
+        _ = Blocker.Take();
     }
 
     // ── The sample ──────────────────────────────────────────────────────────────
 
     private static void Tick()
     {
+        if (!Monitor.TryEnter(SampleGate))
+        {
+            return;
+        }
+
+        try
+        {
+            TickLocked();
+        }
+        finally
+        {
+            Monitor.Exit(SampleGate);
+        }
+    }
+
+    private static void TickLocked()
+    {
         long started = Stopwatch.GetTimestamp();
-        Action<Reading>[] deliver;
         GpuCounters gpu;
+        int generation;
         lock (Gate)
         {
             if (!_watching || Listeners.Count == 0)
@@ -217,20 +297,31 @@ internal static class LiveStats
                 return;
             }
 
-            deliver = Listeners.Values.ToArray();
-            // Held here, not re-read: Stop() may dispose the shared one while this sample runs.
-            gpu = _gpu ??= new GpuCounters();
+            generation = _generation;
+            if (_sampleGeneration != generation)
+            {
+                ClearSampleResources();
+                _sampleGeneration = generation;
+            }
+
+            // Only this sample (or stopped-generation cleanup) can dispose this query.
         }
+
+        gpu = _gpu ??= new GpuCounters();
 
         try
         {
             List<Proc> procs = new() { new Proc(Environment.ProcessId, "Aviary") };
-            procs.AddRange(_procs.Where(p => p.Pid != Environment.ProcessId));
+            procs.AddRange(_procs.Where(p => p.Pid != Environment.ProcessId).DistinctBy(p => p.Pid));
 
-            (Dictionary<int, double> busy, Dictionary<int, long> dedicated) = gpu.Sample();
+            (Dictionary<int, double> busy, Dictionary<int, long> dedicated) = gpu.Sample(procs.Select(p => p.Pid));
             long now = Stopwatch.GetTimestamp();
+            double sampleSeconds = _lastSample == 0 ? 0 : Stopwatch.GetElapsedTime(_lastSample, now).TotalSeconds;
+            _lastSample = now;
             List<Figures> rows = new();
             HashSet<int> alive = new();
+            long memoryBytes = 0, commitBytes = 0, peakBytes = 0;
+            double totalCpu = 0;
 
             foreach (Proc p in procs)
             {
@@ -240,14 +331,20 @@ internal static class LiveStats
                 }
 
                 alive.Add(p.Pid);
+                memoryBytes += m.PrivateBytes;
+                commitBytes += m.CommitBytes;
+                peakBytes += m.PeakBytes;
+                totalCpu += m.Cpu;
                 rows.Add(new Figures(p.Pid, p.Kind,
-                    Math.Round(m.PrivateBytes / 1048576.0, 1),
+                    m.PrivateBytes / 1048576.0,
                     Math.Round(m.Cpu, 1),
                     Math.Round(busy.TryGetValue(p.Pid, out double g) ? g : 0, 1),
-                    Math.Round((dedicated.TryGetValue(p.Pid, out long d) ? d : 0) / 1048576.0, 1),
+                    (dedicated.TryGetValue(p.Pid, out long d) ? d : 0) / 1048576.0,
                     m.Handles,
-                    Math.Round(m.CommitBytes / 1048576.0, 1),
-                    Math.Round(m.PeakBytes / 1048576.0, 1)));
+                    m.CommitBytes / 1048576.0,
+                    m.PeakBytes / 1048576.0,
+                    m.WorkingSetBytes / 1048576.0,
+                    m.MemoryAvailable, m.CpuReady, m.HandlesAvailable));
             }
 
             lock (Gate)
@@ -259,35 +356,64 @@ internal static class LiveStats
                 }
             }
 
-            long checks = Interlocked.Exchange(ref _blockerChecks, 0);
-            long ticks = Interlocked.Exchange(ref _blockerTicks, 0);
-            long worst = Interlocked.Exchange(ref _blockerMax, 0);
+            long checks, ticks, worst;
+            lock (Gate)
+            {
+                if (!_watching || generation != _generation)
+                {
+                    return;
+                }
+
+                (checks, ticks, worst) = Blocker.Take();
+            }
             double Us(long t) => Math.Round(t * 1_000_000.0 / Stopwatch.Frequency, 1);
 
             double uiNow, uiWorst;
+            bool uiAvailable;
             lock (_uiWorst)
             {
+                long cutoff = Environment.TickCount64 - 60_000;
+                while (_uiWorst.Count > 0 && _uiWorst.Peek().At < cutoff)
+                {
+                    _uiWorst.Dequeue();
+                }
+
                 uiNow = _uiNow;
+                uiAvailable = _uiWorst.Count > 0;
                 uiWorst = _uiWorst.Count == 0 ? 0 : _uiWorst.Max(x => x.Ms);
             }
 
             Reading reading = new(
                 rows,
-                Math.Round(rows.Sum(r => r.MemoryMB), 1),
-                Math.Round(Math.Min(100, rows.Sum(r => r.CpuPercent)), 1),
-                Math.Round(GpuCounters.Combined(rows.Select(r => r.Pid), busy), 1),
-                Math.Round(rows.Sum(r => r.GpuMemoryMB), 1),
+                memoryBytes / 1048576.0,
+                Math.Round(Math.Min(100, totalCpu), 1),
+                Math.Round(gpu.CombinedPercent, 1),
+                dedicated.Values.Sum() / 1048576.0,
                 gpu.Available,
                 Math.Round(uiNow, 1),
                 Math.Round(uiWorst, 1),
-                checks == 0 ? null : Us(ticks / checks),
+                checks == 0 ? null : Math.Round(ticks * 1_000_000.0 / Stopwatch.Frequency / checks, 1),
                 checks == 0 ? null : Us(worst),
                 checks,
                 Math.Round(Stopwatch.GetElapsedTime(started).TotalMilliseconds, 2),
-                Math.Round(rows.Sum(r => r.CommitMB), 1),
-                Math.Round(rows.Sum(r => r.PeakMB), 1),
-                gpu.ByEngine.ToDictionary(p => p.Key, p => Math.Round(Math.Min(100, p.Value), 1), StringComparer.Ordinal));
+                commitBytes / 1048576.0,
+                peakBytes / 1048576.0,
+                gpu.ByEngine.ToDictionary(p => p.Key, p => Math.Round(Math.Min(100, p.Value), 1), StringComparer.Ordinal),
+                DateTimeOffset.UtcNow, Math.Round(sampleSeconds, 3),
+                rows.Count == procs.Count && rows.All(p => p.CpuReady),
+                rows.Count == procs.Count && rows.All(p => p.MemoryAvailable),
+                gpu.MemoryAvailable, procs.Count, uiAvailable);
 
+            Action<Reading>[] deliver;
+            lock (Gate)
+            {
+                if (!_watching || generation != _generation)
+                {
+                    return;
+                }
+
+                deliver = Listeners.Values.ToArray();
+            }
             foreach (Action<Reading> d in deliver)
             {
                 d(reading);
@@ -299,7 +425,8 @@ internal static class LiveStats
         }
     }
 
-    private readonly record struct Measured(long PrivateBytes, double Cpu, int Handles, long CommitBytes, long PeakBytes);
+    private readonly record struct Measured(long PrivateBytes, double Cpu, int Handles, long CommitBytes, long PeakBytes,
+        long WorkingSetBytes, bool MemoryAvailable, bool CpuReady, bool HandlesAvailable);
 
     private static Measured? Measure(int pid, long now)
     {
@@ -323,7 +450,7 @@ internal static class LiveStats
             }
         }
 
-        if (!GetProcessTimes(handle, out _, out _, out long kernel, out long user))
+        if (!GetProcessTimes(handle, out _, out long exited, out long kernel, out long user) || exited != 0)
         {
             lock (Gate)
             {
@@ -341,7 +468,7 @@ internal static class LiveStats
             double wall100ns = Stopwatch.GetElapsedTime(lastAt, now).TotalMilliseconds * 10_000;
             if (wall100ns > 0)
             {
-                percent = Math.Clamp((cpu - lastCpu) * 100.0 / (wall100ns * Environment.ProcessorCount), 0, 100);
+                percent = CpuShare(cpu - lastCpu, wall100ns, LogicalProcessors);
             }
         }
 
@@ -350,9 +477,10 @@ internal static class LiveStats
             Seen[pid] = (handle, cpu, now);
         }
 
-        long privateBytes = 0, commit = 0, peak = 0;
+        long privateBytes = 0, commit = 0, peak = 0, workingSet = 0;
         MemoryCountersEx2 counters = new() { cb = (uint)Marshal.SizeOf<MemoryCountersEx2>() };
-        if (GetProcessMemoryInfo(handle, ref counters, counters.cb))
+        bool memoryAvailable = GetProcessMemoryInfo(handle, ref counters, counters.cb);
+        if (memoryAvailable)
         {
             privateBytes = (long)counters.PrivateWorkingSetSize;
 
@@ -361,15 +489,20 @@ internal static class LiveStats
             // held at once. Together they say whether a tab has really given memory back.
             commit = (long)counters.PrivateUsage;
             peak = (long)counters.PeakWorkingSetSize;
+            workingSet = (long)counters.WorkingSetSize;
         }
 
-        GetProcessHandleCount(handle, out uint handles);
-        return new Measured(privateBytes, lastCpu >= 0 ? percent : 0, (int)handles, commit, peak);
+        bool handlesAvailable = GetProcessHandleCount(handle, out uint handles);
+        return new Measured(privateBytes, lastCpu >= 0 ? percent : 0, (int)handles, commit, peak,
+            workingSet, memoryAvailable, lastCpu >= 0, handlesAvailable);
     }
 
     // ── Win32 ─────────────────────────────────────────────────────────────────
 
     private const uint ProcessQueryLimitedInformation = 0x1000;
+
+    internal static double CpuShare(long cpu100ns, double elapsed100ns, int logicalProcessors) =>
+        elapsed100ns <= 0 || logicalProcessors <= 0 ? 0 : Math.Clamp(cpu100ns * 100.0 / (elapsed100ns * logicalProcessors), 0, 100);
 
     /// <summary>PROCESS_MEMORY_COUNTERS_EX2 (Windows 10 21H1 and later): PrivateWorkingSetSize is Task Manager's "Memory".</summary>
     [StructLayout(LayoutKind.Sequential)]
@@ -392,6 +525,9 @@ internal static class LiveStats
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint access, [MarshalAs(UnmanagedType.Bool)] bool inherit, int pid);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetActiveProcessorCount(ushort groupNumber);
 
     [DllImport("kernel32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

@@ -238,7 +238,7 @@ internal static class NativeCrash
         try
         {
             Directory.CreateDirectory(AppPaths.Root);
-            File.AppendAllText(Path.Combine(AppPaths.Root, "crash.log"), log + Environment.NewLine);
+            File.AppendAllText(Path.Combine(AppPaths.Root, "crash.log"), Diagnostics.Scrub(log.ToString()) + Environment.NewLine);
         }
         catch (Exception)
         {

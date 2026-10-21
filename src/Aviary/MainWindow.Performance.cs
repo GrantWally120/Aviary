@@ -18,6 +18,10 @@ public sealed partial class MainWindow
 {
     private CoreWebView2? _perfPage;
     private CoreWebView2Environment? _perfEnvironment;
+    private readonly string _perfListenerKey = "performance:" + Guid.NewGuid().ToString("N");
+    private int _perfGeneration;
+    private int _perfDeliveryQueued;
+    private bool _perfRefreshing;
 
     /// <summary>Engine process → the tabs (any window's) whose main frame it draws.</summary>
     private Dictionary<int, List<BrowserTab>> _perfTabsByPid = new();
@@ -38,12 +42,20 @@ public sealed partial class MainWindow
             return;
         }
 
+        BrowserTab? watchingTab = TabFor(page);
+        if (watchingTab is null || !watchingTab.IsInternalPage || watchingTab.Title != "Settings" ||
+            !ReferenceEquals(_active, watchingTab) || !WindowShowing)
+        {
+            return;
+        }
+
         _perfPage = page;
+        int generation = ++_perfGeneration;
 
         // M4.6: count what each tab loads, but only while somebody is looking at the figures.
         foreach (MainWindow window in OpenWindows)
         {
-            foreach (BrowserTab t in window._tabs)
+            foreach (BrowserTab t in window.TabsAndReady())
             {
                 t.WatchData(true);
             }
@@ -52,7 +64,13 @@ public sealed partial class MainWindow
         {
             if (_perfEnvironment is null)
             {
-                _perfEnvironment = await WebViewEnvironment.GetAsync();
+                CoreWebView2Environment environment = await WebViewEnvironment.GetAsync();
+                if (generation != _perfGeneration || _perfPage is null)
+                {
+                    return;
+                }
+
+                _perfEnvironment = environment;
                 _perfEnvironment.ProcessInfosChanged += OnPerfProcessesChanged;
             }
 
@@ -63,16 +81,38 @@ public sealed partial class MainWindow
             Diagnostics.Swallowed(ex, "performance: engine processes");
         }
 
-        LiveStats.Start("performance", reading =>
+        if (generation != _perfGeneration || _perfPage is null)
         {
+            return;
+        }
+
+        LiveStats.Start(_perfListenerKey, reading =>
+        {
+            // A stalled window needs one pending delivery, not an ever-growing queue of old
+            // snapshots. A generation check also discards a delivery after leaving the pane.
+            if (System.Threading.Interlocked.CompareExchange(ref _perfDeliveryQueued, 1, 0) != 0)
+            {
+                return;
+            }
+
             // On the sampler's thread. How long the UI thread takes to get to this is also the
             // page's "how quickly Aviary answers" figure.
             long queued = System.Diagnostics.Stopwatch.GetTimestamp();
-            DispatcherQueue.TryEnqueue(() =>
+            if (!DispatcherQueue.TryEnqueue(() =>
             {
-                LiveStats.NoteUiLatency(System.Diagnostics.Stopwatch.GetElapsedTime(queued).TotalMilliseconds);
-                PushPerf(reading);
-            });
+                System.Threading.Interlocked.Exchange(ref _perfDeliveryQueued, 0);
+                if (generation != _perfGeneration || _perfPage is null)
+                {
+                    return;
+                }
+
+                double latency = System.Diagnostics.Stopwatch.GetElapsedTime(queued).TotalMilliseconds;
+                LiveStats.NoteUiLatency(latency);
+                PushPerf(reading with { UiNowMs = Math.Round(latency, 1), UiWorstMs = Math.Round(Math.Max(reading.UiWorstMs, latency), 1), UiAvailable = true });
+            }))
+            {
+                System.Threading.Interlocked.Exchange(ref _perfDeliveryQueued, 0);
+            }
         });
     }
 
@@ -90,14 +130,18 @@ public sealed partial class MainWindow
 
     private void StopPerf()
     {
+        _perfGeneration++;
         _perfPage = null;
-        LiveStats.Stop("performance");
+        LiveStats.Stop(_perfListenerKey);
 
-        foreach (MainWindow window in OpenWindows)
+        if (!OpenWindows.Any(window => window._perfPage is not null))
         {
-            foreach (BrowserTab t in window._tabs)
+            foreach (MainWindow window in OpenWindows)
             {
-                t.WatchData(false);
+                foreach (BrowserTab t in window.TabsAndReady())
+                {
+                    t.WatchData(false);
+                }
             }
         }
         if (_perfEnvironment is not null)
@@ -123,12 +167,25 @@ public sealed partial class MainWindow
     /// <summary>UI thread: the engine's processes, and which tab each page process is drawing.</summary>
     private async Task RefreshPerfProcessesAsync()
     {
-        if (_perfEnvironment is null)
+        if (_perfEnvironment is null || _perfPage is null || _perfRefreshing)
         {
             return;
         }
 
-        _perfTabsByPid = await RefreshEngineProcessesAsync(_perfEnvironment);
+        _perfRefreshing = true;
+        int generation = _perfGeneration;
+        try
+        {
+            Dictionary<int, List<BrowserTab>> mapped = await RefreshEngineProcessesAsync(_perfEnvironment);
+            if (generation == _perfGeneration && _perfPage is not null)
+            {
+                _perfTabsByPid = mapped;
+            }
+        }
+        finally
+        {
+            _perfRefreshing = false;
+        }
     }
 
     /// <summary>
@@ -195,7 +252,8 @@ public sealed partial class MainWindow
         BrowserTab? tab = page is null ? null : TabFor(page);
 
         // Only Aviary's own Settings page ever hears this (bug 62: a host push must never reach a website).
-        if (page is null || tab is null || !tab.IsInternalPage || tab.Title != "Settings")
+        if (page is null || tab is null || !tab.IsInternalPage || tab.Title != "Settings" ||
+            !ReferenceEquals(_active, tab) || !WindowShowing)
         {
             StopPerf();
             return;
@@ -213,12 +271,24 @@ public sealed partial class MainWindow
             _ => kind,
         };
 
+        // Frame-to-process associations can change without a ProcessInfosChanged event (for
+        // example navigating into an existing renderer). Refresh once per delivered sample,
+        // coalesced with event-driven requests, so a recycled page does not keep old figures.
+        _ = RefreshPerfProcessesAsync().ContinueWith(t =>
+        {
+            if (t.Exception is { } error)
+            {
+                Diagnostics.Swallowed(error, "performance: refresh tab processes");
+            }
+        }, TaskScheduler.Default);
+
         List<object> tabs = new();
         foreach (MainWindow window in OpenWindows)
         {
             foreach (BrowserTab t in window.TabsAndReady())
             {
                 bool ready = window.IsQuikReadyTab(t);
+                t.WatchData(true); // Also covers tabs opened after the pane began watching.
                 int pid = _perfTabsByPid.FirstOrDefault(p => p.Value.Contains(t)).Key;
                 byPid.TryGetValue(pid, out LiveStats.Figures? f);
                 int sharing = pid == 0 ? 0 : _perfTabsByPid[pid].Count;
@@ -246,15 +316,23 @@ public sealed partial class MainWindow
                     ready,
                     state = ready ? "ready" : asleep ? "asleep" : active ? "active" : Saver != Mode.Off ? "saver" : "background",
                     pid = pid == 0 ? (int?)null : pid,
-                    memory = f?.MemoryMB,
-                    cpu = f?.CpuPercent,
-                    gpu = f?.GpuPercent,
+                    memory = f is { MemoryAvailable: true } ? f.MemoryMB : (double?)null,
+                    cpu = f is { CpuReady: true } ? f.CpuPercent : (double?)null,
+                    gpu = r.GpuAvailable ? f?.GpuPercent : null,
+                    commit = f is { MemoryAvailable: true } ? f.CommitMB : (double?)null,
+                    peak = f is { MemoryAvailable: true } ? f.PeakMB : (double?)null,
+                    workingSet = f is { MemoryAvailable: true } ? f.WorkingSetMB : (double?)null,
+                    cpuReady = f?.CpuReady ?? false,
+                    memoryAvailable = f?.MemoryAvailable ?? false,
+                    memoryScope = "renderer-process",
+                    processCount = pid == 0 ? 0 : 1,
                     shared = sharing > 1 ? sharing : 0,
                     blocked = t.ShieldsApply ? t.BlockedOnPage : 0,
 
                     // M4.6 — what this tab has loaded since the pane was opened, as the sites
                     // declared it, and how many responses never said.
                     data = t.DataBytes,
+                    dataResponses = t.DataResponses,
                     dataUnknown = t.DataUnknown,
                     canSleep = !ready && !active && !asleep && !t.IsInternalPage,
                 });
@@ -263,11 +341,11 @@ public sealed partial class MainWindow
 
         var payload = new
         {
-            memory = r.MemoryMB,
-            cpu = r.CpuPercent,
+            memory = r.MemoryAvailable ? r.MemoryMB : (double?)null,
+            cpu = r.CpuReady ? r.CpuPercent : (double?)null,
             gpu = r.GpuAvailable ? r.GpuPercent : (double?)null,
-            gpuMemory = r.GpuAvailable ? r.GpuMemoryMB : (double?)null,
-            ui = new { now = r.UiNowMs, worst = r.UiWorstMs },
+            gpuMemory = r.GpuMemoryAvailable ? r.GpuMemoryMB : (double?)null,
+            ui = new { now = r.UiNowMs, worst = r.UiWorstMs, available = r.UiAvailable },
             blocker = new { average = r.BlockerAverageUs, worst = r.BlockerWorstUs, checks = r.BlockerChecks },
             processes = r.Processes
                 .OrderBy(p => p.Kind switch { "Aviary" => 0, "Browser" => 1, "Gpu" => 2, "Utility" => 3, _ => 4 })
@@ -276,11 +354,18 @@ public sealed partial class MainWindow
                 {
                     pid = p.Pid,
                     kind = KindName(p.Kind),
-                    memory = p.MemoryMB,
-                    cpu = p.CpuPercent,
-                    gpu = p.GpuPercent,
-                    gpuMemory = p.GpuMemoryMB,
-                    handles = p.Handles,
+                    memory = p.MemoryAvailable ? p.MemoryMB : (double?)null,
+                    cpu = p.CpuReady ? p.CpuPercent : (double?)null,
+                    gpu = r.GpuAvailable ? p.GpuPercent : (double?)null,
+                    gpuMemory = r.GpuMemoryAvailable ? p.GpuMemoryMB : (double?)null,
+                    handles = p.HandlesAvailable ? p.Handles : (int?)null,
+                    commit = p.MemoryAvailable ? p.CommitMB : (double?)null,
+                    peak = p.MemoryAvailable ? p.PeakMB : (double?)null,
+                    workingSet = p.MemoryAvailable ? p.WorkingSetMB : (double?)null,
+                    cpuReady = p.CpuReady,
+                    memoryAvailable = p.MemoryAvailable,
+                    gpuAvailable = r.GpuAvailable,
+                    gpuMemoryAvailable = r.GpuMemoryAvailable,
                     tabs = _perfTabsByPid.TryGetValue(p.Pid, out List<BrowserTab>? on) ? on.Count : 0,
                 }),
             tabs,
@@ -295,8 +380,16 @@ public sealed partial class MainWindow
 
             // M4.6 — memory Aviary has asked for and the most it has held, the GPU split by the
             // kind of work, and how often all of this is measured.
-            commit = r.CommitMB,
-            peak = r.PeakMB,
+            commit = r.MemoryAvailable ? r.CommitMB : (double?)null,
+            peak = r.MemoryAvailable ? r.PeakMB : (double?)null,
+            sampledAt = r.SampledAt,
+            sampleSeconds = r.SampleSeconds,
+            cpuReady = r.CpuReady,
+            memoryAvailable = r.MemoryAvailable,
+            gpuMemoryAvailable = r.GpuMemoryAvailable,
+            measuredProcesses = r.Processes.Count,
+            expectedProcesses = r.ExpectedProcesses,
+            logicalProcessors = LiveStats.LogicalProcessors,
             gpuEngines = r.GpuByEngine
                 .Where(p => p.Value >= 0.05)
                 .OrderByDescending(p => p.Value)

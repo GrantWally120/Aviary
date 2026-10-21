@@ -409,7 +409,7 @@ internal sealed partial class BrowserTab
     /// or null to let it through. The page itself is never stopped here (Strict's whole-site
     /// check happens at NavigationStarting, where it can show a warning instead of a blank page).
     /// </summary>
-    private (string Rule, string List)? ShieldsVerdict(string uri, CoreWebView2WebResourceContext context)
+    private (string Rule, string List)? ShieldsVerdict(string uri, CoreWebView2WebResourceContext context, bool linkPing)
     {
         if (!Shields.Enabled || _internalTitle is not null || _filterPageDown || _filterPage.Host.Length == 0
             || Shields.IsOwnHost(_filterPage.Host))
@@ -426,9 +426,10 @@ internal sealed partial class BrowserTab
         // M6 stage 4, "Stop link-click pings": every <a ping>, the site's OWN included - EasyPrivacy's
         // *$ping,third-party already stops other sites' (measured), and a site's own is exactly what
         // Standard below would let through. Nothing but the ping: the link still opens.
-        if (type == ReqType.Ping && AppSettings.GetBool("exp.noPings"))
+        if (type == ReqType.Ping && (AppSettings.GetBool("exp.noPings")
+            || (linkPing && AppSettings.GetBool("blockLinkPings"))))
         {
-            return ("*$ping", "Experimental");
+            return ("*$ping", AppSettings.GetBool("exp.noPings") ? "Experimental" : "Link tracking protection");
         }
 
         // A site's own requests are never stopped in Standard — by any list, Aviary's included, or
@@ -450,18 +451,15 @@ internal sealed partial class BrowserTab
             return ("*$script,third-party", "Experimental");
         }
 
-        // Aviary's own short list first — it predates the lists, and it is a hash lookup.
-        if (TrackerBlocker.Match(uri) is { } own)
-        {
-            return ("||" + own + "^", "Aviary");
-        }
-
+        string? own = TrackerBlocker.Match(uri);
         if (FilterLists.Engine is not { } engine)
         {
-            return null;
+            return own is null ? null : ("||" + own + "^", "Aviary");
         }
 
-        FilterEngine.Verdict verdict = engine.Match(uri, type, _filterPage, thirdPartyOnly: !strict);
+        // A targeted allow rule also applies to Aviary's built-in list. Keep the rest of
+        // Shields active instead of forcing someone to disable all protection for a login.
+        FilterEngine.Verdict verdict = engine.Match(uri, type, _filterPage, thirdPartyOnly: !strict, fallbackHost: own);
         return verdict.Blocked ? (verdict.Rule ?? "?", verdict.List ?? "?") : null;
     }
 

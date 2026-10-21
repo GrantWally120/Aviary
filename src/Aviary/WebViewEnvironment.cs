@@ -188,7 +188,12 @@ internal static class WebViewEnvironment
                 // reads as it starts - so it is written now, before it does (EnginePreferences.cs).
                 EnginePreferences.ApplyMinimumFontSize(_launchedText["minFont"]);
 
-                CoreWebView2EnvironmentOptions options = new() { AdditionalBrowserArguments = Arguments };
+                // Keep engine crash dumps local rather than uploading them automatically.
+                CoreWebView2EnvironmentOptions options = new()
+                {
+                    AdditionalBrowserArguments = Arguments,
+                    IsCustomCrashReportingEnabled = true,
+                };
                 if (Languages.TryGetValue(_launchedText["language"], out string? tag))
                 {
                     options.Language = tag;

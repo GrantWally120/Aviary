@@ -82,7 +82,7 @@ internal sealed partial class BrowserTab
             }
 
             if (long.TryParse(headers.GetHeader("Content-Length"), NumberStyles.None, CultureInfo.InvariantCulture, out long length)
-                && length > 0)
+                && length >= 0)
             {
                 System.Threading.Interlocked.Add(ref _dataBytes, length);
             }

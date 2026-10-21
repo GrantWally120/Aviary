@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Aviary</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../src/Aviary/StorageUsage.cs" Link="StorageUsage.cs" />
+    <Compile Include="../../../src/Aviary/AppPaths.cs" Link="AppPaths.cs" />
+  </ItemGroup>
+</Project>

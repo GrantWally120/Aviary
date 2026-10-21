@@ -93,7 +93,7 @@ public partial class App : Application
             File.AppendAllText(
                 Path.Combine(folder, "crash.log"),
                 DateTimeOffset.Now.ToString("u") + Environment.NewLine +
-                e.Exception + Environment.NewLine + Environment.NewLine);
+                Diagnostics.Scrub(e.Exception.ToString()) + Environment.NewLine + Environment.NewLine);
         }
         catch (Exception ex)
         {

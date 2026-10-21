@@ -1072,6 +1072,7 @@ public sealed partial class MainWindow : Window
                    + " window.__aviaryFocusRing = " + (AppSettings.GetBool("focusRing") ? "true" : "false") + ";"
                    // M4.9 (bug 80): the page redacts exactly the keys the host does, from ONE list.
                    + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";"
+                   + " window.__aviaryPrivacyPolicy = " + JsonSerializer.Serialize(PrivacyPolicy.Describe()) + ";"
                    // M4.9: Forgetful sites, for Privacy.
                    + " window.__aviaryForget = " + JsonSerializer.Serialize(ForgetList()) + ";"
                    // M4.9: Bird News' "Right now" row.
@@ -2507,8 +2508,10 @@ public sealed partial class MainWindow : Window
     internal static readonly string PageToken =
         Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
 
-    private static bool FromAviaryPage(JsonElement root) =>
-        root.TryGetProperty("token", out JsonElement token)
+    private static bool FromAviaryPage(JsonElement root, CoreWebView2 sender, string source) =>
+        root.ValueKind == JsonValueKind.Object
+        && SecurityPolicy.IsInternalMessageSource(source, sender.Source)
+        && root.TryGetProperty("token", out JsonElement token)
         && token.ValueKind == JsonValueKind.String
         && string.Equals(token.GetString(), PageToken, StringComparison.Ordinal);
 
@@ -2533,7 +2536,7 @@ public sealed partial class MainWindow : Window
             using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
-            bool trusted = FromAviaryPage(root);
+            bool trusted = FromAviaryPage(root, sender, args.Source);
 
             // Every page's own injected scripts (shortcuts, icons, page errors) post on this
             // same event; only the Start Page's own types are refused, and only those recorded.
@@ -2831,7 +2834,7 @@ public sealed partial class MainWindow : Window
             using JsonDocument doc = JsonDocument.Parse(args.TryGetWebMessageAsString());
             JsonElement root = doc.RootElement;
             string type = root.TryGetProperty("type", out JsonElement t) ? t.GetString() ?? "" : "";
-            bool trusted = FromAviaryPage(root);
+            bool trusted = FromAviaryPage(root, sender, args.Source);
 
             if (!trusted)
             {
@@ -4067,6 +4070,9 @@ public sealed partial class MainWindow : Window
     private void MainWindow_Closed(object sender, WindowEventArgs args)
     {
         _quikClosing = true;
+        // Stop this window's Settings listener before its tabs and dispatcher go away.
+        // A WebView pagehide message is not guaranteed during native window shutdown.
+        StopPerf();
         QuikWarmDone();
         // M7 Quik: the ready tab was never a tab - it goes before anything counts tabs.
         _readyTabTimer?.Stop();
@@ -4093,6 +4099,8 @@ public sealed partial class MainWindow : Window
 
             // M6 stage 3: and so do the zooms set in private windows.
             SiteZoom.ForgetPrivate();
+            Shields.ForgetPrivate();
+            BrowserTab.ForgetPrivatePrivacyChoices();
         }
 
         // M6 stage 3: the week-old sweep belongs to this window.

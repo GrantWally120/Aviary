@@ -51,18 +51,16 @@ internal static partial class Diagnostics
 
     internal static readonly string[] NeverCollected =
     {
-        "Passwords, and anything typed into a password box.",
-        "What you type into forms on websites.",
-        "Cookie values, login tokens and other session secrets.",
-        "Card numbers.",
-        "Anything on your clipboard.",
+        "Password fields and website form bodies are not read for diagnostics.",
+        "Cookie values and clipboard contents are not read for diagnostics.",
+        "Recognised login codes, tokens, credentials and card numbers in logged text are masked on a best-effort basis.",
     };
 
     internal const string MaskingNote =
-        "Web addresses that carry a login code, token or password keep the name of that part, with its value replaced by •••, so the address still says what it was without being a working key.";
+        "Recognised secret values are replaced by •••. Masking is best effort: addresses, titles and errors may still contain sensitive information. Treat diagnostic files as private and review them before sharing.";
 
     internal static readonly string StaysNote =
-        "Everything stays on this computer. This feature contains no code that can send anything anywhere. Kept for "
+        "Aviary improvement records stay on this computer; this feature has no upload or email sender. Microsoft WebView2 and SmartScreen have separate practices explained in the Privacy Policy. Kept for "
         + RetentionDays + " days and never more than " + CapMB + " MB — the oldest is removed first. Private browsing is never recorded.";
 
     // ══ SESSION COUNTERS — for summary.md ═══════════════════════════════════

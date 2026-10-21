@@ -12,20 +12,11 @@ namespace Aviary;
 /// </summary>
 public sealed partial class MainWindow
 {
-    private bool _storageMeasuring;
-
-    private async Task StorageMeasureAsync(CoreWebView2 page)
+    private async Task StorageMeasureAsync(CoreWebView2 page, bool afterCurrent = false)
     {
-        if (_storageMeasuring)
-        {
-            return;
-        }
-
-        _storageMeasuring = true;
         try
         {
-            StorageUsage.Result r = await StorageUsage.MeasureAsync();
-            DiagPerf("storage-usage", new { ms = r.Ms, files = r.Files, mb = Math.Round(r.Bytes / 1048576.0, 1) });
+            StorageUsage.Result r = await (afterCurrent ? StorageUsage.MeasureAfterCurrentAsync() : StorageUsage.MeasureAsync());
 
             BrowserTab? tab = TabFor(page);
             if (tab is null || !tab.IsInternalPage || tab.Title != "Settings")
@@ -40,6 +31,16 @@ public sealed partial class MainWindow
                 files = r.Files,
                 ms = r.Ms,
                 at = r.At.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture),
+                atSeconds = r.At.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture),
+                startedAt = r.StartedAt.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                finishedAt = r.At.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                source = "file-snapshot",
+                complete = r.Complete,
+                skippedEntries = r.SkippedEntries,
+                skippedDirectories = r.SkippedDirectories,
+                reparsePointsSkipped = r.ReparsePointsSkipped,
+                diskEstimatedFiles = r.DiskEstimatedFiles,
+                hardLinkDuplicates = r.HardLinkDuplicates,
                 install = r.InstallFolder,
                 profile = r.ProfileFolder,
                 capBytes = Diagnostics.CapBytes,
@@ -48,6 +49,10 @@ public sealed partial class MainWindow
                 // graphics caches are already promised to the next launch.
                 sites = r.Sites.Select(i => new { label = i.Label, bytes = i.Bytes, files = i.Files }),
                 sitesShared = r.SitesShared,
+                sitesTotal = r.Categories.First(c => c.Key == "sites").Bytes,
+                sitesListedBytes = r.Sites.Sum(i => i.Bytes),
+                sitesOtherBytes = r.SitesOtherBytes,
+                siteCount = r.SiteCount,
                 gpuPending = AppSettings.GetBool("clearGpuCaches"),
                 categories = r.Categories.Select(c => new
                 {
@@ -61,15 +66,25 @@ public sealed partial class MainWindow
                 }),
             };
 
-            _ = page.ExecuteScriptAsync("window.__aviaryStorage && window.__aviaryStorage(" + JsonSerializer.Serialize(payload) + ")");
+            await page.ExecuteScriptAsync("window.__aviaryStorage && window.__aviaryStorage(" + JsonSerializer.Serialize(payload) + ")");
         }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "storage usage: measure");
+            await StorageErrorAsync(page, "Storage could not be measured. Try Refresh again.");
         }
-        finally
+    }
+
+    private async Task StorageErrorAsync(CoreWebView2 page, string message)
+    {
+        try
         {
-            _storageMeasuring = false;
+            if (TabFor(page) is not { IsInternalPage: true, Title: "Settings" }) return;
+            await page.ExecuteScriptAsync("window.__aviaryStorageError && window.__aviaryStorageError(" + JsonSerializer.Serialize(message) + ")");
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "storage usage: hand error to page");
         }
     }
 
@@ -90,12 +105,19 @@ public sealed partial class MainWindow
                 await profile.ClearBrowsingDataAsync(CoreWebView2BrowsingDataKinds.DiskCache);
                 DiagFeature("storage-clear-cache");
             }
+            else
+            {
+                await StorageErrorAsync(page, "The regular browsing profile is not ready. Try clearing cached files again after a regular tab opens.");
+                return;
+            }
         }
         catch (Exception ex)
         {
             Diagnostics.Swallowed(ex, "storage usage: clear cache");
+            await StorageErrorAsync(page, "Cached files could not be cleared. Close busy pages and try again.");
+            return;
         }
 
-        await StorageMeasureAsync(page);
+        await StorageMeasureAsync(page, afterCurrent: true);
     }
 }

@@ -15,7 +15,7 @@ namespace Aviary;
 /// per process and adapter.</item>
 /// </list>
 /// Read through pdh.dll directly, so no package is needed. A process's GPU figure is its busiest
-/// engine type (Task Manager's column works the same way), summed over that type's engines.
+/// physical engine across its adapters. Independent engines are never added together.
 /// Only ever used on the Performance page's own background thread, and only while it is watched.
 /// </summary>
 internal sealed class GpuCounters : IDisposable
@@ -43,7 +43,9 @@ internal sealed class GpuCounters : IDisposable
     private readonly IntPtr _engine;
     private readonly IntPtr _memory;
 
-    public bool Available { get; }
+    public bool Available { get; private set; }
+    public bool MemoryAvailable { get; private set; }
+    private bool _sampled;
 
     public GpuCounters()
     {
@@ -55,11 +57,17 @@ internal sealed class GpuCounters : IDisposable
             }
 
             bool engine = PdhAddEnglishCounterW(_query, @"\GPU Engine(*)\Utilization Percentage", IntPtr.Zero, out _engine) == 0;
-            PdhAddEnglishCounterW(_query, @"\GPU Process Memory(*)\Dedicated Usage", IntPtr.Zero, out _memory);
+            if (PdhAddEnglishCounterW(_query, @"\GPU Process Memory(*)\Dedicated Usage", IntPtr.Zero, out _memory) != 0)
+            {
+                _memory = IntPtr.Zero;
+            }
 
             // Rates need two samples; the first is taken now so the page's first second has one.
             PdhCollectQueryData(_query);
-            Available = engine;
+            if (!engine)
+            {
+                _engine = IntPtr.Zero;
+            }
         }
         catch (Exception ex)
         {
@@ -69,19 +77,25 @@ internal sealed class GpuCounters : IDisposable
 
     /// <summary>One reading: GPU busy % and dedicated memory (bytes), per process id.</summary>
     /// <summary>
-    /// What each kind of GPU engine was doing, across every process, as a share of the card:
-    /// "3D", "VideoDecode", "Copy", "Compute". Task Manager shows the same split. Filled by the
+    /// What each kind of GPU engine was doing for Aviary's processes, as a share of its busiest
+    /// physical engine: "3D", "VideoDecode", "Copy", "Compute". Filled by the
     /// last <see cref="Sample"/>; M4.6 shows it under the headline figure.
     /// </summary>
     public IReadOnlyDictionary<string, double> ByEngine => _byEngine;
 
     private Dictionary<string, double> _byEngine = new(StringComparer.Ordinal);
+    public double CombinedPercent { get; private set; }
 
-    public (Dictionary<int, double> Busy, Dictionary<int, long> Dedicated) Sample()
+    public (Dictionary<int, double> Busy, Dictionary<int, long> Dedicated) Sample(IEnumerable<int> processIds)
     {
+        HashSet<int> included = new(processIds);
         Dictionary<int, double> busy = new();
         Dictionary<int, long> dedicated = new();
-        if (!Available)
+        Available = false;
+        MemoryAvailable = false;
+        CombinedPercent = 0;
+        _byEngine = new(StringComparer.Ordinal);
+        if (_query == IntPtr.Zero)
         {
             return (busy, dedicated);
         }
@@ -93,47 +107,19 @@ internal sealed class GpuCounters : IDisposable
                 return (busy, dedicated);
             }
 
-            // pid → engine type → summed utilisation of that type's engines.
-            Dictionary<int, Dictionary<string, double>> byType = new();
-            foreach ((string name, double value) in Read(_engine, PdhFmtDouble | PdhFmtNoCap100))
-            {
-                if (!TryPid(name, out int pid))
-                {
-                    continue;
-                }
-
-                int at = name.IndexOf("engtype_", StringComparison.Ordinal);
-                string type = at >= 0 ? name.Substring(at + 8) : "other";
-                if (!byType.TryGetValue(pid, out Dictionary<string, double>? types))
-                {
-                    byType[pid] = types = new Dictionary<string, double>(StringComparer.Ordinal);
-                }
-
-                types[type] = (types.TryGetValue(type, out double sum) ? sum : 0) + value;
-            }
-
-            // The headline for a process is its busiest engine, not the sum: two engines running
-            // at once are working in parallel on the same card, and adding them would report 140%.
-            Dictionary<string, double> engines = new(StringComparer.Ordinal);
-            foreach ((int pid, Dictionary<string, double> types) in byType)
-            {
-                double max = 0;
-                foreach ((string type, double v) in types)
-                {
-                    max = Math.Max(max, v);
-                    engines[type] = (engines.TryGetValue(type, out double had) ? had : 0) + v;
-                }
-
-                busy[pid] = Math.Min(100, max);
-            }
-
-            _byEngine = engines;
+            bool warm = _sampled;
+            _sampled = true;
+            List<(string Name, double Value)> engineRows = Read(_engine, PdhFmtDouble | PdhFmtNoCap100, out bool engineRead, out HashSet<int> invalidEnginePids);
+            Available = warm && engineRead && !invalidEnginePids.Overlaps(included);
+            (busy, _byEngine, CombinedPercent) = AggregateEngines(engineRows, included);
 
             if (_memory != IntPtr.Zero)
             {
-                foreach ((string name, double value) in Read(_memory, PdhFmtDouble))
+                List<(string Name, double Value)> memoryRows = Read(_memory, PdhFmtDouble, out bool memoryRead, out HashSet<int> invalidMemoryPids);
+                MemoryAvailable = memoryRead && !invalidMemoryPids.Overlaps(included);
+                foreach ((string name, double value) in memoryRows)
                 {
-                    if (TryPid(name, out int pid))
+                    if (TryPid(name, out int pid) && included.Contains(pid) && double.IsFinite(value) && value >= 0)
                     {
                         dedicated[pid] = (dedicated.TryGetValue(pid, out long b) ? b : 0) + (long)value;
                     }
@@ -142,24 +128,67 @@ internal sealed class GpuCounters : IDisposable
         }
         catch (Exception ex)
         {
+            Available = false;
+            MemoryAvailable = false;
             Diagnostics.Swallowed(ex, "performance: read GPU counters");
         }
 
         return (busy, dedicated);
     }
 
-    /// <summary>
-    /// Also: every process's figures summed by engine type, so the page can say how busy the
-    /// graphics card is for Aviary as a whole — the busiest engine type across Aviary's processes.
-    /// </summary>
-    public static double Combined(IEnumerable<int> pids, Dictionary<int, double> busy) =>
-        Math.Min(100, System.Linq.Enumerable.Sum(pids, p => busy.TryGetValue(p, out double v) ? v : 0));
-
-    private static List<(string Name, double Value)> Read(IntPtr counter, uint format)
+    /// <summary>Combine only Aviary's processes on the same physical engine before taking the
+    /// busiest engine. The type detail is the busiest engine of that type, across adapters.</summary>
+    internal static (Dictionary<int, double> Busy, Dictionary<string, double> ByType, double Combined) AggregateEngines(
+        IEnumerable<(string Name, double Value)> rows, ISet<int> included)
     {
+        Dictionary<int, double> busy = new();
+        Dictionary<string, double> physicalEngines = new(StringComparer.Ordinal);
+        Dictionary<string, string> engineTypes = new(StringComparer.Ordinal);
+        foreach ((string name, double value) in rows)
+        {
+            if (!TryPid(name, out int pid) || !included.Contains(pid) || !double.IsFinite(value) || value < 0)
+            {
+                continue;
+            }
+
+            int at = name.IndexOf("engtype_", StringComparison.Ordinal);
+            string type = at >= 0 ? name.Substring(at + 8) : "other";
+            string engine = name.Substring(name.IndexOf('_', 4) + 1);
+            physicalEngines[engine] = (physicalEngines.TryGetValue(engine, out double sum) ? sum : 0) + value;
+            engineTypes[engine] = type;
+            busy[pid] = Math.Max(busy.TryGetValue(pid, out double prior) ? prior : 0, Math.Min(100, value));
+        }
+
+        Dictionary<string, double> byType = new(StringComparer.Ordinal);
+        double combined = 0;
+        foreach ((string engine, double value) in physicalEngines)
+        {
+            string type = engineTypes[engine];
+            double capped = Math.Min(100, value);
+            byType[type] = Math.Max(byType.TryGetValue(type, out double had) ? had : 0, capped);
+            combined = Math.Max(combined, capped);
+        }
+
+        return (busy, byType, combined);
+    }
+
+    private static List<(string Name, double Value)> Read(IntPtr counter, uint format, out bool available, out HashSet<int> invalidPids)
+    {
+        available = false;
+        invalidPids = new();
         List<(string, double)> items = new();
+        if (counter == IntPtr.Zero)
+        {
+            return items;
+        }
         uint size = 0;
         int status = PdhGetFormattedCounterArrayW(counter, format, ref size, out uint count, IntPtr.Zero);
+        if (status == 0 && size == 0)
+        {
+            available = count == 0;
+            return items;
+        }
+
         if (status != PdhMoreData || size == 0)
         {
             return items;
@@ -173,6 +202,8 @@ internal sealed class GpuCounters : IDisposable
                 return items;
             }
 
+            available = count == 0;
+
             // PDH_FMT_COUNTERVALUE_ITEM_W: a name pointer, then PDH_FMT_COUNTERVALUE
             // { DWORD CStatus; (4 bytes padding) double }. 24 bytes a row on x64.
             int stride = IntPtr.Size + 16;
@@ -181,12 +212,23 @@ internal sealed class GpuCounters : IDisposable
                 IntPtr row = buffer + i * stride;
                 string? name = Marshal.PtrToStringUni(Marshal.ReadIntPtr(row));
                 uint cstatus = (uint)Marshal.ReadInt32(row + IntPtr.Size);
-                if (name is null || cstatus > 1)
+                if (name is null)
                 {
                     continue;
                 }
 
                 double value = BitConverter.Int64BitsToDouble(Marshal.ReadInt64(row + IntPtr.Size + 8));
+                if (cstatus > 1 || !double.IsFinite(value) || value < 0)
+                {
+                    if (TryPid(name, out int pid))
+                    {
+                        invalidPids.Add(pid);
+                    }
+
+                    continue;
+                }
+
+                available = true;
                 items.Add((name, value));
             }
         }

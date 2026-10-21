@@ -73,6 +73,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="..\..\PRIVACY.md" Link="PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
     <!-- Both icons travel with the build: the glass one is only reachable at runtime. -->
     <Content Include="Assets\Aviary.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Aviary-Glass.ico" CopyToOutputDirectory="PreserveNewest" />
