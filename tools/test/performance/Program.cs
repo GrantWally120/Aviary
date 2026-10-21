@@ -46,6 +46,10 @@ Check(LiveStats.CpuShare(10_000_000, 10_000_000, 16) == 6.25, "one busy logical 
 Check(LiveStats.CpuShare(20_000_000, 20_000_000, 16) == 6.25, "CPU normalization uses the actual two-second interval");
 Check(LiveStats.CpuShare(-1, 10, 16) == 0 && LiveStats.CpuShare(1000, 1, 16) == 100, "CPU rejects negative deltas and clamps the physical limit");
 Check(LiveStats.CpuShare(1, 0, 16) == 0 && LiveStats.CpuShare(1, 10, 0) == 0, "CPU handles missing intervals and invalid processor counts");
+Check(!LiveStats.HasPrivateWorkingSet(88, 0, 1000), "successful legacy EX layout cannot masquerade as an EX2 zero");
+Check(!LiveStats.HasPrivateWorkingSet(104, UIntPtr.MaxValue.ToUInt64(), 1000), "untouched private working set sentinel is unavailable");
+Check(LiveStats.HasPrivateWorkingSet(104, 0, 1000), "a supported genuinely empty private working set remains valid");
+Check(!LiveStats.HasPrivateWorkingSet(104, 1001, 1000), "inconsistent native resident memory is unavailable");
 
 // Fixed-cost requests make every possible snapshot independently checkable. Readers race
 // writers at the real window boundary; no request may leave its count and elapsed ticks in
@@ -120,7 +124,7 @@ if (OperatingSystem.IsWindows())
         }
         else
         {
-            // PROCESS_MEMORY_COUNTERS_EX2 is unavailable on the Server 2022 CI runner.
+            // PROCESS_MEMORY_COUNTERS_EX2 is unavailable on some older Windows versions.
             // Verify the honest unavailable path instead of requiring a newer client OS
             // or labelling total working set/private commit as private resident memory.
             Check(!native.MemoryAvailable && first.MemoryMB == 0 && native.MemoryMB == 0,

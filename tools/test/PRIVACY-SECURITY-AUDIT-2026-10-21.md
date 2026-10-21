@@ -19,7 +19,24 @@ results and installed-copy evidence will be recorded here as they occur.
 Prepared source committed/pushed as 5c94840. Actual Windows run 39623244802 passed locked
 restore, Settings, player, Collection, release state, 125 filter and 68 security checks.
 It failed the Performance harness's assumption that PROCESS_MEMORY_COUNTERS_EX2 is always
-available. The Windows Server 2022 runner does not provide it; Aviary already exposes that
-reading as unavailable rather than inventing a value. The harness now verifies both supported
-and unavailable outcomes, including dependent memory values. No production code was weakened.
-The ordinary copy has not yet been replaced; successful CI is still required.
+available. The first attempted harness repair (778b36e, run 39623738724) exposed a production
+bug: the legacy API can return success while leaving the newer EX2 tail untouched. The original
+zero initialization made this appear to be an available zero-byte private working set. The
+earlier inference that production already reported unavailable was incorrect.
+
+LiveStats now initializes the private counter with a sentinel and validates the returned layout
+and resident-memory bounds. A supported real zero remains valid; legacy/untouched fields are
+unavailable. Microsoft documents EX2 support from Windows 10/11 22H2 with the September 2023
+update: https://learn.microsoft.com/en-us/windows/win32/api/psapi/ns-psapi-process_memory_counters_ex2.
+Four targeted cases plus the native lifecycle harness pass locally (30 checks).
+
+## Additional diagnostics findings
+
+Five new cases failed before the repair: truncated/unterminated JSON credentials, numeric JSON
+codes/PINs, and doubly encoded OAuth parameter names. Redaction now handles incomplete quoted
+values, numeric values under recognized secret keys and up to three decoding rounds for names.
+The security harness passes 73/73 locally, including ordinary JSON/search preservation.
+
+Production changed after the prepared package. Those earlier candidates are superseded for
+installation; a fresh package and verification are required. The ordinary copy has not yet been
+replaced; successful CI is still required.

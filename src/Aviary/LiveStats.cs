@@ -478,8 +478,16 @@ internal static class LiveStats
         }
 
         long privateBytes = 0, commit = 0, peak = 0, workingSet = 0;
-        MemoryCountersEx2 counters = new() { cb = (uint)Marshal.SizeOf<MemoryCountersEx2>() };
-        bool memoryAvailable = GetProcessMemoryInfo(handle, ref counters, counters.cb);
+        // Older Windows can succeed with only the EX prefix populated. A zero-initialized
+        // EX2 tail then looks like a real 0-byte private working set. Use a sentinel and
+        // check the returned layout instead of mistaking API success for EX2 support.
+        MemoryCountersEx2 counters = new()
+        {
+            cb = (uint)Marshal.SizeOf<MemoryCountersEx2>(),
+            PrivateWorkingSetSize = UIntPtr.MaxValue,
+        };
+        bool memoryAvailable = GetProcessMemoryInfo(handle, ref counters, counters.cb)
+            && HasPrivateWorkingSet(counters.cb, counters.PrivateWorkingSetSize.ToUInt64(), counters.WorkingSetSize.ToUInt64());
         if (memoryAvailable)
         {
             privateBytes = (long)counters.PrivateWorkingSetSize;
@@ -504,7 +512,12 @@ internal static class LiveStats
     internal static double CpuShare(long cpu100ns, double elapsed100ns, int logicalProcessors) =>
         elapsed100ns <= 0 || logicalProcessors <= 0 ? 0 : Math.Clamp(cpu100ns * 100.0 / (elapsed100ns * logicalProcessors), 0, 100);
 
-    /// <summary>PROCESS_MEMORY_COUNTERS_EX2 (Windows 10 21H1 and later): PrivateWorkingSetSize is Task Manager's "Memory".</summary>
+    internal static bool HasPrivateWorkingSet(uint returnedSize, ulong privateBytes, ulong workingSetBytes) =>
+        returnedSize >= (uint)Marshal.SizeOf<MemoryCountersEx2>()
+        && privateBytes != UIntPtr.MaxValue.ToUInt64()
+        && privateBytes <= workingSetBytes && workingSetBytes <= long.MaxValue;
+
+    /// <summary>PROCESS_MEMORY_COUNTERS_EX2 (Windows 10/11 22H2 with the September 2023 update): PrivateWorkingSetSize is Task Manager's "Memory".</summary>
     [StructLayout(LayoutKind.Sequential)]
     private struct MemoryCountersEx2
     {

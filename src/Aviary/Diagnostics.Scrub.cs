@@ -74,7 +74,7 @@ internal static partial class Diagnostics
 
     // Error messages can contain JSON or complete HTTP headers, not just URLs.
     private static readonly Regex JsonSecretPattern = new(
-        "(?<lead>\"(?<name>[A-Za-z0-9_.-]{1,80})\"\\s*:\\s*)\"(?:\\\\.|[^\"\\\\])*\"",
+        """(?<lead>"(?<name>[A-Za-z0-9_.-]{1,80})"\s*:\s*)(?:"(?:\\.|[^"\\])*(?:"|\\?\z)|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?(?=\s*[,}\]]|\z))""",
         RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
     private static readonly Regex SecretHeaderPattern = new(
@@ -346,7 +346,15 @@ internal static partial class Diagnostics
         string name = raw;
         if (name.IndexOf('%') >= 0)
         {
-            try { name = Uri.UnescapeDataString(name); }
+            try
+            {
+                for (int round = 0; round < 3; round++)
+                {
+                    string next = Uri.UnescapeDataString(name);
+                    if (string.Equals(next, name, StringComparison.Ordinal)) { break; }
+                    name = next;
+                }
+            }
             catch (Exception) { /* keep the raw form */ }
         }
 

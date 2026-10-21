@@ -28,6 +28,11 @@ Masked("OIDC nonce", "https://login.example/auth?nonce=SECRET_NONCE", "SECRET_NO
 Masked("PKCE verifier", "code_verifier=SECRET_VERIFIER", "SECRET_VERIFIER");
 Masked("JSON credential", "Failure: {\"access_token\": \"SECRET_JSON\", \"error\": \"bad\"}", "SECRET_JSON");
 Masked("JSON escaped credential", "{\"refresh_token\":\"SECRET\\\"JSON\"}", "SECRET");
+Masked("Truncated JSON credential", "{\"access_token\":\"" + new string('x', 5000) + "\"}", new string('x', 100));
+Masked("Unterminated JSON credential", "{\"refresh_token\":\"SECRET_UNTERMINATED", "SECRET_UNTERMINATED");
+Masked("Numeric one-time code in JSON", "{\"code\":123456,\"error\":\"invalid\"}", "123456");
+Masked("Numeric PIN in JSON", "{\"pin\":987654}", "987654");
+Masked("Double-encoded OAuth parameter name", "https://example.test/?%2563%256F%2564%2565=SECRET_ENCODED_NAME", "SECRET_ENCODED_NAME");
 Masked("Cookie header", "Cookie: sessionid=SECRET_COOKIE; other=abc", "SECRET_COOKIE");
 Masked("Set-Cookie header", "Set-Cookie: id=SECRET_HEADER; Secure", "SECRET_HEADER");
 Masked("Short HTTP authorization", "Authorization: Basic SHORT", "SHORT");
