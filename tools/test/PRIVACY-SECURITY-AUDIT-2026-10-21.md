@@ -13,3 +13,13 @@ do not casually rebuild them after commit. Private Collection payloads stay loca
 
 Prepared package/verification: PRIVACY-SECURITY-2026-10-21.md. Further findings, actual CI
 results and installed-copy evidence will be recorded here as they occur.
+
+## First CI result
+
+Prepared source committed/pushed as 5c94840. Actual Windows run 39623244802 passed locked
+restore, Settings, player, Collection, release state, 125 filter and 68 security checks.
+It failed the Performance harness's assumption that PROCESS_MEMORY_COUNTERS_EX2 is always
+available. The Windows Server 2022 runner does not provide it; Aviary already exposes that
+reading as unavailable rather than inventing a value. The harness now verifies both supported
+and unavailable outcomes, including dependent memory values. No production code was weakened.
+The ordinary copy has not yet been replaced; successful CI is still required.

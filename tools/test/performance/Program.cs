@@ -110,10 +110,24 @@ if (OperatingSystem.IsWindows())
         var first = WaitFor(_ => true);
         Check(!first.CpuReady && !first.Processes.Single().CpuReady && first.SampleSeconds == 0,
             "first CPU sample is explicitly warming rather than a fabricated idle reading");
-        Check(first.MemoryAvailable && first.Processes.Single().MemoryAvailable && first.MemoryMB > 0,
-            "native private working set is available and positive for the live process");
-        Check(first.Processes.Single().WorkingSetMB >= first.Processes.Single().MemoryMB && first.Processes.Single().CommitMB > 0,
-            "private working set, total working set, and private commit have distinct native readings");
+        var native = first.Processes.Single();
+        if (first.MemoryAvailable)
+        {
+            Check(native.MemoryAvailable && first.MemoryMB > 0,
+                "supported native private working set is available and positive");
+            Check(native.WorkingSetMB >= native.MemoryMB && native.CommitMB > 0,
+                "private working set, total working set, and private commit have distinct native readings");
+        }
+        else
+        {
+            // PROCESS_MEMORY_COUNTERS_EX2 is unavailable on the Server 2022 CI runner.
+            // Verify the honest unavailable path instead of requiring a newer client OS
+            // or labelling total working set/private commit as private resident memory.
+            Check(!native.MemoryAvailable && first.MemoryMB == 0 && native.MemoryMB == 0,
+                "unsupported native private counter is explicitly unavailable, never fabricated");
+            Check(native.WorkingSetMB == 0 && native.CommitMB == 0 && native.PeakMB == 0,
+                "failed native memory query leaves every dependent value unavailable");
+        }
         Check(!first.GpuAvailable, "first GPU rate sample is explicitly warming");
         var warm = WaitFor(r => r.CpuReady);
         Check(warm.SampleSeconds > 0 && warm.SampledAt >= first.SampledAt && warm.ExpectedProcesses == 1,
