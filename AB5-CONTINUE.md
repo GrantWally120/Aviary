@@ -1,12 +1,25 @@
 # Aviary AB5 continuation checkpoint — 21 October 2026
 
+> **LATEST — PRIVACY/SECURITY FOLLOW-UP INSTALLED, 21 October 23:52 +08.**
+> Combined Settings/security source is committed/pushed through **75f627e**. Actual Windows
+> CI **39628223414** succeeded, including 112 security and 30 Performance checks, source-only
+> package/archive verification and uploads. AB5 remains 0.5.0, 16/16.
+> `publish/Aviary` is the exact verified **663-file, 54/54** local candidate from
+> `.artifact/ab5-privacy-security-audit-local-20261021`. Previous 662-file Settings copy is
+> preserved at `.artifact/ab5-published-before-privacy-security-20261021`. All 508 common
+> source-only/local app files match. Both packages were built from clean 75f627e.
+> Full evidence and remaining scope limits: `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md`.
+> Earlier prepared packages below are superseded. Personal payloads remain local. Do not
+> repeat unchanged QA/publication. Automation stays paused; macOS, Beta Build 1, accounts
+> and email remain deferred. No work may continue after Grant's 02:00 Manila cutoff.
+
 > **ACTIVE CONTINUATION — Grant directed completion after the prepared update.**
 > Finish its commit/push/installation, then review privacy/security for more bugs until
 > 02:00 Manila, 22 October. No new work after that cutoff; finish only what is in progress
 > and stop. No automation restart. See `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md`.
 > The prepared state below is retained as the pre-publication checkpoint.
 
-## Prepared privacy/security follow-up — awaiting approval
+## Historical prepared privacy/security checkpoint — superseded by installed audit build
 
 Grant requested stronger privacy/security/blocking and a Privacy Policy before future
 Google/Bird/Birds accounts. Implementation and local QA are complete; see

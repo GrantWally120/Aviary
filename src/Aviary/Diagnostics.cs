@@ -22,7 +22,8 @@ namespace Aviary;
 ///
 /// WHAT and WHY were agreed with Grant and are written down in PHASE5-PLAN.md (M1): gather
 /// everything — every address, title and search included — keep it on this machine only, and
-/// never gather a secret. One switch, all or nothing, off until it is switched on.
+/// exclude secret data sources and mask recognized secrets in text on a best-effort basis.
+/// One switch, all or nothing, off until it is switched on.
 ///
 /// HOW, in one paragraph. Callers anywhere (mostly the UI thread) hand a small record to a
 /// bounded channel and return; nothing on the UI thread ever waits on the disk. ONE writer

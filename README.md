@@ -2,8 +2,8 @@
 
 A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. Alpha Build 5
 is **The Long Run**, version 0.5.0, with all sixteen milestones complete. The AB5
-release passed Windows CI. The latest Settings follow-up is tested and installed
-locally; its source is still uncommitted/unpushed and has not run on GitHub CI.
+release and the Settings/privacy/security follow-ups passed Windows CI. The latest
+tested privacy/security copy is installed locally and its source is committed/pushed.
 macOS support and starting Beta Build 1 remain deferred.
 
 Classic and Liquid Glass looks, tabs and tab groups, Bird News, Shields, offline
@@ -13,13 +13,18 @@ arrived in M8. Measurements and limitations are recorded in the verification not
 
 ## Latest local update — 21 October 2026
 
-Privacy/security follow-up is ready for approval, separately from the installed Settings copy.
+Privacy/security follow-up is implemented, verified and installed at 23:52 +08:00.
 See [Privacy Policy](PRIVACY.md) and [security/account design](docs/SECURITY.md).
-Accounts and automatic diagnostic email are not implemented. Commit, push and installation
-of the new candidate still follow HANDOFF's approval rules.
+Accounts and automatic diagnostic email are not implemented. Grant authorized finishing the
+prepared update and continuing the review, with a hard stop before 02:00 Manila on 22 October.
 The offline policy, link-ping blocking, private Shields isolation, certificate protections,
 bounded updates and stronger masking passed focused checks and native scratch QA.
-Full verification: [Privacy/security record](tools/test/PRIVACY-SECURITY-2026-10-21.md).
+The continued review also repaired icon redirect/filter bypasses, unbounded/stalled background
+downloads, async script ownership, message bounds, additional JSON redaction gaps and legacy
+Windows memory availability. Source 75f627e passed [actual Windows CI](https://github.com/GrantWally120/Aviary/actions/runs/39628223414),
+including 112 security checks, 30 Performance checks and complete source-only packaging.
+Full verification: [continued security audit](tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md).
+The [initial privacy/security record](tools/test/PRIVACY-SECURITY-2026-10-21.md) preserves earlier QA.
 
 - **Updates:** click the AB5 badge/build header in Settings to expand all sixteen
   milestones, including their dates and descriptions. Keyboard activation works too.
@@ -37,15 +42,15 @@ Full verification: [Privacy/security record](tools/test/PRIVACY-SECURITY-2026-10
   retain focus, and sorting does not add samples to the graphs.
 
 The ordinary Desktop/taskbar copy in this workspace is `publish/Aviary/Aviary.exe`.
-It received the tested Settings update on 21 October at 20:27 +08:00 and was reopened
-and visually verified. All 662 installed files match the tested manifest; all 54 local
+It received the combined Settings/privacy/security update on 21 October at 23:52 +08:00.
+All 663 installed files match the tested manifest; all 54 local
 Collection exhibits are available. The previous installation is preserved under
-`.artifact/ab5-published-before-settings-mb-20261021`; the user's profile was preserved.
+`.artifact/ab5-published-before-privacy-security-20261021`; the user's profile was preserved.
 
-Local checks include 26 Performance checks, 18 Storage checks, 11 size boundary/conversion
-cases and the 99-row Settings audit. Native scratch sessions closed without crashes or
-recorded issues. See the [Settings verification record](tools/test/SETTINGS-LIVE-2026-10-21.md)
-for evidence and measurement limits. These results are local verification of the follow-up.
+The current Settings audit covers 100 live rows with none unread and three deferred rows.
+The original [Settings verification record](tools/test/SETTINGS-LIVE-2026-10-21.md) retains
+measurement details and limitations. Native privacy/security QA confirms blocked icon redirects,
+tracking pings, ordinary request compatibility, private storage isolation and the offline policy.
 
 ## Run
 

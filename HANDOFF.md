@@ -1,5 +1,17 @@
 # Aviary — project handoff
 
+> **LATEST — PRIVACY/SECURITY INSTALLED, 21 October 2026 at 23:52 +08.**
+> Grant authorized finishing the prepared update and continuing security review before
+> 02:00 Manila on 22 October. Combined Settings/security source is pushed through **75f627e**;
+> actual Windows CI **39628223414** passed (112 security, 30 Performance, full source-only
+> package verification/upload). `publish/Aviary` is the exact verified 663-file, 54/54 local
+> candidate in `.artifact/ab5-privacy-security-audit-local-20261021`. Previous copy preserved
+> at `.artifact/ab5-published-before-privacy-security-20261021`. Earlier candidate boxes are
+> historical. See `tools/test/PRIVACY-SECURITY-AUDIT-2026-10-21.md` for all findings and limits.
+> AB5 stays 0.5.0 and 16/16; automation paused; macOS/Beta Build 1/accounts/email deferred.
+> Preserve the normal profile and private Collection payloads. No unchanged work or tests
+> should resume automatically, and no new work is authorized beyond the 02:00 cutoff.
+
 > **ACTIVE PRIVACY REVIEW — 21 October, 23:08 +08 onward.**
 > Grant directed finishing the prepared update, then finding more privacy/security bugs.
 > Proceed with the prepared commit/push/install. Hard cutoff: 02:00 Manila, 22 October;

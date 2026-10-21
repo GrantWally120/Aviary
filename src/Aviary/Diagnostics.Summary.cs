@@ -203,7 +203,7 @@ internal static partial class Diagnostics
         }
 
         md.AppendLine();
-        md.AppendLine("**Never collected:**");
+        md.AppendLine("**Excluded data sources and masking:**");
         foreach (string never in NeverCollected)
         {
             md.AppendLine("- " + never);

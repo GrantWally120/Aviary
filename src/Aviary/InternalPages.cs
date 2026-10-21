@@ -957,7 +957,7 @@ var UPDATES = [
         '<b>Memory saver has four modes.</b> <b>Chill</b> sleeps a tab you have left alone for an hour; <b>Balanced</b>, the default, after half an hour; <b>Aggressive</b> after five minutes, and it lets go of every background tab the moment you minimise the window. <b>Off</b> sleeps nothing. The same rules keep every mode safe: never a tab playing sound or video, never the tab you are on',
         'If memory saver was on before, it is Balanced now; if it was off, it stays off',
         '<b>Improvement data can keep 700 MB</b> — it was 650',
-        '<b>It collects everything but secrets now.</b> The rules you write in My filters are recorded as you wrote them, not just counted. Passwords, what you type into websites, cookie values, login tokens and card numbers are still never collected',
+        '<b>My filters joined local improvement data.</b> The rules you write are recorded as you wrote them, not just counted. Recognised secrets in logged text are masked on a best-effort basis; sensitive information can remain. The Privacy Policy describes the current limits',
         '<b>Frame timing</b>, if you want it: how smoothly Aviary draws, once a minute. It is a separate switch and stays off — asking Windows for every frame keeps the graphics card redrawing, so it is the one measurement that costs what it measures',
         'A tab closing during a busy moment no longer shows up as a problem in the improvement data. Nothing was wrong; it was being reported as if something was'
       ]},
@@ -1012,7 +1012,7 @@ var UPDATES = [
         'Builds have names: Alpha Build 1 to 5, then Beta Build 1 and 2',
         '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
         'Only one Aviary runs at a time — opening it again brings the one already open to the front',
-        '“Allow data collection for improvements” keeps a record of what Aviary does in a folder on this computer, so problems can be found. It never leaves the computer and never holds passwords, form contents, cookies or card numbers',
+        '“Allow data collection for improvements” keeps detailed records on this computer to help find problems. This feature has no upload or email sender. Secret masking is best effort, so treat the folder as sensitive and read the Privacy Policy before sharing it',
         'That folder can now keep up to 650 MB — it was 200 MB, then 500 MB — so it holds a longer history to learn from'
       ]},
       {h:'Safety fixes', items:[
@@ -1251,7 +1251,7 @@ var SECTIONS = [
          blunt: it records every address, title and search, and the row has to say so in those
          words. Live, not phase-gated: it works now, and every later milestone is measured by it. */
       {t:'Allow data collection for improvements', d:'Records everything Aviary does \u2014 every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash \u2014 into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
-      {t:'What Aviary collects', d:'All sixteen categories below. Aviary does not intentionally read password fields, website form bodies, cookie values or the clipboard for diagnostics. Secret masking is best effort: addresses, titles and errors can still contain sensitive details. Read the Privacy Policy before sharing any records.', more:'diag', ctl:{type:'none'}},
+      {t:'What Aviary collects', d:'All sixteen categories below. Form submissions, cookie values and clipboard contents are not separate diagnostic sources. The page error filter checks current form text locally, including password inputs, to mask errors; field values are not separately recorded. Secret masking is best effort: addresses, titles and errors can still contain sensitive details. Read the Privacy Policy before sharing any records.', more:'diag', ctl:{type:'none'}},
       {t:'Also measure frame timing', d:'How smoothly Aviary draws, once a minute: how many frames, the usual gap between them, and how many were slow. <b>Off even while collection is on, and it should stay off unless you are chasing a stutter.</b> Windows only offers per-frame times to a program that asks the graphics card to redraw <i>continuously</i> — so measuring smoothness this way is the one measurement in Aviary that costs the very thing it is measuring. Everything else here is free. The figures are marked, so a session measured this way is never compared against a normal one.', ctl:{type:'toggle', key:'frameTiming', value:false}},
       {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
     ]},
@@ -2453,7 +2453,7 @@ if (diagList && DIAG.categories){
 
   var never = document.createElement('p');
   never.className = 'more__h';
-  never.textContent = 'What is not read, and what masking attempts to remove';
+  never.textContent = 'Excluded data sources and masking';
   diagList.appendChild(never);
 
   var ul = document.createElement('ul');

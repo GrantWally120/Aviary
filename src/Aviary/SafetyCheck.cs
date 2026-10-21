@@ -135,7 +135,7 @@ internal static class SafetyCheck
         if (AppSettings.GetBool(Diagnostics.SettingKey))
         {
             found.Add(new("improvement", "info", "Improvement data is on",
-                "Everything you do in Aviary is recorded in a folder on this computer — it never leaves it. Passwords, what you type into sites, cookies, login tokens and card numbers are never collected.",
+                "Detailed browsing and app records are stored on this computer. This feature has no upload or email sender. Secret masking is best effort; addresses, titles and errors may still contain sensitive details. Review the Privacy Policy and records before sharing.",
                 "See what it collects", null, null, "privacy"));
         }
 

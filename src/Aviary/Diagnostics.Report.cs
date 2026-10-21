@@ -51,7 +51,7 @@ internal static partial class Diagnostics
 
     internal static readonly string[] NeverCollected =
     {
-        "Password fields and website form bodies are not read for diagnostics.",
+        "Website form submissions are not collected as a separate diagnostic source. The page error filter checks current field text locally, including password inputs, to mask errors; those values are not separately sent to Aviary or saved as diagnostic fields.",
         "Cookie values and clipboard contents are not read for diagnostics.",
         "Recognised login codes, tokens, credentials and card numbers in logged text are masked on a best-effort basis.",
     };

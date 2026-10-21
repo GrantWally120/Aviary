@@ -1,5 +1,10 @@
 # Privacy/security and policy follow-up — 21 October 2026
 
+> Historical preparation/QA record. These packages are superseded by clean source **75f627e**
+> and the installed audit candidate. Commit/push/installation were subsequently authorized
+> and completed. See `PRIVACY-SECURITY-AUDIT-2026-10-21.md` for actual CI, newer repairs and
+> installation proof. The pending-approval/no-CI statements below describe the earlier checkpoint.
+
 Grant requested stronger privacy/security/blocking and a Privacy Policy before planned
 Google/Bird/Birds accounts. Implementation and local verification are complete; new commit,
 push and installed-copy approval are pending. No account system, email sender or cloud
