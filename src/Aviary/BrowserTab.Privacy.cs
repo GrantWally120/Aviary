@@ -35,10 +35,23 @@ internal sealed partial class BrowserTab
 """;
 
     /// <summary>
-    /// Applies the "Identify as Safari" switch to this tab. Takes effect from the next page
-    /// this tab loads — the page already showing was requested with the old identity.
+    /// The identity this tab last told the engine to use (true = Safari). Set BEFORE the awaits in
+    /// <see cref="ApplyUserAgentAsync(string)"/>, so a navigation re-issued for an identity change finds
+    /// it already applied and cannot go round again.
     /// </summary>
-    public async Task ApplyUserAgentAsync()
+    private bool _identityIsSafari;
+
+    /// <summary>
+    /// Applies the "Identify as Safari" switch to this tab, for the site it is showing. Takes effect
+    /// from the next page this tab loads — the page already showing was requested with the old identity.
+    /// </summary>
+    public Task ApplyUserAgentAsync() => ApplyUserAgentAsync(HostOf(Url));
+
+    /// <summary>
+    /// The same, for a site this tab is about to load. A site that breaks under the Safari identity
+    /// (<see cref="SafariIdentity"/>) gets the engine's own, whatever the switch says.
+    /// </summary>
+    private async Task ApplyUserAgentAsync(string host)
     {
         try
         {
@@ -47,7 +60,8 @@ internal sealed partial class BrowserTab
                 return;
             }
 
-            bool safari = AppSettings.GetBool("safariUa");
+            bool safari = SafariIdentity.WantedFor(host, AppSettings.GetBool("safariUa"));
+            _identityIsSafari = safari;
             core.Settings.UserAgent = safari ? SafariUserAgent : _defaultUserAgent;
 
             // The page loads Aviary starts itself (the address bar, a bookmark) get their
@@ -213,7 +227,14 @@ internal sealed partial class BrowserTab
                 upgraded = true;
             }
 
-            if (string.Equals(next, uri, StringComparison.Ordinal))
+            // ── identity: a site that breaks under "Identify as Safari" (YouTube) is asked for with the
+            //    engine's own, and one that does not is asked for with Safari's again. The identity can
+            //    only change before the request goes out, so this too is cancel-and-re-issue. Never for
+            //    Back/Forward or Reload, which re-issuing would turn into a new history entry.
+            bool switchIdentity = _identityIsSafari != SafariIdentity.WantedFor(target.Host, AppSettings.GetBool("safariUa"))
+                                  && !KeepsHistoryEntry(args);
+
+            if (string.Equals(next, uri, StringComparison.Ordinal) && !switchIdentity)
             {
                 return false;
             }
@@ -251,10 +272,15 @@ internal sealed partial class BrowserTab
             }
 
             string go = next;
-            View.DispatcherQueue.TryEnqueue(() =>
+            View.DispatcherQueue.TryEnqueue(async () =>
             {
                 try
                 {
+                    if (switchIdentity && Uri.TryCreate(go, UriKind.Absolute, out Uri? goUri))
+                    {
+                        await ApplyUserAgentAsync(goUri.Host);
+                    }
+
                     Url = go;
                     core.Navigate(go);
                 }
@@ -271,6 +297,20 @@ internal sealed partial class BrowserTab
             // Let the navigation through untouched rather than lose it.
             Diagnostics.Swallowed(ex, "tab: privacy step of navigation");
             return false;
+        }
+    }
+
+    /// <summary>Back, Forward or Reload: a navigation that must not be re-issued as a new one.</summary>
+    private static bool KeepsHistoryEntry(CoreWebView2NavigationStartingEventArgs args)
+    {
+        try
+        {
+            return args.NavigationKind is CoreWebView2NavigationKind.BackOrForward or CoreWebView2NavigationKind.Reload;
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "tab: NavigationKind (older runtime?)");
+            return true; // unknown: leave it alone
         }
     }
 

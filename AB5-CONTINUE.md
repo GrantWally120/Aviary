@@ -1,5 +1,26 @@
 # Aviary AB5 continuation checkpoint — 21 October 2026
 
+> **REVIEW + FIXES — 22 October 2026, evening (Claude).** See `AVIARY-REVIEW-2026-10-22.md` and the banner at the top
+> of HANDOFF.md. Source fixes (YouTube under the Safari identity, everyday shortcuts, new-tab focus, test-kit launchers)
+> were approved by Grant, installed in `publish/Aviary` (663 files, 54/54) and committed locally, not pushed. The previous
+> 102abec build is the rollback ZIP `Backup/Aviary-AB5-local-win-x64.zip`; the current package is
+> `Backup/Aviary-AB5-fixes-local-win-x64.zip`. A push needs Grant's approval.
+
+> **LOCAL CLEANUP — 22 October 2026, after Grant's morning request.**
+> Grant confirmed E: is allowed and requested a smaller, up-to-date Zoo for his own
+> USB backup. No external/USB drive was accessed. `publish/Aviary` remains the exact
+> current 102abec app, 0.5.0, 663 files, 54/54 exhibits, 16/16 complete. Root
+> `Aviary.lnk` opens it; Desktop/taskbar already point there. No rebuild/reinstallation.
+> One verified current ZIP/manifest/checksum is now in `Backup/`; previous app/ZIP
+> copies and scratch profiles were removed (140,278 files, 19.6 GB logical data).
+> Three unique older Collection files are preserved in `Backup/Collection-history`.
+> Current source/Collection, Git history, source backups, QA receipts/screenshots and
+> the normal browser profile remain. Scratch evidence is compressed in
+> `.artifact/cleanup-20261022/scratch-profile-evidence.zip`. Earlier app/rollback/ZIP
+> paths below are historical; use `Backup` for recovery. Details:
+> `tools/test/CLEANUP-2026-10-22.md`. Cleanup documentation is local/uncommitted;
+> no new commit/push authorized. AB5 automation stays paused; deferred work stays deferred.
+
 > **LATEST — PRIVACY/SECURITY FOLLOW-UP INSTALLED, 22 October 00:07 +08.**
 > Combined Settings/security source is committed/pushed through **102abec**. Actual Windows
 > CI **39630732602** succeeded, including 112 security and 30 Performance checks, source-only

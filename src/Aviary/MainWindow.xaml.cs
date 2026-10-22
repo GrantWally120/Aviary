@@ -151,6 +151,136 @@ public sealed partial class MainWindow : Window
         // M4.9: search every open tab (Chrome's own shortcut for it).
         AddAccelerator(VirtualKey.A, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => OpenTabSearch());
         AddAccelerator((VirtualKey)188, VirtualKeyModifiers.Control, (_, _) => OpenSettingsTab());   // Ctrl+, — Safari's own
+
+        // The everyday keys every Windows browser answers, which were missing with the engine's own
+        // accelerators off (playtest review 23 Sep, bug 12). A page that has the keyboard gets the same
+        // keys through ShortcutScript (BrowserTab.cs) and OnShortcut.
+        AddAccelerator(VirtualKey.F5, VirtualKeyModifiers.None, (_, _) => ReloadPage());
+        AddAccelerator(VirtualKey.F5, VirtualKeyModifiers.Control, (_, _) => ReloadPage());
+        AddAccelerator(VirtualKey.Left, VirtualKeyModifiers.Menu, (_, _) => GoHistory(-1));
+        AddAccelerator(VirtualKey.Right, VirtualKeyModifiers.Menu, (_, _) => GoHistory(+1));
+        AddAccelerator(VirtualKey.F3, VirtualKeyModifiers.None, (_, _) => FindAgain(+1));
+        AddAccelerator(VirtualKey.F3, VirtualKeyModifiers.Shift, (_, _) => FindAgain(-1));
+        AddAccelerator(VirtualKey.G, VirtualKeyModifiers.Control, (_, _) => FindAgain(+1));
+        AddAccelerator(VirtualKey.G, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => FindAgain(-1));
+        AddAccelerator(VirtualKey.P, VirtualKeyModifiers.Control, (_, _) => PrintPage());
+        AddAccelerator(VirtualKey.T, VirtualKeyModifiers.Control | VirtualKeyModifiers.Shift, (_, _) => ReopenClosedTab());
+        AddAccelerator(VirtualKey.N, VirtualKeyModifiers.Control, (_, _) => OpenNewWindow());
+    }
+
+    /// <summary>F5 and Ctrl+F5: always a reload, where Ctrl+R (like the toolbar button) stops a page that is still loading.</summary>
+    private void ReloadPage()
+    {
+        if (_active is not { IsReady: true } tab)
+        {
+            return;
+        }
+
+        DiagUi("reload", new { tab = tab.Id, key = "F5" });
+        tab.View.Reload();
+    }
+
+    /// <summary>Alt+Left and Alt+Right: the same as the toolbar's Back and Forward.</summary>
+    private void GoHistory(int direction)
+    {
+        DiagUi(direction < 0 ? "back" : "forward");
+        if (_active is not { } tab)
+        {
+            return;
+        }
+
+        if (direction < 0 && tab.CanGoBack)
+        {
+            tab.View.GoBack();
+        }
+        else if (direction > 0 && tab.CanGoForward)
+        {
+            tab.View.GoForward();
+        }
+    }
+
+    /// <summary>F3, Shift+F3, Ctrl+G, Ctrl+Shift+G: the next or previous match, opening Find first when it is not showing.</summary>
+    private void FindAgain(int direction)
+    {
+        if (FindBar.Visibility != Visibility.Visible || FindBox.Text.Length == 0)
+        {
+            OpenFindBar();
+            return;
+        }
+
+        StepFind(direction);
+    }
+
+    /// <summary>Ctrl+P: the engine's own print dialog.</summary>
+    private void PrintPage()
+    {
+        if (_active is not { IsReady: true } tab || tab.View.CoreWebView2 is not CoreWebView2 core)
+        {
+            return;
+        }
+
+        DiagUi("print", new { tab = tab.Id });
+        try
+        {
+            core.ShowPrintUI(CoreWebView2PrintDialogKind.Browser);
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "window: print");
+        }
+    }
+
+    /// <summary>Ctrl+N: a normal window (Ctrl+Shift+N is the private one). Also what a second launch asks for when only private windows are open.</summary>
+    private void OpenNewWindow()
+    {
+        DiagUi("new-window", new { windows = OpenWindows.Count + 1 });
+        new MainWindow().Activate();
+    }
+
+    // ── reopen a closed tab (Ctrl+Shift+T) ────────────────────────────────────
+
+    private const int ClosedPagesKept = 20;
+
+    /// <summary>
+    /// The addresses of tabs closed in this window, the latest last. In memory only - gone with the window - and
+    /// never from a private window, for a page that is not a website, or for a site set to be forgotten: that
+    /// promise is about leaving nothing behind, and a list of its pages would be something.
+    /// </summary>
+    private readonly List<string> _closedPages = new();
+
+    private void RememberClosedPage(BrowserTab tab)
+    {
+        string host = BrowserTab.HostOf(tab.Url);
+        if (_private || host.Length == 0
+            || !tab.Url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string forget = SiteSettings.Get(host, Forgetful.ModeKey);
+        if (forget.Length > 0 && forget != Forgetful.KeepMode)
+        {
+            return;
+        }
+
+        _closedPages.Add(tab.Url);
+        if (_closedPages.Count > ClosedPagesKept)
+        {
+            _closedPages.RemoveAt(0);
+        }
+    }
+
+    private void ReopenClosedTab()
+    {
+        if (_closedPages.Count == 0)
+        {
+            return;
+        }
+
+        string url = _closedPages[^1];
+        _closedPages.RemoveAt(_closedPages.Count - 1);
+        DiagUi("tab-reopen", new { remaining = _closedPages.Count });
+        OpenNewTab(url);
     }
 
     private void SelectTabByIndex(int index)
@@ -905,6 +1035,23 @@ public sealed partial class MainWindow : Window
         }
 
         UpdateChrome();
+        FocusNewTab(tab, plainNewTab: url is null && carry is null && focus is null && timed);
+    }
+
+    /// <summary>
+    /// A new, empty tab made on request (Ctrl+T, the + button, the app menu) leaves the keyboard in the address bar,
+    /// as in every other browser, so the next thing typed is the address - before, it went into a Start Page that
+    /// has nowhere to type (playtest review 23 Sep, bug 4). A tab opened for a page, a window's own first tab and a
+    /// tab carrying the page you were on keep the page's focus (<see cref="FocusPage"/>).
+    /// </summary>
+    private void FocusNewTab(BrowserTab tab, bool plainNewTab)
+    {
+        if (plainNewTab && WindowShowing)
+        {
+            AddressBox.Focus(FocusState.Keyboard);
+            return;
+        }
+
         FocusPage(tab);
     }
 
@@ -1545,6 +1692,7 @@ public sealed partial class MainWindow : Window
         }
 
         DiagUi("tab-close", new { tab = tab.Id, index, url = tab.Url, pinned = _pinned.Contains(tab), tabs = _tabs.Count });
+        RememberClosedPage(tab);
 
         // M6 stage 3: its preview picture goes with it.
         _previews.Remove(tab);
@@ -1614,6 +1762,14 @@ public sealed partial class MainWindow : Window
             case "history": ShowHistory(); break;
             case "sidebar": ToggleSidebar(null); break;
             case "reload": ReloadOrStop(); break;
+            case "reloadnow": ReloadPage(); break;
+            case "back": GoHistory(-1); break;
+            case "forward": GoHistory(+1); break;
+            case "findnext": FindAgain(+1); break;
+            case "findprev": FindAgain(-1); break;
+            case "print": PrintPage(); break;
+            case "reopentab": ReopenClosedTab(); break;
+            case "newwindow": OpenNewWindow(); break;
             case "reader": ToggleReader(); break;
             case "downloads": OpenDownloads(); break;
             case "zoomin": Zoom(+1); break;
@@ -2268,6 +2424,29 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // The suggestions had the first Escape (above). This one puts the address back as it was, what was typed
+        // gone; the next leaves the box for the page - as in every other browser (playtest review 23 Sep, bug 5).
+        if (e.Key == VirtualKey.Escape)
+        {
+            e.Handled = true;
+            string url = _active?.Url ?? string.Empty;
+            string shown = BrowserTab.HostOf(url).Length == 0 ? string.Empty : url;
+            if (!string.Equals(AddressBox.Text, shown, StringComparison.Ordinal))
+            {
+                AddressBox.Text = shown;
+                AddressBox.SelectAll();
+
+                // Putting text back is a text change like any other, and would list suggestions for it.
+                AddressBox.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, HideSuggestions);
+            }
+            else
+            {
+                FocusPage(_active);
+            }
+
+            return;
+        }
+
         if (e.Key != VirtualKey.Enter)
         {
             return;
@@ -2354,23 +2533,9 @@ public sealed partial class MainWindow : Window
         return true;
     }
 
-    private void BackButton_Click(object sender, RoutedEventArgs e)
-    {
-        DiagUi("back");
-        if (_active is { CanGoBack: true } tab)
-        {
-            tab.View.GoBack();
-        }
-    }
+    private void BackButton_Click(object sender, RoutedEventArgs e) => GoHistory(-1);
 
-    private void ForwardButton_Click(object sender, RoutedEventArgs e)
-    {
-        DiagUi("forward");
-        if (_active is { CanGoForward: true } tab)
-        {
-            tab.View.GoForward();
-        }
-    }
+    private void ForwardButton_Click(object sender, RoutedEventArgs e) => GoHistory(+1);
 
     private void ReloadButton_Click(object sender, RoutedEventArgs e) => ReloadOrStop();
 
@@ -2738,6 +2903,10 @@ public sealed partial class MainWindow : Window
         newTab.KeyboardAcceleratorTextOverride = "Ctrl+T";
         newTab.Click += (_, _) => OpenNewTab(null);
         menu.Items.Add(newTab);
+
+        MenuFlyoutItem newWindow = new() { Text = "New Window", KeyboardAcceleratorTextOverride = "Ctrl+N" };
+        newWindow.Click += (_, _) => OpenNewWindow();
+        menu.Items.Add(newWindow);
 
         MenuFlyoutItem privateWindow = new() { Text = "New Private Window" };
         privateWindow.KeyboardAcceleratorTextOverride = "Ctrl+Shift+N";

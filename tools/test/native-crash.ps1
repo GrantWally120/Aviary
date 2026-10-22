@@ -14,6 +14,7 @@ public class NcWin { public delegate bool CB(IntPtr h, IntPtr l);
 '@ -ErrorAction SilentlyContinue
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 & "$sp\guard.ps1"; if ($LASTEXITCODE -ne 0) { exit 3 }
 
 $prof = Join-Path $sp ("profiles\" + $Profile)
@@ -24,7 +25,7 @@ if (Test-Path $prof) { [System.IO.Directory]::Delete($prof, $true) }
 $env:AVIARY_PROFILE_DIR = $prof
 $env:AVIARY_CRASH_TEST = $Mode
 $env:AVIARY_TEST_NATIVE_DETAIL = "1"
-$p = Start-Process -FilePath (Join-Path $sp "pub\Aviary.exe") -PassThru
+$p = Start-Process -FilePath (Get-AviaryExe $sp) -PassThru
 $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_CRASH_TEST = $null; $env:AVIARY_TEST_NATIVE_DETAIL = $null
 
 # Park every visible window of the process at the bottom, without activating it.

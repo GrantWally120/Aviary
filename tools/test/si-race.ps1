@@ -4,6 +4,7 @@
 param([string]$Profile = "si", [int[]]$Delays = @(0, 20, 50, 100, 200, 400))
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 $diag = Join-Path $sp "profiles\$Profile\user.data.improvementcollection"
 function Mine { @(Get-Process Aviary -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$sp*" }) }
 
@@ -18,7 +19,7 @@ foreach ($d in $Delays) {
     if ($d -gt 0) { Start-Sleep -Milliseconds $d }
 
     $env:AVIARY_PROFILE_DIR = Join-Path $sp "profiles\$Profile"
-    $b = Start-Process -FilePath "$sp\pub\Aviary.exe" -PassThru
+    $b = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
     $env:AVIARY_PROFILE_DIR = $null
 
     $ended = $b.WaitForExit(6000)

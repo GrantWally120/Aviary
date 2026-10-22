@@ -28,7 +28,8 @@ param(
 )
 
 $sp = $PSScriptRoot
-if (-not $Exe) { $Exe = Join-Path $sp "pub\Aviary.exe" }
+. "$PSScriptRoot\default-exe.ps1"
+if (-not $Exe) { $Exe = Get-AviaryExe $sp }
 $profileDir = Join-Path $sp ("profiles\" + $Profile)
 if ($Fresh -and (Test-Path $profileDir)) { Remove-Item $profileDir -Recurse -Force }
 New-Item -ItemType Directory -Force $profileDir | Out-Null

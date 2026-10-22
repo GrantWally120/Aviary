@@ -19,6 +19,7 @@ public class SiWin {
 "@
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 & "$sp\guard.ps1"; if ($LASTEXITCODE -ne 0) { exit 3 }
 
 function Mine { @(Get-Process Aviary -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$sp*" }) }
@@ -43,7 +44,7 @@ if ($CloseFirst) {
 $env:AVIARY_PROFILE_DIR = Join-Path $sp ("profiles\" + $Profile)
 $env:AVIARY_TEST_BROWSER_ARGS = "--remote-debugging-port=9222"
 $sw = [Diagnostics.Stopwatch]::StartNew()
-$b = Start-Process -FilePath "$sp\pub\Aviary.exe" -PassThru
+$b = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
 $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null
 
 $ended = $b.WaitForExit(15000)

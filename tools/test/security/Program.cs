@@ -80,6 +80,16 @@ foreach (var item in new[] {
     ("https://evil.test/list", true, false), ("https://easylist.to/list#fragment", false, false) })
     Check("Filter destination " + item.Item1, SecurityPolicy.IsAllowedFilterUri(new Uri(item.Item1), item.Item2) == item.Item3);
 
+foreach (var item in new[] {
+    ("youtube.com", true), ("www.youtube.com", true), ("m.youtube.com", true), ("music.youtube.com", true),
+    ("YOUTUBE.COM", true), ("youtu.be", true), ("www.youtube-nocookie.com", true),
+    ("example.com", false), ("notyoutube.com", false), ("youtube.com.evil.test", false),
+    ("evil-youtube.com", false), ("googlevideo.com", false), ("", false) })
+    Check("Safari identity breaks " + item.Item1, SafariIdentity.BreaksSite(item.Item1) == item.Item2);
+Check("Safari identity kept for an ordinary site", SafariIdentity.WantedFor("example.com", true));
+Check("Safari identity withheld from YouTube", !SafariIdentity.WantedFor("www.youtube.com", true));
+Check("Safari identity off stays off", !SafariIdentity.WantedFor("example.com", false));
+
 TrackerBlocker.Enabled = true;
 AppSettings.Set("blockMode", "Standard");
 SiteSettings.Set("example.test", Shields.SiteKey, "true");

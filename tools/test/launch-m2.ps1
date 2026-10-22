@@ -9,6 +9,7 @@ param(
 )
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 $profileDir = Join-Path $sp ("profiles\" + $Profile)
 if ($Fresh -and (Test-Path $profileDir)) { Remove-Item $profileDir -Recurse -Force }
 New-Item -ItemType Directory -Force $profileDir | Out-Null
@@ -22,7 +23,7 @@ $env:AVIARY_PROFILE_DIR = $profileDir
 # Test instances only — never part of Aviary's own switches.
 $keepDrawing = "--disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-background-timer-throttling"
 $env:AVIARY_TEST_BROWSER_ARGS = ("--remote-debugging-port=$Port $keepDrawing " + $ExtraArgs).Trim()
-& "$sp\run-aviary.ps1" -Exe "$sp\pub\Aviary.exe" -Out "$sp\shots\m2-launch.png" -SettleMs 3500
+& "$sp\run-aviary.ps1" -Exe (Get-AviaryDevExe $sp) -Out "$sp\shots\m2-launch.png" -SettleMs 3500
 $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null
 
 $p = Get-Process Aviary | Where-Object { $_.Path -like "$sp*" } | Select-Object -First 1

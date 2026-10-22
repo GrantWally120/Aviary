@@ -1368,6 +1368,8 @@ internal sealed partial class BrowserTab
     'ctrl+d': 'bookmark',
     'ctrl+shift+d': 'readinglist',
     'ctrl+shift+n': 'privatewindow',
+    'ctrl+n': 'newwindow',
+    'ctrl+shift+t': 'reopentab',
     'ctrl+shift+a': 'searchtabs',
     'ctrl+,': 'settings',
     'ctrl+h': 'history',
@@ -1385,27 +1387,54 @@ internal sealed partial class BrowserTab
     'ctrl+digit7': 'tab7', 'ctrl+digit8': 'tab8', 'ctrl+digit9': 'tablast'
   };
 
-  window.addEventListener('keydown', function(e){
-    /* A page can dispatch a KeyboardEvent of its own; only real keystrokes count. */
-    if (!e.isTrusted || e.metaKey) { return; }
+  /* Keys a web app may want for itself (an editor's Ctrl+P, a game's F5): the page hears them first and
+     the browser acts only if the page left them alone - the way Chrome treats these, and unlike the
+     reserved keys above, which no page can claim. Listened for on the way back up, not on the way down. */
+  var SOFT = {
+    'f5': 'reloadnow',
+    'ctrl+f5': 'reloadnow',
+    'alt+arrowleft': 'back',
+    'alt+arrowright': 'forward',
+    'f3': 'findnext',
+    'shift+f3': 'findprev',
+    'ctrl+g': 'findnext',
+    'ctrl+shift+g': 'findprev',
+    'ctrl+p': 'print'
+  };
 
+  function comboOf(e){
     var key = (e.key || '').toLowerCase();
 
     // Digits come from e.code so a layout where the number row is punctuation still works.
     if (/^Digit[1-9]$/.test(e.code || '')) { key = (e.code || '').toLowerCase(); }
 
-    var combo = (e.ctrlKey ? 'ctrl+' : '')
-              + (e.shiftKey ? 'shift+' : '')
-              + (e.altKey ? 'alt+' : '')
-              + key;
+    return (e.ctrlKey ? 'ctrl+' : '')
+         + (e.shiftKey ? 'shift+' : '')
+         + (e.altKey ? 'alt+' : '')
+         + key;
+  }
 
-    var action = MAP[combo];
+  window.addEventListener('keydown', function(e){
+    /* A page can dispatch a KeyboardEvent of its own; only real keystrokes count. */
+    if (!e.isTrusted || e.metaKey) { return; }
+
+    var action = MAP[comboOf(e)];
     if (!action) { return; }
 
     e.preventDefault();
     e.stopPropagation();
     try { send(stringify({type:'shortcut', action:action, token:TOKEN})); } catch(err){}
   }, true);
+
+  window.addEventListener('keydown', function(e){
+    if (!e.isTrusted || e.metaKey || e.defaultPrevented) { return; }
+
+    var action = SOFT[comboOf(e)];
+    if (!action) { return; }
+
+    e.preventDefault();
+    try { send(stringify({type:'shortcut', action:action, token:TOKEN})); } catch(err){}
+  }, false);
 
   /* M5 stage 3 - WHICH kind of "open elsewhere" a link click meant. The engine already turns a
      Ctrl-, Shift- or middle-click on a link into a new-window request, but WebView2 does not say

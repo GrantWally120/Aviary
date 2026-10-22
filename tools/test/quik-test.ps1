@@ -9,6 +9,7 @@
 param([int]$Port = 9401)
 
 $kit = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 Set-Location $kit
 [Environment]::CurrentDirectory = $kit
 $env:CDP_PORT = "$Port"
@@ -177,7 +178,7 @@ Check "a Skip leaves no stall either" ($st.Count -eq 0) ($st -join ', ')
 Check "and Aviary still answers after a Skip" ((Get-Process -Id $script:pidv -ErrorAction SilentlyContinue).Responding -eq $true) "not responding"
 Check "Skip ends it before its end ($ms ms in, of 6.5 s), and it is not owed again" ($skipped -and $ms -lt 6000 -and -not (Marker "xq4") -and (Tree) -notmatch 'Skip') "$ms ms; marker $(Marker 'xq4')"
 [void](CloseClean)
-$video = Join-Path $kit "pub\Assets\Quik\loading.mp4"
+$video = Join-Path (Split-Path (Get-AviaryExe $kit)) "Assets\Quik\loading.mp4"
 try {
     Rename-Item $video "loading.mp4.away"
     Set-Content "profiles\xq4\quik-intro-pending" "owed"

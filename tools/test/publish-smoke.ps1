@@ -83,7 +83,9 @@ if ($set) {
     $sid = $set.Substring(7, 8)
     node cdp.js click $sid "button[data-target=updates]" | Out-Null; Start-Sleep 1
     $u = node cdp.js eval $sid "document.getElementById('pane-updates').innerText"
-    Check "Updates says 12 of 15 milestones done" ($u -match '12 of 15') ($u.Substring(0, [Math]::Min(200, $u.Length)))
+    # Written for M5's "12 of 15 milestones done"; AB5 shipped on 21 Oct (16 of 16), and a shipped build has no
+    # progress bar - its notes say which build it is and that it is the latest. Reads the build, not a count.
+    Check "Updates names the shipped build (Alpha Build 5, The Long Run, Latest)" (($u -match 'Alpha Build 5') -and ($u -match 'The Long Run') -and ($u -match 'Latest')) ($u.Substring(0, [Math]::Min(200, $u.Length)))
     node cdp.js click $sid "button[data-target=about]" | Out-Null; Start-Sleep 1
     $a = node cdp.js eval $sid "document.getElementById('ab-version').textContent + ' | ' + document.getElementById('ab-release').textContent"
     "  (About reads: $a)"

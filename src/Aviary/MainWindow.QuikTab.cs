@@ -145,7 +145,7 @@ public sealed partial class MainWindow
         SelectTab(tab);
         RebuildTabStrip();
         UpdateChrome();
-        FocusPage(tab);
+        FocusNewTab(tab, plainNewTab: true);   // only a plain, requested new tab ever comes from the pool
         double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(requested).TotalMilliseconds, 2);
         DiagPerf("tab-open", new { tab = tab.Id, ms, ready = true, tabs = _tabs.Count });
         DiagUi("tab-open", new { tab = tab.Id, reason = "new tab (ready)", index = at, tabs = _tabs.Count });

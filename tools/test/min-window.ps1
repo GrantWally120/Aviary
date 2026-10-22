@@ -16,6 +16,7 @@ public class WMin4 { public delegate bool CB(IntPtr h, IntPtr l);
 '@ -ErrorAction SilentlyContinue
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 
 function Close-Test {
   foreach ($t in (Get-Process Aviary -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$sp*" })) {
@@ -33,7 +34,7 @@ foreach ($delay in $Delays) {
   [System.IO.File]::WriteAllText((Join-Path $prof "settings.json"), '{"improvementCollection":"true"}')
 
   $env:AVIARY_PROFILE_DIR = $prof
-  $p = Start-Process -FilePath (Join-Path $sp "pub\Aviary.exe") -PassThru
+  $p = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
   $env:AVIARY_PROFILE_DIR = $null
 
   for ($i = 0; $i -lt 50 -and $p.MainWindowHandle -eq 0; $i++) { Start-Sleep -Milliseconds 100; $p.Refresh() }

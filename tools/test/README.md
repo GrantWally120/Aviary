@@ -46,11 +46,19 @@ where `%LOCALAPPDATA%` is virtualized, so tests must use a scratch profile.
 dotnet publish src/Aviary/Aviary.csproj -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 ^
   -p:SelfContained=true -p:WindowsAppSDKSelfContained=true -p:WindowsPackageType=None ^
   -p:PublishSingleFile=false -p:PublishTrimmed=false -p:PublishReadyToRun=false ^
-  "-p:PublishDir=C:/Users/user/Documents/Claude CoWork Enclosed/Zoo/tools/test/pub/"
+  "-p:PublishDir=E:/Claude CoWork Enclosed/Zoo/tools/test/pub/"
 ```
 
 Never publish over `publish/Aviary` while Grant's copy is running from it. From PowerShell use
 forward slashes in PublishDir: a trailing `\"` swallows the rest of the arguments.
+
+**`pub/` is rebuildable output and is not kept** (the 22 Oct 2026 cleanup removed it). Until you
+make one, the scripts that only drive a scratch profile by PID - `launch-quiet.ps1`,
+`native-crash.ps1`, `quik-test.ps1` and everything that launches through `launch-quiet.ps1` - run the
+installed `publish/Aviary/Aviary.exe` instead (`default-exe.ps1`, the same application). The
+harnesses that find and kill their own instances by a path under `tools/test` - `launch-m2.ps1`,
+`min-window.ps1`, `si-race.ps1`, `si-race2.ps1`, `si-test.ps1` - need the dev copy and say so;
+they never run or clean up against the installed copy, which may be the one in use.
 
 ## The pieces
 
@@ -82,8 +90,8 @@ forward slashes in PublishDir: a trailing `\"` swallows the rest of the argument
 | `links-test.ps1` | **(M5 stage 3)** Where a modified click goes: Ctrl/middle behind and in order, Ctrl+Shift in front, Shift a one-tab window (no duplicated pinned tab, the saved list untouched), Alt downloads (cross-site too), target=_blank and a web app’s own click unchanged, a forged hint ignored, the right-click menu, a private window’s Shift, a Ctrl-clicked download. No desktop input. **27 checks.** |
 | `groups-test.ps1` | **(M5 stage 4)** Tab groups end to end: made from the tabs in front with nothing reloaded, switched (back comes DORMANT - only the tab in front has an engine, counted over DevTools), a dormant tab rousing, the group writing itself and surviving a kill, rename/delete, two groups with a pinned tab, a download surviving a switch, no groups in private, a Start Page's round trip. UTF-8 WITH BOM. No desktop input. **40 checks.** |
 | `tabmenu-test.ps1` | **(M5 stage 4) DESKTOP INPUT - guard.ps1 must pass (30 s).** One real right-click on a tab: its menu must open ONCE (it is `ContextRequested` now), and Move to Tab Group ▸ (expanded through UIA's ExpandCollapse) must move the tab into a saved group. **7 checks.** |
-| `-Exe <path>` on `downloads-test`, `links-test`, `groups-test` | **(M5 publish)** Runs the harness against another copy of Aviary - `publish\Aviary\Aviary.exe` for the publish check. Default: `pub\Aviary.exe`. Still scratch profiles only. |
-| `publish-smoke.ps1 [-Exe <path>] [-Port 9333] [-Sha <commit>]` | **(M5 publish, 25 Sep)** The smoke test for a PUBLISHED copy - `publish\Aviary\Aviary.exe` by default - on a fresh scratch profile: the version stamp is the expected commit, it starts, the Start Page draws, a page loads, `collection.aviary` serves the bundled Collection, a download lands and is listed, the ring shows, Settings opens from the app menu and Updates reads the right count, closing it with two tabs open ASKS first (answered through UIA), it closes by itself, and its session says it ended with no issues or crashes. No desktop input. Takes its PID from the launcher's own output, not the shared `pid.txt`. **18 checks.** |
+| `-Exe <path>` on `downloads-test`, `links-test`, `groups-test` | **(M5 publish)** Runs the harness against another copy of Aviary - `publish\Aviary\Aviary.exe` for the publish check. Default: `pub\Aviary.exe` if it has been built, otherwise the installed `publish\Aviary\Aviary.exe`. Still scratch profiles only. |
+| `publish-smoke.ps1 [-Exe <path>] [-Port 9333] [-Sha <commit>]` | **(M5 publish, 25 Sep)** The smoke test for a PUBLISHED copy - `publish\Aviary\Aviary.exe` by default - on a fresh scratch profile: the version stamp is the expected commit, it starts, the Start Page draws, a page loads, `collection.aviary` serves the bundled Collection, a download lands and is listed, the ring shows, Settings opens from the app menu and Updates names the shipped build (it read "12 of 15 milestones" in M5; AB5 is 16 of 16 and a shipped build shows no progress bar), closing it with two tabs open ASKS first (answered through UIA), it closes by itself, and its session says it ended with no issues or crashes. No desktop input. Takes its PID from the launcher's own output, not the shared `pid.txt`. **18 checks.** |
 | `expsite.js` | **(M6)** Port 8797, `127.0.0.1` only. `/white` (a page with no colours of its own), `/long` (records `scrollY` every frame after a wheel or key into `window.__scroll`), `/raf` (frames a second into `window.__fps`), `/article` (one Reader will take), `/scheme-*` (the three ways a page can declare its colours), `/hits`. |
 | `switch-probe.ps1 [-Switches ...]` + `switch-probe.js` | **(M6) Measure an engine switch BEFORE building it**: each candidate in its own fresh instance against a control with none - frames a second, Page Down glide (a trusted key; a DevTools wheel is never animated, so it cannot tell smooth from instant), a screenshot pixel of `/white`, and what `mediaCapabilities.decodingInfo` says about 1080p H.264/VP9 (`powerEfficient` = the graphics card decodes it). How Screen smoothness was cut and the other three proven. |
 | `scheme-probe.js`, `autodark-probe.js` | **(M6)** Why "Make every website dark" is per tab: the engine's force-dark darkens every colour-scheme declaration alike (`only light` included), and the per-tab `Emulation.setAutoDarkModeOverride` darkens, survives navigation, and comes off. |

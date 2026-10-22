@@ -17,7 +17,10 @@
         <MicaBackdrop Kind="BaseAlt" />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="RootGrid">
+    <!-- KeyboardAcceleratorPlacementMode="Hidden": every shortcut is registered on this grid, and the
+         default shows its key ("Ctrl+T") as a tooltip over whatever the mouse rests on - including pages
+         (playtest review 23 Sep, bug 9). The menus carry their own shortcut text. -->
+    <Grid x:Name="RootGrid" KeyboardAcceleratorPlacementMode="Hidden">
 
         <Grid.Resources>
 
@@ -638,6 +641,9 @@
                              PlaceholderForeground="{ThemeResource AvLabelTertiaryBrush}"
                              AcceptsReturn="False"
                              TextWrapping="NoWrap"
+                             IsSpellCheckEnabled="False"
+                             IsTextPredictionEnabled="False"
+                             InputScope="Url"
                              GotFocus="AddressBox_GotFocus"
                              LostFocus="AddressBox_LostFocus"
                              TextChanged="AddressBox_TextChanged"

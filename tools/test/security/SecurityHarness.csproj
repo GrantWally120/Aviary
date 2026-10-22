@@ -20,5 +20,6 @@
     <Compile Include="../../../src/Aviary/FilterEngine.cs" Link="FilterEngine.cs" />
     <Compile Include="../../../src/Aviary/FilterEngine.Cosmetic.cs" Link="FilterEngine.Cosmetic.cs" />
     <Compile Include="../../../src/Aviary/PublicSuffix.cs" Link="PublicSuffix.cs" />
+    <Compile Include="../../../src/Aviary/SafariIdentity.cs" Link="SafariIdentity.cs" />
   </ItemGroup>
 </Project>

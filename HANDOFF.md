@@ -1,5 +1,36 @@
 # Aviary — project handoff
 
+> **REVIEW + FIXES — 22 October 2026, evening (Claude, at Grant's request). READ FIRST.**
+> Independent review of Codex's AB5/privacy/cleanup work: `AVIARY-REVIEW-2026-10-22.md` (verdict, what holds, what
+> was broken, and the status of each finding in `AVIARY-REVIEW-2026-09-23.md` — which had never been triaged).
+> The installed app and every check were sound. With Grant's approval (22 Oct, evening) these are now **INSTALLED in
+> `publish/Aviary` and COMMITTED LOCALLY (not pushed; no CI run yet)**: YouTube no longer breaks under "Identify as
+> Safari" (`SafariIdentity.cs`, `BrowserTab.Privacy.cs`); F5, Alt+←/→, F3/Ctrl+G, Ctrl+P, Ctrl+Shift+T, Ctrl+N; new tab
+> focuses the address bar; Escape restores the address; address bar spell-check off; stray "Ctrl+T" tooltip hidden;
+> test-kit launchers fall back to `publish/Aviary` (`tools/test/default-exe.ps1`) because the cleanup removed
+> `tools/test/pub`; `publish-smoke.ps1` expects the shipped 16/16 build; README corrected.
+> Installed copy: 663 files, 54/54, hashes match `Backup/manifest-fixes.json`; security 128, smoke 18/18, build 0 warnings.
+> Its binaries carry the stamp 0.5.0+d41182f with the working tree dirty (the fixes were uncommitted when built): do NOT
+> rebuild after the commit just to change the stamp, and expect `publish-smoke.ps1`'s stamp check to want `-Sha d41182f...`.
+> Recovery: `Backup/Aviary-AB5-fixes-local-win-x64.zip` is the CURRENT package; `Backup/Aviary-AB5-local-win-x64.zip` is the
+> ROLLBACK (102abec, without the fixes). Checked by eye on the installed copy: tooltip gone, no spell-check squiggles,
+> Ctrl+T focus, Escape.
+
+> **LOCAL CLEANUP — 22 October 2026, morning.**
+> Grant confirmed this E: workspace may be cleaned; external/USB drives were left alone.
+> The single runnable workspace copy is `publish/Aviary/Aviary.exe`, the unchanged
+> verified 102abec privacy/security build: AB5 0.5.0, 16/16, 663 files, 54/54 exhibits.
+> Root `Aviary.lnk` and the existing Desktop/taskbar shortcuts point there.
+> `Backup/` holds one verified current private recovery ZIP, manifest/checksum,
+> instructions and three unique older Collection files. Redundant app/ZIP copies,
+> rebuildable outputs and scratch profiles were removed: 140,278 files, 19.6 GB logical.
+> Current source/Collection, normal profile, Git/source backups, QA receipts/screenshots
+> remain. Scratch evidence is archived in `.artifact/cleanup-20261022`.
+> Earlier package/rollback paths in this handoff are historical and may no longer contain
+> apps. Use `Backup` for recovery. See `tools/test/CLEANUP-2026-10-22.md`.
+> No rebuild/reinstall, commit/push, dependency change or automation restart. New cleanup
+> documentation remains local/uncommitted; ask-first publication rules still apply.
+
 > **LATEST — PRIVACY/SECURITY INSTALLED, 22 October 2026 at 00:07 +08.**
 > Grant authorized finishing the prepared update and continuing security review before
 > 02:00 Manila on 22 October. Combined Settings/security source is pushed through **102abec**;

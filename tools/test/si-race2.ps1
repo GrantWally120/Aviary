@@ -7,11 +7,12 @@
 param([string]$Profile = "si", [int[]]$Sleeps = @(60, 90, 110, 130, 150, 170, 200, 250))
 
 $sp = $PSScriptRoot
+. "$PSScriptRoot\default-exe.ps1"
 $diag = Join-Path $sp "profiles\$Profile\user.data.improvementcollection"
 function Mine { @(Get-Process Aviary -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$sp*" }) }
 function Start-Test {
     $env:AVIARY_PROFILE_DIR = Join-Path $sp "profiles\$Profile"
-    $p = Start-Process -FilePath "$sp\pub\Aviary.exe" -PassThru
+    $p = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
     $env:AVIARY_PROFILE_DIR = $null
     $p
 }
