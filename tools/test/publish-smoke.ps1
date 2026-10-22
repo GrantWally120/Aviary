@@ -24,7 +24,7 @@ catch { Start-Process node -ArgumentList "dlsite.js" -WorkingDirectory $kit -Win
 
 "== the copy under test: $Exe"
 $ver = (Get-Item $Exe).VersionInfo.ProductVersion
-Check "its version stamp is the commit expected ($($Sha.Substring(0,7)))" ($ver -like "*+$Sha") $ver
+Check "its version stamp is the commit expected ($($Sha.Substring(0,7)))" ($ver -like "*+$Sha*") $ver
 
 $files = Join-Path $kit "profiles\$Profile-files"
 if (Test-Path $files) { Remove-Item $files -Recurse -Force }

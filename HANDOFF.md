@@ -11,7 +11,8 @@
 > `tools/test/pub`; `publish-smoke.ps1` expects the shipped 16/16 build; README corrected.
 > Installed copy: 663 files, 54/54, hashes match `Backup/manifest-fixes.json`; security 128, smoke 18/18, build 0 warnings.
 > Its binaries carry the stamp 0.5.0+d41182f with the working tree dirty (the fixes were uncommitted when built): do NOT
-> rebuild after the commit just to change the stamp, and expect `publish-smoke.ps1`'s stamp check to want `-Sha d41182f...`.
+> rebuild after the commit just to change the stamp, and run `publish-smoke.ps1 -Sha d41182f` (its default, HEAD, is the
+> next commit, e1c46ac, which the installed binaries predate).
 > Recovery: `Backup/Aviary-AB5-fixes-local-win-x64.zip` is the CURRENT package; `Backup/Aviary-AB5-local-win-x64.zip` is the
 > ROLLBACK (102abec, without the fixes). Checked by eye on the installed copy: tooltip gone, no spell-check squiggles,
 > Ctrl+T focus, Escape.
