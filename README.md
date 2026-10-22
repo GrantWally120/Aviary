@@ -4,7 +4,7 @@ A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. Alpha B
 is **The Long Run**, version 0.5.0, with all sixteen milestones complete. The AB5
 release and the Settings/privacy/security follow-ups passed Windows CI. The latest
 tested privacy/security copy, with the 22 October review fixes, is installed locally; the
-privacy/security source is pushed and the fixes are committed locally, awaiting a push.
+privacy/security source and the fixes are both pushed (Windows CI run #10 on 9c759f0 passed).
 macOS support and starting Beta Build 1 remain deferred.
 
 ## Current app and USB backup — 22 October 2026

@@ -4,7 +4,8 @@
 > Independent review of Codex's AB5/privacy/cleanup work: `AVIARY-REVIEW-2026-10-22.md` (verdict, what holds, what
 > was broken, and the status of each finding in `AVIARY-REVIEW-2026-09-23.md` — which had never been triaged).
 > The installed app and every check were sound. With Grant's approval (22 Oct, evening) these are now **INSTALLED in
-> `publish/Aviary` and COMMITTED LOCALLY (not pushed; no CI run yet)**: YouTube no longer breaks under "Identify as
+> `publish/Aviary`, COMMITTED (e1c46ac, 9c759f0) and PUSHED to origin/main on 23 Oct; Actions run #10 on 9c759f0 passed
+> (2 m 37 s)**: YouTube no longer breaks under "Identify as
 > Safari" (`SafariIdentity.cs`, `BrowserTab.Privacy.cs`); F5, Alt+←/→, F3/Ctrl+G, Ctrl+P, Ctrl+Shift+T, Ctrl+N; new tab
 > focuses the address bar; Escape restores the address; address bar spell-check off; stray "Ctrl+T" tooltip hidden;
 > test-kit launchers fall back to `publish/Aviary` (`tools/test/default-exe.ps1`) because the cleanup removed

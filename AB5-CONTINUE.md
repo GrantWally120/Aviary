@@ -2,9 +2,9 @@
 
 > **REVIEW + FIXES — 22 October 2026, evening (Claude).** See `AVIARY-REVIEW-2026-10-22.md` and the banner at the top
 > of HANDOFF.md. Source fixes (YouTube under the Safari identity, everyday shortcuts, new-tab focus, test-kit launchers)
-> were approved by Grant, installed in `publish/Aviary` (663 files, 54/54) and committed locally, not pushed. The previous
-> 102abec build is the rollback ZIP `Backup/Aviary-AB5-local-win-x64.zip`; the current package is
-> `Backup/Aviary-AB5-fixes-local-win-x64.zip`. A push needs Grant's approval.
+> were approved by Grant, installed in `publish/Aviary` (663 files, 54/54), committed (e1c46ac, 9c759f0) and pushed on 23 Oct;
+> Actions run #10 on 9c759f0 passed. The previous 102abec build is the rollback ZIP `Backup/Aviary-AB5-local-win-x64.zip`;
+> the current package is `Backup/Aviary-AB5-fixes-local-win-x64.zip`. No approval is outstanding for this work.
 
 > **LOCAL CLEANUP — 22 October 2026, after Grant's morning request.**
 > Grant confirmed E: is allowed and requested a smaller, up-to-date Zoo for his own

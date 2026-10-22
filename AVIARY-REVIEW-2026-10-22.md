@@ -3,7 +3,7 @@
 **How:** read the handoff and cleanup records, hashed every installed file, ran every test and harness, built the source, launched the app on scratch profiles and used it by hand (Start Page, Settings, Collection, a Godot game, real sites, YouTube), read Codex's newest security code, and compared the app with the 23 Sep playtest review that sits in this folder.
 
 ## Verdict
-Codex delivered what its records say it did, and the engineering is careful. The installed app is intact, every automated check passes, and the privacy and security work is real and well tested. What it missed is the other half of the job: the 23 Sep review's findings were never acted on (they are not mentioned anywhere in `HANDOFF.md`), so the app still breaks YouTube by default and still lacks basic keys. Its 22 Oct cleanup also quietly broke the test kit. I fixed both, plus a stale test and some stale docs. The fixes are in source and in a tested build. **Update, same evening:** Grant approved, so the build is now installed in `publish/Aviary` (663 files hash-checked, 18 of 18 smoke checks, and the tooltip, spell-check and Escape fixes confirmed by eye) and the changes are committed locally, not pushed. The old build is the rollback ZIP in `Backup`.
+Codex delivered what its records say it did, and the engineering is careful. The installed app is intact, every automated check passes, and the privacy and security work is real and well tested. What it missed is the other half of the job: the 23 Sep review's findings were never acted on (they are not mentioned anywhere in `HANDOFF.md`), so the app still breaks YouTube by default and still lacks basic keys. Its 22 Oct cleanup also quietly broke the test kit. I fixed both, plus a stale test and some stale docs. The fixes are in source and in a tested build. **Update, same evening:** Grant approved, so the build is now installed in `publish/Aviary` (663 files hash-checked, 18 of 18 smoke checks, and the tooltip, spell-check and Escape fixes confirmed by eye) and the changes are committed and pushed (23 Oct; Windows CI run #10 on 9c759f0 passed). The old build is the rollback ZIP in `Backup`.
 
 ## What I verified (Codex's claims that hold)
 - **Installed app:** all 663 files in `publish/Aviary` match the manifest hash-for-hash; no extras. Version 0.5.0, source 102abec.
@@ -72,7 +72,7 @@ Codex delivered what its records say it did, and the engineering is careful. The
 - I did not re-test items 6, 8, 14, 16, 19–21, or the Collection's other 52 exhibits.
 
 ## Recommended next steps
-1. ~~Install the tested candidate and commit~~ Done on 22 Oct with Grant's yes (installed; committed locally). **Push** still needs Grant's approval, and CI has not run on the new commit.
+1. ~~Install the tested candidate and commit~~ Done with Grant's yes: installed on 22 Oct, committed, and pushed on 23 Oct; Windows CI run #10 passed.
 2. Press **Update them now** in Safety Check, or approve the maintenance proposal.
 3. Next product work, in order: local files (`file:///`, Ctrl+O), the Reader exit bug, "Not Secure" and a real phishing page, then shortcuts while loading.
 4. Consolidate `HANDOFF.md` into one current page and move the history into an archive file.
