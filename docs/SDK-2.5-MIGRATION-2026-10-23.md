@@ -3,7 +3,7 @@
 23 October 2026. Done in an isolated worktree on the branch `sdk-2.5-migration`, from `142a8d3`, following
 [the maintenance proposal](SECURITY-MAINTENANCE-PROPOSAL.md). Grant's instruction was "you choose what's best" after
 being told what the two items were and that the project rule is to ask first; the proposal's own gate still applies:
-nothing is installed or pushed until Grant has seen this and said yes.
+nothing was installed or pushed until Grant had seen the result and said yes, which he then did.
 
 ## What changed
 
@@ -63,7 +63,7 @@ installed build. I treat the transient ones as test-environment noise, not as a 
 
 Built with the private Collection copied in from the main folder: **621 files, 269.2 MB, 54 of 54 exhibits**, ZIP checksum
 `5cb8ed87...4bce`, stamp `0.5.0+328a6e1` (clean tree). `publish-smoke.ps1 -Sha 328a6e1`: **18 of 18**. It sits in
-`.artifact/sdk-migration-20261023/.artifact/sdk25-full/`, ready to install on a yes.
+`.artifact/sdk-migration-20261023/.artifact/sdk25-full/`, installed after Grant's yes.
 
 ## Not verified
 
@@ -74,9 +74,16 @@ Built with the private Collection copied in from the main folder: **621 files, 2
 - The tests that use real desktop input (`native-crash`, `si-test` single-instance, `tabmenu`, `experiments`, `forget`,
   `startbg`) were not run for the same reason. Every Windows App SDK runtime from 1.2 to 2.5.1 is installed on this PC, so
   start-up on a PC without them is shown by the module check above (the libraries come from Aviary's folder), not by a clean machine.
-- Nothing about the installed copy yet: the full candidate below has not replaced `publish/Aviary`.
+- The installed copy, after the step below: smoke 18/18, live CSP 33/33 and the tab-strip test were re-run on it (results in the Installed section).
+
+## Installed (after Grant's yes)
+
+`publish/Aviary` now holds the full candidate: 621 files, every hash equal to `Backup/manifest-sdk25.json`, stamp
+`0.5.0+328a6e1`. On the installed copy: `publish-smoke.ps1 -Sha 328a6e1` 18 of 18, live CSP 33 of 33, tab-strip test passes.
+`main` was fast-forwarded to the branch and pushed.
 
 ## Rollback
 
-The current install is unchanged and still the CURRENT/ROLLBACK pair in `Backup/` (see `Backup/README.txt`). If the new
-build misbehaves, put the old folder back; the branch can be dropped without touching `main`.
+`Backup/Aviary-AB5-prism2-local-win-x64.zip` is the install that was replaced (with its checksum and `manifest-prism2.json`);
+the same files are also unpacked, hash-identical, in `.artifact/published-before-sdk25-20261023`. To go back, close Aviary,
+swap that folder in for `publish/Aviary`, and revert the three SDK/list commits if the source should follow.

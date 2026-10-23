@@ -1,14 +1,18 @@
 # Aviary — project handoff
 
-> **SDK 2.5.1 + WIN2D 1.4.0 + FILTER LISTS — 23 October 2026 (Claude; Grant said "you choose what's best"). ON THE BRANCH `sdk-2.5-migration`, NOT INSTALLED, NOT ON main.**
-> Report: `docs/SDK-2.5-MIGRATION-2026-10-23.md`. Windows App SDK 1.7 (out of support) → 2.5.1 as four components (WinUI 2.3.9, Foundation,
-> InteractiveExperiences, Base; not the meta-package: 466 files / 177 MB instead of 534 / 237 and no AI/Widgets/Search files), Win2D 1.4.0,
-> EasyList and EasyPrivacy refreshed from easylist.to (202610231316). No C# change; `verify.ps1` now wants `Aviary.pri`. Compiles clean;
-> harnesses 125/317/30/18, smoke 17/18 (source-only), live CSP 33/33, links 27/27, groups 39/40 and downloads 53/53 as on the installed
-> build, caption-button hit-test and native chrome identical. NOT verified: a real mouse click on a background tab (the hidden-WebView bug
-> in NOTES-webview2-architecture.md) and the guard-gated desktop-input tests. FULL candidate (with the Collection) built from 328a6e1:
-> 621 files, 54/54, smoke 18/18, in `.artifact/sdk-migration-20261023/.artifact/sdk25-full`. Do not merge or install without Grant's yes;
-> after installing, click a background tab and something on its page once.
+> **SDK 2.5.1 + WIN2D 1.4.0 + FILTER LISTS — 23 October 2026 (Claude; Grant: "you choose what's best", then "yes"). READ FIRST.**
+> With Grant's approval this is **INSTALLED in `publish/Aviary`, MERGED into main and PUSHED** (see `git log`). Report:
+> `docs/SDK-2.5-MIGRATION-2026-10-23.md`. Windows App SDK 1.7 (out of support) → 2.5.1 as four components (WinUI 2.3.9, Foundation,
+> InteractiveExperiences, Base; not the meta-package: 466 files / 177 MB instead of 534 / 237, no AI/Widgets/Search files), Win2D 1.4.0,
+> EasyList and EasyPrivacy refreshed from easylist.to (202610231316). No C# change; `verify.ps1` now wants `Aviary.pri`.
+> Installed copy: 621 files, 54/54, hashes match `Backup/manifest-sdk25.json`; stamp 0.5.0+328a6e1 (clean tree) — run
+> `publish-smoke.ps1 -Sha 328a6e1`: 18/18, live CSP 33/33, tab strip passes. Before install: harnesses 125/317/30/18, links 27/27,
+> groups 39/40 and downloads 53/53 as on the old build, caption-button hit-test and native chrome identical, libraries load from the
+> app's own folder. NOT verified: a real mouse click on a background tab (the hidden-WebView bug in NOTES-webview2-architecture.md)
+> and the guard-gated desktop-input tests: click a background tab and something on its page once.
+> Recovery: `Backup/Aviary-AB5-sdk25-local-win-x64.zip` is CURRENT; `Backup/Aviary-AB5-prism2-local-win-x64.zip` is the ROLLBACK (the
+> install just replaced, also kept unpacked and hash-identical in `.artifact/published-before-sdk25-20261023`); the `fixes` and `102abec`
+> zips are older still. `Backup/README.txt` says which is which. Windows App SDK and the lists are no longer pending approvals.
 
 > **PRISM 2 FIXES + ACCOUNT GROUNDWORK — 23 October 2026 (Claude, at Grant's request). READ FIRST.**
 > With Grant's approval (23 Oct) this is **INSTALLED in `publish/Aviary`, COMMITTED and PUSHED to origin/main** (see `git log`).
@@ -21,10 +25,7 @@
 > Installed copy: 663 files, 54/54, hashes match `Backup/manifest-prism2.json` (4 files differ from the previous install: Aviary.dll,
 > .exe, .pdb, resources.pri). Its binaries carry the stamp 0.5.0+5efad38 with the working tree dirty (built before the commit): do NOT
 > rebuild after the commit just to change the stamp; run `publish-smoke.ps1 -Sha 5efad38`.
-> Recovery: `Backup/Aviary-AB5-prism2-local-win-x64.zip` is the CURRENT package; `Backup/Aviary-AB5-fixes-local-win-x64.zip` is the
-> ROLLBACK (the previous install, also kept unpacked and hash-identical in `.artifact/published-before-prism2-20261023`);
-> `Backup/Aviary-AB5-local-win-x64.zip` (102abec) is older still. `Backup/README.txt` says which is which.
-> Still needs Grant's yes: Windows App SDK 2.5.1 / Win2D 1.4.0 and a filter-list refresh (`docs/SECURITY-MAINTENANCE-PROPOSAL.md`).
+> Recovery and the pending SDK/list approvals: superseded by the SDK banner above (the prism2 package is now the rollback).
 
 > **REVIEW + FIXES — 22 October 2026, evening (Claude, at Grant's request). READ FIRST.**
 > Independent review of Codex's AB5/privacy/cleanup work: `AVIARY-REVIEW-2026-10-22.md` (verdict, what holds, what

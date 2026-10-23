@@ -1,6 +1,6 @@
 # Security maintenance proposal — 22 October 2026
 
-Status 23 Oct 2026: DONE in an isolated branch (sdk-2.5-migration), tested, not yet installed; see
+Status 23 Oct 2026: DONE, tested, installed and pushed; see
 SDK-2.5-MIGRATION-2026-10-23.md. Original status line: prepared for Grant's approval. No dependency changes or publisher-list downloads
 have been made for this proposal. The privacy/security implementation and corrected policy
 are already installed from clean source 102abec. This proposal does not start Beta Build 1.

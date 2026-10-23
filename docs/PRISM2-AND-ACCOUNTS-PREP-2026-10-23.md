@@ -89,8 +89,8 @@ so no package was downloaded or added. The candidate was built with `tools/relea
 - **Rollback:** `Backup/Aviary-AB5-fixes-local-win-x64.zip` (the previous install), and the same files unpacked in
   `.artifact/published-before-prism2-20261023`, which can be deleted once you are happy. `Backup/README.txt` lists all
   three packages.
-- **Windows App SDK 2.5.1 / Win2D 1.4.0 and filter-list refresh** (`docs/SECURITY-MAINTENANCE-PROPOSAL.md`) need
-  explicit approval: new NuGet packages and downloads. Not done.
+- **Windows App SDK 2.5.1 / Win2D 1.4.0 and filter-list refresh** (`docs/SECURITY-MAINTENANCE-PROPOSAL.md`) needed
+  explicit approval (new NuGet packages and downloads). Done later the same day: see `SDK-2.5-MIGRATION-2026-10-23.md`.
 - **Before the accounts system itself:** operator, name, private contact, backend, retention; revoking
   tokens at the provider on sign-out; Storage Usage's Secrets category and "Forget everything" to cover the
   vault folder (listed in SECURITY.md); a threat-model review of the first account feature.
