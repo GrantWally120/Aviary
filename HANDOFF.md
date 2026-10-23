@@ -1,5 +1,22 @@
 # Aviary — project handoff
 
+> **WHAT IS NEXT — 23 October 2026 (Grant asked for this to be written down). READ FIRST.**
+> **ARTEMIS IS ON HOLD. Grant has his own plan for it and said "do not do artemis yet": do NOT start, scaffold or propose an Artemis
+> port or edit `artemis.html` until he brings it up himself.** The Prism 2 spec stays available for when he does:
+> `E:\Claude CoWork Enclosed\Prism2-Specimen.html` (92/92), built from `design/prism2.tokens.json`.
+> Grant is the owner, not an engineer: he does **not** know how to set up the accounts system and wants the assistant to LEAD it and
+> explain in plain language (one or two sentences, no jargon, say whether it is risky, give a recommendation, ask at most one question at
+> a time). "You choose what's best" delegates the choice; commits, pushes, installs and new downloads still get one short ask with the
+> evidence, as before.
+> 1. **Accounts system — NOT STARTED, needs decisions only Grant can make:** what accounts are for, who runs it (operator), the name
+>    (Bird/Birds), a private support contact, where the data lives and for how long, and a Google Cloud sign-in client that Grant registers.
+>    Offer a one-page checklist WITH a recommended default for each, so he can answer yes or change it. The groundwork exists and is
+>    wired to nothing: `PageCsp.cs`, `TokenVault.cs`, `OAuthFlow.cs` (`docs/SECURITY.md`, "Groundwork for accounts" and "Required design").
+> 2. **Small leftovers:** Grant should click a background tab once in the new build (the hidden-WebView check); turn on
+>    **Settings → Shields → "Keep the lists up to date" (Off / Daily / Weekly)** himself (default is Off; do not change his profile);
+>    Classic.xaml labels are as faint as Liquid Glass's were; two unpacked old installs in `.artifact/published-before-*` can go when he
+>    says; the empty folder `.artifact/sdk-migration-20261023` could not be deleted while something held it.
+
 > **SDK 2.5.1 + WIN2D 1.4.0 + FILTER LISTS — 23 October 2026 (Claude; Grant: "you choose what's best", then "yes"). READ FIRST.**
 > With Grant's approval this is **INSTALLED in `publish/Aviary`, MERGED into main and PUSHED** (see `git log`). Report:
 > `docs/SDK-2.5-MIGRATION-2026-10-23.md`. Windows App SDK 1.7 (out of support) → 2.5.1 as four components (WinUI 2.3.9, Foundation,

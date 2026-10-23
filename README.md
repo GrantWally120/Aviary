@@ -5,7 +5,20 @@ is **The Long Run**, version 0.5.0, with all sixteen milestones complete. The AB
 release and the Settings/privacy/security follow-ups passed Windows CI. The latest
 tested privacy/security copy, with the 22 October review fixes, is installed locally; the
 privacy/security source and the fixes are both pushed (Windows CI run #10 on 9c759f0 passed).
+On 23 October the Prism 2 look fixes, the account groundwork, Windows App SDK 2.5.1, Win2D 1.4.0 and
+fresh EasyList/EasyPrivacy lists were installed and pushed (Windows CI run #12 on e55cb6d passed).
 macOS support and starting Beta Build 1 remain deferred.
+
+## What is next
+
+- **Artemis** is on hold: Grant has his own plan for it. The Prism 2 spec (`Prism2-Specimen.html`, one folder above this one,
+  generated from `design/prism2.tokens.json`) is there for when he wants it; `artemis.html` is left alone.
+  See [the Prism 2 report](docs/PRISM2-AND-ACCOUNTS-PREP-2026-10-23.md).
+- **The accounts system** is not started and waits on decisions (purpose, operator, name, private contact, where
+  the data lives, a Google sign-in client). The groundwork is in and connected to nothing; see
+  [docs/SECURITY.md](docs/SECURITY.md). The assistant leads this one and explains it in plain language.
+- **Ad-blocker lists** are fresh as of 23 October but only stay fresh if **Settings → Shields → Keep the lists up to date**
+  is set to Daily or Weekly (the default is Off).
 
 ## Current app and USB backup — 22 October 2026
 
@@ -18,7 +31,8 @@ Grant authorized cleaning this E: workspace. Redundant app distributions, old
 release ZIPs, rebuildable outputs and scratch test profiles were removed:
 140,278 files, about 19.6 GB of logical file data. Two exact recovery ZIPs are in
 **Backup**, with manifests, checksums and restore instructions: the current one
-(`Aviary-AB5-fixes-local-win-x64.zip`) and the previous build as a rollback.
+(`Aviary-AB5-sdk25-local-win-x64.zip`, 23 October) and the previous build as a rollback
+(`Aviary-AB5-prism2-local-win-x64.zip`); two older ones are kept. `Backup/README.txt` says which is which.
 Copy that folder to USB for the app backup; copy the whole cleaned Zoo folder,
 including hidden `.git`, to retain development sources/history too.
 The backup contains private Collection projects; keep it local.
@@ -148,6 +162,9 @@ preflight failure makes no changes. Do not use sync to repair or edit original p
 - [Live Settings and size-display verification](tools/test/SETTINGS-LIVE-2026-10-21.md)
 - [Continuation checkpoint](AB5-CONTINUE.md)
 - [Project handoff and working rules](HANDOFF.md)
+- [Prism 2 fixes and account groundwork, 23 Oct](docs/PRISM2-AND-ACCOUNTS-PREP-2026-10-23.md)
+- [Windows App SDK 2.5.1, Win2D 1.4.0 and the list refresh, 23 Oct](docs/SDK-2.5-MIGRATION-2026-10-23.md)
+- [Privacy and security before accounts](docs/SECURITY.md)
 - [Test kit](tools/test/README.md)
 - [Review of the AB5 work and the fixes that followed, 22 Oct](AVIARY-REVIEW-2026-10-22.md) (and the earlier [playtest review, 23 Sep](AVIARY-REVIEW-2026-09-23.md))
 
