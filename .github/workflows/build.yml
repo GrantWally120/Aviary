@@ -47,6 +47,8 @@ jobs:
           if ($LASTEXITCODE) { throw 'Collection checks failed' }
           node tools/test/release-state-test.js
           if ($LASTEXITCODE) { throw 'Release state checks failed' }
+          node tools/test/prism2-tokens-test.js
+          if ($LASTEXITCODE) { throw 'Prism 2 token checks failed' }
           dotnet run --project tools/test/filters/FilterHarness.csproj -c Release
           if ($LASTEXITCODE) { throw 'Filter checks failed' }
           dotnet run --project tools/test/security/SecurityHarness.csproj -c Release

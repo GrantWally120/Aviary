@@ -35,13 +35,17 @@
         <ResourceDictionary x:Key="Light">
             <!-- rgba(255,255,255,0.44). High alpha kills the premise: above about 0.60 you
                  stop seeing content move underneath and it stops being glass. -->
-            <SolidColorBrush x:Key="AvChromeBrush"          Color="#70FFFFFF" />
             <SolidColorBrush x:Key="AvPageBrush"            Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="AvHairlineBrush"        Color="#12000000" />
 
-            <SolidColorBrush x:Key="AvLabelBrush"           Color="#D9000000" />
-            <SolidColorBrush x:Key="AvLabelSecondaryBrush"  Color="#993C3C43" />
-            <SolidColorBrush x:Key="AvLabelTertiaryBrush"   Color="#4D3C3C43" />
+            <!-- prism2:begin labels-light -->
+            <!-- Generated from design/prism2.tokens.json (tools/design/prism2.js). The chrome is the glass fill; the three labels
+                 are what text on it is drawn with: all three pass 4.5:1 on the glass colour assumed in the token file (P2-6). -->
+            <SolidColorBrush x:Key="AvChromeBrush"         Color="#70FFFFFF" />
+            <SolidColorBrush x:Key="AvLabelBrush"          Color="#D9000000" />
+            <SolidColorBrush x:Key="AvLabelSecondaryBrush" Color="#CC3C3C43" />
+            <SolidColorBrush x:Key="AvLabelTertiaryBrush"  Color="#C73C3C43" />
+            <!-- prism2:end labels-light -->
             <SolidColorBrush x:Key="AvIconBrush"            Color="#B8000000" />
 
             <SolidColorBrush x:Key="AvHoverBrush"           Color="#24787880" />
@@ -99,34 +103,41 @@
                  Ring: the 157° rim, bright at the poles and nearly gone on the flanks — only its
                  COLOURS live here; its direction is computed per capsule in absolute coordinates.
                  Shadow: CSS box-shadow numbers, "dx,dy,blur,alpha;…" in DIPs. -->
+            <!-- prism2:begin glass-light -->
+            <!-- Generated from design/prism2.tokens.json (tools/design/prism2.js). Sheen, ring and shadow are the web recipe's numbers. -->
             <LinearGradientBrush x:Key="AvGlassSheenBrush" StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Offset="0"    Color="#57FFFFFF" />
-                <GradientStop Offset="0.38" Color="#14FFFFFF" />
-                <GradientStop Offset="0.58" Color="#00FFFFFF" />
-                <GradientStop Offset="1"    Color="#0FFFFFFF" />
+                <GradientStop Offset="0"     Color="#57FFFFFF" />
+                <GradientStop Offset="0.38"  Color="#14FFFFFF" />
+                <GradientStop Offset="0.58"  Color="#00FFFFFF" />
+                <GradientStop Offset="1"     Color="#0FFFFFFF" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="AvGlassRingBrush">
-                <GradientStop Offset="0"    Color="#F2FFFFFF" />
-                <GradientStop Offset="0.14" Color="#6BFFFFFF" />
-                <GradientStop Offset="0.34" Color="#1AFFFFFF" />
-                <GradientStop Offset="0.52" Color="#0FFFFFFF" />
-                <GradientStop Offset="0.70" Color="#29FFFFFF" />
-                <GradientStop Offset="0.88" Color="#8CFFFFFF" />
-                <GradientStop Offset="1"    Color="#EBFFFFFF" />
+                <GradientStop Offset="0"     Color="#F2FFFFFF" />
+                <GradientStop Offset="0.14"  Color="#6BFFFFFF" />
+                <GradientStop Offset="0.34"  Color="#1AFFFFFF" />
+                <GradientStop Offset="0.52"  Color="#0FFFFFFF" />
+                <GradientStop Offset="0.7"   Color="#29FFFFFF" />
+                <GradientStop Offset="0.88"  Color="#8CFFFFFF" />
+                <GradientStop Offset="1"     Color="#EBFFFFFF" />
             </LinearGradientBrush>
             <x:String x:Key="AvGlassShadowSpec">0,1,1,0.05;0,3,8,0.07;0,10,28,0.13</x:String>
+            <!-- prism2:end glass-light -->
         </ResourceDictionary>
 
         <ResourceDictionary x:Key="Dark">
             <!-- Dark glass is a different recipe, not an inversion: higher fill alpha, and
                  a cool bias (blue channel above red) because a neutral #1C1C1E looks dead. -->
-            <SolidColorBrush x:Key="AvChromeBrush"          Color="#851E1F24" />
             <SolidColorBrush x:Key="AvPageBrush"            Color="#FF1C1C1E" />
             <SolidColorBrush x:Key="AvHairlineBrush"        Color="#14FFFFFF" />
 
-            <SolidColorBrush x:Key="AvLabelBrush"           Color="#EBFFFFFF" />
-            <SolidColorBrush x:Key="AvLabelSecondaryBrush"  Color="#99EBEBF5" />
-            <SolidColorBrush x:Key="AvLabelTertiaryBrush"   Color="#4DEBEBF5" />
+            <!-- prism2:begin labels-dark -->
+            <!-- Generated from design/prism2.tokens.json (tools/design/prism2.js). The chrome is the glass fill; the three labels
+                 are what text on it is drawn with: all three pass 4.5:1 on the glass colour assumed in the token file (P2-6). -->
+            <SolidColorBrush x:Key="AvChromeBrush"         Color="#851E1F24" />
+            <SolidColorBrush x:Key="AvLabelBrush"          Color="#EBFFFFFF" />
+            <SolidColorBrush x:Key="AvLabelSecondaryBrush" Color="#C7EBEBF5" />
+            <SolidColorBrush x:Key="AvLabelTertiaryBrush"  Color="#B3EBEBF5" />
+            <!-- prism2:end labels-dark -->
             <!-- Icons stop at 0.80, not 0.92: full-white strokes halate against bright
                  blurred content behind the glass. -->
             <SolidColorBrush x:Key="AvIconBrush"            Color="#CCFFFFFF" />
@@ -181,22 +192,25 @@
 
             <!-- LIQUID GLASS CAPSULE — Phase 0's dark recipe: a dimmer sheen and ring, and about four
                  times the shadow, because a dark bar on a dark desktop needs the depth to read at all. -->
+            <!-- prism2:begin glass-dark -->
+            <!-- Generated from design/prism2.tokens.json (tools/design/prism2.js). Sheen, ring and shadow are the web recipe's numbers. -->
             <LinearGradientBrush x:Key="AvGlassSheenBrush" StartPoint="0,0" EndPoint="0,1">
-                <GradientStop Offset="0"    Color="#1AFFFFFF" />
-                <GradientStop Offset="0.34" Color="#08FFFFFF" />
-                <GradientStop Offset="0.60" Color="#00FFFFFF" />
-                <GradientStop Offset="1"    Color="#05FFFFFF" />
+                <GradientStop Offset="0"     Color="#1AFFFFFF" />
+                <GradientStop Offset="0.34"  Color="#08FFFFFF" />
+                <GradientStop Offset="0.6"   Color="#00FFFFFF" />
+                <GradientStop Offset="1"     Color="#05FFFFFF" />
             </LinearGradientBrush>
             <LinearGradientBrush x:Key="AvGlassRingBrush">
-                <GradientStop Offset="0"    Color="#57FFFFFF" />
-                <GradientStop Offset="0.16" Color="#29FFFFFF" />
-                <GradientStop Offset="0.38" Color="#0DFFFFFF" />
-                <GradientStop Offset="0.54" Color="#08FFFFFF" />
-                <GradientStop Offset="0.72" Color="#12FFFFFF" />
-                <GradientStop Offset="0.90" Color="#38FFFFFF" />
-                <GradientStop Offset="1"    Color="#61FFFFFF" />
+                <GradientStop Offset="0"     Color="#57FFFFFF" />
+                <GradientStop Offset="0.16"  Color="#29FFFFFF" />
+                <GradientStop Offset="0.38"  Color="#0DFFFFFF" />
+                <GradientStop Offset="0.54"  Color="#08FFFFFF" />
+                <GradientStop Offset="0.72"  Color="#12FFFFFF" />
+                <GradientStop Offset="0.9"   Color="#38FFFFFF" />
+                <GradientStop Offset="1"     Color="#61FFFFFF" />
             </LinearGradientBrush>
             <x:String x:Key="AvGlassShadowSpec">0,1,2,0.36;0,4,12,0.42;0,14,40,0.56</x:String>
+            <!-- prism2:end glass-dark -->
         </ResourceDictionary>
 
         <!-- Required, and deliberately NOT glassy. Contrast themes exist to remove

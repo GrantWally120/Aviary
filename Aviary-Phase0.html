@@ -341,16 +341,22 @@ body[data-view="sheet"] .sheet{ display:grid; }
   --spring:linear(0,.0027 2%,.0554 6.9%,.2137 12.5%,.4187 18.1%,.6239 23.7%,.7996 29.4%,.9308 35.2%,1.0159 41%,1.0587 46.9%,1.0703 55.8%,1.0509 67.4%,1.0148 82.4%,1);
 }
 .win[data-theme="glass"][data-appearance="light"]{
+  /* prism2:begin glass-light */
   --lg-backdrop:blur(24px) saturate(180%) brightness(1.06);
   --lg-fill:rgba(255,255,255,.44);
+  --lg-fill-read:rgba(255,255,255,.64);
   --lg-warm:rgba(255,249,242,.05);
   --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 58%,rgba(255,255,255,.06) 100%);
-  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.42) 14%,rgba(255,255,255,.10) 34%,rgba(255,255,255,.06) 52%,rgba(255,255,255,.16) 70%,rgba(255,255,255,.55) 88%,rgba(255,255,255,.92) 100%);
+  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.42) 14%,rgba(255,255,255,.1) 34%,rgba(255,255,255,.06) 52%,rgba(255,255,255,.16) 70%,rgba(255,255,255,.55) 88%,rgba(255,255,255,.92) 100%);
   --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.78);
   --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.09);
   --lg-hairline:0 0 0 .5px rgba(0,0,0,.07);
   --lg-shadow:0 1px 1px rgba(0,0,0,.05),0 3px 8px rgba(0,0,0,.07),0 10px 28px rgba(0,0,0,.13);
   --lg-rim:blur(2px) brightness(1.22) saturate(150%);
+  --lg-rim-w:7px;
+  --lg-opaque:rgba(244,247,252,1);
+  --lg-edge-strong:rgba(0,0,0,.72);
+/* prism2:end glass-light */
   --pill-fill:rgba(120,120,128,.12);
   --pill-inner:inset 0 1px 1.5px rgba(0,0,0,.10),inset 0 0 0 .5px rgba(0,0,0,.05),inset 0 -1px 0 rgba(255,255,255,.42);
   --btn-hover:rgba(120,120,128,.14);
@@ -366,16 +372,22 @@ body[data-view="sheet"] .sheet{ display:grid; }
 .win[data-theme="glass"][data-appearance="dark"]{
   /* Dark glass is a different recipe, not an inversion: less saturation,
      more blur, higher fill alpha, white specular, ~4x shadow alpha. */
+  /* prism2:begin glass-dark */
   --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
   --lg-fill:rgba(30,31,36,.52);
+  --lg-fill-read:rgba(24,26,32,.7);
   --lg-warm:rgba(120,150,200,.04);
-  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
+  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
   --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
-  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.20);
-  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.50);
+  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.2);
+  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.5);
   --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
   --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
   --lg-rim:blur(2px) brightness(1.30) saturate(130%);
+  --lg-rim-w:7px;
+  --lg-opaque:rgba(30,32,38,1);
+  --lg-edge-strong:rgba(255,255,255,.82);
+/* prism2:end glass-dark */
   --pill-fill:rgba(118,118,128,.24);
   --pill-inner:inset 0 1px 2px rgba(0,0,0,.32),inset 0 0 0 .5px rgba(0,0,0,.22),inset 0 -1px 0 rgba(255,255,255,.10);
   --btn-hover:rgba(235,235,245,.13);
@@ -389,24 +401,25 @@ body[data-view="sheet"] .sheet{ display:grid; }
   --sheet-ring:inset 0 0 0 .5px rgba(255,255,255,.10);
 }
 
-/* The five-layer capsule. Order matters: backdrop → fill → rim → sheen → ring. */
+/* The capsule. Body (blur, fill, sheen) and rim are SIBLINGS that never overlap: the body is masked to the interior,
+   the rim to the outer band, so the rim lenses the page instead of re-blurring the body (Prism 2, 23 Oct 2026; the nested
+   rim measured 39 px of edge blur, the same as none). Same construction as Aviary.html's .gl. */
 .gcap{
   position:relative; isolation:isolate; overflow:hidden;   /* nothing escapes the silhouette */
   display:flex; align-items:center; gap:2px;
   padding:var(--lg-pad);
-  -webkit-backdrop-filter:var(--lg-backdrop);
-  backdrop-filter:var(--lg-backdrop);
-  background-color:var(--lg-fill);
-  background-image:linear-gradient(var(--lg-warm),var(--lg-warm));
+  --gl-fill:var(--lg-fill);
   box-shadow:var(--lg-edge-top),var(--lg-edge-bot),var(--lg-hairline),var(--lg-shadow);
 }
-.gcap::before{                      /* body sheen */
-  content:""; position:absolute; inset:0; border-radius:inherit;
-  background:var(--lg-sheen); pointer-events:none; z-index:1;
+.gcap::before{                      /* the BODY: blur, fill and sheen over the interior only */
+  content:""; position:absolute; inset:0; border-radius:inherit; z-index:0; pointer-events:none;
+  padding:var(--lg-rim-w);
+  -webkit-backdrop-filter:var(--lg-backdrop); backdrop-filter:var(--lg-backdrop);
+  background:var(--lg-sheen),linear-gradient(var(--lg-warm),var(--lg-warm)),var(--gl-fill);
+  -webkit-mask:linear-gradient(#000 0 0) content-box; mask:linear-gradient(#000 0 0) content-box;
 }
-.gcap::after{                       /* 1px gradient ring — bright at the poles,
-                                       near-invisible at the flanks. The single
-                                       loudest tell of a fake is a uniform border. */
+.gcap::after{                       /* 1px gradient ring: bright at the poles, near-invisible at the flanks.
+                                       The single loudest tell of a fake is a uniform border. */
   content:""; position:absolute; inset:0; border-radius:inherit;
   padding:1px; background:var(--lg-ring);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
@@ -415,18 +428,51 @@ body[data-view="sheet"] .sheet{ display:grid; }
   pointer-events:none; z-index:2;
 }
 .gcap > *{ position:relative; z-index:3; }
-.grim{                              /* refraction rim: LESS blur, MORE brightness
-                                       than the centre. That differential is what
-                                       the eye reads as lensing. */
-  position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:1;
-  -webkit-backdrop-filter:var(--lg-rim);
-  backdrop-filter:var(--lg-rim);
-  transform:scale(1.012);
-  padding:7px;
+.grim{                              /* the RIM: less blur, more brightness than the body, in the outer band only */
+  position:absolute!important; inset:0; border-radius:inherit; pointer-events:none; z-index:1!important;
+  -webkit-backdrop-filter:var(--lg-rim); backdrop-filter:var(--lg-rim);
+  background:var(--gl-fill);
+  transform:scale(1.012); padding:var(--lg-rim-w);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
           mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
 }
+/* prism2:begin modes */
+/* ── Settings the material answers to (P1-8 / P2-4): reduced transparency, increased contrast, forced colours,
+   and a browser without backdrop-filter. Glass becomes an opaque surface with a visible edge. ── */
+@media (prefers-reduced-transparency:reduce){
+  .gcap::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+  .grim{display:none!important;}
+}
+:root[data-prism-mode~="reduced-transparency"] .gcap::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+:root[data-prism-mode~="reduced-transparency"] .grim{display:none!important;}
+@media (prefers-contrast:more){
+  :root{--txt-2:var(--txt-1);--txt-3:var(--txt-1);--accent-btn:#0050A8;--lg-ring:none;}
+  .gcap::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+  .grim{display:none!important;}
+  .gcap{box-shadow:0 0 0 1.5px var(--lg-edge-strong),var(--lg-shadow);}
+  .gcap::after{display:none;}
+}
+:root[data-prism-mode~="contrast"]{--txt-2:var(--txt-1);--txt-3:var(--txt-1);--accent-btn:#0050A8;--lg-ring:none;}
+:root[data-prism-mode~="contrast"] .gcap::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+:root[data-prism-mode~="contrast"] .grim{display:none!important;}
+:root[data-prism-mode~="contrast"] .gcap{box-shadow:0 0 0 1.5px var(--lg-edge-strong),var(--lg-shadow);}
+:root[data-prism-mode~="contrast"] .gcap::after{display:none;}
+@media (forced-colors:active){
+  .gcap{background:Canvas;border:1px solid CanvasText;box-shadow:none;}
+  .gcap::before,.gcap::after,.grim{display:none!important;}
+  .field{display:none;}
+}
+:root[data-prism-mode~="forced-colors"] .gcap{background:Canvas;border:1px solid CanvasText;box-shadow:none;}
+:root[data-prism-mode~="forced-colors"] .gcap::before,:root[data-prism-mode~="forced-colors"] .gcap::after,:root[data-prism-mode~="forced-colors"] .grim{display:none!important;}
+:root[data-prism-mode~="forced-colors"] .field{display:none;}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .gcap::before{background:var(--lg-opaque);}
+  .grim{display:none!important;}
+}
+:root[data-prism-mode~="no-backdrop"] .gcap::before{background:var(--lg-opaque);-webkit-backdrop-filter:none;backdrop-filter:none;}
+:root[data-prism-mode~="no-backdrop"] .grim{display:none!important;}
+/* prism2:end modes */
 
 /* Glass toolbar: a stadium. radius = height ÷ 2, exactly. 16px reads as Chrome. */
 .g-toolbar{ height:48px; border-radius:24px; }

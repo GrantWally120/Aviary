@@ -1,0 +1,126 @@
+{
+  "_about": "Prism 2 (Aviary's Liquid Glass): the one source of every number. tools/design/prism2.js writes it into Aviary.html, Aviary-Phase0.html, Prism2-Specimen.html and Themes/LiquidGlass.xaml between 'prism2:begin' / 'prism2:end' markers; tools/test/prism2-tokens-test.js fails if any copy drifts. Edit THIS file, run 'node tools/design/prism2.js build', never the generated regions. Colours are [r,g,b,alpha]; stops are [offset,alpha]; shadows are [dx,dy,blur,alpha] in px (XAML: DIPs).",
+  "_review": "22-23 Oct 2026, from the 2 Oct 2026 Prism review (P2-1 text and button contrast, P2-2 rim, P2-4 settings, P2-5 one source). Text alphas, button blues and tag inks were chosen by pixel-sampled measurement on the real landing page (tools/test/prism/contrast.js), not by eye.",
+
+  "rimWidth": "7px",
+
+  "glass": {
+    "light": {
+      "backdrop": "blur(24px) saturate(180%) brightness(1.06)",
+      "fill": [255, 255, 255, 0.44],
+      "fillRead": [255, 255, 255, 0.64],
+      "warm": [255, 249, 242, 0.05],
+      "sheen": { "rgb": [255, 255, 255], "stops": [[0, 0.34], [0.38, 0.08], [0.58, 0], [1, 0.06]] },
+      "ring": { "rgb": [255, 255, 255], "angle": 157, "stops": [[0, 0.95], [0.14, 0.42], [0.34, 0.10], [0.52, 0.06], [0.70, 0.16], [0.88, 0.55], [1, 0.92]] },
+      "edgeTop": [255, 255, 255, 0.78],
+      "edgeBottom": [0, 0, 0, 0.09],
+      "hairline": [0, 0, 0, 0.07],
+      "shadow": [[0, 1, 1, 0.05], [0, 3, 8, 0.07], [0, 10, 28, 0.13]],
+      "rim": "blur(2px) brightness(1.22) saturate(150%)",
+      "opaque": [244, 247, 252, 1],
+      "edgeStrong": [0, 0, 0, 0.72]
+    },
+    "dark": {
+      "backdrop": "blur(28px) saturate(150%) brightness(.74) contrast(1.06)",
+      "fill": [30, 31, 36, 0.52],
+      "fillRead": [24, 26, 32, 0.70],
+      "warm": [120, 150, 200, 0.04],
+      "sheen": { "rgb": [255, 255, 255], "stops": [[0, 0.10], [0.34, 0.03], [0.60, 0], [1, 0.02]] },
+      "ring": { "rgb": [255, 255, 255], "angle": 157, "stops": [[0, 0.34], [0.16, 0.16], [0.38, 0.05], [0.54, 0.03], [0.72, 0.07], [0.90, 0.22], [1, 0.38]] },
+      "edgeTop": [255, 255, 255, 0.20],
+      "edgeBottom": [0, 0, 0, 0.50],
+      "hairline": [255, 255, 255, 0.08],
+      "shadow": [[0, 1, 2, 0.36], [0, 4, 12, 0.42], [0, 14, 40, 0.56]],
+      "rim": "blur(2px) brightness(1.30) saturate(130%)",
+      "opaque": [30, 32, 38, 1],
+      "edgeStrong": [255, 255, 255, 0.82]
+    }
+  },
+
+  "web": {
+    "shared": {
+      "--display": "\"Segoe UI Variable Display\",\"Segoe UI Variable\",\"Segoe UI\",system-ui,-apple-system,sans-serif",
+      "--ui": "\"Segoe UI Variable Text\",\"Segoe UI Variable\",\"Segoe UI\",system-ui,-apple-system,sans-serif",
+      "--serif": "\"Fraunces\",Georgia,\"Times New Roman\",serif",
+      "--mono": "\"Cascadia Mono\",\"Cascadia Code\",Consolas,ui-monospace,monospace",
+      "--e-glass": "cubic-bezier(.32,.72,0,1)",
+      "--spring": "linear(0,.0027 2%,.0554 6.9%,.2137 12.5%,.4187 18.1%,.6239 23.7%,.7996 29.4%,.9308 35.2%,1.0159 41%,1.0587 46.9%,1.0703 55.8%,1.0509 67.4%,1.0148 82.4%,1)"
+    },
+    "light": {
+      "--bg": "#E8EEF6",
+      "--f1": "#73BDFF", "--f2": "#5CD6C1", "--f3": "#FFC56A", "--f4": "#B7A0FF", "--f5": "#FF9C86",
+      "--field-op": ".78",
+      "--txt-1": "rgba(0,0,0,.86)",
+      "--txt-2": "rgba(40,44,54,.80)",
+      "--txt-3": "rgba(40,44,54,.76)",
+      "--accent": "#007AFF",
+      "--accent-btn": "#0071E3",
+      "--accent-ink": "#0062C8",
+      "--ok": "#1FA34A", "--warm": "#C47A00",
+      "--ok-solid": "#0F7A32", "--warm-solid": "#8F5600",
+      "--ok-ink": "#0B6A2A", "--warm-ink": "#7D4B00",
+      "--brass": "#8C6716", "--brass-lit": "#B98F2E",
+      "--sep": "rgba(0,0,0,.09)",
+      "--pill-fill": "rgba(120,120,128,.12)",
+      "--pill-inner": "inset 0 1px 1.5px rgba(0,0,0,.10),inset 0 0 0 .5px rgba(0,0,0,.05),inset 0 -1px 0 rgba(255,255,255,.42)",
+      "--btn-hover": "rgba(120,120,128,.14)",
+      "--btn-press": "rgba(120,120,128,.22)",
+      "--tab-active": "rgba(255,255,255,.72)",
+      "--tab-active-sh": "0 1px 2px rgba(0,0,0,.10),0 4px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.95)",
+      "--icon": "rgba(0,0,0,.72)",
+      "--raised": "rgba(255,255,255,.66)",
+      "--page": "#FBFCFE", "--page-ink": "rgba(0,0,0,.84)", "--page-ink-2": "rgba(0,0,0,.46)", "--page-line": "rgba(0,0,0,.07)",
+      "--cl-base": "#EDEDED", "--cl-hair": "rgba(0,0,0,.16)", "--cl-icon": "rgba(0,0,0,.75)", "--cl-field": "rgba(0,0,0,.055)",
+      "--cl-tab-active": "rgba(255,255,255,.72)", "--cl-tab-sep": "rgba(0,0,0,.13)", "--cl-label": "rgba(0,0,0,.85)",
+      "--frame": "rgba(0,0,0,.18)", "--frame-shadow": "0 2px 6px rgba(0,0,0,.08),0 24px 60px rgba(20,40,80,.22)"
+    },
+    "dark": {
+      "--bg": "#070A10",
+      "--f1": "#1F5FC4", "--f2": "#0C7C73", "--f3": "#8A5316", "--f4": "#5B3BB0", "--f5": "#8E2F4A",
+      "--field-op": ".62",
+      "--txt-1": "rgba(255,255,255,.93)",
+      "--txt-2": "rgba(235,235,245,.78)",
+      "--txt-3": "rgba(235,235,245,.72)",
+      "--accent": "#0A84FF",
+      "--accent-btn": "#0A6FDB",
+      "--accent-ink": "#5AB0FF",
+      "--ok": "#30D158", "--warm": "#FFB340",
+      "--ok-solid": "#0F7A32", "--warm-solid": "#9A5B00",
+      "--ok-ink": "#30D158", "--warm-ink": "#FFB340",
+      "--brass": "#D8B15C", "--brass-lit": "#F0CE84",
+      "--sep": "rgba(255,255,255,.11)",
+      "--pill-fill": "rgba(118,118,128,.24)",
+      "--pill-inner": "inset 0 1px 2px rgba(0,0,0,.32),inset 0 0 0 .5px rgba(0,0,0,.22),inset 0 -1px 0 rgba(255,255,255,.10)",
+      "--btn-hover": "rgba(235,235,245,.13)",
+      "--btn-press": "rgba(235,235,245,.20)",
+      "--tab-active": "rgba(255,255,255,.14)",
+      "--tab-active-sh": "0 1px 3px rgba(0,0,0,.40),inset 0 1px 0 rgba(255,255,255,.22)",
+      "--icon": "rgba(255,255,255,.80)",
+      "--raised": "rgba(255,255,255,.06)",
+      "--page": "#16181D", "--page-ink": "rgba(255,255,255,.90)", "--page-ink-2": "rgba(235,235,245,.50)", "--page-line": "rgba(255,255,255,.07)",
+      "--cl-base": "#2E2E2E", "--cl-hair": "rgba(255,255,255,.12)", "--cl-icon": "rgba(255,255,255,.85)", "--cl-field": "rgba(255,255,255,.10)",
+      "--cl-tab-active": "rgba(255,255,255,.14)", "--cl-tab-sep": "rgba(255,255,255,.16)", "--cl-label": "rgba(255,255,255,.92)",
+      "--frame": "rgba(255,255,255,.14)", "--frame-shadow": "0 2px 8px rgba(0,0,0,.5),0 28px 70px rgba(0,0,0,.6)"
+    }
+  },
+
+  "native": {
+    "_about": "Aviary's Windows app has no backdrop blur (WebView2 cannot slide a page under the bars), so it keeps the sheen, ring, shadow and press and takes its label colours from here. Label alphas were raised after the review calculated 3.3:1 and 1.7:1 for the secondary and tertiary labels on light glass (P2-6); the new values are checked in tools/test/prism2-tokens-test.js against the assumed glass colours below.",
+    "light": {
+      "glassUnder": [244, 247, 252],
+      "chrome": [255, 255, 255, 0.44],
+      "label": [0, 0, 0, 0.85],
+      "labelSecondary": [60, 60, 67, 0.80],
+      "labelTertiary": [60, 60, 67, 0.78],
+      "fieldFill": [120, 120, 128, 0.12]
+    },
+    "dark": {
+      "glassUnder": [34, 35, 40],
+      "chrome": [30, 31, 36, 0.52],
+      "label": [255, 255, 255, 0.92],
+      "labelSecondary": [235, 235, 245, 0.78],
+      "labelTertiary": [235, 235, 245, 0.70],
+      "fieldFill": [118, 118, 128, 0.24]
+    }
+  }
+}

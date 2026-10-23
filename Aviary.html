@@ -17,10 +17,9 @@
   document.documentElement.setAttribute("data-ui",ui);
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<!-- Roman 300/500/700 and italic 400/500: the Legacy page's headings use 300 and 700. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400;1,9..144,500&display=swap">
+<!-- No web font is fetched: this is the project page of a privacy browser, and a font request tells a third party who
+     opened it. Fraunces is used where it is installed; Georgia (serif, with a real italic) stands in everywhere else
+     (--serif in design/prism2.tokens.json). The page makes no network request of its own. -->
 <style>
 /* ════════════════════════════════════════════════════════════════════════
    AVIARY — project site. Redesigned 14 Sep 2026 as a glass showcase (Grant's pick):
@@ -42,29 +41,33 @@
    if they ever change, change both.
    ════════════════════════════════════════════════════════════════════════ */
 
+/* prism2:begin tokens */
+/* Generated from design/prism2.tokens.json by tools/design/prism2.js. Edit the JSON, not this block. */
+
 /* ── Light: noon over a conservatory ─────────────────────────────────── */
 :root, .is-light{
   --bg:#E8EEF6;
-  --f1:#73BDFF; --f2:#5CD6C1; --f3:#FFC56A; --f4:#B7A0FF; --f5:#FF9C86;
+  --f1:#73BDFF;
+  --f2:#5CD6C1;
+  --f3:#FFC56A;
+  --f4:#B7A0FF;
+  --f5:#FF9C86;
   --field-op:.78;
-
-  --txt-1:rgba(0,0,0,.86); --txt-2:rgba(40,44,54,.68); --txt-3:rgba(40,44,54,.44);
-  --accent:#007AFF; --ok:#1FA34A; --warm:#C47A00;
-  --brass:#8C6716; --brass-lit:#B98F2E;
+  --txt-1:rgba(0,0,0,.86);
+  --txt-2:rgba(40,44,54,.80);
+  --txt-3:rgba(40,44,54,.76);
+  --accent:#007AFF;
+  --accent-btn:#0071E3;
+  --accent-ink:#0062C8;
+  --ok:#1FA34A;
+  --warm:#C47A00;
+  --ok-solid:#0F7A32;
+  --warm-solid:#8F5600;
+  --ok-ink:#0B6A2A;
+  --warm-ink:#7D4B00;
+  --brass:#8C6716;
+  --brass-lit:#B98F2E;
   --sep:rgba(0,0,0,.09);
-
-  /* Phase 0's light recipe, verbatim — backdrop → fill → rim → sheen → ring. */
-  --lg-backdrop:blur(24px) saturate(180%) brightness(1.06);
-  --lg-fill:rgba(255,255,255,.44);
-  --lg-fill-read:rgba(255,255,255,.64);   /* the "regular" material: text sits on it */
-  --lg-warm:rgba(255,249,242,.05);
-  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 58%,rgba(255,255,255,.06) 100%);
-  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.42) 14%,rgba(255,255,255,.10) 34%,rgba(255,255,255,.06) 52%,rgba(255,255,255,.16) 70%,rgba(255,255,255,.55) 88%,rgba(255,255,255,.92) 100%);
-  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.78);
-  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.09);
-  --lg-hairline:0 0 0 .5px rgba(0,0,0,.07);
-  --lg-shadow:0 1px 1px rgba(0,0,0,.05),0 3px 8px rgba(0,0,0,.07),0 10px 28px rgba(0,0,0,.13);
-  --lg-rim:blur(2px) brightness(1.22) saturate(150%);
   --pill-fill:rgba(120,120,128,.12);
   --pill-inner:inset 0 1px 1.5px rgba(0,0,0,.10),inset 0 0 0 .5px rgba(0,0,0,.05),inset 0 -1px 0 rgba(255,255,255,.42);
   --btn-hover:rgba(120,120,128,.14);
@@ -73,14 +76,33 @@
   --tab-active-sh:0 1px 2px rgba(0,0,0,.10),0 4px 10px rgba(0,0,0,.06),inset 0 1px 0 rgba(255,255,255,.95);
   --icon:rgba(0,0,0,.72);
   --raised:rgba(255,255,255,.66);
-
-  /* The page inside the demo window. */
-  --page:#FBFCFE; --page-ink:rgba(0,0,0,.84); --page-ink-2:rgba(0,0,0,.46); --page-line:rgba(0,0,0,.07);
-  /* Classic (Safari 15–18), for the "Two looks" window — Phase 0's values. */
-  --cl-base:#EDEDED; --cl-hair:rgba(0,0,0,.16); --cl-icon:rgba(0,0,0,.75); --cl-field:rgba(0,0,0,.055);
-  --cl-tab-active:rgba(255,255,255,.72); --cl-tab-sep:rgba(0,0,0,.13); --cl-label:rgba(0,0,0,.85);
-  --frame:rgba(0,0,0,.18); --frame-shadow:0 2px 6px rgba(0,0,0,.08),0 24px 60px rgba(20,40,80,.22);
-
+  --page:#FBFCFE;
+  --page-ink:rgba(0,0,0,.84);
+  --page-ink-2:rgba(0,0,0,.46);
+  --page-line:rgba(0,0,0,.07);
+  --cl-base:#EDEDED;
+  --cl-hair:rgba(0,0,0,.16);
+  --cl-icon:rgba(0,0,0,.75);
+  --cl-field:rgba(0,0,0,.055);
+  --cl-tab-active:rgba(255,255,255,.72);
+  --cl-tab-sep:rgba(0,0,0,.13);
+  --cl-label:rgba(0,0,0,.85);
+  --frame:rgba(0,0,0,.18);
+  --frame-shadow:0 2px 6px rgba(0,0,0,.08),0 24px 60px rgba(20,40,80,.22);
+  --lg-backdrop:blur(24px) saturate(180%) brightness(1.06);
+  --lg-fill:rgba(255,255,255,.44);
+  --lg-fill-read:rgba(255,255,255,.64);
+  --lg-warm:rgba(255,249,242,.05);
+  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.08) 38%,rgba(255,255,255,0) 58%,rgba(255,255,255,.06) 100%);
+  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.42) 14%,rgba(255,255,255,.1) 34%,rgba(255,255,255,.06) 52%,rgba(255,255,255,.16) 70%,rgba(255,255,255,.55) 88%,rgba(255,255,255,.92) 100%);
+  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.78);
+  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.09);
+  --lg-hairline:0 0 0 .5px rgba(0,0,0,.07);
+  --lg-shadow:0 1px 1px rgba(0,0,0,.05),0 3px 8px rgba(0,0,0,.07),0 10px 28px rgba(0,0,0,.13);
+  --lg-rim:blur(2px) brightness(1.22) saturate(150%);
+  --lg-rim-w:7px;
+  --lg-opaque:rgba(244,247,252,1);
+  --lg-edge-strong:rgba(0,0,0,.72);
   --display:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
   --ui:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
   --serif:"Fraunces",Georgia,"Times New Roman",serif;
@@ -94,23 +116,27 @@
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     --bg:#070A10;
-    --f1:#1F5FC4; --f2:#0C7C73; --f3:#8A5316; --f4:#5B3BB0; --f5:#8E2F4A;
+    --f1:#1F5FC4;
+    --f2:#0C7C73;
+    --f3:#8A5316;
+    --f4:#5B3BB0;
+    --f5:#8E2F4A;
     --field-op:.62;
-    --txt-1:rgba(255,255,255,.93); --txt-2:rgba(235,235,245,.64); --txt-3:rgba(235,235,245,.38);
-    --accent:#0A84FF; --ok:#30D158; --warm:#FFB340;
-    --brass:#D8B15C; --brass-lit:#F0CE84;
+    --txt-1:rgba(255,255,255,.93);
+    --txt-2:rgba(235,235,245,.78);
+    --txt-3:rgba(235,235,245,.72);
+    --accent:#0A84FF;
+    --accent-btn:#0A6FDB;
+    --accent-ink:#5AB0FF;
+    --ok:#30D158;
+    --warm:#FFB340;
+    --ok-solid:#0F7A32;
+    --warm-solid:#9A5B00;
+    --ok-ink:#30D158;
+    --warm-ink:#FFB340;
+    --brass:#D8B15C;
+    --brass-lit:#F0CE84;
     --sep:rgba(255,255,255,.11);
-    --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
-    --lg-fill:rgba(30,31,36,.52);
-    --lg-fill-read:rgba(24,26,32,.70);
-    --lg-warm:rgba(120,150,200,.04);
-    --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
-    --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
-    --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.20);
-    --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.50);
-    --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
-    --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
-    --lg-rim:blur(2px) brightness(1.30) saturate(130%);
     --pill-fill:rgba(118,118,128,.24);
     --pill-inner:inset 0 1px 2px rgba(0,0,0,.32),inset 0 0 0 .5px rgba(0,0,0,.22),inset 0 -1px 0 rgba(255,255,255,.10);
     --btn-hover:rgba(235,235,245,.13);
@@ -119,32 +145,59 @@
     --tab-active-sh:0 1px 3px rgba(0,0,0,.40),inset 0 1px 0 rgba(255,255,255,.22);
     --icon:rgba(255,255,255,.80);
     --raised:rgba(255,255,255,.06);
-    --page:#16181D; --page-ink:rgba(255,255,255,.90); --page-ink-2:rgba(235,235,245,.50); --page-line:rgba(255,255,255,.07);
-    --cl-base:#2E2E2E; --cl-hair:rgba(255,255,255,.12); --cl-icon:rgba(255,255,255,.85); --cl-field:rgba(255,255,255,.10);
-    --cl-tab-active:rgba(255,255,255,.14); --cl-tab-sep:rgba(255,255,255,.16); --cl-label:rgba(255,255,255,.92);
-    --frame:rgba(255,255,255,.14); --frame-shadow:0 2px 8px rgba(0,0,0,.5),0 28px 70px rgba(0,0,0,.6);
+    --page:#16181D;
+    --page-ink:rgba(255,255,255,.90);
+    --page-ink-2:rgba(235,235,245,.50);
+    --page-line:rgba(255,255,255,.07);
+    --cl-base:#2E2E2E;
+    --cl-hair:rgba(255,255,255,.12);
+    --cl-icon:rgba(255,255,255,.85);
+    --cl-field:rgba(255,255,255,.10);
+    --cl-tab-active:rgba(255,255,255,.14);
+    --cl-tab-sep:rgba(255,255,255,.16);
+    --cl-label:rgba(255,255,255,.92);
+    --frame:rgba(255,255,255,.14);
+    --frame-shadow:0 2px 8px rgba(0,0,0,.5),0 28px 70px rgba(0,0,0,.6);
+    --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
+    --lg-fill:rgba(30,31,36,.52);
+    --lg-fill-read:rgba(24,26,32,.7);
+    --lg-warm:rgba(120,150,200,.04);
+    --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
+    --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
+    --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.2);
+    --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.5);
+    --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
+    --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
+    --lg-rim:blur(2px) brightness(1.30) saturate(130%);
+    --lg-rim-w:7px;
+    --lg-opaque:rgba(30,32,38,1);
+    --lg-edge-strong:rgba(255,255,255,.82);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"], .is-dark{
   --bg:#070A10;
-  --f1:#1F5FC4; --f2:#0C7C73; --f3:#8A5316; --f4:#5B3BB0; --f5:#8E2F4A;
+  --f1:#1F5FC4;
+  --f2:#0C7C73;
+  --f3:#8A5316;
+  --f4:#5B3BB0;
+  --f5:#8E2F4A;
   --field-op:.62;
-  --txt-1:rgba(255,255,255,.93); --txt-2:rgba(235,235,245,.64); --txt-3:rgba(235,235,245,.38);
-  --accent:#0A84FF; --ok:#30D158; --warm:#FFB340;
-  --brass:#D8B15C; --brass-lit:#F0CE84;
+  --txt-1:rgba(255,255,255,.93);
+  --txt-2:rgba(235,235,245,.78);
+  --txt-3:rgba(235,235,245,.72);
+  --accent:#0A84FF;
+  --accent-btn:#0A6FDB;
+  --accent-ink:#5AB0FF;
+  --ok:#30D158;
+  --warm:#FFB340;
+  --ok-solid:#0F7A32;
+  --warm-solid:#9A5B00;
+  --ok-ink:#30D158;
+  --warm-ink:#FFB340;
+  --brass:#D8B15C;
+  --brass-lit:#F0CE84;
   --sep:rgba(255,255,255,.11);
-  --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
-  --lg-fill:rgba(30,31,36,.52);
-  --lg-fill-read:rgba(24,26,32,.70);
-  --lg-warm:rgba(120,150,200,.04);
-  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
-  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
-  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.20);
-  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.50);
-  --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
-  --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
-  --lg-rim:blur(2px) brightness(1.30) saturate(130%);
   --pill-fill:rgba(118,118,128,.24);
   --pill-inner:inset 0 1px 2px rgba(0,0,0,.32),inset 0 0 0 .5px rgba(0,0,0,.22),inset 0 -1px 0 rgba(255,255,255,.10);
   --btn-hover:rgba(235,235,245,.13);
@@ -153,15 +206,40 @@
   --tab-active-sh:0 1px 3px rgba(0,0,0,.40),inset 0 1px 0 rgba(255,255,255,.22);
   --icon:rgba(255,255,255,.80);
   --raised:rgba(255,255,255,.06);
-  --page:#16181D; --page-ink:rgba(255,255,255,.90); --page-ink-2:rgba(235,235,245,.50); --page-line:rgba(255,255,255,.07);
-  --cl-base:#2E2E2E; --cl-hair:rgba(255,255,255,.12); --cl-icon:rgba(255,255,255,.85); --cl-field:rgba(255,255,255,.10);
-  --cl-tab-active:rgba(255,255,255,.14); --cl-tab-sep:rgba(255,255,255,.16); --cl-label:rgba(255,255,255,.92);
-  --frame:rgba(255,255,255,.14); --frame-shadow:0 2px 8px rgba(0,0,0,.5),0 28px 70px rgba(0,0,0,.6);
+  --page:#16181D;
+  --page-ink:rgba(255,255,255,.90);
+  --page-ink-2:rgba(235,235,245,.50);
+  --page-line:rgba(255,255,255,.07);
+  --cl-base:#2E2E2E;
+  --cl-hair:rgba(255,255,255,.12);
+  --cl-icon:rgba(255,255,255,.85);
+  --cl-field:rgba(255,255,255,.10);
+  --cl-tab-active:rgba(255,255,255,.14);
+  --cl-tab-sep:rgba(255,255,255,.16);
+  --cl-label:rgba(255,255,255,.92);
+  --frame:rgba(255,255,255,.14);
+  --frame-shadow:0 2px 8px rgba(0,0,0,.5),0 28px 70px rgba(0,0,0,.6);
+  --lg-backdrop:blur(28px) saturate(150%) brightness(.74) contrast(1.06);
+  --lg-fill:rgba(30,31,36,.52);
+  --lg-fill-read:rgba(24,26,32,.7);
+  --lg-warm:rgba(120,150,200,.04);
+  --lg-sheen:linear-gradient(180deg,rgba(255,255,255,.1) 0%,rgba(255,255,255,.03) 34%,rgba(255,255,255,0) 60%,rgba(255,255,255,.02) 100%);
+  --lg-ring:linear-gradient(157deg,rgba(255,255,255,.34) 0%,rgba(255,255,255,.16) 16%,rgba(255,255,255,.05) 38%,rgba(255,255,255,.03) 54%,rgba(255,255,255,.07) 72%,rgba(255,255,255,.22) 90%,rgba(255,255,255,.38) 100%);
+  --lg-edge-top:inset 0 1px 0 rgba(255,255,255,.2);
+  --lg-edge-bot:inset 0 -1px 0 rgba(0,0,0,.5);
+  --lg-hairline:0 0 0 .5px rgba(255,255,255,.08);
+  --lg-shadow:0 1px 2px rgba(0,0,0,.36),0 4px 12px rgba(0,0,0,.42),0 14px 40px rgba(0,0,0,.56);
+  --lg-rim:blur(2px) brightness(1.30) saturate(130%);
+  --lg-rim-w:7px;
+  --lg-opaque:rgba(30,32,38,1);
+  --lg-edge-strong:rgba(255,255,255,.82);
   color-scheme:dark;
 }
 /* A light window inside a dark page (and back) must win over the root's tokens: its own
    declarations do, because custom properties inherit and an element's own always wins. */
 .is-light{ color-scheme:light; }
+.is-dark{ color-scheme:dark; }
+/* prism2:end tokens */
 
 *{box-sizing:border-box;}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:84px;}
@@ -203,20 +281,25 @@ a{color:inherit;}
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* ── THE MATERIAL — Phase 0's five-layer capsule ─────────────────────── */
+/* prism2:begin material */
+/* Generated from design/prism2.tokens.json by tools/design/prism2.js. Edit the JSON, not this block. */
+
+/* ── THE MATERIAL — Prism 2's capsule: body, rim, ring, edges, shadow ───────── */
 .gl{
   position:relative;isolation:isolate;overflow:hidden;
-  -webkit-backdrop-filter:var(--lg-backdrop);backdrop-filter:var(--lg-backdrop);
-  background-color:var(--lg-fill);
-  background-image:linear-gradient(var(--lg-warm),var(--lg-warm));
+  --gl-fill:var(--lg-fill);
   box-shadow:var(--lg-edge-top),var(--lg-edge-bot),var(--lg-hairline),var(--lg-shadow);
 }
-.gl--read{background-color:var(--lg-fill-read);}
-.gl::before{                       /* body sheen */
-  content:"";position:absolute;inset:0;border-radius:inherit;
-  background:var(--lg-sheen);pointer-events:none;z-index:1;
+.gl--read{--gl-fill:var(--lg-fill-read);}
+.gl::before{                       /* the BODY: blur, fill and sheen, over the interior only. The outer rim band is
+                                      left out on purpose, so the rim below can see the page and not this layer. */
+  content:"";position:absolute;inset:0;border-radius:inherit;z-index:0;pointer-events:none;
+  padding:var(--lg-rim-w);
+  -webkit-backdrop-filter:var(--lg-backdrop);backdrop-filter:var(--lg-backdrop);
+  background:var(--lg-sheen),linear-gradient(var(--lg-warm),var(--lg-warm)),var(--gl-fill);
+  -webkit-mask:linear-gradient(#000 0 0) content-box;mask:linear-gradient(#000 0 0) content-box;
 }
-.gl::after{                        /* 1px ring — bright at the poles, near-invisible at the flanks.
+.gl::after{                        /* 1px ring: bright at the poles, near-invisible at the flanks.
                                       A uniform border is the loudest tell of a fake. */
   content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;
   background:var(--lg-ring);pointer-events:none;z-index:2;
@@ -224,24 +307,62 @@ a{color:inherit;}
   -webkit-mask-composite:xor;
           mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
 }
-/* Content above the sheen and ring. Only ELEMENTS can be lifted — loose text in a capsule would
-   paint under the sheen, so every capsule's text sits in an element of its own. */
+/* Content above the body, rim and ring. Only ELEMENTS can be lifted: loose text in a capsule would
+   paint under them, so every capsule's text sits in an element of its own. */
 .gl > *{position:relative;z-index:3;}
-.grim{                             /* refraction rim: LESS blur, MORE brightness than the centre */
+.grim{                             /* the RIM: less blur, more brightness than the body, in the outer band only.
+                                      It is a sibling of the body and the two never overlap, so it lenses the page. */
   position:absolute!important;inset:0;border-radius:inherit;pointer-events:none;z-index:1!important;
   -webkit-backdrop-filter:var(--lg-rim);backdrop-filter:var(--lg-rim);
-  transform:scale(1.012);padding:7px;
+  background:var(--gl-fill);
+  transform:scale(1.012);padding:var(--lg-rim-w);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
           mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
 }
-@supports (corner-shape:squircle){ .card,.phase,.stage{corner-shape:squircle;} }
-/* Anything INSIDE a glass capsule is raised, not glass again — Phase 0: exactly one blur per
-   capsule, or it goes to mud. Same edges and ring, a fill of its own, no backdrop filter. */
+/* Anything INSIDE a glass capsule is raised, not glass again: one blur per pixel, or it goes to mud.
+   Same edges, a fill of its own, no backdrop filter. */
 .raised{
   position:relative;background:var(--raised);
   box-shadow:var(--lg-edge-top),var(--lg-edge-bot),var(--lg-hairline),0 1px 2px rgba(0,0,0,.05),0 8px 22px rgba(0,0,0,.06);
 }
+
+/* ── Settings the material answers to (P1-8 / P2-4): reduced transparency, increased contrast, forced colours,
+   and a browser without backdrop-filter. Glass becomes an opaque surface with a visible edge. ── */
+@media (prefers-reduced-transparency:reduce){
+  .gl::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+  .grim{display:none!important;}
+}
+:root[data-prism-mode~="reduced-transparency"] .gl::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+:root[data-prism-mode~="reduced-transparency"] .grim{display:none!important;}
+@media (prefers-contrast:more){
+  :root{--txt-2:var(--txt-1);--txt-3:var(--txt-1);--accent-btn:#0050A8;--lg-ring:none;}
+  .gl::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+  .grim{display:none!important;}
+  .gl{box-shadow:0 0 0 1.5px var(--lg-edge-strong),var(--lg-shadow);}
+  .gl::after{display:none;}
+}
+:root[data-prism-mode~="contrast"]{--txt-2:var(--txt-1);--txt-3:var(--txt-1);--accent-btn:#0050A8;--lg-ring:none;}
+:root[data-prism-mode~="contrast"] .gl::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--lg-opaque);}
+:root[data-prism-mode~="contrast"] .grim{display:none!important;}
+:root[data-prism-mode~="contrast"] .gl{box-shadow:0 0 0 1.5px var(--lg-edge-strong),var(--lg-shadow);}
+:root[data-prism-mode~="contrast"] .gl::after{display:none;}
+@media (forced-colors:active){
+  .gl{background:Canvas;border:1px solid CanvasText;box-shadow:none;}
+  .gl::before,.gl::after,.grim{display:none!important;}
+  .field{display:none;}
+}
+:root[data-prism-mode~="forced-colors"] .gl{background:Canvas;border:1px solid CanvasText;box-shadow:none;}
+:root[data-prism-mode~="forced-colors"] .gl::before,:root[data-prism-mode~="forced-colors"] .gl::after,:root[data-prism-mode~="forced-colors"] .grim{display:none!important;}
+:root[data-prism-mode~="forced-colors"] .field{display:none;}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .gl::before{background:var(--lg-opaque);}
+  .grim{display:none!important;}
+}
+:root[data-prism-mode~="no-backdrop"] .gl::before{background:var(--lg-opaque);-webkit-backdrop-filter:none;backdrop-filter:none;}
+:root[data-prism-mode~="no-backdrop"] .grim{display:none!important;}
+/* prism2:end material */
+@supports (corner-shape:squircle){ .card,.phase,.stage{corner-shape:squircle;} }
 
 /* ── NAV — a floating stadium ────────────────────────────────────────── */
 .nav{position:sticky;top:12px;z-index:50;margin-top:12px;}
@@ -303,16 +424,19 @@ a{color:inherit;}
 }
 .btn svg{width:16px;height:16px;}
 .btn:active{transform:scale(.96);}
-.btn--p{background:var(--accent);color:#fff;box-shadow:0 1px 1px rgba(0,0,0,.1),0 6px 18px color-mix(in srgb,var(--accent) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.28);}
-.btn--p:hover{filter:brightness(1.07);}
+/* --accent-btn, not --accent: white text on the accent blue is 4.0:1 (3.65:1 in dark); this blue is 4.7:1 or better (P2-1). */
+.btn--p{background:var(--accent-btn);color:#fff;box-shadow:0 1px 1px rgba(0,0,0,.1),0 6px 18px color-mix(in srgb,var(--accent-btn) 38%,transparent),inset 0 1px 0 rgba(255,255,255,.28);}
+.btn--p:hover{filter:brightness(.93);}   /* darker, never lighter: brightening would take the label back under 4.5:1 */
 .btn--g{color:var(--txt-1);}
-.btn--g:hover{background-color:color-mix(in srgb,var(--lg-fill) 100%,rgba(255,255,255,.12));}
+.btn--g:hover{--gl-fill:color-mix(in srgb,var(--lg-fill) 100%,rgba(255,255,255,.12));}
 .btn[aria-disabled="true"]{cursor:default;opacity:.72;}
 .facts{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--txt-3);font:500 12px/1.4 var(--mono);letter-spacing:.04em;text-transform:uppercase;}
 .facts b{color:var(--txt-2);font-weight:600;}
 
 /* ── THE DEMO WINDOW — Aviary, Liquid Glass, pages moving under it ──── */
 .stage{position:relative;border-radius:30px;padding:14px;}
+.stagecol{min-width:0;}
+.stagecap{margin:14px 8px 0;font-size:13px;line-height:1.5;color:var(--txt-2);max-width:46em;}
 .stage::marker{display:none;}
 .win{
   container-type:inline-size;
@@ -382,7 +506,7 @@ a{color:inherit;}
 .s-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
 .s-card{border-radius:12px;height:112px;position:relative;overflow:hidden;padding:10px 12px;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;}
 .s-card b{font:650 13.5px/1.15 var(--display);letter-spacing:-.01em;}
-.s-card i{font:500 10.5px/1.3 var(--ui);font-style:normal;opacity:.85;}
+.s-card i{font:500 10.5px/1.3 var(--ui);font-style:normal;opacity:.94;}
 .s-line{height:9px;border-radius:5px;background:var(--page-line);margin:9px 0;}
 .s-line.w6{width:60%;} .s-line.w8{width:82%;} .s-line.w4{width:42%;}
 
@@ -434,8 +558,9 @@ a{color:inherit;}
 .phase__range{font:500 12px/1 var(--mono);letter-spacing:.05em;color:var(--txt-3);text-transform:uppercase;white-space:nowrap;}
 .tag{display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 11px;border-radius:13px;font:650 12px/1 var(--ui);white-space:nowrap;}
 .tag i{width:7px;height:7px;border-radius:50%;background:currentColor;}
-.tag--done{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent);}
-.tag--active{color:var(--warm);background:color-mix(in srgb,var(--warm) 15%,transparent);}
+/* Status tags carry text, so they use the text-safe inks (--ok-ink, --warm-ink: 4.9:1 and 5.2:1 on their tints in light), P2-1. */
+.tag--done{color:var(--ok-ink);background:color-mix(in srgb,var(--ok) 14%,transparent);}
+.tag--active{color:var(--warm-ink);background:color-mix(in srgb,var(--warm) 15%,transparent);}
 .tag--active i{animation:beat 2.4s ease-out infinite;}
 .tag--todo{color:var(--txt-2);background:var(--pill-fill);}
 
@@ -463,8 +588,8 @@ a{color:inherit;}
   font:650 13px/1 var(--mono);letter-spacing:.02em;color:var(--txt-1);
   transition:transform 380ms var(--spring),box-shadow 200ms ease;
 }
-.node[data-state="done"] .node__dot{color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--ok) 88%,#fff),var(--ok));box-shadow:0 1px 1px rgba(0,0,0,.1),0 6px 14px color-mix(in srgb,var(--ok) 32%,transparent),inset 0 1px 0 rgba(255,255,255,.35);}
-.node[data-state="active"] .node__dot{color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--warm) 80%,#fff),var(--warm));box-shadow:0 0 0 5px color-mix(in srgb,var(--warm) 22%,transparent),0 8px 18px color-mix(in srgb,var(--warm) 34%,transparent),inset 0 1px 0 rgba(255,255,255,.35);}
+.node[data-state="done"] .node__dot{color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--ok-solid) 94%,#fff),var(--ok-solid));box-shadow:0 1px 1px rgba(0,0,0,.1),0 6px 14px color-mix(in srgb,var(--ok) 32%,transparent),inset 0 1px 0 rgba(255,255,255,.35);}
+.node[data-state="active"] .node__dot{color:#fff;background:linear-gradient(160deg,color-mix(in srgb,var(--warm-solid) 92%,#fff),var(--warm-solid));box-shadow:0 0 0 5px color-mix(in srgb,var(--warm) 22%,transparent),0 8px 18px color-mix(in srgb,var(--warm) 34%,transparent),inset 0 1px 0 rgba(255,255,255,.35);}
 .node[data-state="todo"] .node__dot{color:var(--txt-2);background:var(--pill-fill);box-shadow:var(--pill-inner);}
 .node[aria-selected="true"] .node__dot{transform:scale(1.1);}
 .node[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 11%,transparent);}
@@ -512,7 +637,7 @@ a{color:inherit;}
 .ms li b{font:600 14px/1.35 var(--ui);}
 .ms li small{display:block;font-size:12.5px;color:var(--txt-2);font-weight:400;line-height:1.45;margin-top:3px;}
 .ms li time{font:500 11.5px/1 var(--mono);color:var(--txt-3);white-space:nowrap;}
-.ms li[data-next] time{color:var(--warm);}
+.ms li[data-next] time{color:var(--warm-ink);}
 
 /* how features arrive, and what is not in v1 */
 .after{display:grid;grid-template-columns:1.3fr 1fr;gap:22px;margin-top:26px;}
@@ -1022,10 +1147,15 @@ a{color:inherit;}
         <div class="facts"><span><b>C#</b> · WinUI 3 · WebView2</span><span>No engine to bundle</span><span id="factMs"></span></div>
       </div>
 
-      <figure class="gl stage" style="margin:0" aria-label="Aviary in its Liquid Glass look, with a page scrolling underneath the toolbar">
-        <span class="grim"></span>
-        <div class="win" id="demo" data-look="glass"></div>
-      </figure>
+      <div class="stagecol">
+        <figure class="gl stage" style="margin:0" aria-label="Aviary in its Liquid Glass look, with a page scrolling underneath the toolbar">
+          <span class="grim"></span>
+          <div class="win" id="demo" data-look="glass"></div>
+        </figure>
+        <!-- P2-3: this demo is the full recipe in a browser; the Windows app cannot do all of it, and a visitor should know. -->
+        <p class="stagecap">Shown here: the full recipe in a browser. The Windows app keeps the sheen, ring, shadow and
+          press and drops the blur, because WebView2 cannot slide a page under the bars.</p>
+      </div>
     </div>
   </div>
 
@@ -1045,8 +1175,9 @@ a{color:inherit;}
           <div class="look__body">
             <h3>Liquid Glass</h3>
             <div class="era">Safari 26 · macOS Tahoe · shown light</div>
-            <p>Chrome that floats above the page rather than sitting on it. Content scrolls underneath
-               and the glass picks up its colour. Full-stadium corners, a rim that is bright at two poles
+            <p>Chrome that floats above the page rather than sitting on it. In a browser, content scrolls
+               underneath and the glass picks up its colour; in the Windows app the bars keep the sheen, ring
+               and shadow over Mica, without the blur. Full-stadium corners, a rim that is bright at two poles
                and invisible at the flanks, and shadows in three layers.</p>
           </div>
         </article>
@@ -1292,8 +1423,9 @@ a{color:inherit;}
           <div class="v1-look__body">
             <h3>Liquid Glass</h3>
             <div class="v1-era">Safari 26 · macOS Tahoe · shown light</div>
-            <p>Chrome that floats above the page rather than sitting on it. Content scrolls underneath
-               and the glass picks up its colour. Full-stadium corners, a specular rim that is bright at
+            <p>Chrome that floats above the page rather than sitting on it. In a browser, content scrolls
+               underneath and the glass picks up its colour; in the Windows app the bars keep the sheen, ring
+               and shadow over Mica, without the blur. Full-stadium corners, a specular rim that is bright at
                two poles and invisible at the flanks, and shadows in three layers.</p>
           </div>
         </article>
@@ -1592,7 +1724,7 @@ const CAPS='<div class="win__caps" aria-hidden="true"><span>&#xE921;</span><span
 const EXHIBITS=[
   ["Wally2TTD 2.4.2","Godot · plays in a tab","linear-gradient(150deg,#1D8F6E,#0B5E57)"],
   ["Jurassic Empire","Godot · dino park","linear-gradient(150deg,#D08A2E,#7A3E12)"],
-  ["EMBER","Light is health","radial-gradient(circle at 30% 30%,#FFB14A,#C2351C 55%,#2A0E08)"],
+  ["EMBER","Light is health","radial-gradient(circle at 30% 30%,#E8892A,#A82A14 55%,#2A0E08)"],
   ["The Lost","A desktop mystery","linear-gradient(160deg,#3B5A7E,#101B2C)"],
   ["Artemis","Chat, on your own PC","linear-gradient(150deg,#8A6CF0,#4B2EB0)"],
   ["WallyCore1","The shared engine","linear-gradient(150deg,#1FB5D6,#1B5BA8)"],
@@ -1622,8 +1754,8 @@ function glassChrome(){
     '</div>'+
     '<div class="gl tabcap"><span class="grim"></span>'+
       '<span class="tab tab--on">'+fav('#8C6716','◠')+'<b>The Collection</b></span>'+
-      '<span class="tab">'+fav('#1D8F6E','W')+'<b>Wally2TTD 2.4.2</b></span>'+
-      '<span class="tab">'+fav('#D08A2E','J')+'<b>Jurassic Empire</b></span>'+
+      '<span class="tab">'+fav('#177A5D','W')+'<b>Wally2TTD 2.4.2</b></span>'+
+      '<span class="tab">'+fav('#9A5F12','J')+'<b>Jurassic Empire</b></span>'+
     '</div>'+
   '</div>';
 }
