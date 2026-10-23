@@ -24,7 +24,7 @@ off until switched on in Settings -> Shields; a list that is off is not read at 
 
 Aviary does not change these files and does not mix them into any list of its own. The
 copies here are the ones Aviary shipped with: EasyList and EasyPrivacy downloaded on
-13 September 2026, the Cookie List and Fanboy's Social on 19 September 2026. "Update
+23 October 2026 (version 202610231316), the Cookie List and Fanboy's Social on 19 September 2026. "Update
 now" in Settings, and the Daily or Weekly refresh, save newer copies in the profile
 folder (filters\) instead; Aviary uses whichever copy the list itself says is newer.
 "Use the shipped lists" in Settings deletes those downloaded copies and comes back to
