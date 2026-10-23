@@ -59,6 +59,12 @@ same machine while Aviary was also open; the same tests on the same build passed
 passes them. The one tab-groups failure that is steady (the sidebar Tab Groups pane in the Top bar layout) is identical on the
 installed build. I treat the transient ones as test-environment noise, not as a defect I can demonstrate, and say so plainly.
 
+## The full candidate (built from the clean branch, `328a6e1`)
+
+Built with the private Collection copied in from the main folder: **621 files, 269.2 MB, 54 of 54 exhibits**, ZIP checksum
+`5cb8ed87...4bce`, stamp `0.5.0+328a6e1` (clean tree). `publish-smoke.ps1 -Sha 328a6e1`: **18 of 18**. It sits in
+`.artifact/sdk-migration-20261023/.artifact/sdk25-full/`, ready to install on a yes.
+
 ## Not verified
 
 - **The hidden-WebView bug** (microsoft-ui-xaml #6256: a WebView created while collapsed can render but ignore the mouse),
@@ -68,7 +74,7 @@ installed build. I treat the transient ones as test-environment noise, not as a 
 - The tests that use real desktop input (`native-crash`, `si-test` single-instance, `tabmenu`, `experiments`, `forget`,
   `startbg`) were not run for the same reason. Every Windows App SDK runtime from 1.2 to 2.5.1 is installed on this PC, so
   start-up on a PC without them is shown by the module check above (the libraries come from Aviary's folder), not by a clean machine.
-- A full build with the private Collection and its 18-check smoke test on the installed copy is the step after approval.
+- Nothing about the installed copy yet: the full candidate below has not replaced `publish/Aviary`.
 
 ## Rollback
 

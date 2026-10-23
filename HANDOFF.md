@@ -6,8 +6,9 @@
 > EasyList and EasyPrivacy refreshed from easylist.to (202610231316). No C# change; `verify.ps1` now wants `Aviary.pri`. Compiles clean;
 > harnesses 125/317/30/18, smoke 17/18 (source-only), live CSP 33/33, links 27/27, groups 39/40 and downloads 53/53 as on the installed
 > build, caption-button hit-test and native chrome identical. NOT verified: a real mouse click on a background tab (the hidden-WebView bug
-> in NOTES-webview2-architecture.md) and the guard-gated desktop-input tests. Do not merge or install without Grant's yes; after installing,
-> click a background tab and something on its page once.
+> in NOTES-webview2-architecture.md) and the guard-gated desktop-input tests. FULL candidate (with the Collection) built from 328a6e1:
+> 621 files, 54/54, smoke 18/18, in `.artifact/sdk-migration-20261023/.artifact/sdk25-full`. Do not merge or install without Grant's yes;
+> after installing, click a background tab and something on its page once.
 
 > **PRISM 2 FIXES + ACCOUNT GROUNDWORK — 23 October 2026 (Claude, at Grant's request). READ FIRST.**
 > With Grant's approval (23 Oct) this is **INSTALLED in `publish/Aviary`, COMMITTED and PUSHED to origin/main** (see `git log`).
