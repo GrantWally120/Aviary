@@ -18,6 +18,14 @@ decimal KB/MB/GB display checks and the approved update to the ordinary local co
 See [M8 verification](M8-VERIFICATION-2026-10-20.md) and [M9 final validation](M9-FINAL-2026-10-21.md).
 `node tools/test/release-state-test.js` checks completed AB5, the real landing-page
 selectors, planned beta state and dated M9 Updates data (8 checks).
+`node tools/test/prism2-tokens-test.js` (no browser, runs in CI) checks that every generated copy of the Prism 2 look matches
+`design/prism2.tokens.json` (`node tools/design/prism2.js build` regenerates, `check` compares) and that the token colours still
+clear WCAG AA. `tools/test/prism/` holds the browser measurements of the real pages (contrast sampled from screenshots, glass
+nesting inventory, rim edge test, smoke checks and the specimen definition-of-done); see its README.
+`CDP_PORT=<port> node tools/test/csp-live.js` checks the Content-Security-Policy of the Start Page and Settings in a running test
+instance (every Settings section draws with no violation; injected inline handlers, scripts, eval, forms, frames and outside
+requests are refused). `security/AccountChecks.cs` covers the policy text, the token vault, PKCE/callback/claims and the loopback
+receiver (`src/Aviary/PageCsp.cs`, `TokenVault.cs`, `OAuthFlow.cs`).
 `collection-availability-test.js` exercises the shipped Collection probe/summary for full,
 partial and failed file checks. `library-sync-test.ps1` verifies preservation when originals
 are missing and refusal of incomplete pruning, using only `.artifact` fixtures.

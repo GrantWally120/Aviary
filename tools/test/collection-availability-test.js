@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const folder = path.resolve(__dirname, '../../src/Aviary/Library');
 const html = fs.readFileSync(path.join(folder, 'index.html'), 'utf8');
-new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+new vm.Script(html.match(/<script(?: nonce="[^"]*")?>([\s\S]*?)<\/script>/)[1]);
 const summary = html.slice(html.indexOf('function renderStats('), html.indexOf('function render(){'));
 const probe = html.slice(html.indexOf('var MISSING = {};'), html.indexOf('function bindTimeline(){'));
 const catalog = JSON.parse(fs.readFileSync(path.join(folder, 'catalog.json'), 'utf8'));

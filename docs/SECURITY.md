@@ -66,6 +66,61 @@ targets and publisher URLs, in [the maintenance proposal](SECURITY-MAINTENANCE-P
 NuGet/list downloads await the specific approvals required by HANDOFF. Do not treat this
 pass as establishing a fully supported account-service foundation until that work is resolved.
 
+## Groundwork for accounts (23 October 2026)
+
+Prepared before the account system, so it is built on checked parts. **None of it is wired to a
+screen**: no account, token, sign-in or report exists in Aviary yet, and PRIVACY.md is unchanged.
+317 checks in `tools/test/security` cover it (`AccountChecks.cs`).
+
+- **Content-Security-Policy for Aviary's own pages** (`PageCsp.cs`). The Start Page and Settings
+  are opened with `NavigateToString`, so the policy is a `<meta>` tag with a fresh nonce for each
+  build: only the page's own script runs, with no inline handlers, no eval, no plugins, no frames,
+  no forms, no `<base>`, no network connections, pictures only from `data:` (Settings) or from the
+  three virtual hosts the Start Page draws from. The two inline `onerror` attributes in the Start
+  Page became one delegated listener. `PageCsp.Apply` refuses a template that lost its marker, its
+  nonce, or has a second script, and the tests fail on any inline `on…=` attribute, `javascript:`
+  link or eval pattern in either template. Styles keep `'unsafe-inline'` (generated markup carries
+  style attributes); that is not a route to script. The JSON written into the script block is
+  HTML-escaped by the serializer, which a test also pins.
+- **Token vault** (`TokenVault.cs`). One file per secret, sealed with DPAPI for the Windows user
+  (`CryptProtectData`, no UI, entropy bound to the secret's name so a renamed copy does not open).
+  Names are a closed alphabet; secrets are capped at 16 KiB and 64 entries; writes are atomic;
+  tamper, truncation, foreign files and a failing protector all return `null`, never an exception
+  carrying data; deletion overwrites first; nothing in the file logs. When accounts are wired:
+  create it at `AppPaths.Of("account.vault")`, call `Wipe()` from "Forget everything" and from
+  sign-out, and add the folder to Storage Usage's Secrets category. The diagnostics collector only
+  reads its own folder, so the vault is already outside it.
+- **Sign-in primitives** (`OAuthFlow.cs`). S256 PKCE (checked against the RFC 7636 vector), state
+  and nonce from a CSPRNG, an authorization-URL builder that accepts only an https endpoint, a
+  loopback redirect with a port and rejects anything that could smuggle a parameter, a callback
+  parser (exact path, no repeated parameters, constant-time state comparison, bounded code, provider
+  errors reduced to a plain word), and an ID-token claims check (issuer, audience list with `azp`,
+  expiry and issued-at with skew, nonce, subject). It decodes but does **not** verify a token's
+  signature: with the code flow the token arrives from the TLS token endpoint, which OpenID Connect
+  Core 3.1.3.7 accepts; any token that arrives another way must be verified against the provider's
+  keys first.
+- **Loopback receiver** (`LoopbackReceiver`). A `TcpListener` on 127.0.0.1 and a system-chosen
+  port (not reachable from the network, tested). It answers only GET to the exact callback path with
+  the exact `Host: 127.0.0.1:<port>` (a DNS-rebinding name is refused), reads at most 8 KiB, turns
+  away favicon and probe requests without ending the sign-in, and ends it after three requests that
+  do not carry our state. The reply is a fixed sentence (nothing from the request is echoed) with
+  `no-store`, `no-referrer` and its own policy, and it strips the code from the address bar.
+- **Scrubber** (`Diagnostics.Scrub.cs`). Header lines are now masked by the same rule as parameters
+  (any header whose name is a secret's: X-Auth-Token, X-Amz-Security-Token, …, not a fixed five);
+  new secret names cover passphrases, bearer values, second-factor codes (`totp`, `hotp`, `mfa`),
+  recovery/backup/security/device codes, client assertions, seeds, mnemonics, `cvv`/`cvc`, in
+  query strings and JSON, spelled `snake_case` or `camelCase`. Ordinary text such as `keyword=`
+  or `zipcode=` stays readable.
+- **Reviewed, unchanged**: the WebView2 switches in `WebViewEnvironment.BuildArguments` and the
+  profile settings (host objects off, reputation checking on, password and form autofill off in
+  private tabs) already follow the rule that each flag is checked against the shipped engine; no
+  new flag was added without being able to check it.
+
+Still open before accounts: the operator, name, contact and backend decisions above; the Windows
+App SDK servicing update and filter-list refresh (need approval, see the maintenance proposal);
+a signed-in tab model for "who is signed in" that does not exist yet; revoking tokens at the
+provider on sign-out; and a threat-model review of whatever the first account feature sends.
+
 ## Required design for future accounts and reports
 
 1. Decide the operator, Bird/Birds name, private support contact, hosted policy URL, backend,

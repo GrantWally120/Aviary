@@ -1207,7 +1207,8 @@ public sealed partial class MainWindow : Window
         string values = JsonSerializer.Serialize(AppSettings.Snapshot());
         string folder = DownloadFolder();
 
-        return InternalPages.Settings
+        // The policy and nonce go into the template first, before any data is written into it.
+        return PageCsp.Apply(InternalPages.Settings, PageCsp.Page.Settings)
             .Replace("/*__AVIARY_SETTINGS__*/", "window.__aviarySettings = " + values + ";"
                    + " window.__aviaryToken = " + JsonSerializer.Serialize(PageToken) + ";"
                    + " window.__aviaryLaunch = " + JsonSerializer.Serialize(WebViewEnvironment.LaunchedWith) + ";"
@@ -1397,7 +1398,7 @@ public sealed partial class MainWindow : Window
         // Fetch if what is held has gone stale - never from a private window.
         BirdsNews.StartPageOpened(_private);
 
-        return StartPage.Html
+        return PageCsp.Apply(StartPage.Html, PageCsp.Page.Start)
             .Replace("/*__AVIARY_START__*/",
                 "window.__aviaryStart = " + JsonSerializer.Serialize(payload) + ";")
             .Replace("/*__AVIARY_THEME__*/", BuildThemeCss());

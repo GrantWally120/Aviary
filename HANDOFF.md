@@ -1,5 +1,21 @@
 # Aviary — project handoff
 
+> **PRISM 2 FIXES + ACCOUNT GROUNDWORK — 23 October 2026 (Claude, at Grant's request). READ FIRST.**
+> With Grant's approval (23 Oct) this is **INSTALLED in `publish/Aviary`, COMMITTED and PUSHED to origin/main** (see `git log`).
+> Report: `docs/PRISM2-AND-ACCOUNTS-PREP-2026-10-23.md`. Prism review findings P2-1 to P2-7 fixed from one token file
+> (`design/prism2.tokens.json` → `node tools/design/prism2.js build|check`); `E:\Claude CoWork Enclosed\Prism2-Specimen.html` is the
+> spec Artemis ports from (`artemis.html` untouched). Security: nonce CSP for the Start Page and Settings (`PageCsp.cs`), DPAPI token
+> vault (`TokenVault.cs`), PKCE/callback/claims and loopback receiver (`OAuthFlow.cs`), wider scrubber; none wired to a screen.
+> Checks: security 317, token test 20 (new, in CI), specimen 92/92, live CSP 33/33 on the installed copy (`tools/test/csp-live.js`),
+> `publish-smoke.ps1 -Sha 5efad38` 18/18. The app project was restored from the local NuGet cache only; no package changed.
+> Installed copy: 663 files, 54/54, hashes match `Backup/manifest-prism2.json` (4 files differ from the previous install: Aviary.dll,
+> .exe, .pdb, resources.pri). Its binaries carry the stamp 0.5.0+5efad38 with the working tree dirty (built before the commit): do NOT
+> rebuild after the commit just to change the stamp; run `publish-smoke.ps1 -Sha 5efad38`.
+> Recovery: `Backup/Aviary-AB5-prism2-local-win-x64.zip` is the CURRENT package; `Backup/Aviary-AB5-fixes-local-win-x64.zip` is the
+> ROLLBACK (the previous install, also kept unpacked and hash-identical in `.artifact/published-before-prism2-20261023`);
+> `Backup/Aviary-AB5-local-win-x64.zip` (102abec) is older still. `Backup/README.txt` says which is which.
+> Still needs Grant's yes: Windows App SDK 2.5.1 / Win2D 1.4.0 and a filter-list refresh (`docs/SECURITY-MAINTENANCE-PROPOSAL.md`).
+
 > **REVIEW + FIXES — 22 October 2026, evening (Claude, at Grant's request). READ FIRST.**
 > Independent review of Codex's AB5/privacy/cleanup work: `AVIARY-REVIEW-2026-10-22.md` (verdict, what holds, what
 > was broken, and the status of each finding in `AVIARY-REVIEW-2026-09-23.md` — which had never been triaged).

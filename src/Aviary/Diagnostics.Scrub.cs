@@ -79,7 +79,7 @@ internal static partial class Diagnostics
         RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
     private static readonly Regex SecretHeaderPattern = new(
-        @"(?im)^(?<name>Authorization|Proxy-Authorization|Cookie|Set-Cookie|X-Api-Key)\s*:[^\r\n]*",
+        @"(?im)^(?<name>[A-Za-z][A-Za-z0-9\-_]{0,63})[ \t]*:[^\r\n]*",
         RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(50));
 
     /// <summary>
@@ -105,6 +105,9 @@ internal static partial class Diagnostics
         "token", "secret", "passw", "passcode", "session", "sessid", "signature",
         "apikey", "api_key", "api-key", "auth", "credential", "jwt", "saml", "cookie",
         "privatekey", "private_key", "hmac", "csrf", "xsrf",
+        // Account sign-in: what a login, a second factor or a recovery flow hands back and forth.
+        "passphrase", "bearer", "mnemonic", "seedphrase", "securitycode", "recoverycode", "devicecode",
+        "clientassertion", "backupcode",
     };
 
     /// <summary>
@@ -116,6 +119,7 @@ internal static partial class Diagnostics
     {
         "key", "sig", "code", "pin", "otp", "pwd", "pw", "pass", "ticket", "sid", "verifier",
         "state", "nonce", "assertion",
+        "totp", "hotp", "mfa", "seed", "cvv", "cvc",
     };
 
     /// <summary>A path containing one of these may carry a credential as a path segment.</summary>
@@ -331,7 +335,10 @@ internal static partial class Diagnostics
     {
         try
         {
-            text = SecretHeaderPattern.Replace(text, m => m.Groups["name"].Value + ": " + Mask);
+            // Any header line whose NAME is a secret's: Authorization, Cookie, X-Api-Key, but also
+            // X-Auth-Token, X-Amz-Security-Token and the ones an account service will add.
+            text = SecretHeaderPattern.Replace(text,
+                m => IsSecretName(m.Groups["name"].Value) ? m.Groups["name"].Value + ": " + Mask : m.Value);
             StringBuilder? masked = null;
             int copied = 0;
             foreach (Match property in JsonPropertyPattern.Matches(text))

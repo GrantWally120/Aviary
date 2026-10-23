@@ -21,5 +21,10 @@
     <Compile Include="../../../src/Aviary/FilterEngine.Cosmetic.cs" Link="FilterEngine.Cosmetic.cs" />
     <Compile Include="../../../src/Aviary/PublicSuffix.cs" Link="PublicSuffix.cs" />
     <Compile Include="../../../src/Aviary/SafariIdentity.cs" Link="SafariIdentity.cs" />
+    <Compile Include="../../../src/Aviary/PageCsp.cs" Link="PageCsp.cs" />
+    <Compile Include="../../../src/Aviary/TokenVault.cs" Link="TokenVault.cs" />
+    <Compile Include="../../../src/Aviary/OAuthFlow.cs" Link="OAuthFlow.cs" />
+    <Compile Include="../../../src/Aviary/InternalPages.cs" Link="InternalPages.cs" />
+    <Compile Include="../../../src/Aviary/StartPage.cs" Link="StartPage.cs" />
   </ItemGroup>
 </Project>

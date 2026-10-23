@@ -23,6 +23,7 @@ internal static class StartPage
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--__AVIARY_CSP__-->
 <title>Aviary</title>
 <style>
   :root{
@@ -339,7 +340,7 @@ internal static class StartPage
   <div class="cust__pop" id="custPop" hidden></div>
 </div>
 
-<script>
+<script nonce="__AVIARY_NONCE__">
 /*__AVIARY_START__*/
 var D = (typeof window.__aviaryStart === 'object' && window.__aviaryStart) || {};
 /* How this page moves (Motion.cs, M4.5): the host re-sets it whenever the style changes. */
@@ -414,7 +415,7 @@ sky();
 function tile(item){
   var art = item.hasIcon
     ? '<img src="' + ICONS + encodeURIComponent(item.key) + '" alt="" loading="lazy" ' +
-      'onerror="this.replaceWith(mono(' + JSON.stringify(item.mono).replace(/"/g,'&quot;') + ',' + item.hue + '))">'
+      'data-mono="' + esc(item.mono) + '" data-hue="' + (item.hue | 0) + '">'
     : '<span class="tile__mono" style="background:' + hue(item.hue) + '">' + esc(item.mono) + '</span>';
 
   return '<button class="tile" data-url="' + esc(item.url) + '" title="' + esc(item.url) + '">' +
@@ -432,6 +433,15 @@ window.mono = function(text, h){
   s.className = 'tile__mono'; s.style.background = hue(h); s.textContent = text;
   return s;
 };
+/* A picture that fails to load falls back to its monogram (data-mono) or is dropped (data-drop).
+   One listener instead of an onerror attribute on each <img>: this page's policy allows no inline
+   handlers (PageCsp.cs). `error` does not bubble, so it is caught on the way down. */
+document.addEventListener('error', function(e){
+  var t = e.target;
+  if (!t || t.tagName !== 'IMG') { return; }
+  if (t.hasAttribute('data-mono')) { t.replaceWith(window.mono(t.getAttribute('data-mono'), Number(t.getAttribute('data-hue')))); }
+  else if (t.hasAttribute('data-drop')) { t.remove(); }
+}, true);
 
 function section(id, heading, body){
   if (!SHOW[id]) { return ''; }
@@ -592,7 +602,7 @@ function render(){
       var initials = it.mono || ((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase();
       return '<button class="mg__card" data-url="' + esc(it.url) + '" title="' + esc(it.title) + '" style="--c:' + esc(it.accent) + '">' +
                '<span class="mg__win"><span class="mg__mono">' + esc(initials) + '</span>' +
-               '<img src="' + esc(it.thumb) + '" alt="" loading="lazy" onerror="this.remove()"></span>' +
+               '<img src="' + esc(it.thumb) + '" alt="" loading="lazy" data-drop="1"></span>' +
                '<span class="mg__t">' + esc(it.title) + '</span><span class="mg__n">' + esc(it.note) + '</span>' +
              '</button>';
     }).join('') +

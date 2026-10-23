@@ -168,6 +168,7 @@ Check("Rejected redirect preserves known list", File.ReadAllText(Path.Combine(Fi
 listener.Stop();
 await ScriptChecks.RunAsync(Check);
 await DownloadChecks.RunAsync(Check);
+await AccountChecks.RunAsync(Check);
 Check("Policy covers future separate sharing consent", PrivacyPolicy.Markdown().Contains("Local recording consent is not consent to send data."));
 Check("Policy discloses Microsoft services", PrivacyPolicy.Markdown().Contains("SmartScreen"));
 string policyPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../PRIVACY.md"));

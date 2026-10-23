@@ -53,6 +53,7 @@ internal static class InternalPages
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!--__AVIARY_CSP__-->
 <title>Settings</title>
 <style>
 """ + SharedCss + """
@@ -608,7 +609,7 @@ internal static class InternalPages
 </nav>
 <main id="main"></main>
 
-<script>
+<script nonce="__AVIARY_NONCE__">
 /*__AVIARY_SETTINGS__*/
 /*__AVIARY_BUILD__*/
 /*__AVIARY_PATHS__*/
