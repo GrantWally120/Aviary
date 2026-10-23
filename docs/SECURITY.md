@@ -59,12 +59,11 @@ before an account/reporting service is offered. The current copy identifies the 
 maintainer and directs questions to the person supplying the app or the repository;
 public issues must never receive diagnostic attachments or credentials.
 
-The current NuGet audit reported no known vulnerable packages, but Microsoft's servicing
-policy lists the pinned Windows App SDK 1.7 as out of support. Bundled filter snapshots also
-need freshness maintenance. These remaining items are prepared, with exact proposed package
-targets and publisher URLs, in [the maintenance proposal](SECURITY-MAINTENANCE-PROPOSAL.md).
-NuGet/list downloads await the specific approvals required by HANDOFF. Do not treat this
-pass as establishing a fully supported account-service foundation until that work is resolved.
+The pinned Windows App SDK 1.7 was out of support (servicing ended 18 March 2026). On 23 October 2026,
+with Grant's go-ahead, the project moved to the supported 2.5.1 (as its four components) and Win2D 1.4.0, and the
+bundled EasyList and EasyPrivacy snapshots were refreshed from easylist.to. See
+[the migration report](SDK-2.5-MIGRATION-2026-10-23.md) for what was run. This lands only once it is installed and
+pushed; until then the installed app is still on 1.7. Cookie and Social lists were not refreshed.
 
 ## Groundwork for accounts (23 October 2026)
 

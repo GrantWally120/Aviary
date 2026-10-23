@@ -1,5 +1,14 @@
 # Aviary — project handoff
 
+> **SDK 2.5.1 + WIN2D 1.4.0 + FILTER LISTS — 23 October 2026 (Claude; Grant said "you choose what's best"). ON THE BRANCH `sdk-2.5-migration`, NOT INSTALLED, NOT ON main.**
+> Report: `docs/SDK-2.5-MIGRATION-2026-10-23.md`. Windows App SDK 1.7 (out of support) → 2.5.1 as four components (WinUI 2.3.9, Foundation,
+> InteractiveExperiences, Base; not the meta-package: 466 files / 177 MB instead of 534 / 237 and no AI/Widgets/Search files), Win2D 1.4.0,
+> EasyList and EasyPrivacy refreshed from easylist.to (202610231316). No C# change; `verify.ps1` now wants `Aviary.pri`. Compiles clean;
+> harnesses 125/317/30/18, smoke 17/18 (source-only), live CSP 33/33, links 27/27, groups 39/40 and downloads 53/53 as on the installed
+> build, caption-button hit-test and native chrome identical. NOT verified: a real mouse click on a background tab (the hidden-WebView bug
+> in NOTES-webview2-architecture.md) and the guard-gated desktop-input tests. Do not merge or install without Grant's yes; after installing,
+> click a background tab and something on its page once.
+
 > **PRISM 2 FIXES + ACCOUNT GROUNDWORK — 23 October 2026 (Claude, at Grant's request). READ FIRST.**
 > With Grant's approval (23 Oct) this is **INSTALLED in `publish/Aviary`, COMMITTED and PUSHED to origin/main** (see `git log`).
 > Report: `docs/PRISM2-AND-ACCOUNTS-PREP-2026-10-23.md`. Prism review findings P2-1 to P2-7 fixed from one token file

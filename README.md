@@ -121,8 +121,9 @@ Node 22+ runs the small JavaScript checks. `prepare.ps1` makes a new folder unde
 `.artifact`, validates required runtime/data files, and produces a ZIP, SHA-256 checksum
 and a manifest of every packaged file. It never replaces `publish/Aviary`. Omit
 `-SourceOnly` only for a local package with the existing private Collection payload.
-The SDK and NuGet lock file make dependency selection repeatable. Windows App SDK's
-exact version is 1.7.260224002, pinned in the project and lock after real CI passed.
+The SDK and NuGet lock file make dependency selection repeatable. Windows App SDK 2.5.1 is
+referenced as its WinUI 2.3.9, Foundation 2.3.12, InteractiveExperiences 2.1.9 and Base 2.0.4
+components, with Win2D 1.4.0, pinned in the project and lock (docs/SDK-2.5-MIGRATION-2026-10-23.md).
 The lock was refreshed deliberately without changing resolved dependencies.
 
 ## Collection and source-only builds

@@ -83,21 +83,28 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Exact version validated by real GitHub CI run 39507147323 on commit 77f54fb.
-         packages.lock.json fixes the same verified graph; release scripts and CI restore
-         in locked mode. Do not refresh it implicitly.
+    <!-- Windows App SDK 2.5.1, referenced as the four component packages Aviary uses, not the
+         Microsoft.WindowsAppSDK meta-package (23 Oct 2026, docs/SDK-2.5-MIGRATION-2026-10-23.md).
+         The meta-package also pulls in the AI, ML, Widgets, Search and DWrite components and the
+         native files that go with them (about 70 more files, none used by a browser shell); these
+         four are what WinUI windows, Win2D and the unpackaged self-contained start-up need. The
+         exact versions are the ones Microsoft.WindowsAppSDK 2.5.1 itself resolves. packages.lock.json
+         fixes the graph; release scripts and CI restore in locked mode. Do not refresh it implicitly.
 
          Microsoft.Windows.SDK.BuildTools is deliberately NOT referenced here: it arrives
-         transitively at the version Windows App SDK 1.7 was validated against, and pinning
-         it ahead of that buys nothing while risking a MakePri/MakeAppx tooling mismatch. -->
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="[1.7.260224002]" />
+         transitively at the version these packages were validated against, and pinning it ahead
+         of that buys nothing while risking a MakePri/MakeAppx tooling mismatch. -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="[2.3.9]" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="[2.3.12]" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="[2.1.9]" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="[2.0.4]" />
 
-    <!-- Win2D, for Liquid Glass (Grant said yes, 14 Sep 2026 — the NuGet ask in HANDOFF §2).
+    <!-- Win2D, for Liquid Glass (Grant said yes, 14 Sep 2026 - the NuGet ask in HANDOFF section 2).
          It draws each glass capsule's three-layer shadow cut away under the glass, the way a
          CSS box-shadow is (a composition DropShadow darkens a translucent capsule from below).
-         Pinned EXACTLY, unlike the SDK above: 1.3.2 is the last Win2D built against Windows App
-         SDK 1.6+ (1.4.0 requires the 1.8 split packages and would fight the 1.7 reference). -->
-    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.3.2" />
+         Pinned EXACTLY. 1.4.0 is the Win2D built for the split WinUI packages above (it asks for
+         Microsoft.WindowsAppSDK.WinUI 1.8 or later); 1.3.2 belonged to Windows App SDK 1.7. -->
+    <PackageReference Include="Microsoft.Graphics.Win2D" Version="1.4.0" />
   </ItemGroup>
 
   <!-- Theme dictionaries under Themes\ are picked up by the WinUI SDK's own glob; no

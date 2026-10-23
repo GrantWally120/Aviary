@@ -3,7 +3,7 @@ param([Parameter(Mandatory)][string]$Folder, [switch]$SourceOnly)
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath($Folder).TrimEnd('\')
 $required = @(
-    'Aviary.exe','Aviary.dll','resources.pri','Aviary.deps.json','Aviary.runtimeconfig.json',
+    'Aviary.exe','Aviary.dll','Aviary.pri','Aviary.deps.json','Aviary.runtimeconfig.json',
     'hostfxr.dll','coreclr.dll','Microsoft.ui.xaml.dll','Microsoft.Web.WebView2.Core.dll','WebView2Loader.dll',
     'Assets\Aviary.ico','Assets\Aviary-Glass.ico','Assets\Quik\loading.mp4',
     'Filters\easylist.txt','Filters\easyprivacy.txt','Filters\fanboy-cookiemonster.txt','Filters\fanboy-social.txt','Filters\README.txt',
