@@ -119,6 +119,26 @@ foreach ($item in $items) {
     }
 }
 
+# New pages built beside the repository, in the workspace folder that holds Zoo (not copies of Grant's
+# history, so they are not under Documents). Each folder is copied whole under its own name, which keeps
+# its relative links working: Parallax\index.html + Parallax\assets\. Parallax is the landing page with a
+# working "Join the Quantum Division" form; the old AntiGravity Testing copy stays as it was.
+$workspace = Split-Path -Parent $repo
+foreach ($name in @('Parallax')) {
+    $source = Join-Path $workspace $name
+    $found = @(Get-ChildItem -LiteralPath $source -File -Recurse -ErrorAction SilentlyContinue)
+    if ($found.Count -eq 0) { $missing.Add($name); continue }
+
+    foreach ($file in $found) {
+        $relative = $name + '\' + $file.FullName.Substring($source.Length + 1)
+        $target = [IO.Path]::GetFullPath((Join-Path $dest $relative))
+        if (-not $target.StartsWith($dest + '\', [StringComparison]::OrdinalIgnoreCase)) { throw "refusing path outside Collection: $target" }
+        [void]$wanted.Add($target)
+        $bytes += $file.Length
+        $planned.Add([pscustomobject]@{ File = $file; Relative = $relative; Target = $target })
+    }
+}
+
 # Preflight before any writes. A moved workspace or absent USB must never empty the Collection.
 if ($Prune -and $missing.Count) {
     throw "Prune refused before copying: $($missing.Count) source patterns are unavailable. Existing Collection files are preserved."
