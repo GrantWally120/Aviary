@@ -3,20 +3,23 @@
 > **BETA PREP 1 — made Sunday 25 October 2026 (Claude, for Grant; he asked for it by name). READ FIRST.**
 > Grant, 24 Oct evening: "make a new update in aviary, name it Beta Prep 1, do all the recent changes as one update; there will be
 > more preps". After the first version he corrected it (25 Oct): **"Beta Prep 1 will replace the current AB5, it's a literal update"**
-> and asked for the dates to be verified. So Beta Prep 1 is now THE CURRENT BUILD, not a note inside AB5: `BuildInfo.PrepNumber = 1`
+> and asked for the dates to be verified. So Beta Prep 1 is THE CURRENT BUILD, not a note inside AB5: `BuildInfo.PrepNumber = 1`
 > (name "Beta Prep 1", code BP1), version **0.5.1**, its own `prep:1` entry in `UPDATES` (`InternalPages.cs`), phase 5 underneath so no
 > settings row changes. Alpha Build 5 (0.5.0, 16/16) is untouched and shows under Earlier builds. A later prep: `prep:2` entry + `PrepNumber = 2`.
+> **Its card at the top of Settings -> Updates presses open like Alpha Build 5's** (Grant, 25 Oct: "make it the same as alpha build 5. You can
+> press it, and it will open the description... what I did and what got fixed"): the entry has `unit:'changes'` and eight dated `milestones`
+> (privacy/security, YouTube, shortcuts, Prism 2, account groundwork, Windows parts, ad-blocker lists, PARALLAX signup), each saying what was
+> asked for or found, done and fixed; a prep counts them all as done. The longer notes stay below it.
 > **Dates (checked 25 Oct against git author times +08:00, the CI run, file times): AB5 was completed and stamped on WEDNESDAY 21 OCT 2026
 > at 07:03 (f196ea3); Thursday 22 Oct was the YouTube/shortcut fixes; Beta Prep 1 was made on Sunday 25 Oct (work 21-24 Oct).** Table and
-> evidence: `docs/BETA-PREP-1-2026-10-24.md`. The first version showed "24 Oct" because of my own heading and the compile-time "Built" line.
-> **INSTALLED in `publish/Aviary` on 25 Oct** (Grant: "back up the current install first, then install... run the publish smoke test. Do not
-> commit or push yet"; reinstalled after the correction). **Then COMMITTED and PUSHED the same day on Grant's yes (`git log`), together with the PARALLAX
-> commit c6ca84c.** Stamp `0.5.1+c6ca84c` (built before the commit: the installed copy is that commit's source, so smoke it with `-Sha c6ca84c`). Backups in `Backup/`: CURRENT
-> `Aviary-BP1-local-win-x64.zip` (626 files, `manifest-bp1.json`); ROLLBACK `Aviary-AB5-sdk25-parallax-local-win-x64.zip` (install before Beta
-> Prep 1, 626/626 checked); also `Aviary-AB5-betaprep1-local-win-x64.zip` (the first version); `Backup/README.txt` says which is which.
-> Checks: build 0/0, release-state 11/11, security 317, filters 125, smoke `publish-smoke.ps1 -Sha c6ca84c` 18/18 (now expects Beta Prep 1),
-> and the installed app on a scratch profile shows "You're on Beta Prep 1 · Latest · Version 0.5.1", Alpha Build 5 under Earlier builds,
-> About "0.5.1 · Beta Prep 1 (BP1)". `prepare.ps1` names packages from `PrepNumber`. NOT done: the public roadmap `Aviary.html` still shows AB5 as latest.
+> evidence: `docs/BETA-PREP-1-2026-10-24.md`.
+> **INSTALLED in `publish/Aviary` on 25 Oct, COMMITTED and PUSHED (`git log`; Grant said yes to each, the card last: "back up the current install,
+> install this Beta Prep 1 build, run the smoke test, then commit and push it and check that CI passes").** Stamp `0.5.1+253ed75` (built on top of
+> 253ed75 before the card was committed; the installed copy is the card commit's source, so smoke it with `-Sha 253ed75`). Backups in `Backup/`:
+> CURRENT `Aviary-BP1-card-local-win-x64.zip` (626 files, `manifest-bp1-card.json`); ROLLBACK `Aviary-BP1-local-win-x64.zip` (Beta Prep 1 before the
+> card, = commit 253ed75, CI #14 passed); BEFORE `Aviary-AB5-sdk25-parallax-local-win-x64.zip` (Alpha Build 5 install); `Backup/README.txt` says which is which.
+> Checks: build 0/0, release-state 12/12, security 317, filters 125, smoke 18/18 on the candidate and on the installed copy, card pressed on the installed
+> app (scratch profile). `prepare.ps1` names packages from `PrepNumber`. NOT done: the public roadmap `Aviary.html` still shows AB5 as latest.
 > Also on Grant's request: `.artifact/published-before-prism2-20261023/Aviary.exe` was renamed `aviarybforeprism2update.exe` (same bytes).
 
 > **WHAT IS NEXT — 23 October 2026 (Grant asked for this to be written down). READ FIRST.**

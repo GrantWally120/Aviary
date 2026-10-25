@@ -61,7 +61,22 @@ check('Beta Prep 1 is the current build: its own entry, name, code and version',
   assert.ok(prep1Entry, 'no Updates entry with prep:1');
   assert.equal(updates.indexOf(prep1Entry), updates.indexOf(ab5Entry) + 1);
   assert.ok(prep1Entry.short && prep1Entry.summary && prep1Entry.notes.length >= 5);
-  assert.equal(prep1Entry.milestones, undefined);
+});
+check('Beta Prep 1 opens like Alpha Build 5: a pressable card listing its changes, each dated and explained', () => {
+  const items = prep1Entry.milestones;
+  assert.equal(prep1Entry.unit, 'changes');
+  assert.equal(items.length, 8);
+  for (const m of items) {
+    assert.ok(m.n && m.t && m.d, 'every change has a label, a title and a description');
+    assert.match(m.when, /^2[1-4] Oct$/);
+    assert.ok(m.d.length > 120, m.t + ' needs a real description');
+  }
+  const days = items.map(m => Number(m.when.slice(0, 2)));
+  assert.deepEqual(Array.from(days), Array.from(days).sort((a, b) => a - b));
+  // The card is the same <details> hero as Alpha Build 5's, and a prep counts all its items as done.
+  assert.match(internal, /var done = CURRENT\.prep \? ms\.length : Math\.max\(0, Math\.min\(BUILD\.milestonesDone \| 0, ms\.length\)\);/);
+  assert.match(internal, /var heroTag = ms\.length \? 'details' : 'div';/);
+  assert.equal(ab5Entry.unit, undefined);
 });
 check('Alpha Build 5 is left whole under Earlier builds: 16 milestones, dated 21 Oct 2026, no Beta Prep notes', () => {
   assert.equal(ab5Entry.when, '21 Oct 2026');

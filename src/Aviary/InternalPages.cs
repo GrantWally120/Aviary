@@ -1075,6 +1075,28 @@ var UPDATES = [
   { phase:5, prep:1, name:'Prism 2, privacy and a newer Windows base', when:'25 Oct 2026',
     summary:'The first update after Alpha Build 5: everything done from 21 to 24 October, gathered into one. More preps will follow on the way to Beta Build 1.',
     short:'Prism 2, a Privacy Policy, YouTube and shortcut fixes, a newer Windows base and fresh ad-blocker lists — everything since Alpha Build 5.',
+    /* Press the card at the top to open this list, as with Alpha Build 5. A prep's items are "changes", not milestones:
+       each says what was asked for or found, what was done and what got fixed, in plain words. All are done once it is
+       installed (renderUpdates), and `when` is the day the work landed (git author times, +08:00). */
+    unit:'changes',
+    milestones:[
+      {n:'1', t:'Privacy and security, before any accounts', when:'21 Oct',
+       d:'Grant asked for stronger privacy and blocking, and a Privacy Policy, before any account exists. Aviary now has the Privacy Policy in Settings, blocks the link-tracking pings sites use, and stops at an invalid certificate with no way past it. It refuses permission requests from plain-HTTP sites, and forgets what was changed in a private window when the last one closes. Fixed along the way: passwords, tokens and codes could end up in crash logs and improvement data. They are masked far more widely now, though masking is best effort.'},
+      {n:'2', t:'YouTube plays again', when:'22 Oct',
+       d:'Found in the review of Aviary that Grant asked for. With Identify as Safari switched on, YouTube’s player stopped after about forty seconds with “Something went wrong”. Fixed: Aviary now always shows YouTube the engine’s own identity, and every other site still gets what the switch says.'},
+      {n:'3', t:'Everyday shortcuts and new tabs', when:'22 Oct',
+       d:'Also from the review: keys people reach for were missing. F5 and Ctrl+F5 reload, Alt+← and Alt+→ go back and forward, F3, Shift+F3, Ctrl+G and Ctrl+Shift+G step through Find matches, Ctrl+P prints, Ctrl+N opens a new window, and Ctrl+Shift+T reopens the tab you just closed. A new tab now puts the cursor in the address bar, and Escape puts back the address you had.'},
+      {n:'4', t:'Prism 2, the look', when:'23 Oct',
+       d:'Grant asked for the problems found in the Prism review to be fixed. Fixed: small grey text and the main button fell short of the AA contrast level (now every character passes, light and dark); the glass rim blurred itself instead of the page behind it; the landing page promised more glass than the Windows app draws, and now says what the app keeps; reduced transparency, increased contrast and forced colours were not handled; and the colours lived in three places, now one file that a check keeps honest.'},
+      {n:'5', t:'Groundwork for accounts', when:'23 Oct',
+       d:'Built before any account exists, so it rests on checked parts: a strict content policy for Aviary’s own pages, a sealed store for secrets that only your Windows user can open, and the building blocks for signing in. None of it is on a screen yet. There is no account, sign-in or sync in Aviary.'},
+      {n:'6', t:'Newer Windows parts', when:'23 Oct',
+       d:'The Windows App SDK Aviary ran on, version 1.7, stopped being supported on 18 March 2026. Fixed: Aviary now uses 2.5.1, with only the four parts a browser needs, and Win2D 1.4.0. It ships fewer files too, 466 instead of 534 and 177 MB instead of 237 MB. Aviary’s own code did not have to change.'},
+      {n:'7', t:'Fresh ad-blocker lists', when:'23 Oct',
+       d:'The EasyList and EasyPrivacy lists that ship with Aviary were from September. They were refreshed from easylist.to on 23 October; the Cookie notices and Social widgets lists were not. Lists only stay fresh by themselves if Settings → Shields → Keep the lists up to date is set to Daily or Weekly. It is Off until you switch it on.'},
+      {n:'8', t:'The PARALLAX signup really sends', when:'24 Oct',
+       d:'On the PARALLAX exhibit in the Collection, Join the Quantum Division did not actually send anything. It now opens a new page that posts through FormSubmit to the Bird News inbox, and tells the visitor honestly whether it was delivered.'}
+    ],
     notes:[
       {h:'About this update — 25 October 2026', items:[
         '<b>Beta Prep 1 replaces Alpha Build 5 as the build you are on</b>, version 0.5.1. Alpha Build 5 (0.5.0, all sixteen milestones, finished on 21 October) stays below under Earlier builds, unchanged',
@@ -1727,7 +1749,10 @@ function renderUpdates(s){
 
   if (CURRENT){
     var ms = CURRENT.milestones || [];
-    var done = Math.max(0, Math.min(BUILD.milestonesDone | 0, ms.length));
+    /* A Beta Prep is finished the moment it is installed, so all its items are done; BuildInfo's milestone count is the
+       alpha's. Its items are "changes", each with a date and a plain account of what was done and what was fixed. */
+    var done = CURRENT.prep ? ms.length : Math.max(0, Math.min(BUILD.milestonesDone | 0, ms.length));
+    var unit = CURRENT.unit || 'milestones';
     var meta = ['Version ' + esc(BUILD.version)];
     if (BUILD.builtOn) { meta.push('Built ' + esc(BUILD.builtOn)); }
     if (BUILD.engine) { meta.push('Engine ' + esc(BUILD.engine)); }
@@ -1735,7 +1760,7 @@ function renderUpdates(s){
     var heroTag = ms.length ? 'details' : 'div';
     var headTag = ms.length ? 'summary' : 'div';
     h += '<' + heroTag + ' class="group hero hero--build"' + (ms.length && BUILD.preRelease ? ' open' : '') + '>' + DOME +
-      '<' + headTag + ' class="hero__build"' + (ms.length ? ' aria-label="' + esc(buildName()) + ' milestones"' : '') + '>' +
+      '<' + headTag + ' class="hero__build"' + (ms.length ? ' aria-label="' + esc(buildName()) + ' ' + esc(unit) + '"' : '') + '>' +
       '<span class="hero__kicker">You’re on</span>' +
       '<span class="hero__title"><b class="hero__build-title">' + esc(buildName()) + '</b>' +
         '<span class="chip chip--code">' + esc(buildCode()) + (ms.length ? CHEV : '') + '</span>' +
@@ -1747,9 +1772,9 @@ function renderUpdates(s){
     if (ms.length){
       h += '<div class="bar" style="grid-template-columns:repeat(' + ms.length + ',1fr)">' +
         ms.map(function(m, i){ return '<i style="--i:' + i + '" class="' + (i < done ? 'done' : (i === done ? 'next' : '')) + '"></i>'; }).join('') +
-        '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> milestones done</span>' +
+        '</div><div class="bar__label"><span><b>' + done + ' of ' + ms.length + '</b> ' + esc(unit) + ' done</span>' +
         (done < ms.length ? '<span>Next: ' + esc(ms[done].n || '') + ' · ' + ms[done].t + '</span>' : '') + '</div>' +
-        '<ol class="ms" aria-label="Build milestones">' + ms.map(function(m, i){
+        '<ol class="ms" aria-label="Build ' + esc(unit) + '">' + ms.map(function(m, i){
           var st = i < done ? 'done' : (i === done ? 'next' : 'todo');
           return '<li class="' + st + '"><span class="ms__dot">' + TICK + '</span>' +
                  '<span class="ms__n">' + esc(m.n || ('M' + i)) + '</span>' +
