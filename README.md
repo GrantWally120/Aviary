@@ -1,7 +1,11 @@
 # Aviary
 
-A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. Alpha Build 5
-is **The Long Run**, version 0.5.0, with all sixteen milestones complete. The AB5
+A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. **Beta Prep 1**
+(version 0.5.1, made 25 October 2026) is the current update; it replaces Alpha Build 5 as the build
+you are on and gathers everything done from 21 to 24 October (see
+[docs/BETA-PREP-1-2026-10-24.md](docs/BETA-PREP-1-2026-10-24.md)). It is installed locally and pushed.
+Alpha Build 5 was **The Long Run**, version 0.5.0, with all sixteen milestones complete, finished on
+Wednesday 21 October 2026. The AB5
 release and the Settings/privacy/security follow-ups passed Windows CI. The latest
 tested privacy/security copy, with the 22 October review fixes, is installed locally; the
 privacy/security source and the fixes are both pushed (Windows CI run #10 on 9c759f0 passed).
@@ -23,16 +27,16 @@ macOS support and starting Beta Build 1 remain deferred.
 ## Current app and USB backup — 22 October 2026
 
 Open **Aviary.lnk** in this folder, or run `publish/Aviary/Aviary.exe`.
-This is the latest verified AB5 0.5.0, 16/16, including the Settings and
-privacy/security updates and the 22 October review fixes (YouTube playback, everyday
-keyboard shortcuts, new-tab focus). Desktop/taskbar shortcuts use the same installation.
+This is Beta Prep 1, version 0.5.1 (25 October 2026), on top of the verified Alpha Build 5 (0.5.0, 16/16, finished
+Wednesday 21 October 2026), including the Settings and privacy/security updates and the 22 October review fixes
+(YouTube playback, everyday keyboard shortcuts, new-tab focus). Desktop/taskbar shortcuts use the same installation.
 
 Grant authorized cleaning this E: workspace. Redundant app distributions, old
 release ZIPs, rebuildable outputs and scratch test profiles were removed:
 140,278 files, about 19.6 GB of logical file data. Two exact recovery ZIPs are in
 **Backup**, with manifests, checksums and restore instructions: the current one
-(`Aviary-AB5-sdk25-local-win-x64.zip`, 23 October) and the previous build as a rollback
-(`Aviary-AB5-prism2-local-win-x64.zip`); two older ones are kept. `Backup/README.txt` says which is which.
+(`Aviary-BP1-local-win-x64.zip`, 25 October) and the previous build as a rollback
+(`Aviary-AB5-sdk25-parallax-local-win-x64.zip`); older ones are kept. `Backup/README.txt` says which is which.
 Copy that folder to USB for the app backup; copy the whole cleaned Zoo folder,
 including hidden `.git`, to retain development sources/history too.
 The backup contains private Collection projects; keep it local.

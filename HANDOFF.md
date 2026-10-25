@@ -1,5 +1,24 @@
 # Aviary — project handoff
 
+> **BETA PREP 1 — made Sunday 25 October 2026 (Claude, for Grant; he asked for it by name). READ FIRST.**
+> Grant, 24 Oct evening: "make a new update in aviary, name it Beta Prep 1, do all the recent changes as one update; there will be
+> more preps". After the first version he corrected it (25 Oct): **"Beta Prep 1 will replace the current AB5, it's a literal update"**
+> and asked for the dates to be verified. So Beta Prep 1 is now THE CURRENT BUILD, not a note inside AB5: `BuildInfo.PrepNumber = 1`
+> (name "Beta Prep 1", code BP1), version **0.5.1**, its own `prep:1` entry in `UPDATES` (`InternalPages.cs`), phase 5 underneath so no
+> settings row changes. Alpha Build 5 (0.5.0, 16/16) is untouched and shows under Earlier builds. A later prep: `prep:2` entry + `PrepNumber = 2`.
+> **Dates (checked 25 Oct against git author times +08:00, the CI run, file times): AB5 was completed and stamped on WEDNESDAY 21 OCT 2026
+> at 07:03 (f196ea3); Thursday 22 Oct was the YouTube/shortcut fixes; Beta Prep 1 was made on Sunday 25 Oct (work 21-24 Oct).** Table and
+> evidence: `docs/BETA-PREP-1-2026-10-24.md`. The first version showed "24 Oct" because of my own heading and the compile-time "Built" line.
+> **INSTALLED in `publish/Aviary` on 25 Oct** (Grant: "back up the current install first, then install... run the publish smoke test. Do not
+> commit or push yet"; reinstalled after the correction). **Then COMMITTED and PUSHED the same day on Grant's yes (`git log`), together with the PARALLAX
+> commit c6ca84c.** Stamp `0.5.1+c6ca84c` (built before the commit: the installed copy is that commit's source, so smoke it with `-Sha c6ca84c`). Backups in `Backup/`: CURRENT
+> `Aviary-BP1-local-win-x64.zip` (626 files, `manifest-bp1.json`); ROLLBACK `Aviary-AB5-sdk25-parallax-local-win-x64.zip` (install before Beta
+> Prep 1, 626/626 checked); also `Aviary-AB5-betaprep1-local-win-x64.zip` (the first version); `Backup/README.txt` says which is which.
+> Checks: build 0/0, release-state 11/11, security 317, filters 125, smoke `publish-smoke.ps1 -Sha c6ca84c` 18/18 (now expects Beta Prep 1),
+> and the installed app on a scratch profile shows "You're on Beta Prep 1 · Latest · Version 0.5.1", Alpha Build 5 under Earlier builds,
+> About "0.5.1 · Beta Prep 1 (BP1)". `prepare.ps1` names packages from `PrepNumber`. NOT done: the public roadmap `Aviary.html` still shows AB5 as latest.
+> Also on Grant's request: `.artifact/published-before-prism2-20261023/Aviary.exe` was renamed `aviarybforeprism2update.exe` (same bytes).
+
 > **WHAT IS NEXT — 23 October 2026 (Grant asked for this to be written down). READ FIRST.**
 > **ARTEMIS IS ON HOLD. Grant has his own plan for it and said "do not do artemis yet": do NOT start, scaffold or propose an Artemis
 > port or edit `artemis.html` until he brings it up himself.** The Prism 2 spec stays available for when he does:

@@ -20,10 +20,20 @@ if (!$NoRestore) {
 }
 & dotnet publish $project --no-restore -c Release -p:Platform=x64 -p:RuntimeIdentifier=win-x64 "-p:IncludePrivateCollection=$((!$SourceOnly).ToString().ToLowerInvariant())" -o $app -v:minimal
 if ($LASTEXITCODE) { throw 'Publish failed.' }
+$prepMatch = [regex]::Match($buildInfo, 'public const int PrepNumber = (\d+);')
+$prep = if ($prepMatch.Success) { [int]$prepMatch.Groups[1].Value } else { 0 }
 $releaseName = if ($preRelease) { 'release candidate' } else { 'The Long Run' }
 $releaseNotice = if ($preRelease) { 'This is an unsigned pre-release. Final AB5 release approval is pending.' } else { 'This is an unsigned Alpha Build 5 app. Quik remains in Beta.' }
+$buildTitle = "Alpha Build 5 $releaseName"
+$buildCode = 'AB5'
+if ($prep -gt 0) {
+    # A Beta Prep replaces Alpha Build 5 as the current build (BuildInfo.PrepNumber).
+    $buildTitle = "Beta Prep $prep"
+    $buildCode = "BP$prep"
+    $releaseNotice = "This is an unsigned Beta Prep $prep update, the next step after Alpha Build 5. Quik remains in Beta."
+}
 $notice = @"
-Aviary — Alpha Build 5 $releaseName (Windows x64)
+Aviary — $buildTitle (Windows x64)
 
 Extract this entire Aviary folder, then double-click Aviary.exe. Keep its files together.
 .NET and Windows App SDK are included. Microsoft Edge WebView2 Runtime is also required
@@ -43,7 +53,7 @@ $record = [ordered]@{ created=(Get-Date -Format o); commit=$commit; workingTreeD
 $record | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $output 'manifest.json') -Encoding utf8
 $stage = if ($preRelease) { 'RC-' } else { '' }
 $distribution = if ($SourceOnly) { 'source' } else { 'local' }
-$label = 'Aviary-AB5-'+$stage+$distribution+'-win-x64'
+$label = 'Aviary-'+$buildCode+'-'+$stage+$distribution+'-win-x64'
 $zip = Join-Path $output ($label+'.zip')
 Compress-Archive -LiteralPath $app -DestinationPath $zip -CompressionLevel Optimal
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()

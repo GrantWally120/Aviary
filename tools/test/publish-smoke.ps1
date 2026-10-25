@@ -85,7 +85,14 @@ if ($set) {
     $u = node cdp.js eval $sid "document.getElementById('pane-updates').innerText"
     # Written for M5's "12 of 15 milestones done"; AB5 shipped on 21 Oct (16 of 16), and a shipped build has no
     # progress bar - its notes say which build it is and that it is the latest. Reads the build, not a count.
-    Check "Updates names the shipped build (Alpha Build 5, The Long Run, Latest)" (($u -match 'Alpha Build 5') -and ($u -match 'The Long Run') -and ($u -match 'Latest')) ($u.Substring(0, [Math]::Min(200, $u.Length)))
+    # From 25 Oct 2026 the build you are on is Beta Prep 1 (BuildInfo.PrepNumber); Alpha Build 5 sits under Earlier builds.
+    $bi = Get-Content (Join-Path $kit "..\..\src\Aviary\BuildInfo.cs") -Raw
+    $prepNo = if ($bi -match 'PrepNumber = (\d+);') { [int]$Matches[1] } else { 0 }
+    if ($prepNo -gt 0) {
+        Check "Updates names the shipped build (Beta Prep $prepNo, Latest) with Alpha Build 5 under Earlier builds" (($u -match "Beta Prep $prepNo") -and ($u -match 'Latest') -and ($u -match 'Earlier builds') -and ($u -match 'Alpha Build 5')) ($u.Substring(0, [Math]::Min(200, $u.Length)))
+    } else {
+        Check "Updates names the shipped build (Alpha Build 5, The Long Run, Latest)" (($u -match 'Alpha Build 5') -and ($u -match 'The Long Run') -and ($u -match 'Latest')) ($u.Substring(0, [Math]::Min(200, $u.Length)))
+    }
     node cdp.js click $sid "button[data-target=about]" | Out-Null; Start-Sleep 1
     $a = node cdp.js eval $sid "document.getElementById('ab-version').textContent + ' | ' + document.getElementById('ab-release').textContent"
     "  (About reads: $a)"

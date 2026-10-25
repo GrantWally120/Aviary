@@ -26,8 +26,9 @@ Runtime, normally present on Windows 11. The app is unsigned. macOS is planned l
 
 1. Open the Aviary repository on GitHub and choose **Actions**.
 2. Choose **Build Aviary (win-x64)**, then a run with a green check.
-3. Under **Artifacts**, download **Aviary-AB5-source-win-x64.zip**. Earlier pre-release
-   runs use **Aviary-AB5-RC-source-win-x64.zip**.
+3. Under **Artifacts**, download **Aviary-BP1-source-win-x64.zip** (Beta Prep 1, from 25 October
+   2026; the name follows the build, so a later prep will say BP2). Alpha Build 5 runs use
+   **Aviary-AB5-source-win-x64.zip** and earlier pre-release runs **Aviary-AB5-RC-source-win-x64.zip**.
 4. Extract it and open **Aviary.exe** inside the **Aviary** folder.
 
 A grey or yellow run is still waiting or building. A red run failed; it does not

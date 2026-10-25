@@ -48,4 +48,39 @@ check('M9 appears with its date in the actual Updates data', () => {
   assert.match(internal, /\{n:'M9', t:'Getting ready for Beta Build 1', when:'21 Oct'/);
   assert.ok(internal.includes('All sixteen milestones of The Long Run are finished.'));
 });
+// Beta Prep 1 (25 Oct 2026) is a literal update that REPLACES Alpha Build 5 as the build you are on, not a note inside it.
+const updatesSource = internal.slice(internal.indexOf('var UPDATES = ['), internal.indexOf('\n];', internal.indexOf('var UPDATES = [')) + 3);
+const updates = vm.runInNewContext(updatesSource + '\nUPDATES');
+const ab5Entry = updates.find(u => u.phase === 5 && !u.prep);
+const prep1Entry = updates.find(u => u.phase === 5 && u.prep === 1);
+check('Beta Prep 1 is the current build: its own entry, name, code and version', () => {
+  assert.equal(constant('PrepNumber'), 1);
+  assert.match(buildInfo, /public const string Version = "0\.5\.1";/);
+  assert.match(buildInfo, /PrepNameOf\(int prep\) => "Beta Prep " \+ prep/);
+  assert.match(buildInfo, /PrepCodeOf\(int prep\) => "BP" \+ prep/);
+  assert.ok(prep1Entry, 'no Updates entry with prep:1');
+  assert.equal(updates.indexOf(prep1Entry), updates.indexOf(ab5Entry) + 1);
+  assert.ok(prep1Entry.short && prep1Entry.summary && prep1Entry.notes.length >= 5);
+  assert.equal(prep1Entry.milestones, undefined);
+});
+check('Alpha Build 5 is left whole under Earlier builds: 16 milestones, dated 21 Oct 2026, no Beta Prep notes', () => {
+  assert.equal(ab5Entry.when, '21 Oct 2026');
+  assert.equal(ab5Entry.milestones.length, 16);
+  assert.ok(ab5Entry.notes.every(g => !/Beta Prep/.test(g.h)));
+  assert.equal(constant('PhaseNumber'), 5);
+  assert.equal(constant('PhaseShipped'), 5);
+  assert.equal(constant('Milestones'), 16);
+  assert.equal(constant('MilestonesDone'), 16);
+});
+check('the dates are the verified ones (AB5 21 Oct 2026; the prep made 25 Oct 2026, its changes 21 to 24 Oct)', () => {
+  assert.equal(ab5.when, '21 Oct 2026');
+  assert.equal(prep1Entry.when, '25 Oct 2026');
+  const headings = prep1Entry.notes.map(g => g.h);
+  assert.deepEqual(Array.from(headings, h => h.replace(/ — .*$/, '')), ['About this update', 'Prism 2, the look', 'Privacy and security', 'Everyday use', 'Under the hood', 'The Collection', 'Not in this update']);
+  for (const h of headings.slice(0, -1)) assert.match(h, / — (\d{1,2} (to \d{1,2} )?October 2026)$/);
+  assert.ok(headings.includes('About this update — 25 October 2026'));
+  assert.ok(headings.includes('Prism 2, the look — 23 October 2026'));
+  assert.ok(headings.includes('Everyday use — 22 October 2026'));
+  assert.ok(headings.includes('The Collection — 24 October 2026'));
+});
 console.log(passed + ' passed');

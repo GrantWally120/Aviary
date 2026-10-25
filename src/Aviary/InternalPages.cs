@@ -649,6 +649,12 @@ var PHASE = BUILD.phaseShipped | 0;
    from BuildInfo, so this page never re-derives the numbering. */
 function nameOf(p){ return (BUILD.names && BUILD.names[p]) || ('Build ' + p); }
 function codeOf(p){ return (BUILD.codes && BUILD.codes[p]) || String(p); }
+/* The build you are ON can be a Beta Prep (BuildInfo.PrepNumber), which sits in phase 5 but has its own name
+   and code; an UPDATES entry with a `prep` number is one. Everything else is its phase's build. */
+function buildName(){ return BUILD.buildName || nameOf(BUILD.phaseNumber); }
+function buildCode(){ return BUILD.buildCode || codeOf(BUILD.phaseNumber); }
+function entryName(u){ return u.prep ? 'Beta Prep ' + u.prep : nameOf(u.phase); }
+function entryCode(u){ return u.prep ? 'BP' + u.prep : codeOf(u.phase); }
 function esc(s){
   return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
 }
@@ -705,7 +711,9 @@ var ICON = {
    row badges do, so this page cannot go on calling a finished build "in progress". Only
    history is written by hand, and history does not go stale.
 
-   Add a build's notes when it ships; bump BuildInfo.MilestonesDone when a milestone does. */
+   Add a build's notes when it ships; bump BuildInfo.MilestonesDone when a milestone does. A Beta Prep is an
+   entry with `prep:N`, placed after the build it follows; BuildInfo.PrepNumber says which one you are on, and
+   the entries before it appear under Earlier builds. */
 var UPDATES = [
   { phase:1, name:'The shell', when:'6 Sep 2026',
     summary:'A window that launches and browses — the frame everything since is built inside.',
@@ -1059,6 +1067,48 @@ var UPDATES = [
         'Exit in the app menu closed a window of many tabs without asking, and closing the last tab stopped a running download without asking'
       ]}
     ]},
+  /* Beta Prep 1 is a literal update that REPLACES Alpha Build 5 as the build you are on (Grant, 25 Oct 2026). It
+     keeps phase 5 underneath, so no settings row changes meaning; BuildInfo.PrepNumber picks this entry and
+     Alpha Build 5 moves down to Earlier builds, unchanged. Dates were checked against the git history (author
+     times, +08:00) on 25 Oct 2026: Alpha Build 5 was stamped on Wednesday 21 October at 07:03 (CI run created
+     20 Oct 23:02 UTC); the work in this prep landed 21 to 24 October and this build was made on 25 October. */
+  { phase:5, prep:1, name:'Prism 2, privacy and a newer Windows base', when:'25 Oct 2026',
+    summary:'The first update after Alpha Build 5: everything done from 21 to 24 October, gathered into one. More preps will follow on the way to Beta Build 1.',
+    short:'Prism 2, a Privacy Policy, YouTube and shortcut fixes, a newer Windows base and fresh ad-blocker lists — everything since Alpha Build 5.',
+    notes:[
+      {h:'About this update — 25 October 2026', items:[
+        '<b>Beta Prep 1 replaces Alpha Build 5 as the build you are on</b>, version 0.5.1. Alpha Build 5 (0.5.0, all sixteen milestones, finished on 21 October) stays below under Earlier builds, unchanged',
+        'It gathers everything done since then, from 21 to 24 October. More preps will follow on the way to Beta Build 1. Aviary is still unsigned'
+      ]},
+      {h:'Prism 2, the look — 23 October 2026', items:[
+        '<b>One file of design numbers.</b> The Liquid Glass look, the landing page and the design mock-up now take their colours and glass from it, and a check fails if any copy drifts',
+        '<b>Easier to read.</b> Small grey text, the main button and the status tags were raised to the AA contrast level and measured on the real pages: every character passes, light and dark. In the Windows app the address-box hint went from 4.23 to 4.85 contrast in the light look',
+        '<b>A better rim.</b> The glass rim is now its own layer beside the glass, so it works on the page behind it instead of on itself',
+        '<b>Accessibility modes.</b> Pages follow reduced transparency, increased contrast and forced colours. The landing page says plainly which parts of the glass the Windows app keeps and which it does not, and no longer asks Google Fonts for anything'
+      ]},
+      {h:'Privacy and security — 21 to 23 October 2026', items:[
+        '<b>A Privacy Policy inside Settings</b>, offline and written from the same text as the shipped PRIVACY.md. It says what this build keeps, what optional diagnostics record, which Microsoft services are involved, and what would need separate consent before any future reporting',
+        '<b>Tighter privacy and Shields.</b> Link tracking pings, the quiet notice a link sends when you click it, are blocked while Shields is up, including a site’s own. A site with an invalid certificate shows its error with no Continue to site button. Permission requests from plain-HTTP sites (other than your own computer) are refused, and a private window never saves a permission answer. Shields changes and HTTP exceptions made in a private window are forgotten when the last private window closes. A script on a page can no longer open another program by itself; links you click still go through Windows’ own checks',
+        '<b>Limits on what Aviary fetches for itself.</b> Filter-list updates come only from approved HTTPS addresses, with no cookies and no redirects, a size limit and a time limit, and a rejected update keeps the old list. Site icons follow Shields’ rules, are capped at 256 KB and eight seconds, and Bird News now gives up after fifteen seconds',
+        '<b>Diagnostics masks more.</b> Passwords, tokens, one-time and recovery codes, card security codes and similar are masked in improvement data and in both crash logs, in headers and addresses as well as in text, and diagnostics never watches a private tab. Masking is best effort and can miss things, so treat that folder as sensitive',
+        '<b>Groundwork for accounts, not connected to anything.</b> Aviary’s own Start Page and Settings now carry a strict content policy: only their own script runs and nothing reaches the network. Built and tested but on no screen yet: a sealed store for secrets tied to your Windows user, and the building blocks for signing in. No account, sign-in or sync exists in Aviary'
+      ]},
+      {h:'Everyday use — 22 October 2026', items:[
+        '<b>YouTube plays again.</b> With Identify as Safari switched on, YouTube’s player stopped after about forty seconds with “Something went wrong”. Aviary now always shows YouTube the engine’s own identity; other sites still get what the switch says',
+        '<b>Everyday shortcuts.</b> <kbd>F5</kbd> and <kbd>Ctrl+F5</kbd> reload, <kbd>Alt+←</kbd> and <kbd>Alt+→</kbd> go back and forward, <kbd>F3</kbd>, <kbd>Shift+F3</kbd>, <kbd>Ctrl+G</kbd> and <kbd>Ctrl+Shift+G</kbd> step through Find matches, <kbd>Ctrl+P</kbd> prints and <kbd>Ctrl+N</kbd> opens a new window. <kbd>Ctrl+Shift+T</kbd> reopens the tab you just closed, remembered in memory only and never for private windows or forgetful sites. A page that wants a key for itself, such as an editor’s Ctrl+P, hears it first',
+        '<b>New tabs and the address bar.</b> A new tab puts the cursor in the address bar, Escape puts back the address you had, and the address bar no longer spell-checks or predicts text'
+      ]},
+      {h:'Under the hood — 23 October 2026', items:[
+        '<b>Newer Windows parts.</b> Aviary moved to Windows App SDK 2.5.1, because version 1.7 stopped being supported on 18 March 2026, and to Win2D 1.4.0. It carries only the four parts of the SDK a browser needs, so the SDK files it ships went from 534 files and 237 MB to 466 files and 177 MB',
+        '<b>Newer ad-blocker lists.</b> The EasyList and EasyPrivacy lists that ship with Aviary were refreshed from easylist.to on 23 October. The Cookie notices and Social widgets lists were not'
+      ]},
+      {h:'The Collection — 24 October 2026', items:[
+        '<b>The PARALLAX exhibit’s signup really sends.</b> Join the Quantum Division now opens a new page in the Collection that posts through FormSubmit to the Bird News inbox, and tells the visitor honestly whether it was delivered'
+      ]},
+      {h:'Not in this update', items:[
+        'Accounts, Google sign-in, cloud sync, an installer, automatic updates and macOS'
+      ]}
+    ]},
   { phase:6, name:'Testing 1',
     summary:'Alpha Build 5 again, made properly: everything alpha built, finished and installable — the first build meant to be lived in rather than looked at.',
     bits:['All of alpha, finished','More polish','The features alpha left out','Session restore','Crash reporting','An installer, and updates','Daily-driver testing']},
@@ -1066,7 +1116,7 @@ var UPDATES = [
     summary:'The second round of living in it. What goes in is decided by using Beta Build 1 for a while, not by guessing now — smoother, quicker, quieter.',
     bits:['Planned when we get there','New features and ideas','Smoothed','Optimised']}
 ];
-var CURRENT = UPDATES.filter(function(u){ return u.phase === (BUILD.phaseNumber | 0); })[0];
+var CURRENT = UPDATES.filter(function(u){ return u.phase === (BUILD.phaseNumber | 0) && (u.prep | 0) === (BUILD.prepNumber | 0); })[0];
 var PROLOGUE = 'Before Alpha Build 1 there was the interface study, on 4 September 2026: both Safari looks ' +
   'against both tab layouts, in light and dark, drawn in a Windows 11 frame before any of Aviary was written.';
 
@@ -1120,7 +1170,7 @@ var SECTIONS = [
       {t:'Bird News', d:'Live headlines from the world and the Philippines, right under Favourites. Its own page has every switch.', ctl:{type:'goto', target:'news', label:'Bird News settings'}},
       /* Was "What works today", hand-written in Alpha Build 3 and still promising Alpha Build
          4's features two builds later. Now it is the current build's own line from UPDATES. */
-      {t: CURRENT ? 'What’s new in ' + nameOf(CURRENT.phase) : 'What’s new', d: CURRENT ? CURRENT.short : '', ctl:{type:'goto', target:'updates', label:'See updates'}}
+      {t: CURRENT ? 'What’s new in ' + entryName(CURRENT) : 'What’s new', d: CURRENT ? CURRENT.short : '', ctl:{type:'goto', target:'updates', label:'See updates'}}
     ]},
 
   /* M4.9 — Bird News (BirdsNews.cs). The one part of Aviary that goes online by itself, so this
@@ -1667,8 +1717,8 @@ function notesHtml(notes){
 }
 
 function buildHead(u, tag){
-  return '<span class="bld__tile">' + esc(codeOf(u.phase)) + '</span>' +
-         '<span class="bld__t"><b>' + esc(nameOf(u.phase)) + '</b><span>' + u.name + '</span></span>' + tag;
+  return '<span class="bld__tile">' + esc(entryCode(u)) + '</span>' +
+         '<span class="bld__t"><b>' + esc(entryName(u)) + '</b><span>' + u.name + '</span></span>' + tag;
 }
 
 function renderUpdates(s){
@@ -1685,10 +1735,10 @@ function renderUpdates(s){
     var heroTag = ms.length ? 'details' : 'div';
     var headTag = ms.length ? 'summary' : 'div';
     h += '<' + heroTag + ' class="group hero hero--build"' + (ms.length && BUILD.preRelease ? ' open' : '') + '>' + DOME +
-      '<' + headTag + ' class="hero__build"' + (ms.length ? ' aria-label="' + esc(nameOf(now)) + ' milestones"' : '') + '>' +
+      '<' + headTag + ' class="hero__build"' + (ms.length ? ' aria-label="' + esc(buildName()) + ' milestones"' : '') + '>' +
       '<span class="hero__kicker">You’re on</span>' +
-      '<span class="hero__title"><b class="hero__build-title">' + esc(nameOf(now)) + '</b>' +
-        '<span class="chip chip--code">' + esc(codeOf(now)) + (ms.length ? CHEV : '') + '</span>' +
+      '<span class="hero__title"><b class="hero__build-title">' + esc(buildName()) + '</b>' +
+        '<span class="chip chip--code">' + esc(buildCode()) + (ms.length ? CHEV : '') + '</span>' +
         (BUILD.preRelease ? '<span class="chip chip--pre">Pre-release</span>' : '<span class="chip chip--ok">Latest</span>') +
       '</span>' +
       '<span class="hero__name">' + CURRENT.name + '</span>' +
@@ -1715,8 +1765,8 @@ function renderUpdates(s){
   if (s.rows.length) { h += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>'; }
 
   if (CURRENT && CURRENT.notes){
-    h += '<h2 class="upd-h">What’s new in ' + esc(nameOf(now)) + (BUILD.preRelease ? ' so far' : '') + '</h2>';
-    if (now === 5) {
+    h += '<h2 class="upd-h">What’s new in ' + esc(buildName()) + (BUILD.preRelease ? ' so far' : '') + '</h2>';
+    if (now === 5 && !CURRENT.prep) {
       h += '<div class="group hero"><div class="hero__kicker">M7 · Super Quik</div>' +
         '<div class="hero__title"><h2>Quik</h2><span class="chip chip--pre">Beta</span></div>' +
         '<p class="lede">An earlier start for the engine, a new tab prepared in advance, and a speed of its own.</p>' +
@@ -1735,7 +1785,11 @@ function renderUpdates(s){
     }).join('');
   }
 
-  var past = UPDATES.filter(function(u){ return u.phase < now; }).reverse();
+  /* Earlier builds: every entry before the one you are on — an earlier phase, or the same phase with a lower prep
+     (Alpha Build 5 is phase 5 with no prep, so a Beta Prep 1 on top of it shows it here, newest first). */
+  var past = UPDATES.filter(function(u){
+    return u.phase < now || (u.phase === now && (u.prep | 0) < (BUILD.prepNumber | 0));
+  }).reverse();
   if (past.length){
     h += '<h2 class="upd-h">Earlier builds</h2>' + past.map(function(u){
       return '<details class="group bld"><summary class="bld__head">' +
@@ -1912,7 +1966,7 @@ var uaEl = document.getElementById('ua');
 if (uaEl) uaEl.textContent = navigator.userAgent;
 
 function fillText(id, text){ var el = document.getElementById(id); if (el) { el.textContent = text; } }
-fillText('ab-version', BUILD.version + ' · ' + nameOf(BUILD.phaseNumber) + ' (' + codeOf(BUILD.phaseNumber) + ')');
+fillText('ab-version', BUILD.version + ' · ' + buildName() + ' (' + buildCode() + ')');
 fillText('ab-release', BUILD.preRelease ? 'Pre-release · ' + (BUILD.progress || '') : 'Released');
 fillText('ab-engine', 'WebView2 ' + (BUILD.engine ? BUILD.engine + ' ' : '') + '(Chromium, via Microsoft Edge)');
 fillText('ab-built', BUILD.builtOn || '—');

@@ -24,7 +24,18 @@ namespace Aviary;
 /// </summary>
 internal static class BuildInfo
 {
-    public const string Version = "0.5.0";
+    public const string Version = "0.5.1";
+
+    /// <summary>
+    /// Which "Beta Prep" update this is, 0 for none. A prep is a literal update that sits between the
+    /// last alpha and Beta Build 1 and REPLACES the previous build as the one you are on: Alpha Build 5
+    /// (0.5.0, finished Wednesday 21 October 2026) becomes an earlier build in Updates, and Beta Prep 1
+    /// (0.5.1, 25 October 2026) is the current one. It does not change <see cref="PhaseNumber"/> or
+    /// <see cref="PhaseShipped"/>, so the settings rows' gating is untouched. Preps are numbered 1, 2, ...
+    /// until Beta Build 1 starts; the Updates entry is the one in InternalPages.cs with the same
+    /// <c>prep</c> number.
+    /// </summary>
+    public const int PrepNumber = 1;
 
     /// <summary>The phase — the build — currently being made. About and Updates report it.</summary>
     public const int PhaseNumber = 5;
@@ -93,11 +104,17 @@ internal static class BuildInfo
     public static string CodeOf(int phase) =>
         phase <= LastAlphaPhase ? "AB" + phase : "BB" + (phase - LastAlphaPhase);
 
-    /// <summary>"Alpha Build 5".</summary>
-    public static string BuildName => NameOf(PhaseNumber);
+    /// <summary>"Beta Prep 1" for prep 1.</summary>
+    public static string PrepNameOf(int prep) => "Beta Prep " + prep;
 
-    /// <summary>"AB5".</summary>
-    public static string BuildCode => CodeOf(PhaseNumber);
+    /// <summary>"BP1" for prep 1.</summary>
+    public static string PrepCodeOf(int prep) => "BP" + prep;
+
+    /// <summary>"Beta Prep 1" while a prep is the current update, otherwise "Alpha Build 5".</summary>
+    public static string BuildName => PrepNumber > 0 ? PrepNameOf(PrepNumber) : NameOf(PhaseNumber);
+
+    /// <summary>"BP1" while a prep is the current update, otherwise "AB5".</summary>
+    public static string BuildCode => PrepNumber > 0 ? PrepCodeOf(PrepNumber) : CodeOf(PhaseNumber);
 
     /// <summary>"Alpha Build 5 (pre-release)" — what the app calls itself everywhere.</summary>
     public static string Channel => BuildName + (PreRelease ? " (pre-release)" : "");
@@ -153,6 +170,7 @@ internal static class BuildInfo
         buildName = BuildName,
         buildCode = BuildCode,
         preRelease = PreRelease,
+        prepNumber = PrepNumber,
         phaseNumber = PhaseNumber,
         phaseShipped = PhaseShipped,
         phaseName = PhaseName,
