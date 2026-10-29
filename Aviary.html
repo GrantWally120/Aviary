@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aviary</title>
+<meta name="description" content="Aviary is a native Windows 11 browser that carries Safari's design language onto WebView2, with the ad blocking and privacy of a Brave-minded browser. Current build: Beta Prep 1.">
 <script>
 /* This page's own look, decided before anything paints: Liquid Glass, unless the reader picked the
    Legacy page (the switch in the top bar) or the address asks for one with ?ui=legacy / ?ui=glass. */
@@ -26,10 +27,13 @@
    the page is built out of the material the browser wears — Phase 0's Liquid Glass,
    five layers per capsule — floating over a slow field of colour so the glass has
    something to bend. Two phases, and only two: Phase 1 · Alpha and Phase 2 · Beta,
-   each holding its builds.
+   each holding its builds. Phase 2 opens with the Beta Preps: literal updates, each
+   replacing the last as the current build, made on the way to Beta Build 1.
 
    THIS PAGE IS A LIVING DOCUMENT. It is updated as the builds land. To update:
-   edit the PHASES array near the bottom of the script. Nothing else needs touching.
+   edit the PHASES array near the bottom of the script (a new prep is one more entry in
+   Phase 2, before Beta Build 1; the hero, the What's new section and the Current build
+   badge all follow the latest finished build by themselves).
    Keep it plain local HTML — never publish it as an Artifact (Grant, 6 Sep 2026).
 
    TWO LOOKS OF ITS OWN (Grant, 18 Sep 2026): Liquid Glass (this stylesheet, `.skin-glass`) and
@@ -242,6 +246,7 @@
 /* prism2:end tokens */
 
 *{box-sizing:border-box;}
+[hidden]{display:none!important;}
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;scroll-padding-top:84px;}
 body{
   margin:0; min-height:100vh;
@@ -563,6 +568,7 @@ a{color:inherit;}
 .tag--active{color:var(--warm-ink);background:color-mix(in srgb,var(--warm) 15%,transparent);}
 .tag--active i{animation:beat 2.4s ease-out infinite;}
 .tag--todo{color:var(--txt-2);background:var(--pill-fill);}
+.tag--now{color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 13%,transparent);}   /* the build you would get today */
 
 /* the rail of builds */
 .rail-wrap{overflow-x:auto;margin:0 -8px;padding:6px 8px 10px;scrollbar-width:thin;}
@@ -596,6 +602,7 @@ a{color:inherit;}
 .node b{font:650 14px/1.2 var(--ui);letter-spacing:-.01em;margin-top:6px;}
 .node span{font-size:12.5px;line-height:1.3;color:var(--txt-2);}
 .node small{font:500 11px/1 var(--mono);color:var(--txt-3);letter-spacing:.03em;}
+.node[data-current] small{color:var(--accent-ink);font-weight:600;}
 
 /* the selected build */
 .detail{margin-top:16px;border-radius:22px;padding:24px 26px;}
@@ -678,6 +685,18 @@ a{color:inherit;}
 .get__dome svg{width:74px;height:74px;color:var(--brass);}
 .get h3{font:650 32px/1.1 var(--display);letter-spacing:-.03em;margin:0 0 10px;}
 .get p{margin:0 0 22px;color:var(--txt-2);font-size:16px;max-width:44em;}
+
+/* ── WHAT'S NEW — the current build's changes, one capsule each ──────── */
+.news{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;}
+.nw{border-radius:24px;padding:20px 22px 22px;}
+.nw__top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.nw__n{width:28px;height:28px;border-radius:14px;display:grid;place-items:center;font:650 13px/1 var(--display);color:var(--txt-1);}
+.nw__top time{font:500 11.5px/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--txt-3);}
+.nw h3{font:650 17px/1.25 var(--display);letter-spacing:-.015em;margin:0 0 8px;}
+.nw p{margin:0;color:var(--txt-2);font-size:14.5px;line-height:1.55;}
+.newsfoot{display:flex;align-items:center;gap:16px 22px;flex-wrap:wrap;margin-top:26px;}
+.newsfoot .btn{height:42px;font-size:14px;}
+.newsfoot p{margin:0;color:var(--txt-3);font-size:13.5px;line-height:1.55;flex:1 1 320px;}
 
 .skin-glass footer{padding:26px 0 44px;}
 .foot{display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-radius:24px;padding:16px 18px 16px 22px;}
@@ -1089,6 +1108,15 @@ a{color:inherit;}
 .v1-ms b{color:var(--ink);font-weight:600;}
 .v1-ms time{font-family:var(--mono);font-size:11px;color:var(--ink-3);padding-top:2px;white-space:nowrap;}
 .v1-ms li[data-next] time{color:var(--brass);}
+/* ── Added 29 Oct 2026 — What's new (the current build's changes) and the Current build tag ── */
+.v1-news{display:grid;grid-template-columns:repeat(auto-fit,minmax(236px,1fr));gap:14px;}
+.v1-nw{border:1px solid var(--line);border-radius:14px;background:var(--panel);box-shadow:var(--shadow);padding:20px 20px 22px;}
+.v1-nw__top{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);}
+.v1-nw h3{margin:10px 0 0;font-family:var(--display);font-size:17px;font-weight:500;letter-spacing:-.014em;line-height:1.3;}
+.v1-nw p{margin:7px 0 0;font-size:13.5px;line-height:1.55;color:var(--ink-2);}
+.v1-newnote{margin:18px 0 0;color:var(--ink-3);font-size:13px;line-height:1.6;max-width:70ch;}
+.v1-tag--now{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent);background:color-mix(in srgb,var(--accent) 9%,transparent);}
+.v1-tag--now i{background:var(--accent);}
 </style>
 </head>
 <body>
@@ -1108,6 +1136,7 @@ a{color:inherit;}
         </svg>
         <b>Aviary</b>
       </a>
+      <a class="lnk" href="#new" id="navNew" data-hide>What's new</a>
       <a class="lnk" href="#looks" data-hide>Two looks</a>
       <a class="lnk" href="#phases">Phases</a>
       <a class="lnk" href="#built" data-hide>Built on</a>
@@ -1131,20 +1160,22 @@ a{color:inherit;}
   <div class="hero">
     <div class="wrap hero__in">
       <div>
-        <a class="gl pill" href="#phases"><span class="grim"></span><i></i><b id="statusPill">Phase 1 · Alpha</b><span id="statusSub"></span></a>
+        <a class="gl pill" id="heroPill" href="#new"><span class="grim"></span><i></i><b id="statusPill">Beta Prep 1</b><span id="statusSub">Current build · 0.5.1</span></a>
         <h1>The web, kept under <em>glass</em>.</h1>
         <p class="lede">
           Aviary carries Safari's design language onto Windows — properly native, on Microsoft's own
           rendering engine. <b>The window is Windows. Everything inside it is Safari.</b>
+          It blocks ads and trackers site by site, and keeps your browsing data in a profile on your own
+          computer — no account, no cloud sync.
         </p>
         <div class="cta">
-          <a class="btn btn--p" href="#phases">
+          <a class="btn btn--p" id="heroCta" href="#new">
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h9M8.6 4.4 12.2 8l-3.6 3.6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            How it gets built
+            <span id="heroCtaText">What's new in Beta Prep 1</span>
           </a>
-          <a class="btn btn--g gl" href="Aviary-Phase0.html"><span class="grim"></span><span>Open the interface study</span></a>
+          <a class="btn btn--g gl" href="#phases"><span class="grim"></span><span>How it gets built</span></a>
         </div>
-        <div class="facts"><span><b>C#</b> · WinUI 3 · WebView2</span><span>No engine to bundle</span><span id="factMs"></span></div>
+        <div class="facts"><span><b>C#</b> · WinUI 3 · WebView2</span><span>No engine to bundle</span><span id="factMs"><b>8 changes</b> · made 25 Oct 2026</span></div>
       </div>
 
       <div class="stagecol">
@@ -1158,6 +1189,23 @@ a{color:inherit;}
       </div>
     </div>
   </div>
+
+  <!-- ── WHAT'S NEW — the current build's changes, drawn from PHASES ──────── -->
+  <section id="new">
+    <div class="wrap">
+      <div class="sec-h rv">
+        <span class="kicker" id="newKicker">What's new · current build</span>
+        <h2 id="newTitle">Beta Prep 1.</h2>
+        <p id="newLede">The first update after Alpha Build 5: everything done from 21 to 24 October, gathered into one
+           build.</p>
+      </div>
+      <div class="news" id="newList"></div>
+      <div class="newsfoot rv">
+        <a class="btn btn--g gl" href="#phases"><span class="grim"></span><span>Every build, with its dates</span></a>
+        <p id="newNote"></p>
+      </div>
+    </div>
+  </section>
 
   <!-- ── TWO LOOKS ─────────────────────────────────────────────────────── -->
   <section id="looks">
@@ -1202,8 +1250,9 @@ a{color:inherit;}
       <div class="sec-h rv">
         <span class="kicker">How it gets built</span>
         <h2>Two phases. Then it's yours.</h2>
-        <p>Phase 1 builds the thing, one build at a time, with a sign-off between each. Phase 2 is where it
-           becomes the browser you actually open. Pick any build to see what it brought.</p>
+        <p>Phase 1 built the thing, one build at a time, with a sign-off between each, and it is finished.
+           Phase 2 is where it becomes the browser you actually open: Beta Preps first, each one gathering
+           finished work into an update, then Beta Build 1. Pick any build to see what it brought.</p>
       </div>
       <div class="phases" id="phaseList"></div>
 
@@ -1213,7 +1262,8 @@ a{color:inherit;}
           <h4>How the features arrive</h4>
           <p>Not all at once. A quarter of the feature set lands in <b>Alpha Build 3</b>, another quarter in
              <b>Alpha Build 4</b>, and the remaining half in <b>Alpha Build 5</b> — the pre-release, where it has
-             to actually be good, because next comes Beta Build 1 and people start living in it.</p>
+             to actually be good. Since then the <b>Beta Preps</b> keep it honest: each is a literal update that
+             replaces the last, until Beta Build 1 and people start living in it.</p>
           <div class="split" aria-hidden="true">
             <span style="flex:1;background:color-mix(in srgb,var(--accent) 70%,#fff)">AB3 · 25%</span>
             <span style="flex:1;background:var(--accent)">AB4 · 25%</span>
@@ -1242,9 +1292,9 @@ a{color:inherit;}
       </div>
       <dl class="stack">
         <div class="gl st rv"><span class="grim"></span><dt>Language</dt><dd>C# · .NET 9</dd><p>Native, with no runtime for you to install.</p></div>
-        <div class="gl st rv"><span class="grim"></span><dt>Interface</dt><dd>WinUI 3</dd><p>Real Mica, real rounded corners, real caption buttons.</p></div>
+        <div class="gl st rv"><span class="grim"></span><dt>Interface</dt><dd>WinUI 3</dd><p>Real Mica, real rounded corners, real caption buttons — on the current Windows App SDK, 2.5.</p></div>
         <div class="gl st rv"><span class="grim"></span><dt>Engine</dt><dd>WebView2</dd><p>Edge's Chromium, already on every Windows 11 machine.</p></div>
-        <div class="gl st rv"><span class="grim"></span><dt>Ships as</dt><dd>One folder</dd><p>Double-click. Around 170&nbsp;MB, because .NET and WinUI travel with it — so you install nothing.</p></div>
+        <div class="gl st rv"><span class="grim"></span><dt>Ships as</dt><dd>One folder</dd><p>Unzip and double-click. Around 180&nbsp;MB, because .NET and WinUI travel with it — so you install nothing.</p></div>
       </dl>
       <div class="trades">
         <div class="gl trade rv">
@@ -1293,10 +1343,13 @@ a{color:inherit;}
         <div>
           <h3>Getting a copy</h3>
           <p id="getCopy">
-            Aviary runs. It browses the live web, blocks ads and trackers site by site, searches with the
-            engine you choose, and carries its own settings, updates and diagnostics — all checked by
-            driving the real app. The desktop copy includes Grant's Collection projects. Verified Windows
-            builds are now on GitHub; those public packages leave the personal projects out.
+            The build to get is <b data-now="title">Beta Prep 1</b> (version <span data-now="version">0.5.1</span>).
+            It browses the live web, blocks ads and trackers site by site, searches with the engine you
+            choose, and carries its own Privacy Policy, settings, updates and diagnostics — all checked by
+            driving the real app. Verified Windows builds are on GitHub, as a ZIP you extract and run;
+            those public packages leave Grant's personal Collection projects out, and the desktop copy
+            includes them. The app is unsigned, so Windows may ask you to confirm before it first runs,
+            and there is no installer or automatic update yet.
           </p>
           <div class="cta" style="margin:0">
             <a class="btn btn--p" href="Aviary-Phase0.html">
@@ -1339,6 +1392,7 @@ a{color:inherit;}
       <b>Aviary</b>
     </a>
     <nav>
+      <a href="#v1-new" id="v1-navNew" data-hide>What's new</a>
       <a href="#v1-looks" data-hide>Two looks</a>
       <a href="#v1-phases">Builds</a>
       <a href="#v1-built" data-hide>Built on</a>
@@ -1361,10 +1415,11 @@ a{color:inherit;}
         <h1>The web, kept&nbsp;under <em>glass</em>.</h1>
         <p class="v1-hero__lede">
           Aviary carries Safari's design language onto Windows — properly native, on Microsoft's own
-          rendering engine. The window is Windows. Everything inside it is Safari.
+          rendering engine. The window is Windows. Everything inside it is Safari. It blocks ads and
+          trackers site by site, and keeps your browsing data on your own computer.
         </p>
         <div class="v1-hero__meta">
-          <span class="v1-pill"><i></i><span id="v1-statusPill">Alpha Build 5 (AB5)</span></span>
+          <span class="v1-pill"><i></i><span id="v1-statusPill">Beta Prep 1 (BP1) · current build</span></span>
           <span class="v1-pill" id="v1-msPill"></span>
           <span class="v1-pill">C# · WinUI 3 · WebView2</span>
           <span class="v1-pill">No engine to bundle</span>
@@ -1398,6 +1453,21 @@ a{color:inherit;}
       </div>
     </div>
   </div>
+
+  <hr class="v1-rule">
+
+  <!-- ── WHAT'S NEW — the current build's changes, drawn from PHASES ───── -->
+  <section id="v1-new">
+    <div class="v1-wrap">
+      <div class="v1-sec-h">
+        <h2 id="v1-newTitle">What's new in Beta Prep 1</h2>
+        <p id="v1-newLede">The first update after Alpha Build 5: everything done from 21 to 24 October, gathered into
+           one build.</p>
+      </div>
+      <div class="v1-news" id="v1-newList"></div>
+      <p class="v1-newnote" id="v1-newNote"></p>
+    </div>
+  </section>
 
   <hr class="v1-rule">
 
@@ -1458,8 +1528,8 @@ a{color:inherit;}
     <div class="v1-wrap">
       <div class="v1-sec-h">
         <h2>How it gets built</h2>
-        <p>One build at a time, with a sign-off between each — in two phases. Alpha builds the thing;
-           beta is where it becomes something you actually use.</p>
+        <p>One build at a time, with a sign-off between each — in two phases. Alpha built the thing, and
+           is finished; beta opens with the Beta Preps, then becomes something you actually use.</p>
       </div>
       <div id="v1-phaseList"></div>
       <div style="margin-top:34px">
@@ -1467,8 +1537,9 @@ a{color:inherit;}
         <p style="margin:0 0 26px;color:var(--ink-2);font-size:14.5px;max-width:66ch;line-height:1.65">
           Not all at once. A quarter of the feature set lands in <b style="color:var(--ink)">Alpha Build 3</b>,
           another quarter in <b style="color:var(--ink)">Alpha Build 4</b>, and the remaining half in
-          <b style="color:var(--ink)">Alpha Build 5</b> — the pre-release, where it has to actually be good,
-          because next comes Beta Build 1 and people start living in it.
+          <b style="color:var(--ink)">Alpha Build 5</b> — the pre-release, where it has to actually be good.
+          Since then the <b style="color:var(--ink)">Beta Preps</b> keep it honest: each is a literal update
+          that replaces the last, until Beta Build 1 and people start living in it.
         </p>
         <div class="v1-eyebrow" style="margin-bottom:12px">Deliberately not in version one</div>
         <div class="v1-scope">
@@ -1490,9 +1561,9 @@ a{color:inherit;}
       </div>
       <dl class="v1-stack">
         <div class="v1-st"><dt>Language</dt><dd>C# · .NET 9</dd><p>Native, with no runtime for you to install.</p></div>
-        <div class="v1-st"><dt>Interface</dt><dd>WinUI 3</dd><p>Real Mica, real rounded corners, real caption buttons.</p></div>
+        <div class="v1-st"><dt>Interface</dt><dd>WinUI 3</dd><p>Real Mica, real rounded corners, real caption buttons — on the current Windows App SDK, 2.5.</p></div>
         <div class="v1-st"><dt>Engine</dt><dd>WebView2</dd><p>Edge's Chromium, already on every Windows 11 machine.</p></div>
-        <div class="v1-st"><dt>Ships as</dt><dd>One folder</dd><p>Double-click. Around 170&nbsp;MB, because .NET and WinUI travel with it — so you install nothing.</p></div>
+        <div class="v1-st"><dt>Ships as</dt><dd>One folder</dd><p>Unzip and double-click. Around 180&nbsp;MB, because .NET and WinUI travel with it — so you install nothing.</p></div>
       </dl>
 
       <div class="v1-tradeoffs">
@@ -1532,10 +1603,13 @@ a{color:inherit;}
       <div class="v1-get">
         <h3>Getting a copy</h3>
         <p>
-          Aviary runs. It browses the live web, blocks ads and trackers site by site, searches with the
-          engine you choose, and carries its own settings, updates and diagnostics — all checked by
-          driving the real app. The desktop copy includes Grant's Collection projects. Verified Windows
-          builds are now on GitHub; those public packages leave the personal projects out.
+          The build to get is <b data-now="title">Beta Prep 1</b> (version <span data-now="version">0.5.1</span>).
+          It browses the live web, blocks ads and trackers site by site, searches with the engine you
+          choose, and carries its own Privacy Policy, settings, updates and diagnostics — all checked by
+          driving the real app. Verified Windows builds are on GitHub, as a ZIP you extract and run;
+          those public packages leave Grant's personal Collection projects out, and the desktop copy
+          includes them. The app is unsigned, so Windows may ask you to confirm before it first runs,
+          and there is no installer or automatic update yet.
         </p>
         <div class="v1-btnrow">
           <a class="v1-btn v1-btn--p" href="Aviary-Phase0.html">
@@ -1575,11 +1649,17 @@ document.documentElement.classList.add("js");
 /* ════════════════════════════════════════════════════════════════════════
    THE ONLY THING THAT CHANGES AS THE BUILDS LAND.
    Two phases, and only two (Grant, 14 Sep 2026): Phase 1 · Alpha holds the interface
-   study and Alpha Builds 1–5; Phase 2 · Beta holds Beta Builds 1–2. Each build's state is
-   "done" | "active" | "todo"; give it a `when` when it ships and a `link` when there is
-   something to look at. The build being made carries its `milestones` — tick one off by
-   giving it a `when`. The phase's own state, the rail, the hero pill and the counts all
-   follow from this — in both of this page's looks, Liquid Glass and the Legacy page.
+   study and Alpha Builds 1–5; Phase 2 · Beta holds the Beta Preps (BP1, BP2 …) and Beta
+   Builds 1–2. Each build's state is "done" | "active" | "todo"; give it a `when` when it
+   ships and a `link` when there is something to look at. The build being made carries its
+   `milestones` — tick one off by giving it a `when`. A prep is an update, not a numbered
+   build: it sets `unit:"changes"`, lists what changed (each with a one-line `d`) and has
+   no "next". The phase's own state, the rail, the hero pill, the What's new section, the
+   Current build badge and the counts all follow from this — in both of this page's looks,
+   Liquid Glass and the Legacy page. The current build is the one being made, or else the
+   latest one finished (buildNow below). Keep it in step with the app: the prep's number,
+   version and changes are the ones in src/Aviary/InternalPages.cs (release-state-test.js
+   checks that they agree).
    ════════════════════════════════════════════════════════════════════════ */
 const PHASES=[
   {
@@ -1637,7 +1717,7 @@ const PHASES=[
               "Our own context menus","Reload becomes stop","Page zoom","Clear browsing data"]
       },
       {
-        code:"AB5", title:"Alpha Build 5", sub:"The Long Run", state:"done", when:"21 Oct 2026",
+        code:"AB5", title:"Alpha Build 5", sub:"The Long Run", state:"done", when:"21 Oct 2026", version:"0.5.0",
         desc:"The last alpha, and the widest — Brave-inspired, and built around privacy that actually works. "+
              "Every privacy switch now does what it says, tested with it on and off. A real ad blocker you "+
              "control site by site. Brave Search and more safe search engines, with suggestions that stay "+
@@ -1675,11 +1755,38 @@ const PHASES=[
     ]
   },
   {
-    n:2, name:"Beta", range:"Beta Builds 1 – 2",
-    note:"It exists, it is compiled, and it keeps your real data. Two rounds of it — Testing 1 is the alpha "+
+    n:2, name:"Beta", range:"Beta Preps · Beta Builds 1 – 2",
+    note:"The run-up, then the real thing. Beta Preps gather finished work into updates on the way — each one "+
+         "replaces the last as the build you run. Then two rounds of living in it: Testing 1 is the alpha "+
          "made properly, Testing 2 is whatever Testing 1 turns out to have taught us. This is where the "+
          "browser has to earn being the one you open.",
     builds:[
+      {
+        code:"BP1", title:"Beta Prep 1", sub:"Everything since Alpha Build 5", state:"done", when:"25 Oct 2026", version:"0.5.1",
+        unit:"changes",
+        blurb:"The first update after Alpha Build 5 — version 0.5.1, made on 25 October 2026. It replaces Alpha Build 5 as "+
+              "the build you run and gathers everything done from 21 to 24 October into one. More preps will follow on "+
+              "the way to Beta Build 1.",
+        notIn:"Accounts, Google sign-in, cloud sync, an installer, automatic updates and macOS. The app is still unsigned.",
+        desc:"The first update after Alpha Build 5, and the build Aviary now calls itself. It replaces Alpha Build 5 "+
+             "outright — the same browser, version 0.5.1 — and gathers everything done between 21 and 24 October into "+
+             "one update: a Privacy Policy inside Settings and tighter privacy, YouTube playing again, the everyday "+
+             "shortcuts, the Prism 2 look, groundwork for accounts that is not connected to anything, a supported "+
+             "Windows base and fresh ad-blocker lists. Alpha Build 5 stays as it was, under the alpha phase. More "+
+             "preps will follow on the way to Beta Build 1.",
+        bits:["Replaces Alpha Build 5 ✓","Privacy Policy in Settings ✓","YouTube plays again ✓","Everyday shortcuts ✓",
+              "Prism 2 look ✓","Newer Windows parts ✓","Fresh ad-blocker lists ✓","PARALLAX signup sends ✓"],
+        milestones:[
+          {n:"1", t:"Privacy and security, before any accounts", when:"21 Oct", d:"A Privacy Policy inside Settings, link-tracking pings blocked, no way past an invalid certificate, and passwords and tokens masked far more widely in crash logs."},
+          {n:"2", t:"YouTube plays again", when:"22 Oct", d:"With Identify as Safari on, YouTube’s player stopped after about forty seconds. Aviary now shows YouTube the engine’s own identity; every other site still follows the switch."},
+          {n:"3", t:"Everyday shortcuts and new tabs", when:"22 Oct", d:"F5, Alt+←, Alt+→, Find-next, Ctrl+P, Ctrl+N and Ctrl+Shift+T now work, and a new tab puts the cursor in the address bar."},
+          {n:"4", t:"Prism 2, the look", when:"23 Oct", d:"Small text and the main button now pass the AA contrast level, the glass rim no longer blurs itself, and reduced transparency, increased contrast and forced colours are respected."},
+          {n:"5", t:"Groundwork for accounts", when:"23 Oct", d:"A strict content policy for Aviary’s own pages and a sealed store for secrets, built and tested but connected to nothing. There is still no account, sign-in or sync."},
+          {n:"6", t:"Newer Windows parts", when:"23 Oct", d:"Aviary left the out-of-support Windows App SDK 1.7 for 2.5.1, and Win2D 1.4.0, and ships fewer files — 466 in the SDK part instead of 534."},
+          {n:"7", t:"Fresh ad-blocker lists", when:"23 Oct", d:"EasyList and EasyPrivacy were refreshed from easylist.to. They stay fresh by themselves only if Settings → Shields → Keep the lists up to date is switched on."},
+          {n:"8", t:"The PARALLAX signup really sends", when:"24 Oct", d:"In the Collection, Join the Quantum Division now actually delivers, through FormSubmit, and tells the visitor honestly whether it worked."}
+        ]
+      },
       {
         code:"BB1", title:"Beta Build 1", sub:"Testing 1", state:"todo",
         desc:"Alpha Build 5 again, but made properly. Same browser, finished: everything the alpha phase "+
@@ -1779,14 +1886,24 @@ buildWindow(document.getElementById("demo"),"glass",true);
 buildWindow(document.getElementById("lookGlass"),"glass",true);
 buildWindow(document.getElementById("lookClassic"),"classic",false);
 
+/* ── The build being made, or else the latest one finished. The hero, What's new and the
+   Current build badge all follow it. ─────────────────────────────────────────────────── */
+const phaseNow=PHASES.find(p=>p.builds.some(b=>b.state==="active"))||[...PHASES].reverse().find(p=>p.builds.some(b=>b.state==="done"))||PHASES[0];
+const buildNow=phaseNow.builds.find(b=>b.state==="active")||[...phaseNow.builds].reverse().find(b=>b.state==="done")||phaseNow.builds[0];
+const nowName=buildNow.title+(buildNow.code&&buildNow.code!=="00"?" ("+buildNow.code+")":"");
+const hasNews=buildNow.unit==="changes"&&!!buildNow.milestones;
+
 /* ── PHASES → the page ───────────────────────────────────────────────── */
 const STATUS={done:["tag--done","Done"],active:["tag--active","In progress"],todo:["tag--todo","Planned"]};
+/* A finished build that is the one in use today wears "Current build" instead of "Done". */
+function statusOf(b){ return b===buildNow&&b.state==="done"?["tag--now","Current build"]:STATUS[b.state]; }
 function phaseState(p){
   if(p.builds.every(b=>b.state==="done")) return "done";
   if(p.builds.some(b=>b.state!=="todo")) return "active";
   return "todo";
 }
-function milestonesHtml(ms){
+function milestonesHtml(ms,unit){
+  const changes=unit==="changes";
   const done=ms.filter(m=>m.when).length;
   const nextIdx=ms.findIndex(m=>!m.when);
   const segs=ms.map((m,i)=>'<i class="'+(m.when?'on':(i===nextIdx?'next':''))+'"></i>').join('');
@@ -1796,23 +1913,23 @@ function milestonesHtml(ms){
       '<b>'+esc(m.t)+(m.d?'<small>'+esc(m.d)+'</small>':'')+'</b>'+
       '<time>'+(m.when?esc(m.when):(i===nextIdx?'Next':''))+'</time></li>';
   }).join('');
-  return '<div class="ms"><div class="ms__top"><b>'+done+' of '+ms.length+' milestones done</b>'+
+  return '<div class="ms"><div class="ms__top"><b>'+(changes?ms.length+' changes in this update':done+' of '+ms.length+' milestones done')+'</b>'+
     (nextIdx>=0?'<span>Next: '+esc(ms[nextIdx].n)+' · '+esc(ms[nextIdx].t)+'</span>':'')+'</div>'+
     '<div class="segs" style="--n:'+ms.length+'">'+segs+'</div><ol>'+items+'</ol></div>';
 }
 function detailHtml(b){
-  const [cls,label]=STATUS[b.state];
+  const [cls,label]=statusOf(b);
   return '<div class="detail__head">'+
       '<span class="detail__tile">'+esc(b.code)+'</span>'+
       '<div><h4>'+esc(b.title)+'</h4>'+(b.sub?'<div class="detail__sub">'+esc(b.sub)+'</div>':'')+'</div>'+
-      '<div class="detail__when"><span class="tag '+cls+'"><i></i>'+label+'</span>'+(b.when&&b.state==="done"?'<time>'+esc(b.when)+'</time>':'')+'</div>'+
+      '<div class="detail__when"><span class="tag '+cls+'"><i></i>'+label+'</span>'+(b.when&&b.state==="done"?'<time>'+esc(b.when)+(b.version?' · v'+esc(b.version):'')+'</time>':'')+'</div>'+
     '</div>'+
     '<p>'+esc(b.desc)+'</p>'+
     '<div class="chips">'+b.bits.map(x=>{
         const ok=/✓$/.test(x);
         return '<span class="chip">'+(ok?I.tickc:'')+esc(x.replace(/\s*✓$/,''))+'</span>';
       }).join('')+'</div>'+
-    (b.milestones?milestonesHtml(b.milestones):'')+
+    (b.milestones?milestonesHtml(b.milestones,b.unit):'')+
     (b.link?'<div class="detail__link"><a class="btn btn--p" href="'+esc(b.link.href)+'">'+esc(b.link.label)+'</a></div>':'');
 }
 const list=document.getElementById("phaseList");
@@ -1822,9 +1939,10 @@ list.innerHTML=PHASES.map(p=>{
   const nodes=p.builds.map((b,i)=>
     '<button class="node" type="button" role="tab" id="ph'+p.n+'-b'+i+'" aria-controls="ph'+p.n+'-panel" '+
       'aria-selected="false" data-state="'+b.state+'" data-i="'+i+'"'+
-      (p.builds[i+1]&&p.builds[i+1].state!=="todo"?' data-reach':'')+'>'+
+      (p.builds[i+1]&&p.builds[i+1].state!=="todo"?' data-reach':'')+
+      (b===buildNow&&b.state==="done"?' data-current':'')+'>'+
       '<span class="node__dot">'+(b.state==="done"?I.tick.replace('viewBox="0 0 10 10"','viewBox="0 0 10 10" width="16" height="16"'):esc(b.code))+'</span>'+
-      '<b>'+esc(b.title)+'</b><span>'+esc(b.sub||'')+'</span><small>'+esc(b.state==="done"?b.when:(b.state==="active"?"In progress":"Planned"))+'</small>'+
+      '<b>'+esc(b.title)+'</b><span>'+esc(b.sub||'')+'</span><small>'+esc(b===buildNow&&b.state==="done"?"Current build":(b.state==="done"?b.when:(b.state==="active"?"In progress":"Planned")))+'</small>'+
     '</button>').join('');
   return '<article class="gl gl--read phase rv" data-state="'+st+'" data-phase="'+p.n+'">'+
     '<span class="grim"></span>'+
@@ -1866,22 +1984,57 @@ list.querySelectorAll(".phase").forEach(card=>{
 });
 
 /* ── The hero pill and the facts line follow the build being made ────── */
-const phaseNow=PHASES.find(p=>p.builds.some(b=>b.state==="active"))||[...PHASES].reverse().find(p=>p.builds.some(b=>b.state==="done"))||PHASES[0];
-const buildNow=phaseNow.builds.find(b=>b.state==="active")||[...phaseNow.builds].reverse().find(b=>b.state==="done")||phaseNow.builds[0];
-document.getElementById("statusPill").textContent="Phase "+phaseNow.n+" · "+phaseNow.name;
-document.getElementById("statusSub").textContent=buildNow.title+(buildNow.code&&buildNow.code!=="00"?" ("+buildNow.code+")":"")+(buildNow.state==="active"?" · pre-release":"");
+document.getElementById("statusPill").textContent=buildNow.title;
+document.getElementById("statusSub").textContent=(buildNow.state==="active"?"Pre-release":"Current build")+(buildNow.version?" · "+buildNow.version:"");
 if(buildNow.milestones){
   const ms=buildNow.milestones, done=ms.filter(m=>m.when).length, last=[...ms].reverse().find(m=>m.when);
-  document.getElementById("factMs").innerHTML="<b>"+done+" of "+ms.length+"</b> milestones"+(last?" · latest "+esc(last.n)+", "+esc(last.when):"");
+  document.getElementById("factMs").innerHTML=hasNews
+    ? "<b>"+ms.length+" changes</b> · made "+esc(buildNow.when||"")
+    : "<b>"+done+" of "+ms.length+"</b> milestones"+(last?" · latest "+esc(last.n)+", "+esc(last.when):"");
 }
+/* Words that name the current build wherever they appear (the Get it section, in both looks). */
+document.querySelectorAll("b[data-now],span[data-now]").forEach(el=>{
+  const v=el.dataset.now==="version"?buildNow.version:buildNow.title;
+  if(v) el.textContent=v;
+});
+
+/* ── What's new: the current build's changes, when it is an update that lists them ── */
+(function(){
+  const show=function(on){
+    ["navNew","v1-navNew","new","v1-new"].forEach(id=>{ const el=document.getElementById(id); if(el) el.hidden=!on; });
+    const hero=document.getElementById("heroPill"), cta=document.getElementById("heroCta");
+    if(!on){ hero.setAttribute("href","#phases"); cta.setAttribute("href","#phases"); }
+  };
+  if(!hasNews){ show(false); document.getElementById("heroCtaText").textContent="How it gets built"; return; }
+  const ms=buildNow.milestones;
+  const lede=buildNow.blurb||buildNow.desc;
+  const note=buildNow.notIn?"Not in this update: "+buildNow.notIn:"";
+  document.getElementById("heroCtaText").textContent="What’s new in "+buildNow.title;
+  document.getElementById("newTitle").textContent=buildNow.title+".";
+  document.getElementById("newLede").textContent=lede;
+  document.getElementById("newNote").textContent=note;
+  document.getElementById("newList").innerHTML=ms.map(m=>
+    '<article class="gl nw rv"><span class="grim"></span>'+
+      '<div class="nw__top"><span class="raised nw__n" aria-hidden="true">'+esc(m.n)+'</span><time>'+esc(m.when||"")+'</time></div>'+
+      '<h3>'+esc(m.t)+'</h3><p>'+esc(m.d||"")+'</p>'+
+    '</article>').join("");
+  document.getElementById("v1-newTitle").textContent="What’s new in "+buildNow.title;
+  document.getElementById("v1-newLede").textContent=lede;
+  document.getElementById("v1-newNote").textContent=note;
+  document.getElementById("v1-newList").innerHTML=ms.map(m=>
+    '<article class="v1-nw"><div class="v1-nw__top"><span>'+esc(m.n)+'</span><time>'+esc(m.when||"")+'</time></div>'+
+      '<h3>'+esc(m.t)+'</h3><p>'+esc(m.d||"")+'</p></article>').join("");
+})();
 
 /* ── The Legacy page: the same PHASES, drawn the way this page looked until 14 Sep — a band
    per phase, then one row per build, numbered 00, 01, 02… within it ─────────────────────── */
 const V1_STATUS={done:["v1-tag--done","Done"],active:["v1-tag--active","In progress"],todo:["v1-tag--todo","Planned"]};
-const v1Number=code=>code==="00"?"00":String(code).replace(/^\D+/,"").padStart(2,"0");
-function v1Milestones(ms){
+function v1StatusOf(b){ return b===buildNow&&b.state==="done"?["v1-tag--now","Current build"]:V1_STATUS[b.state]; }
+/* The number on a row: 00, 01 … within its phase; a prep reads P1, P2 so it never collides with Beta Build 1. */
+const v1Number=code=>code==="00"?"00":/^BP/.test(code)?"P"+String(code).replace(/^\D+/,""):String(code).replace(/^\D+/,"").padStart(2,"0");
+function v1Milestones(ms,unit){
   const done=ms.filter(m=>m.when).length, next=ms.findIndex(m=>!m.when);
-  return '<div class="v1-ms__top">Milestones · '+done+' of '+ms.length+' done</div><ol class="v1-ms">'+
+  return '<div class="v1-ms__top">'+(unit==="changes"?'Changes · '+ms.length+' in this update':'Milestones · '+done+' of '+ms.length+' done')+'</div><ol class="v1-ms">'+
     ms.map((m,i)=>'<li'+(m.when?' data-done':(i===next?' data-next':''))+'><code>'+esc(m.n)+'</code>'+
       '<span><b>'+esc(m.t)+'</b>'+(m.d?' — '+esc(m.d):'')+'</span>'+
       '<time>'+(m.when?esc(m.when):(i===next?'Next':''))+'</time></li>').join('')+
@@ -1895,7 +2048,7 @@ document.getElementById("v1-phaseList").innerHTML=PHASES.map(p=>{
       '<span class="v1-track__note">'+esc(p.note)+'</span>'+
     '</div>';
   return band+p.builds.map(b=>{
-    const [cls,label]=V1_STATUS[b.state];
+    const [cls,label]=v1StatusOf(b);
     return '<article class="v1-ph" data-state="'+b.state+'" data-track="'+esc(track)+'">'+
       '<div class="v1-ph__n">'+esc(v1Number(b.code))+'<span class="v1-ph__track">'+esc(p.name)+'</span></div>'+
       '<div>'+
@@ -1903,28 +2056,28 @@ document.getElementById("v1-phaseList").innerHTML=PHASES.map(p=>{
         (b.sub?'<div class="v1-ph__sub">'+esc(b.sub)+'</div>':'')+
         '<p class="v1-ph__d">'+esc(b.desc)+'</p>'+
         '<div class="v1-ph__bits">'+b.bits.map(x=>'<span class="v1-bit">'+esc(x)+'</span>').join('')+'</div>'+
-        (b.milestones?v1Milestones(b.milestones):'')+
+        (b.milestones?v1Milestones(b.milestones,b.unit):'')+
       '</div>'+
       '<div class="v1-ph__status">'+
         '<span class="v1-tag '+cls+'"><i></i>'+label+'</span>'+
-        (b.when?'<span class="v1-ph__when">'+esc(b.when)+'</span>':'')+
+        (b.when?'<span class="v1-ph__when">'+esc(b.when)+(b.version?' · v'+esc(b.version):'')+'</span>':'')+
         (b.link?'<a class="v1-ph__link" href="'+esc(b.link.href)+'">'+esc(b.link.label)+'</a>':'')+
       '</div>'+
     '</article>';
   }).join('');
 }).join('');
 document.getElementById("v1-statusPill").textContent=
-  buildNow.title+(buildNow.code&&buildNow.code!=="00"?" ("+buildNow.code+")":"")+(buildNow.state==="active"?" · pre-release":"");
+  nowName+(buildNow.state==="active"?" · pre-release":" · current build");
 const v1MsPill=document.getElementById("v1-msPill");
 if(buildNow.milestones){
   const ms=buildNow.milestones;
-  v1MsPill.textContent=ms.filter(m=>m.when).length+" of "+ms.length+" milestones";
+  v1MsPill.textContent=hasNews?ms.length+" changes":ms.filter(m=>m.when).length+" of "+ms.length+" milestones";
 } else { v1MsPill.remove(); }
 
 /* ── This page's look: Liquid Glass or the Legacy page. The head script has already chosen one
    before the first paint; switching keeps the reader in the same part of the page. ──────── */
 const root=document.documentElement;
-const PLACES=[["top","v1-top"],["looks","v1-looks"],["phases","v1-phases"],["built","v1-built"],["get","v1-get"]];
+const PLACES=[["top","v1-top"],["new","v1-new"],["looks","v1-looks"],["phases","v1-phases"],["built","v1-built"],["get","v1-get"]];
 const uiButtons=[...document.querySelectorAll("[data-ui-pick]")];
 function showUi(ui){
   root.setAttribute("data-ui",ui);
@@ -1934,7 +2087,7 @@ function pickUi(ui){
   const from=root.getAttribute("data-ui")==="legacy"?1:0, to=ui==="legacy"?1:0;
   if(from===to) return;
   let at=0;   // the last section whose top has gone up under the bar
-  PLACES.forEach((pair,i)=>{ const el=document.getElementById(pair[from]); if(el&&el.getBoundingClientRect().top<=120) at=i; });
+  PLACES.forEach((pair,i)=>{ const el=document.getElementById(pair[from]); if(el&&!el.hidden&&el.getBoundingClientRect().top<=120) at=i; });
   showUi(ui);
   try{ localStorage.setItem("aviary-ui",ui); }catch(e){}
   if(at===0) window.scrollTo({top:0,behavior:"instant"});

@@ -35,14 +35,25 @@ check('all sixteen AB5 milestones are dated', () => {
   assert.equal(ab5.milestones.length, 16);
   assert.ok(ab5.milestones.every(m => m.when));
 });
-check('completed alpha remains current', () => assert.equal(current(phases), 'AB5'));
+// Beta Prep 1 (25 Oct 2026) is the current build, so it is what the landing page's hero, What's new and badge follow.
+const bp1 = phases.flatMap(p => p.builds).find(b => b.code === 'BP1');
+check('Beta Prep 1 is the current build on the landing page', () => {
+  assert.equal(current(phases), 'BP1');
+  assert.equal(bp1.state, 'done');
+  assert.deepEqual(Array.from(phases[1].builds, b => b.code), ['BP1', 'BB1', 'BB2']);
+});
 check('alpha card initially selects the completed AB5', () => assert.equal(selected(phases[0]), 'AB5'));
-check('beta remains planned', () => assert.ok(phases[1].builds.every(b => b.state === 'todo')));
-check('planned beta card initially selects its first build', () => assert.equal(selected(phases[1]), 'BB1'));
+check('Beta Build 1 and 2 remain planned', () => assert.ok(phases[1].builds.filter(b => b.code !== 'BP1').every(b => b.state === 'todo')));
+check('the beta card initially selects the current build, Beta Prep 1', () => assert.equal(selected(phases[1]), 'BP1'));
 check('a later active build takes precedence', () => {
   const future = JSON.parse(JSON.stringify(phases));
-  future[1].builds[0].state = 'active';
+  future[1].builds.find(b => b.code === 'BB1').state = 'active';
   assert.equal(current(future), 'BB1');
+});
+check('a later prep takes over as the current build', () => {
+  const future = JSON.parse(JSON.stringify(phases));
+  future[1].builds.splice(1, 0, {code:'BP2', title:'Beta Prep 2', state:'done', when:'1 Nov 2026', bits:[]});
+  assert.equal(current(future), 'BP2');
 });
 check('M9 appears with its date in the actual Updates data', () => {
   assert.match(internal, /\{n:'M9', t:'Getting ready for Beta Build 1', when:'21 Oct'/);
@@ -97,5 +108,20 @@ check('the dates are the verified ones (AB5 21 Oct 2026; the prep made 25 Oct 20
   assert.ok(headings.includes('Prism 2, the look — 23 October 2026'));
   assert.ok(headings.includes('Everyday use — 22 October 2026'));
   assert.ok(headings.includes('The Collection — 24 October 2026'));
+});
+check('the landing page tells the same Beta Prep 1 story as the app: version, day, and the eight changes with the app\'s titles and dates', () => {
+  assert.equal(bp1.version, buildInfo.match(/public const string Version = "([^"]+)";/)[1]);
+  assert.equal(ab5.version, '0.5.0');
+  assert.equal(bp1.when, prep1Entry.when);
+  assert.equal(bp1.unit, 'changes');
+  assert.equal(bp1.milestones.length, prep1Entry.milestones.length);
+  bp1.milestones.forEach((m, i) => {
+    const a = prep1Entry.milestones[i];
+    assert.equal(m.n, a.n);
+    assert.equal(m.t, a.t);
+    assert.equal(m.when, a.when);
+    assert.ok(m.d.length > 60 && m.d.length < a.d.length, m.t + ': the landing line is a short version of the app\'s account');
+  });
+  assert.ok(bp1.blurb && bp1.notIn && bp1.desc && bp1.bits.length >= 6);
 });
 console.log(passed + ' passed');

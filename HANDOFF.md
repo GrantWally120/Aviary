@@ -19,7 +19,15 @@
 > CURRENT `Aviary-BP1-card-local-win-x64.zip` (626 files, `manifest-bp1-card.json`); ROLLBACK `Aviary-BP1-local-win-x64.zip` (Beta Prep 1 before the
 > card, = commit 253ed75, CI #14 passed); BEFORE `Aviary-AB5-sdk25-parallax-local-win-x64.zip` (Alpha Build 5 install); `Backup/README.txt` says which is which.
 > Checks: build 0/0, release-state 12/12, security 317, filters 125, smoke 18/18 on the candidate and on the installed copy, card pressed on the installed
-> app (scratch profile). `prepare.ps1` names packages from `PrepNumber`. NOT done: the public roadmap `Aviary.html` still shows AB5 as latest.
+> app (scratch profile). `prepare.ps1` names packages from `PrepNumber`.
+> **LANDING PAGE (29 Oct 2026, Grant: "update aviary.html to show beta prep 1 as the current build and freshen up the landing page"):**
+> `Aviary.html` now shows Beta Prep 1 as the current build: a `BP1` entry (version 0.5.1, 25 Oct 2026, eight dated changes with
+> the app's own titles) opens Phase 2 · Beta ahead of Beta Build 1 and 2; the hero pill, facts line, a new "What's new" section
+> (both looks) and a "Current build" badge all follow the latest finished build by themselves, so the next prep is one more
+> entry. Copy refreshed (Windows App SDK 2.5, about 180 MB, unsigned/no installer said plainly in "Getting a copy"). Checks:
+> `release-state-test.js` 14/14 (it now asserts the page and the app agree), prism2 token checks 20/20, Prism `smoke.js` all
+> pass, `contrast.js` no new failures. **EDITED ONLY: not committed, not pushed**, and the Collection's copy of the page
+> (`tools/library/sync.ps1`, then a build and install) is still the old one until Grant says yes to that.
 > Also on Grant's request: `.artifact/published-before-prism2-20261023/Aviary.exe` was renamed `aviarybforeprism2update.exe` (same bytes).
 
 > **WHAT IS NEXT — 23 October 2026 (Grant asked for this to be written down). READ FIRST.**
@@ -345,7 +353,8 @@ Real WebKit · extensions · account sync · bundled Widevine · mobile · macOS
 ## 2. Working agreements with Grant
 
 - **Never leave him at a terminal.** Anything he runs is a double-click or a download.
-- **Update `Aviary.html` at the end of every phase.** The whole roadmap is a single
+- **Update `Aviary.html` at the end of every phase, and for every Beta Prep** (one more entry in Phase 2, before Beta Build 1,
+  with `unit:"changes"` and the changes the app lists; `release-state-test.js` keeps it honest). The whole roadmap is a single
   `PHASES` array near the bottom of its `<script>` — edit that array, nothing else. (The 13 Sep
   build rename also had to touch the TRACKS badges, the hero pill and two sentences — wording
   only, no redesign.)
