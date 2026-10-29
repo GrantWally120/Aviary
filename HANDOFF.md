@@ -26,8 +26,8 @@
 > (both looks) and a "Current build" badge all follow the latest finished build by themselves, so the next prep is one more
 > entry. Copy refreshed (Windows App SDK 2.5, about 180 MB, unsigned/no installer said plainly in "Getting a copy"). Checks:
 > `release-state-test.js` 14/14 (it now asserts the page and the app agree), prism2 token checks 20/20, Prism `smoke.js` all
-> pass, `contrast.js` no new failures. **EDITED ONLY: not committed, not pushed**, and the Collection's copy of the page
-> (`tools/library/sync.ps1`, then a build and install) is still the old one until Grant says yes to that.
+> pass, `contrast.js` no new failures. Committed (a27efa8) and pushed with Grant's yes on 29 Oct 2026; GitHub build #16 passed. The Collection's
+> copy of the page (`tools/library/sync.ps1`, then a build and install) is still the old one until Grant says yes to that.
 > Also on Grant's request: `.artifact/published-before-prism2-20261023/Aviary.exe` was renamed `aviarybforeprism2update.exe` (same bytes).
 
 > **WHAT IS NEXT — 23 October 2026 (Grant asked for this to be written down). READ FIRST.**
