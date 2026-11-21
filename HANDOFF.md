@@ -1,12 +1,26 @@
 # Aviary — project handoff
 
 > **BETA PREP 2 — made Saturday 21 November 2026 (Claude, for Grant; he asked for all of it in one message). READ FIRST.**
-> **STATE: THE LEGAL WORDING IS APPROVED, AND THIS COMMIT IS BETA PREP 2.** Grant had asked: "I need approval, and I need you to ask me
-> what stuff it is that will be in there, so nothing goes wrong and no unwantedness that I did not read or allow goes through". He was
-> given the Terms of Use, the Copyright notice and the Privacy Policy to read and answered **"Approved"** on 21 November 2026. The same
-> day he said yes, each one by name, to installing it, committing it, pushing it and updating the USB copy. The notes commit right after
-> this one records the installed package, GitHub's build and the USB. When this line changes, change it here. Full account:
-> `docs/BETA-PREP-2-2026-11-21.md`.
+> **STATE (21 November 2026, evening): APPROVED, INSTALLED, COMMITTED, PUSHED, AND THE USB COPY IS UPDATED.** Grant had asked: "I need
+> approval, and I need you to ask me what stuff it is that will be in there, so nothing goes wrong and no unwantedness that I did not read
+> or allow goes through". He was given the Terms of Use, the Copyright notice and the Privacy Policy to read and answered **"Approved"**
+> on 21 November 2026. The same day he said yes, each one by name, to installing it, committing it, pushing it and updating the USB copy.
+> **Source:** commit **d7f9457**, pushed to origin/main; GitHub's Windows build **#18** passed on it. This notes commit follows it and
+> changes notes only.
+> **Installed** in `publish/Aviary` from `.artifact/bp2-d7f9457-20261121` (`Aviary-BP2-local-win-x64.zip`, 628 files, sha256
+> aa7fa8ccabfa450d73d6f8385cded82b7c663b8fe7041a2d2b7297292a5d5514), built from d7f9457 with nothing uncommitted, so About and the file's
+> own version read 0.5.2+d7f9457. On that package: publish-smoke 18/18 and terms-gate 18/18. On the installed folder: every file matches
+> the manifest, and publish-smoke 18/18 on a scratch profile. The zip, its `.sha256` and `manifest-bp2.json` are in `Backup/`, and
+> `Backup/README.txt` is updated.
+> **Rollback:** `Backup/Aviary-BP1-card-local-win-x64.zip` (Beta Prep 1; compared file by file with the installed folder just before it
+> was replaced: identical), also unpacked in `.artifact/published-before-bp2-20261121`. Going back, the glass look may need choosing
+> again: Beta Prep 1 knows it as Liquid Glass and Beta Prep 2 saves it as Prism 2.
+> `.artifact/bp2-candidate-20261121` is the first candidate, built before the commit; the installed package replaced it. Kept until
+> Grant says to remove it.
+> **Still open:** nobody has used it with a real mouse and keyboard; the pages were looked at in dark mode only; Grant's own profile meets
+> the "I agree" screen at its first launch (not pressed for him); the Collection's copy of `Aviary.html` was not re-synced
+> (`tools/library/sync.ps1` reads his Documents folder on drive C, which is off limits unless he says so).
+> When this line changes, change it here. Full account: `docs/BETA-PREP-2-2026-11-21.md`.
 > **What it is:** `BuildInfo.PrepNumber = 2`, version **0.5.2**, its own `prep:2` entry in `UPDATES` (nine changes dated 21 Nov) and a
 > `BP2` entry in `Aviary.html`. Beta Prep 1 (0.5.1) and Alpha Build 5 (0.5.0) are untouched under Earlier builds.
 > **THE LEGAL PAGES — three rules.** (1) Do not change a sentence of the Terms of Use, the Copyright notice or the Privacy Policy without
@@ -37,7 +51,10 @@
 > performance 30; storage 18; terms-gate 18/18 and publish-smoke 18/18, both on the candidate package. `csp-live.js` reports one Start
 > Page `object-src` failure that the installed Beta Prep 1 reports too: with Settings in front the Start Page tab is in the background and
 > the engine never starts the `<object>`, so it is the test's arrangement, not this update. Not checked: a real mouse and keyboard, light mode.
-> **USB:** Grant asked for the USB copy to be updated. It is `F:\Zoo`. **NEVER touch `F:\Zoo mid AB5`** — he keeps it for preservation.
+> **USB:** the copy is `F:\Zoo`. Updated 21 Nov (it was from 22 Oct) by mirroring this folder with robocopy `/MIR`, leaving out the
+> build output (`bin`, `obj`) and `tools/test/pub` and `tools/test/profiles`. Before the mirror: everything in the USB copy's Git
+> history was confirmed to exist here, and the only files the mirror removed there were old loose Git objects and 49 files of the older
+> app in `publish/Aviary`. **NEVER touch `F:\Zoo mid AB5`** — he keeps it for preservation. It was not opened.
 > **Gotcha for editing:** source files here mix LF and CRLF, and a bash heredoc holding curly quotes or dashes fails in this shell. Write
 > edit scripts with the editor's Write tool and run them with node.
 

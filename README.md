@@ -7,7 +7,7 @@ Copyright notice with an "I agree" screen, a Privacy Policy that is re-read for 
 Start Page, a rebuilt Safety Check, two new protections, Prism 2 as the name of the glass look, a bigger Bird News, Quik's own
 numbers and a Performance page that matches Windows (see [docs/BETA-PREP-2-2026-11-21.md](docs/BETA-PREP-2-2026-11-21.md)).
 Grant read the Terms of Use, the Copyright notice and the Privacy Policy and approved their wording on 21 November 2026,
-before the update was installed, committed or pushed.
+before the update was installed, committed or pushed. It is installed locally and pushed (Windows CI run #18 on d7f9457 passed).
 
 **Beta Prep 1**
 (version 0.5.1, made 25 October 2026) is the update before it; it replaced Alpha Build 5 as the build
