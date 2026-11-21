@@ -148,7 +148,7 @@ internal sealed class FaviconView : Grid
     }
 
     private static bool IsGlass() =>
-        AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
+        Looks.GlassChosen;
 
     /// <summary>
     /// Points the cell at a URL.

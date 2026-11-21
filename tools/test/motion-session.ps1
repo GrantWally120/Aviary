@@ -1,7 +1,7 @@
 # Exercise every animated path in a TEST Aviary (M4.5 "Smooth Flight"), then report what the
 # watchdog and the crash recorder saw. No desktop input: UI Automation and DevTools only.
 #
-#   motion-session.ps1 -Profile ms-fluid -Settings '{"look":"Liquid Glass"}' [-Rounds 2]
+#   motion-session.ps1 -Profile ms-fluid -Settings '{"look":"Prism 2"}' [-Rounds 2]
 # The profile is created fresh with improvement collection on. Prints stalls, crashes, swallowed
 # errors and the minute samples for the session; closes the instance at the end.
 param([string]$Profile = "ms", [string]$Settings = "{}", [int]$Rounds = 2, [int]$Port = 9333)
@@ -36,7 +36,7 @@ for ($r = 0; $r -lt $Rounds; $r++) {
 # A look swap each way, through the real dropdown.
 Cdp @('key', '#0', 'ctrl+Comma'); Start-Sleep -Milliseconds 1500
 Cdp @('click', 'Settings', 'nav button[data-target=look]'); Start-Sleep -Milliseconds 400
-foreach ($look in 'Liquid Glass', 'Classic', 'Liquid Glass', 'Classic') {
+foreach ($look in 'Prism 2', 'Classic', 'Prism 2', 'Classic') {
     Cdp @('press', 'Settings', '.sel[data-key=look] .sel__btn'); Start-Sleep -Milliseconds 500
     Cdp @('press', 'Settings', ".sel[data-key=look] .sel__opt[data-v='$look']"); Start-Sleep -Milliseconds 900
 }

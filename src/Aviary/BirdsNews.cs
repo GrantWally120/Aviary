@@ -46,7 +46,11 @@ internal static class BirdsNews
     /// <summary>A news source. <c>SettingKey</c> is the switch in Settings → Bird News.</summary>
     public sealed record Feed(string Id, string Name, string Region, string Url, string? SettingKey);
 
-    public sealed record Story(string Title, string Link, string Source, string Region, DateTimeOffset? Published);
+    /// <summary>
+    /// <c>Summary</c> (Beta Prep 2) is the publisher's OWN short description from the same feed, as
+    /// plain text and cut to a few lines - never anything Aviary wrote. Null when a feed gives none.
+    /// </summary>
+    public sealed record Story(string Title, string Link, string Source, string Region, DateTimeOffset? Published, string? Summary = null);
 
     /// <summary>What happened the last time a feed was asked. <c>State</c>: ok, unchanged, failed.</summary>
     public sealed record Status(string Name, string Region, string State, string? Why, int Stories, DateTimeOffset? At, string? Note);
@@ -54,6 +58,18 @@ internal static class BirdsNews
     public const string ShowKey = "startNews";
     public const string RefreshKey = "newsRefresh";
     public const string CustomKey = "newsCustom";
+
+    /// <summary>
+    /// Beta Prep 2 - three topics, each ONE switch that is off until switched on, each naming every
+    /// publisher it asks (Settings → Bird News). The same six publishers' own topic desks, so no new
+    /// company is contacted; an extra address at each is, which is why they start off.
+    /// </summary>
+    public const string TechKey = "newsTech";
+    public const string ScienceKey = "newsScience";
+    public const string SportKey = "newsSport";
+
+    /// <summary>The columns a story can sit in: where it is from, a topic, or your own feeds.</summary>
+    public static readonly string[] Regions = { "world", "ph", "tech", "science", "sport", "more" };
 
     /// <summary>The six Grant approved on 21 Sep 2026. Region decides the Start Page column.</summary>
     public static readonly Feed[] Shipped =
@@ -64,7 +80,24 @@ internal static class BirdsNews
         new("inquirer", "Inquirer", "ph", "https://newsinfo.inquirer.net/feed", "newsInquirer"),
         new("rappler", "Rappler", "ph", "https://www.rappler.com/feed/", "newsRappler"),
         new("gma", "GMA News", "ph", "https://data.gmanetwork.com/gno/rss/news/feed.xml", "newsGma"),
+
+        // Beta Prep 2 - topics. Every address answered with a feed on 21 Nov 2026 (checked by hand).
+        new("bbc-tech", "BBC Technology", "tech", "https://feeds.bbci.co.uk/news/technology/rss.xml", TechKey),
+        new("guardian-tech", "Guardian Technology", "tech", "https://www.theguardian.com/technology/rss", TechKey),
+        new("inquirer-tech", "Inquirer Technology", "tech", "https://technology.inquirer.net/feed", TechKey),
+        new("rappler-tech", "Rappler Technology", "tech", "https://www.rappler.com/technology/feed/", TechKey),
+        new("gma-scitech", "GMA SciTech", "tech", "https://data.gmanetwork.com/gno/rss/scitech/feed.xml", TechKey),
+        new("bbc-science", "BBC Science", "science", "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml", ScienceKey),
+        new("guardian-science", "Guardian Science", "science", "https://www.theguardian.com/science/rss", ScienceKey),
+        new("bbc-sport", "BBC Sport", "sport", "https://feeds.bbci.co.uk/sport/rss.xml", SportKey),
+        new("guardian-sport", "Guardian Sport", "sport", "https://www.theguardian.com/sport/rss", SportKey),
+        new("inquirer-sport", "Inquirer Sports", "sport", "https://sports.inquirer.net/feed", SportKey),
+        new("rappler-sport", "Rappler Sports", "sport", "https://www.rappler.com/sports/feed/", SportKey),
+        new("gma-sport", "GMA Sports", "sport", "https://data.gmanetwork.com/gno/rss/sports/feed.xml", SportKey),
     };
+
+    /// <summary>A topic's switch is OFF unless it says "true"; a publisher's is ON unless it says "false".</summary>
+    private static bool IsTopic(string? key) => key is TechKey or ScienceKey or SportKey;
 
     /// <summary>How many stories each feed may hold. The Start Page shows a handful; the full page more.</summary>
     private const int PerFeed = 20;
@@ -118,7 +151,8 @@ internal static class BirdsNews
         List<Feed> feeds = new();
         foreach (Feed f in Shipped)
         {
-            if (f.SettingKey is not null && AppSettings.Get(f.SettingKey) == "false")
+            if (f.SettingKey is not null
+                && (IsTopic(f.SettingKey) ? AppSettings.Get(f.SettingKey) != "true" : AppSettings.Get(f.SettingKey) == "false"))
             {
                 continue;
             }
@@ -537,7 +571,11 @@ internal static class BirdsNews
                 Child(item, "pubDate")?.Value ?? Child(item, "published")?.Value
                 ?? Child(item, "updated")?.Value ?? Child(item, "date")?.Value);
 
-            stories.Add(new Story(title, link, feed.Name, feed.Region, published));
+            // Beta Prep 2: the publisher's own short description, when the feed carries one.
+            string summary = Summarise(
+                Child(item, "description")?.Value ?? Child(item, "summary")?.Value, title);
+
+            stories.Add(new Story(title, link, feed.Name, feed.Region, published, summary.Length == 0 ? null : summary));
         }
 
         stories = CorrectMislabelledTimes(doc, feed, stories, out note);
@@ -651,6 +689,45 @@ internal static class BirdsNews
         return text.Length > 300 ? text.Substring(0, 297).TrimEnd() + "…" : text;
     }
 
+    /// <summary>How much of a publisher's own description is kept: about three lines on the page.</summary>
+    private const int SummaryLength = 220;
+
+    /// <summary>
+    /// The description as plain text, cut at a word. Empty when there is none, when it only repeats
+    /// the headline, or when it is too short to say anything the headline did not.
+    /// </summary>
+    internal static string Summarise(string? raw, string title)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return string.Empty;
+        }
+
+        string text = Space.Replace(WebUtility.HtmlDecode(Tags.Replace(raw, " ")), " ").Trim();
+
+        // A feed's own "read on" tail is an instruction to its reader, not part of the description.
+        foreach (string tail in new[] { "Continue reading...", "Continue reading…", "Read more...", "Read more…", "[…]", "[...]" })
+        {
+            if (text.EndsWith(tail, StringComparison.OrdinalIgnoreCase))
+            {
+                text = text.Substring(0, text.Length - tail.Length).TrimEnd();
+            }
+        }
+
+        if (text.Length < 30 || text.StartsWith(title, StringComparison.OrdinalIgnoreCase) && text.Length < title.Length + 30)
+        {
+            return string.Empty;
+        }
+
+        if (text.Length <= SummaryLength)
+        {
+            return text;
+        }
+
+        int cut = text.LastIndexOf(' ', SummaryLength);
+        return text.Substring(0, cut > SummaryLength / 2 ? cut : SummaryLength).TrimEnd(' ', ',', ';', ':', '-') + "…";
+    }
+
     /// <summary>The time zone names RSS dates actually carry; RFC 822 allows several.</summary>
     private static readonly Dictionary<string, string> Zones = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -716,6 +793,29 @@ internal static class BirdsNews
             : null;
     }
 
+    /// <summary>True when that address is a story Bird News is holding right now (Beta Prep 2: only those can be saved from its page).</summary>
+    public static bool Holds(string url, out string title)
+    {
+        title = string.Empty;
+        Dictionary<string, Held> held = Load();
+        lock (Gate)
+        {
+            foreach (Held h in held.Values)
+            {
+                foreach (Story s in h.Stories)
+                {
+                    if (string.Equals(s.Link, url, StringComparison.Ordinal))
+                    {
+                        title = s.Title;
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     // ══ WHAT IS HELD ═══════════════════════════════════════════════════════
 
     private static Dictionary<string, Held> Load()
@@ -773,7 +873,12 @@ internal static class BirdsNews
     /// enabled feed's last result. Only feeds still enabled are shown — a feed switched off takes
     /// its stories with it at once, not at the next fetch.
     /// </summary>
-    public static object Snapshot()
+    /// <param name="seen">
+    /// Beta Prep 2: whether an address is already in the person's history, so a story they have
+    /// opened can be drawn quieter. Null (a private window, Settings) marks nothing.
+    /// </param>
+    /// <param name="saved">Whether an address is already on the Reading List.</param>
+    public static object Snapshot(Func<string, bool>? seen = null, Func<string, bool>? saved = null)
     {
         Dictionary<string, Held> held = Load();
         List<Feed> enabled = Enabled();
@@ -808,6 +913,9 @@ internal static class BirdsNews
                 url = s.Link,
                 source = s.Source,
                 at = s.Published?.ToUnixTimeMilliseconds(),
+                summary = s.Summary,
+                seen = seen is not null && seen(s.Link),
+                saved = saved is not null && saved(s.Link),
             })
             .ToList();
 
@@ -818,6 +926,9 @@ internal static class BirdsNews
             on = On,
             world = Column("world"),
             ph = Column("ph"),
+            tech = Column("tech"),
+            science = Column("science"),
+            sport = Column("sport"),
             more = Column("more"),
             feeds = statuses.Select(s => new
             {
@@ -831,6 +942,10 @@ internal static class BirdsNews
             }),
             checkedAt = newest?.ToUnixTimeMilliseconds(),
             every = Every is TimeSpan e ? (int)e.TotalMinutes : 0,
+
+            // Beta Prep 2: how the pages draw the stories (Settings → Bird News → On the page).
+            summaries = AppSettings.Get("newsSummaries") != "false",
+            dimRead = AppSettings.Get("newsDimRead") != "false",
 
             // Lines in "Your own feeds" Aviary will not use, and why - the My filters rule.
             problems = CustomLines()

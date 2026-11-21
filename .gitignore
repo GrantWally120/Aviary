@@ -42,6 +42,10 @@ BundleArtifacts/
 /Backup/
 /Aviary.lnk
 
+# Drafts written to Grant to read and approve: they carry notes to him. The words that ship are
+# TERMS.md, COPYRIGHT.md and PRIVACY.md, written from the source (tools/test/README.md, write-legal).
+/docs/legal/
+
 # OS noise
 Thumbs.db
 ehthumbs.db

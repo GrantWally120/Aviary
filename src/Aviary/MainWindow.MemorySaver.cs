@@ -76,8 +76,20 @@ public sealed partial class MainWindow
     /// <summary>Quik's "Keep recent tabs awake" - only while Aviary runs Quik.</summary>
     private static bool KeepAwake => Quik.On && AppSettings.GetBool(QuikKeepAwakeKey);
 
-    /// <summary>Half an hour; with AVIARY_SLEEP_TEST, four of its test "idle times" so a test can see both sides.</summary>
-    private static TimeSpan KeepAwakeFor => TestSeconds > 0 ? TimeSpan.FromSeconds(TestSeconds * 4) : TimeSpan.FromMinutes(30);
+    /// <summary>Beta Prep 2: how long "recent" is - Settings → Quik → "Keep recent tabs awake for".</summary>
+    public const string QuikAwakeForKey = "quikAwakeFor";
+
+    /// <summary>
+    /// Half an hour unless Settings says otherwise (Beta Prep 2: 15 minutes, 30 minutes, 1 hour or 2 hours);
+    /// with AVIARY_SLEEP_TEST, four of its test "idle times" so a test can see both sides.
+    /// </summary>
+    private static TimeSpan KeepAwakeFor => TestSeconds > 0 ? TimeSpan.FromSeconds(TestSeconds * 4) : AppSettings.Get(QuikAwakeForKey) switch
+    {
+        "15 minutes" => TimeSpan.FromMinutes(15),
+        "1 hour" => TimeSpan.FromHours(1),
+        "2 hours" => TimeSpan.FromHours(2),
+        _ => TimeSpan.FromMinutes(30),
+    };
 
     internal static TimeSpan? SleepAfter
     {

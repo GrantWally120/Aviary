@@ -90,7 +90,7 @@ internal static class AppSettings
         ["perfInterval"] = "Every second",
         // M4.6 — the graphics caches, which can only go at the next launch.
         ["clearGpuCaches"] = "false",
-        // M4.6 — how fast all of that moves, and where Liquid Glass puts its bar.
+        // M4.6 — how fast all of that moves, and where Prism 2 puts its bar.
         ["animationSpeed"] = "Standard",
         ["windowButtons"] = "Floating",
         // M4.9 — frame timing, the one measurement that costs what it measures, so it is off even
@@ -108,6 +108,12 @@ internal static class AppSettings
         ["newsRappler"] = "true",
         ["newsGma"] = "true",
         ["newsCustom"] = "",
+        // Beta Prep 2 - the three topics (off until switched on), and how stories are drawn.
+        [BirdsNews.TechKey] = "false",
+        [BirdsNews.ScienceKey] = "false",
+        [BirdsNews.SportKey] = "false",
+        ["newsSummaries"] = "true",
+        ["newsDimRead"] = "true",
         // Alpha Build 5 M4.5 — accessibility, and the tab rows beside it.
         ["pageTextSize"] = "Default",
         ["underlineLinks"] = "false",
@@ -125,6 +131,20 @@ internal static class AppSettings
         // M7 stage 2 - Quik's own options, on while Quik runs (Settings -> Quik).
         ["quikReadyTab"] = "true",
         ["quikKeepAwake"] = "true",
+        // Beta Prep 2 - how long "recent" is for the row above (MainWindow.MemorySaver.cs).
+        [MainWindow.QuikAwakeForKey] = "30 minutes",
+        // Beta Prep 2 - the search bar in the middle of the Start Page, and a new tab’s typing going
+        // to it (MainWindow.StartSearch.cs). Read when a tab opens, Settings opened or not.
+        [MainWindow.StartSearchKey] = "true",
+        [MainWindow.NewTabTypingKey] = MainWindow.TypingInSearchBar,
+        // Beta Prep 2 - "Skip tracking redirects" (BounceTracking.cs), on like the other link protections;
+        // and what websites may ask for (SitePermissions.cs): each asks, as before, until set to Block.
+        [BounceTracking.SettingKey] = "true",
+        ["permLocation"] = SitePermissions.Ask,
+        ["permCamera"] = SitePermissions.Ask,
+        ["permMicrophone"] = SitePermissions.Ask,
+        ["permNotifications"] = SitePermissions.Ask,
+        ["popups"] = "true",
     };
 
     public static void Load()
@@ -216,6 +236,14 @@ internal static class AppSettings
                     {
                         _values["memorySaver"] = "Off";
                     }
+                }
+
+                // Beta Prep 2: the floating translucent look is called Prism 2 now (Looks.cs). The saved
+                // name is migrated here, in one place, like the others above.
+                if (_values.TryGetValue(Looks.SettingKey, out string? look)
+                    && look.Equals(Looks.FormerGlassName, StringComparison.OrdinalIgnoreCase))
+                {
+                    _values[Looks.SettingKey] = Looks.Prism2;
                 }
 
                 // M4.9: sleepIdleTabs was M4.8's separate row, folded into the mode above before it
@@ -346,11 +374,32 @@ internal static class AppSettings
 
         lock (Gate)
         {
+            // Beta Prep 2: agreeing to the Terms is a record, not a preference. "Reset settings" puts
+            // the choices back; it must not make Aviary forget that its Terms were agreed to.
+            Dictionary<string, string> kept = new(StringComparer.OrdinalIgnoreCase);
+            foreach (string key in KeptThroughReset)
+            {
+                if (_values.TryGetValue(key, out string? value))
+                {
+                    kept[key] = value;
+                }
+            }
+
             _values = new Dictionary<string, string>(Defaults, StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, string> pair in kept)
+            {
+                _values[pair.Key] = pair.Value;
+            }
         }
 
         Save();
     }
+
+    /// <summary>Records, not preferences: what "Reset settings" leaves alone (TermsGate).</summary>
+    private static readonly string[] KeptThroughReset =
+    {
+        TermsGate.AcceptedKey, TermsGate.AcceptedOnKey, TermsGate.NoteSeenKey,
+    };
 
     public static string Get(string key)
     {

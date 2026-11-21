@@ -98,6 +98,8 @@ internal static class InternalPages
   .row__t{flex:1;min-width:0;}
   .row__t b{display:block;font-weight:500;font-size:14px;}
   .row__t span{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:3px;}
+  /* Beta Prep 2: a word or a date set inside a sentence, not on a line of its own. */
+  .row__t span .inl{display:inline;margin-top:0;}
   /* OUR OWN DROPDOWN, not a native <select>.
      A native select's popup is drawn by Windows, not by the page: in dark mode Chromium
      paints that list white while the text stays light, so you get a white box with only
@@ -149,7 +151,40 @@ internal static class InternalPages
   .sc-head b{font-size:15px;font-weight:600;}
   .sc-row{align-items:flex-start;}
   .sc-dot{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font:700 12px/1 inherit;color:#fff;margin-top:1px;}
-  .sc-ok{background:#2eb867;} .sc-warn{background:#f08c1a;} .sc-info{background:var(--accent);}
+  .sc-ok{background:#2eb867;} .sc-warn{background:#f08c1a;} .sc-info{background:var(--accent);} .sc-tip{background:#8e8cf0;}
+  /* Beta Prep 2 — the score card: how many of the plain protections are on, as a ring. */
+  .sc-card{display:flex;align-items:center;gap:18px;padding:18px;}
+  .sc-ring{--p:0;position:relative;flex:0 0 66px;height:66px;border-radius:50%;display:grid;place-items:center;
+    background:conic-gradient(#2eb867 calc(var(--p) * 1%), var(--fill) 0);transition:--p 400ms;}
+  .sc-ring[data-level="warn"]{background:conic-gradient(#f08c1a calc(var(--p) * 1%), var(--fill) 0);}
+  .sc-ring::before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--panel);}
+  .sc-ring b{position:relative;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;}
+  .sc-card__t{flex:1;min-width:0;}
+  .sc-card__t b{display:block;font-size:15px;font-weight:600;}
+  .sc-card__t span{display:block;color:var(--ink-2);font-size:12.5px;line-height:1.5;margin-top:3px;}
+  .row__t b .sc-area{display:inline-block;margin-left:8px;padding:2px 7px;border-radius:99px;background:var(--fill);
+    color:var(--ink-2);font:500 11px/1.3 inherit;font-style:normal;vertical-align:1px;}
+  /* Beta Prep 2 — Appearance → Look: the two looks as small drawn pictures. `.row__t` in the
+     selectors for the same specificity reason as the icon tiles below. */
+  .row__t .looktiles{display:flex;gap:12px;margin-top:12px;}
+  .looktile{position:relative;flex:0 0 150px;height:94px;padding:0;border:1px solid var(--line);border-radius:10px;
+    background:var(--fill);overflow:hidden;cursor:default;font:inherit;color:var(--ink-2);
+    transition:border-color 140ms,box-shadow 140ms,color 140ms;}
+  .looktile:hover{color:var(--ink);}
+  .looktile[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 34%,transparent);}
+  .looktile i{position:absolute;display:block;}
+  .looktile em{position:absolute;left:10px;bottom:6px;font-style:normal;font-size:11.5px;font-weight:600;}
+  .looktile--classic .lt__bar{left:0;right:0;top:0;height:20px;background:var(--panel);border-bottom:1px solid var(--line);}
+  .looktile--classic .lt__tabs{left:0;right:0;top:21px;height:11px;background:var(--panel-2);border-bottom:1px solid var(--line-soft);}
+  .looktile--classic .lt__page{left:0;right:0;top:33px;bottom:24px;background:var(--panel);opacity:.55;}
+  .looktile--prism{background:linear-gradient(135deg,color-mix(in srgb,var(--accent) 30%,var(--fill)),var(--fill) 62%);}
+  .looktile--prism .lt__bar{left:8px;right:8px;top:7px;height:16px;border-radius:9px;
+    background:color-mix(in srgb,var(--panel) 60%,transparent);border:1px solid color-mix(in srgb,#fff 30%,transparent);
+    box-shadow:0 2px 6px rgba(0,0,0,.16);}
+  .looktile--prism .lt__tabs{left:8px;right:8px;top:27px;height:10px;border-radius:6px;
+    background:color-mix(in srgb,var(--panel) 44%,transparent);border:1px solid color-mix(in srgb,#fff 22%,transparent);}
+  .looktile--prism .lt__page{left:8px;right:8px;top:41px;bottom:24px;border-radius:7px;background:color-mix(in srgb,var(--panel) 78%,transparent);}
   /* M4.9 — Forgetful sites, one line each. `.row__t` for the same specificity reason as the tiles. */
   .row__t .fg{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
   .row__t .fg__row{display:flex;align-items:center;gap:10px;margin:0;}
@@ -553,7 +588,7 @@ internal static class InternalPages
 
   /* ── Motion (Alpha Build 5 M4.5) ───────────────────────────────────────────
      <html data-motion> is "flight" (Smooth Flight — Classic's: quick ease-outs, no overshoot),
-     "fluid" (Fluid — Liquid Glass's: a spring, drawn with linear()) or "off" (Reduce motion).
+     "fluid" (Fluid — Prism 2's: a spring, drawn with linear()) or "off" (Reduce motion).
      The host sets it on load and again whenever the style changes (Motion.cs). */
   /* --m-x is Animation speed (M4.6): Calm stretches, Quick shortens, and every duration below
      is written through it, so one attribute on <html> changes the whole page's pace. */
@@ -702,7 +737,8 @@ var ICON = {
   news:'<svg viewBox="0 0 16 16" fill="none"><rect x="2.2" y="3" width="11.6" height="10" rx="1.6" stroke="currentColor" stroke-width="1.3"/><path d="M4.6 8.6h6.8M4.6 10.8h6.8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><rect x="4.4" y="5" width="4.2" height="1.9" rx=".5" fill="currentColor"/></svg>',
   experimental:'<svg viewBox="0 0 16 16" fill="none"><path d="M6.3 2.2h3.4M6.9 2.2v4L3.3 12.3a1 1 0 0 0 .9 1.5h7.6a1 1 0 0 0 .9-1.5L9.1 6.2v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.7 10.2h6.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
   perf:'<svg viewBox="0 0 16 16" fill="none"><path d="M2.6 11.4a5.6 5.6 0 1 1 10.8 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="m8 9.6 2.6-3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="9.8" r=".9" fill="currentColor"/></svg>',
-  about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>'
+  about:'<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.8" stroke="currentColor" stroke-width="1.4"/><path d="M8 7.2v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="4.9" r=".9" fill="currentColor"/></svg>',
+  legal:'<svg viewBox="0 0 16 16" fill="none"><path d="M4.2 1.9h5.2l2.6 2.6v9.6H4.2Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M9.2 2v2.8H12M6.2 7.6h3.8M6.2 9.8h3.8M6.2 12h2.4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
 /* ══ UPDATES — every build, oldest first ════════════════════════════════════
@@ -744,9 +780,9 @@ var UPDATES = [
     summary:'Both Safari looks, switching while you browse, and the first quarter of the features.',
     notes:[
       {h:'Looks', items:[
-        '<b>Classic</b> (Safari 15 to 18) and <b>Liquid Glass</b> (Safari 26), switched live — Aviary opens with whichever you left it on',
+        '<b>Classic</b> (solid, in the manner of Safari 15 to 18) and <b>Prism 2</b> (floating glass, in the manner of Safari 26), switched live — Aviary opens with whichever you left it on',
         'Light and dark follow Windows, and both looks have a high-contrast palette',
-        'Liquid Glass is see-through enough to let Windows’ Mica show',
+        'Prism 2 is see-through enough to let Windows’ Mica show',
         'Aviary’s own dropdowns — the Windows ones drew white boxes in dark mode'
       ]},
       {h:'Features', items:[
@@ -793,9 +829,9 @@ var UPDATES = [
       {n:'M4', t:'Brave Search and more safe search engines', when:'14 Sep',
        d:'Brave Search, Mojeek and Ecosia join the list, and suggestions from the engine stay off unless you want them.'},
       {n:'M4.5', t:'Smooth Flight', when:'20 Sep',
-       d:'The second middle update: Aviary learns to move. Classic gets Smooth Flight and Liquid Glass gets Fluid, each look with its own way of moving; the ad blocker gets four lists, a setting of its own for every site and rules you can write yourself; and Settings gains live Performance and Storage Usage pages, more accessibility, and the two idle freezes explained.'},
+       d:'The second middle update: Aviary learns to move. Classic gets Smooth Flight and Prism 2 gets Fluid, each look with its own way of moving; the ad blocker gets four lists, a setting of its own for every site and rules you can write yourself; and Settings gains live Performance and Storage Usage pages, more accessibility, and the two idle freezes explained.'},
       {n:'M4.6', t:'Smooth Fix', when:'20 Sep',
-       d:'The third middle update: full screen learns to move, every animation gets a speed of its own, Liquid Glass decides where the window buttons sit, Storage and Performance go deeper, tabs gain four choices of their own — and Aviary finally has an icon.'},
+       d:'The third middle update: full screen learns to move, every animation gets a speed of its own, Prism 2 decides where the window buttons sit, Storage and Performance go deeper, tabs gain four choices of their own — and Aviary finally has an icon.'},
       {n:'M4.7', t:'Immediate Fix', when:'21 Sep',
        d:'The menus work again. The arrival M4.6 gave every menu was landing on the wrong part of it, so a menu looked right and answered nothing you clicked — the app menu, Settings and the Collection with it.'},
       {n:'M4.8', t:'A Iconic Fix', when:'21 Sep',
@@ -830,7 +866,7 @@ var UPDATES = [
         '<b>Look switches keep the page.</b> Start Pages change palette without reloading, and tab buttons keep their identity. Warm look changes with 22 open tabs measured 24–25 ms on the test PC',
         '<b>Less retained UI.</b> Finished favicon and hover fades release their controls, and reveal animations use weak keys. Diagnostics records the active fade counts',
         '<b>Loading and sound.</b> A loading ring replaces the favicon while a page loads, unless motion is reduced. A sound button mutes just that tab, including background and pinned tabs, and its manual choice survives automatic background muting',
-        '<b>Limits remain.</b> The first Liquid Glass switch measured 76 ms in one two-tab run, and rapid tab creation can still stall. Working-set savings from Memory saver do not mean every private allocation is released'
+        '<b>Limits remain.</b> The first Prism 2 switch measured 76 ms in one two-tab run, and rapid tab creation can still stall. Working-set savings from Memory saver do not mean every private allocation is released'
       ]},
       {h:'Super Quik — M7 · 20 October 2026', items:[
         '<b>Quik, in Beta</b>, has its own section in Settings. Switch it on and restart Aviary; its first launch plays the loading screen once, muted, with Skip',
@@ -857,7 +893,7 @@ var UPDATES = [
         'A new <b>Shields</b> page in Settings, with every site you’ve switched Shields off for'
       ]},
       {h:'Smooth Flight — the way Aviary moves', items:[
-        '<b>Each look moves its own way.</b> Classic gets <b>Smooth Flight</b>: quick, straight and calm, in the manner of Safari 15–18. Liquid Glass gets <b>Fluid</b>: springy and gel-like, in the manner of Safari 26. Appearance → <b>Animation style</b> can pin either one to both looks',
+        '<b>Each look moves its own way.</b> Classic gets <b>Smooth Flight</b>: quick, straight and calm, in the manner of Safari 15–18. Prism 2 gets <b>Fluid</b>: springy and gel-like, in the manner of Safari 26. Appearance → <b>Animation style</b> can pin either one to both looks',
         '<b>Tabs move now.</b> The selected tab’s background glides to the one you pick — or stretches toward it and settles, in Fluid. Opening and closing a tab grows and shrinks it, and the rest close the gap instead of jumping',
         'The sidebar glides open, panes cross-fade, menus and popovers arrive with a short fade and scale, and Aviary’s panels slide in',
         'A thin line runs along the address bar while a page loads, the reload icon turns into stop, and the shield’s number pops when something is stopped',
@@ -899,8 +935,8 @@ var UPDATES = [
         '<b>Full screen moves now.</b> Going in, the toolbar and tabs lift away and the window changes on the last frame of that; coming out, the page stays while the chrome settles back down. Windows’ own presenter still takes about a tenth of a second in the middle, and Aviary now spends that time where nothing is on screen to stutter',
         '<b>Animation speed</b> — Calm, Standard or Quick — one choice that changes the pace of the whole browser, its own pages included',
         '<b>Menus and popovers grow out of the button</b> that opened them',
-        '<b>A gleam follows your pointer</b> along the glass, in Liquid Glass with Fluid motion',
-        '<b>Window buttons</b>, for Liquid Glass: leave the bar floating, run it up into the corner so Windows’ three buttons sit on the glass, or line the bar up with them. Snap Layouts keep working either way — they stay Windows’ own buttons'
+        '<b>A gleam follows your pointer</b> along the glass, in Prism 2 with Fluid motion',
+        '<b>Window buttons</b>, for Prism 2: leave the bar floating, run it up into the corner so Windows’ three buttons sit on the glass, or line the bar up with them. Snap Layouts keep working either way — they stay Windows’ own buttons'
       ]},
       {h:'Storage Usage, deeper', items:[
         '<b>Which sites keep their own store</b>, and how much of what sites keep is in the databases they all share — said plainly rather than split by guesswork',
@@ -951,7 +987,7 @@ var UPDATES = [
         '<b>Search your open tabs</b> with <kbd>Ctrl+Shift+A</kbd> — every tab in every window of the same kind, by title or address. Private and ordinary windows are never listed together',
         '<b>Forgetful browsing.</b> Choose, from the shield, for any site to be forgotten — its cookies and everything it stores — when you close its last tab, or five minutes, an hour or a day after. Opening it again in time cancels it. Settings lists every forgetful site',
         '<b>Safety Check</b> in Settings reads back what could be safer — Shields lowered for sites, HTTPS, cookies, the age of the filter lists — with a button to fix each one',
-        '<b>Start Page backgrounds</b>: five drawn by Aviary out of the look you are using, so each follows Classic, Liquid Glass, light and dark, and a sixth that is your own picture',
+        '<b>Start Page backgrounds</b>: five drawn by Aviary out of the look you are using, so each follows Classic, Prism 2, light and dark, and a sixth that is your own picture',
         '<b>Picture in picture</b> from the right-click menu of any video whose site allows it'
       ]},
       {h:'Bird News', items:[
@@ -986,7 +1022,7 @@ var UPDATES = [
         '<b>Leaving full screen</b> no longer leaves a hidden bar behind: a row that was not on screen when the chrome lifted away is now put back properly instead of being skipped'
       ]},
       {h:'Aviary has an icon', items:[
-        '<b>A birdcage dome</b>, the same mark that is on the Start Page and in Settings — on a blue tile, or on a Liquid Glass one',
+        '<b>A birdcage dome</b>, the same mark that is on the Start Page and in Settings — on a blue tile, or on a Prism 2 one',
         'Accessibility → <b>App Icon</b> switches the window, the taskbar and Alt-Tab between them while Aviary runs',
         'This build is now called <b>The Long Run</b> — Alpha Build 5 has run further than any build before it'
       ]},
@@ -997,7 +1033,7 @@ var UPDATES = [
         'Open it from the app menu, or from its row on the Start Page',
         'Every exhibit is a copy; the originals in Documents are never touched',
         '<b>Five more exhibits</b> (14 Sep): the PARALLAX site, a Dev Log, Console Spectrum, FileMaker Beta and a battery that charges itself',
-        'The Collection wears <b>Liquid Glass</b> now, and every exhibit has <b>a page of its own</b> — its story, its placard, its neighbours by date — with Play one press away'
+        'The Collection wears <b>Prism 2</b> now, and every exhibit has <b>a page of its own</b> — its story, its placard, its neighbours by date — with Play one press away'
       ]},
       {h:'Privacy', items:[
         '<b>Third-party cookies are really blocked</b> — the way ads follow you from one site to the next',
@@ -1016,7 +1052,7 @@ var UPDATES = [
         'Full screen with <kbd>F11</kbd>, and videos that fill the whole screen'
       ]},
       {h:'Aviary', items:[
-        '<b>Liquid Glass</b> wears the interface study’s capsule now: a sheen from the top, a rim that catches the light at two corners, soft shadows in three layers, and buttons that dip when you press them',
+        '<b>Prism 2</b> wears the interface study’s capsule now: a sheen from the top, a rim that catches the light at two corners, soft shadows in three layers, and buttons that dip when you press them',
         '<b>Updates</b> — this page: the build you are on, what every build brought, and what is coming',
         'Builds have names: Alpha Build 1 to 5, then Beta Build 1 and 2',
         '<kbd>Ctrl+,</kbd> opens Settings, the way it does in Safari',
@@ -1103,7 +1139,7 @@ var UPDATES = [
         'It gathers everything done since then, from 21 to 24 October. More preps will follow on the way to Beta Build 1. Aviary is still unsigned'
       ]},
       {h:'Prism 2, the look — 23 October 2026', items:[
-        '<b>One file of design numbers.</b> The Liquid Glass look, the landing page and the design mock-up now take their colours and glass from it, and a check fails if any copy drifts',
+        '<b>One file of design numbers.</b> The Prism 2 look, the landing page and the design mock-up now take their colours and glass from it, and a check fails if any copy drifts',
         '<b>Easier to read.</b> Small grey text, the main button and the status tags were raised to the AA contrast level and measured on the real pages: every character passes, light and dark. In the Windows app the address-box hint went from 4.23 to 4.85 contrast in the light look',
         '<b>A better rim.</b> The glass rim is now its own layer beside the glass, so it works on the page behind it instead of on itself',
         '<b>Accessibility modes.</b> Pages follow reduced transparency, increased contrast and forced colours. The landing page says plainly which parts of the glass the Windows app keeps and which it does not, and no longer asks Google Fonts for anything'
@@ -1129,6 +1165,71 @@ var UPDATES = [
       ]},
       {h:'Not in this update', items:[
         'Accounts, Google sign-in, cloud sync, an installer, automatic updates and macOS'
+      ]}
+    ]},
+  /* Beta Prep 2 — 21 November 2026 (Grant asked for all of it that day; the legal words were read and
+     approved by him before they shipped). Same shape as Beta Prep 1: a pressable card of dated changes,
+     each saying what was asked for or found, what was done and what got fixed. */
+  { phase:5, prep:2, name:'Legal pages, a search bar and stronger protection', when:'21 Nov 2026',
+    summary:'The second update on the way to Beta Build 1: Aviary’s legal pages, a search bar in the middle of the Start Page, and privacy, safety and speed work right across Settings.',
+    short:'Terms of Use and a Copyright notice, a search bar in the middle of the Start Page, a rebuilt Safety Check, two new protections, a much bigger Bird News and Quik’s own numbers.',
+    unit:'changes',
+    milestones:[
+      {n:'1', t:'Terms of Use and a Copyright notice', when:'21 Nov',
+       d:'Grant asked for Aviary’s legal pages, and to read and approve every word first. Aviary now has Terms of Use and a Copyright notice, in plain words, in Settings → Legal. The first time it opens, and again if the Terms ever change, Aviary shows them and waits for “I agree” before it makes a single tab. Agreeing saves three things on this computer — that you agreed, which revision, and the date — and sends nothing.'},
+      {n:'2', t:'A Privacy Policy that keeps up', when:'21 Nov',
+       d:'Grant asked for the policy to be updated every time Aviary starts to keep or send something new. It was rewritten for this build and now says so itself: which build it was read against, and a list of what changed and when. A check stops a build being made on a policy nobody re-read, and the Start Page tells you once when the policy changes.'},
+      {n:'3', t:'A search bar in the middle of the Start Page', when:'21 Nov',
+       d:'Grant asked for it after studying Brave’s new tab page. A new tab now puts the keyboard in a search bar in the middle of the page, and typing anywhere on the Start Page lands in it. It searches with your search engine and lists your own pages as you type; an address typed there is opened, never sent as a search. The address bar is still at the top for addresses, one click or Ctrl+L away, and both choices have a switch in Get started.'},
+      {n:'4', t:'Safety Check, rebuilt', when:'21 Nov',
+       d:'It now checks more — link pings, tracking redirects, pop-ups, what websites may ask for, SmartScreen, sites you let load without a secure connection, saved passwords and form entries — and shows a score, the findings in four groups, the part of Aviary each belongs to, and one button that fixes everything fixable. Stronger settings that cost something, like Strict Shields, are offered rather than counted against you.'},
+      {n:'5', t:'Two new protections', when:'21 Nov',
+       d:'Skip tracking redirects: links on Facebook, Instagram, Google, YouTube and others go through the company’s own redirect page, which notes the click; where the real address is written in the link, Aviary goes straight to it. What websites may ask for: location, camera, microphone and notifications can each be set to Block, which refuses every site without a question and takes back what sites were allowed before.'},
+      {n:'6', t:'Settings in groups, and Prism 2 by name', when:'21 Nov',
+       d:'Appearance, Content, Shields, Privacy and security and Bird News were each one long list; their rows now sit under plain headings. Liquid Glass is called Prism 2 everywhere — the name of Wally Design’s glass, which it has been drawn from since October — and “Safari look” is simply Look, with a small picture of each to press. A saved Liquid Glass opens as Prism 2.'},
+      {n:'7', t:'Bird News, much bigger', when:'21 Nov',
+       d:'The Bird News page is a page of its own now: tabs for each place and topic, a filter, a button for each publisher, the newest story given room and the rest grouped by when. Each story shows its publisher’s own short summary, can be put on the Reading List, and is drawn fainter once you have read it. Three topics — Technology, Science and Sport, from the same six publishers — are there to switch on, and are off until you do.'},
+      {n:'8', t:'Quik, with your own numbers', when:'21 Nov',
+       d:'Settings → Quik used to quote the development computer. It now shows this computer’s figures: how long this launch took, the last launch with Quik beside the last without, and how quickly new tabs opened. Pages Aviary itself opens in a new tab — a favourite, a search for selected words — take the ready tab too, and you choose how long recent tabs stay awake, from 15 minutes to 2 hours.'},
+      {n:'9', t:'Performance and Storage, more exact', when:'21 Nov',
+       d:'Measured against Windows on 21 November: Performance listed eight processes where Windows had nine, because the browser engine leaves its crash reporter out of its own list. It is counted now, so the total matches. Helpers that were all called “Network, storage and sound” are named for what each one is, and every process says what it is for. Storage Usage already matched Windows to the byte; every file Aviary writes now has a name of its own.'}
+    ],
+    notes:[
+      {h:'About this update — 21 November 2026', items:[
+        '<b>Beta Prep 2 replaces Beta Prep 1 as the build you are on</b>, version 0.5.2. Beta Prep 1 (0.5.1, 25 October) and Alpha Build 5 (0.5.0) stay below under Earlier builds, unchanged',
+        'Everything in it was made and tested on 21 November 2026. More preps will follow on the way to Beta Build 1. Aviary is still unsigned'
+      ]},
+      {h:'Legal and privacy — 21 November 2026', items:[
+        '<b>Terms of Use and a Copyright notice</b>, in Settings → Legal with the Privacy Policy, and on the “I agree” screen where all of it can be read offline before agreeing. Aviary is free, comes as it is, and all rights in it are reserved to Grant at Wally Studios',
+        '<b>The “I agree” screen</b> comes up before Aviary makes its first tab — on the first launch, and again whenever the Terms change — so nothing is browsed behind it. Quit Aviary closes the app. Reset settings does not forget that you agreed',
+        '<b>The Privacy Policy, revision 21 November 2026</b>, describes everything this update keeps on your computer: the record of agreeing, the answers you gave sites, news summaries and Quik’s two startup times. It names the build it was read against and lists its own changes'
+      ]},
+      {h:'The Start Page — 21 November 2026', items:[
+        '<b>A search bar in the middle</b>, under the Aviary mark, with your search engine’s name on it. Arrow keys walk the list, Enter searches, Escape clears. Under it the page says, truthfully, whether typing there sends anything before Enter',
+        '<b>Suggestions follow the address bar’s rule exactly</b>: off until you switch them on in Search engine, only to the engine you chose, never an address and never from a private window',
+        '<b>Two switches in Get started</b>: Show the search bar, and whether a new tab’s typing goes to it or to the address bar'
+      ]},
+      {h:'Protection — 21 November 2026', items:[
+        '<b>Skip tracking redirects</b>, on by default in Privacy and security, for a short list of redirect pages known to do nothing but count clicks. Services that scan a link for danger are left alone, and shorteners, whose links do not contain the destination, cannot be skipped',
+        '<b>What websites may ask for</b>, in Content: Ask or Block for location, camera, microphone and notifications, and a button that forgets every answer you gave a site',
+        '<b>Safety Check</b> gained a score, groups, a Fix everything button, and checks for both of the above. It can also forget the sites you allowed to load without a secure connection'
+      ]},
+      {h:'Settings — 21 November 2026', items:[
+        '<b>Rows in groups</b> on Appearance, Content, Shields, Privacy and security and Bird News, with shorter, plainer words',
+        '<b>Prism 2</b> is the name of the floating glass look, in Settings, in these notes and on the landing page. Appearance → Look shows a picture of each look',
+        '<b>Legal</b> is a new page in Settings, and About Aviary links to all three documents'
+      ]},
+      {h:'Bird News and Quik — 21 November 2026', items:[
+        '<b>The Bird News page</b>: tabs, a filter, publisher buttons, summaries, a Reading List mark on every story, and Check now. Headlines and summaries are still exactly the publisher’s own words, and no pictures are fetched',
+        '<b>Topics</b>: Technology, Science and Sport, each one switch that names every publisher it asks, each off until switched on',
+        '<b>Quik</b>: this computer’s own launch and new-tab times, ready tabs for pages Aviary opens, and a choice of how long recent tabs stay awake'
+      ]},
+      {h:'Measuring — 21 November 2026', items:[
+        '<b>Performance</b> counts every process Aviary runs, including the engine’s crash reporter, and names each helper: Network service, Storage service, Sound service',
+        '<b>Storage Usage</b> names every file Aviary writes in your profile'
+      ]},
+      {h:'Not in this update', items:[
+        'Accounts, Google sign-in, cloud sync, an installer, automatic updates and macOS. No email address is published for Aviary yet'
       ]}
     ]},
   { phase:6, name:'Testing 1',
@@ -1175,15 +1276,25 @@ function icoTile(kind){
     '</svg><i>' + (glass ? 'Glass tile' : 'Blue tile') + '</i></span>';
 }
 var ICON_TILES = '<span class="icotiles">' + icoTile('blue') + icoTile('glass') + '</span>';
+/* Beta Prep 2: the two looks as small drawn pictures under Appearance → Look. Pressing one picks
+   it - through the row's own menu, so there is still exactly one place the setting is sent from. */
+function lookTile(kind, name){
+  return '<button class="looktile looktile--' + kind + '" data-look="' + name + '" aria-pressed="false" title="' + name + '">' +
+    '<i class="lt__bar"></i><i class="lt__tabs"></i><i class="lt__page"></i><em>' + name + '</em></button>';
+}
+var LOOK_TILES = '<span class="looktiles">' + lookTile('classic', 'Classic') + lookTile('prism', 'Prism 2') + '</span>';
 
 var SECTIONS = [
   { id:'start', icon:'start', name:'Get started', title:'Get started',
-    lede:'Aviary is a Safari-inspired browser for Windows 11, built one release at a time. You are on <span style="white-space:nowrap">__AV_CHANNEL__</span>.',
+    lede:'Aviary is a privacy-first, safety-first browser for Windows 11, built one release at a time. You are on <span style="white-space:nowrap">__AV_CHANNEL__</span>.',
     rows:[
       {t:'On startup', d:'What Aviary opens with when you launch it.', phase:6, ctl:{type:'select', key:'startup', opts:['Start Page','Continue where you left off','A specific page'], value:'Start Page'}},
       {t:'Home button', d:'Show the home button in the toolbar.', ctl:{type:'toggle', key:'homeButton', value:true}},
-      {t:'Start Page background', d:'What is behind the Start Page. Five of the six are drawn by Aviary out of the look you are using, so each one follows Classic, Liquid Glass, light and dark with nothing to download. Your own picture is copied into Aviary’s own folder, so it keeps working if you move or delete the original.', ctl:{type:'select', key:'startBackground', opts:['Glasshouse','Plain','Dawn','Dusk','Moss','Your picture'], value:'Glasshouse'}},
+      {t:'Start Page background', d:'What is behind the Start Page. Five of the six are drawn by Aviary out of the look you are using, so each one follows Classic, Prism 2, light and dark with nothing to download. Your own picture is copied into Aviary’s own folder, so it keeps working if you move or delete the original.', ctl:{type:'select', key:'startBackground', opts:['Glasshouse','Plain','Dawn','Dusk','Moss','Your picture'], value:'Glasshouse'}},
       {t:'Start Page sections', d:'The same switches as the Customise button in the corner of the Start Page.', ctl:{type:'none'}},
+      /* Beta Prep 2 (MainWindow.StartSearch.cs): the search bar in the middle of the page, and where a new tab’s typing goes. */
+      {t:'Show the search bar', d:'A search bar in the middle of the Start Page, so you can search without going up to the address bar. Type anywhere on the Start Page and it lands in the bar. It searches with your search engine, and nothing you type in it is sent anywhere until you press Enter, unless you switched on search suggestions.', ctl:{type:'toggle', key:'startSearch', value:true}},
+      {t:'Typing on a new tab goes to', d:'Where the keyboard is when a new tab opens. <b>The Start Page search bar</b> is for searching; the address bar is one click, or Ctrl+L, away for web addresses and links. <b>The address bar</b> is how Aviary worked before, and what happens anyway while the search bar is hidden.', ctl:{type:'select', key:'newTabTyping', opts:['The Start Page search bar','The address bar'], value:'The Start Page search bar'}},
       {t:'Show Favourites', d:'', ctl:{type:'toggle', key:'startFavourites', value:true}},
       {t:'Show The Collection', d:'A row of Grant’s own projects, which Aviary carries and runs offline. All of them are always in the app menu.', ctl:{type:'toggle', key:'startMenagerie', value:true}},
       {t:'Show Frequently Visited', d:'', ctl:{type:'toggle', key:'startFrequent', value:true}},
@@ -1206,127 +1317,172 @@ var SECTIONS = [
       {t:'Animation speed', quik:true, d:'The Appearance row’s three speeds, and one more: <b>Quik</b>, about half the length of Quick. It is only offered here, and moves that fast only while Quik is running.', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick','Quik'], value:'Standard'}},
       /* M7 stage 2 — MainWindow.QuikTab.cs and MainWindow.MemorySaver.cs. Each says what it costs. */
       {t:'Keep a new tab ready', quik:true, d:'Quik keeps one tab made in advance — its engine started, its Start Page drawn, out of sight — so a new tab is shown, not made. The next one is made a moment later. <b>What it costs:</b> one more page kept in memory.', ctl:{type:'toggle', key:'quikReadyTab', value:true}},
-      {t:'Keep recent tabs awake', quik:true, d:'Memory saver leaves any tab you used in the last half hour alone, so going back to it is instant. <b>What it costs:</b> the memory those tabs keep.', ctl:{type:'toggle', key:'quikKeepAwake', value:true}},
+      {t:'Keep recent tabs awake', quik:true, d:'Memory saver leaves any tab you used recently alone, so going back to it is instant. <b>What it costs:</b> the memory those tabs keep.', ctl:{type:'toggle', key:'quikKeepAwake', value:true}},
+      /* Beta Prep 2 — how long "recently" is (MainWindow.MemorySaver.cs). It was fixed at half an hour. */
+      {t:'Keep recent tabs awake for', quik:true, d:'How long after you last used a tab it counts as recent. Longer means more tabs you can go straight back to, and more memory kept. Needs <b>Keep recent tabs awake</b> above; a tab playing sound is never put to sleep whatever this says.', ctl:{type:'select', key:'quikAwakeFor', opts:['15 minutes','30 minutes','1 hour','2 hours'], value:'30 minutes'}},
       {t:'Keep two new tabs ready', quik:true, lab:true, exp:'safe',
        d:'Prepare a second Start Page so two quick new-tab opens can both use a ready tab. Requires <b>Keep a new tab ready</b> above.',
        might:'Two extra pages stay in memory instead of one, and preparing them uses a little more processor time. Switch this off to keep only one ready.',
        ctl:{type:'toggle', key:'exp.quikTwoReady', value:false}}
     ]},
   { id:'news', icon:'news', name:'Bird News', title:'Bird News',
-    lede:'Live headlines on your Start Page, straight from the people who publish them. Aviary asks each site for its own news feed — as Aviary, not dressed up as a person’s browser — sends no cookies, and shows every headline exactly as its site wrote it. Nothing about what you read is sent anywhere.',
+    lede:'Live headlines on your Start Page and on a page of their own, straight from the people who publish them. Aviary asks each site for its own news feed — as Aviary, not dressed up as a person’s browser — sends no cookies, and shows every headline and summary exactly as its site wrote it. Nothing about what you read is sent anywhere.',
     rows:[
-      {t:'Bird News', d:'Show the latest stories on the Start Page. <b>While this is off Aviary fetches nothing at all</b> — nobody is reading it. The same switch as <b>Bird News</b> in the Start Page’s Customise button.', ctl:{type:'toggle', key:'startNews', value:true}},
+      {t:'Bird News', group:'Bird News', d:'Show the latest stories on the Start Page. <b>While this is off Aviary fetches nothing at all</b> — nobody is reading it. The same switch as <b>Bird News</b> in the Start Page’s Customise button.', ctl:{type:'toggle', key:'startNews', value:true}},
       {t:'Check for new stories', d:'How often Aviary asks the news sites for anything new, while it is open. A site that has nothing new answers in a few bytes, so checking often costs almost nothing. <b>Only when I open the Start Page</b> never checks in the background.', ctl:{type:'select', key:'newsRefresh', opts:['Every 15 minutes','Every 30 minutes','Every hour','Only when I open the Start Page'], value:'Every 15 minutes'}},
-      {t:'The World', d:'', ctl:{type:'none'}},
-      {t:'BBC News', d:'World news from the BBC, London.', ctl:{type:'toggle', key:'newsBbc', value:true}},
+      {t:'Right now', d:'<span id="newsstatus">Not checked yet.</span>', ctl:{type:'buttons', items:[{cmd:'newsCheck', label:'Check now'}]}},
+
+      {t:'BBC News', group:'The World', d:'World news from the BBC, London.', ctl:{type:'toggle', key:'newsBbc', value:true}},
       {t:'Al Jazeera', d:'Al Jazeera English, Doha.', ctl:{type:'toggle', key:'newsAljazeera', value:true}},
       {t:'The Guardian', d:'The Guardian’s world desk, London.', ctl:{type:'toggle', key:'newsGuardian', value:true}},
-      {t:'The Philippines', d:'', ctl:{type:'none'}},
-      {t:'Inquirer', d:'The Philippine Daily Inquirer’s news desk.', ctl:{type:'toggle', key:'newsInquirer', value:true}},
+
+      {t:'Inquirer', group:'The Philippines', d:'The Philippine Daily Inquirer’s news desk.', ctl:{type:'toggle', key:'newsInquirer', value:true}},
       {t:'Rappler', d:'Rappler, Manila.', ctl:{type:'toggle', key:'newsRappler', value:true}},
       {t:'GMA News', d:'GMA News Online.', ctl:{type:'toggle', key:'newsGma', value:true}},
-      {t:'Your own feeds', d:'Any other news site’s RSS or Atom feed, one address per line — they appear as a column of their own. A line starting with <code>!</code> is a note. Aviary says below which lines it cannot use.', ctl:{type:'text', key:'newsCustom', value:''}},
-      {t:'Right now', d:'<span id="newsstatus">Not checked yet.</span>', ctl:{type:'buttons', items:[{cmd:'newsCheck', label:'Check now'}]}}
+
+      /* Beta Prep 2 — three topics, each ONE switch, each off until switched on, each naming every
+         publisher it asks (BirdsNews.Shipped). The same six publishers; more of their addresses. */
+      {t:'Technology', group:'Topics', d:'The technology desks of BBC News, The Guardian, the Inquirer, Rappler and GMA News (GMA’s is science and technology together). Off until you switch it on: it asks five more addresses, all at publishers Bird News already reads.', ctl:{type:'toggle', key:'newsTech', value:false}},
+      {t:'Science', d:'The science desks of BBC News and The Guardian. Off until you switch it on: two more addresses.', ctl:{type:'toggle', key:'newsScience', value:false}},
+      {t:'Sport', d:'The sport desks of BBC News, The Guardian, the Inquirer, Rappler and GMA News. Off until you switch it on: five more addresses.', ctl:{type:'toggle', key:'newsSport', value:false}},
+
+      {t:'Your own feeds', group:'Your own feeds', d:'Any other news site’s RSS or Atom feed, one address per line — they appear under <b>Your feeds</b>. A line starting with <code>!</code> is a note. Aviary says below which lines it cannot use.', ctl:{type:'text', key:'newsCustom', value:''}},
+
+      {t:'Show each story’s summary', group:'On the page', d:'On the Bird News page, the publisher’s own short description sits under its headline — their words, cut to a few lines, never Aviary’s. Off shows headlines alone.', ctl:{type:'toggle', key:'newsSummaries', value:true}},
+      {t:'Draw stories you have read more quietly', d:'A story whose page is already in your history is drawn fainter, so what is new stands out. It is worked out on this computer from your own history, and a private window never shows it.', ctl:{type:'toggle', key:'newsDimRead', value:true}},
+      {t:'The Bird News page', d:'Every story, with tabs for each place and topic, a filter, a button for each publisher, and a mark that puts a story on your Reading List. Open it from <b>All the stories in Bird News</b> on the Start Page, or the app menu.', ctl:{type:'none'}}
     ] },
 
+  /* Beta Prep 2 (Grant, 21 Nov 2026): Appearance, Content, Shields and Privacy and security were each
+     one long list. Rows now sit in named groups - a row's group:'…' starts one and the rows after
+     it stay in it (groupedRows) - and the words lean on what a thing DOES rather than on which
+     other browser does it. "Safari look" is "Look"; "Liquid Glass" is "Prism 2" (Looks.cs). */
   { id:'look', icon:'look', name:'Appearance', title:'Appearance',
-    lede:'How Aviary looks. Both Safari looks switch while the browser is running, and whichever you leave it on is the one it opens with next time.',
+    lede:'How Aviary looks and moves. A change here shows at once, and Aviary opens next time the way you left it.',
     rows:[
-      {t:'Theme', d:'Follow Windows, or pin Aviary to light or dark.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
-      {t:'Safari look', d:'Classic is the solid unified toolbar of Safari 15–18. Liquid Glass is the floating translucent chrome of Safari 26 — translucent enough to let Windows’ Mica show through.', ctl:{type:'select', key:'look', opts:['Classic','Liquid Glass'], value:'Classic'}},
-      {t:'Tab layout', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
+      {t:'Theme', group:'Look', d:'Follow Windows, or keep Aviary light or dark whatever Windows does.', ctl:{type:'select', key:'theme', opts:['System','Light','Dark'], value:'System'}},
+      {t:'Look', d:'Aviary has two looks, and each comes in light and dark. <b>Classic</b> is solid and calm: one toolbar across the top, with the tabs under it. <b>Prism 2</b> is Wally Design’s glass: the bars float as translucent capsules, see-through enough to let Windows’ Mica show. Press a picture or use the menu.' + LOOK_TILES, ctl:{type:'select', key:'look', opts:['Classic','Prism 2'], value:'Classic'}},
+      /* M4.6 — MainWindow.ApplyLookGeometry. Windows draws the three buttons itself and decides
+         where they sit; the bar is what moves. Classic is already aligned, so this does nothing there. */
+      {t:'Window buttons', d:'For Prism 2: where its floating bar sits, and what that does about Windows’ three buttons. <b>Floating</b> leaves the bar 8&nbsp;px down, so the buttons ride a little above its middle. <b>Buttons on the glass</b> runs the bar up into the corner so they sit on it — they are still Windows’ own buttons, so Snap Layouts keep working. <b>Bar aligned</b> keeps the side gaps and drops the top one. Classic is already lined up, and ignores this.', ctl:{type:'select', key:'windowButtons', opts:['Floating','Buttons on the glass','Bar aligned'], value:'Floating'}},
+
+      /* Alpha Build 5 M4.5 — Motion.cs. Grant’s names: Smooth Flight is Classic’s way of moving,
+         Fluid is Prism 2’s. Reduce motion (Accessibility) turns both off. */
+      {t:'Animation style', group:'Motion', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick. <b>Fluid</b> is springy and gel-like: tabs stretch toward where they are going and buttons squish when pressed. <b>Match the look</b> gives Classic Smooth Flight and Prism 2 Fluid. Accessibility → Reduce motion turns all of it off.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
+      /* Alpha Build 5 M4.6 — one multiplier on every duration, in the window and in these pages. */
+      {t:'Animation speed', d:'How fast all of that moves. <b>Calm</b> stretches every animation by half, <b>Quick</b> cuts it by a third. Springs keep their bounce either way — a spring’s feel is its give, not its length.<span class="qnote" id="quikspeed" hidden></span>', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick'], value:'Standard'}},
+
+      {t:'Tab layout', group:'Tabs', d:'A tab bar across the top, or a vertical sidebar down the side.', phase:4, ctl:{type:'select', key:'tabLayout', opts:['Top bar','Sidebar'], value:'Top bar'}},
+      /* Alpha Build 5 M4.6 — four small tab choices, all live. */
+      {t:'New tab position', d:'<b>After the current tab</b> keeps a tab you open from a page beside that page. <b>At the end</b> puts every new tab after the last one. Pinned tabs always keep the front of the strip.', ctl:{type:'select', key:'newTabPosition', opts:['After the current tab','At the end'], value:'After the current tab'}},
+      {t:'New tab opens with', d:'A new tab starts on the Start Page, or on the page you are already looking at — which is the quick way to open two of something side by side. Aviary’s own pages are never carried over.', ctl:{type:'select', key:'newTabShowsPage', opts:['The Start Page','The page I’m on'], value:'The Start Page'}},
+      {t:'Tab close button', d:'<b>On hover</b> turns a tab’s icon into a cross when you point at it. <b>Always</b> keeps the cross there, and <b>Never</b> leaves the icon alone — Ctrl+W, the middle button and the tab’s own menu still close it.', ctl:{type:'select', key:'tabCloseButton', opts:['On hover','Always','Never'], value:'On hover'}},
+      {t:'Middle-click closes a tab', d:'Press the mouse wheel on a tab to close it.', ctl:{type:'toggle', key:'middleClickCloses', value:true}},
       /* Alpha Build 5 M4.5 — both live (MainWindow.CloseGuard.cs). A private window never
          asks and never stays open: its whole point is that it leaves nothing behind. */
       {t:'Ask before closing a window with several tabs', d:'One stray click on the × should not take six pages with it. Aviary asks first, and says how many are open. Private windows never ask.', ctl:{type:'toggle', key:'warnManyTabs', value:true}},
-      {t:'When the last tab closes', d:'Close the window, the way every browser on Windows does — or keep it open and show the Start Page.', ctl:{type:'select', key:'lastTabCloses', opts:['Close the window','Show the Start Page'], value:'Close the window'}},
-      /* Alpha Build 5 M4.6 — four small tab choices, all live. */
-      {t:'New tab position', d:'<b>After the current tab</b> is Safari’s way — a tab you open from a page sits beside it. <b>At the end</b> is Chrome’s. Pinned tabs always keep the front of the strip.', ctl:{type:'select', key:'newTabPosition', opts:['After the current tab','At the end'], value:'After the current tab'}},
-      {t:'New tab opens with', d:'A new tab starts on the Start Page, or on the page you are already looking at — which is the quick way to open two of something side by side. Aviary’s own pages are never carried over.', ctl:{type:'select', key:'newTabShowsPage', opts:['The Start Page','The page I’m on'], value:'The Start Page'}},
-      {t:'Middle-click closes a tab', d:'Press the mouse wheel on a tab to close it, the way every browser on Windows does.', ctl:{type:'toggle', key:'middleClickCloses', value:true}},
-      {t:'Tab close button', d:'<b>On hover</b> is Safari’s: a tab’s icon turns into a cross when you point at it. <b>Always</b> keeps the cross there, and <b>Never</b> leaves the icon alone — Ctrl+W, the middle button and the tab’s own menu still close it.', ctl:{type:'select', key:'tabCloseButton', opts:['On hover','Always','Never'], value:'On hover'}},
-      /* Alpha Build 5 M4.5 — Motion.cs. Grant’s names: Smooth Flight is Classic’s way of moving,
-         Fluid is Liquid Glass’s. Reduce motion (Accessibility) turns both off. */
-      {t:'Animation style', d:'How Aviary moves. <b>Smooth Flight</b> is crisp and quick, like Safari on the Mac. <b>Fluid</b> is springy and gel-like, like Safari 26 — tabs stretch toward where they are going and buttons squish when pressed. Each look has its own, or choose one for both.', ctl:{type:'select', key:'animationStyle', opts:['Match the look','Smooth Flight','Fluid'], value:'Match the look'}},
-      /* Alpha Build 5 M4.6 — one multiplier on every duration, in the window and in these pages. */
-      {t:'Animation speed', d:'How fast all of that moves. <b>Calm</b> stretches every animation by half, <b>Quick</b> cuts it by a third. Springs keep their bounce either way — a spring’s feel is its give, not its length.<span class="qnote" id="quikspeed" hidden></span>', ctl:{type:'select', key:'animationSpeed', opts:['Calm','Standard','Quick'], value:'Standard'}},
-      /* M4.6 — MainWindow.ApplyLookGeometry. Windows draws the three buttons itself and decides
-         where they sit; the bar is what moves. Classic is already aligned, so this does nothing there. */
-      {t:'Window buttons', d:'Where Liquid Glass puts its bar, and what that does about Windows’ three buttons. <b>Floating</b> leaves the bar 8&nbsp;px down, so the buttons ride a little above its middle. <b>Buttons on the glass</b> runs the bar up into the corner so they sit on it — they are still Windows’ own buttons, so Snap Layouts keep working. <b>Bar aligned</b> keeps the side gaps and drops the top one. Classic is already lined up, and ignores this.', ctl:{type:'select', key:'windowButtons', opts:['Floating','Buttons on the glass','Bar aligned'], value:'Floating'}},
-      {t:'Show site icons', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
-      {t:'Show full address', d:'Show the whole URL instead of just the site name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
+      {t:'When the last tab closes', d:'Close the window, or keep it open and show the Start Page.', ctl:{type:'select', key:'lastTabCloses', opts:['Close the window','Show the Start Page'], value:'Close the window'}},
+
+      {t:'Show site icons', group:'Toolbar', d:'Show each site’s own icon in tabs and the favourites bar. Turned off, Aviary shows a coloured letter instead and never fetches an icon.', ctl:{type:'toggle', key:'siteIcons', value:true}},
+      {t:'Show full address', d:'Show the whole web address in the address bar instead of just the site’s name.', ctl:{type:'toggle', key:'fullUrl', value:false}},
       {t:'Favourites bar', d:'A strip of saved sites under the toolbar. Ctrl+D adds the page you are on.', ctl:{type:'toggle', key:'bookmarksBar', value:false}},
       {t:'Full screen', d:'Press F11 to hide everything but the page, and F11 again to come back. A video you put in full screen fills the whole screen too, and Esc brings it back.', ctl:{type:'none'}}
     ]},
 
   { id:'content', icon:'content', name:'Content', title:'Content',
-    lede:'How pages are rendered.',
+    lede:'How websites are shown, and what they are allowed to do. These are rules Aviary applies on this computer; none of them sends anything anywhere.',
     rows:[
-      {t:'Default zoom', d:'Applied to every site that has no zoom of its own.', phase:4, ctl:{type:'select', key:'zoom', opts:['80%','90%','100%','110%','125%','150%'], value:'100%'}},
-      {t:'Block pop-ups', d:'Stop sites opening windows you did not ask for. Links you click yourself always open.', ctl:{type:'toggle', key:'popups', value:true}},
-      /* M6 stage 5 — made real, as Safari's three choices. Measured on this engine first: with nothing
+      {t:'Default zoom', group:'Pages', d:'Applied to every site that has no zoom of its own.', phase:4, ctl:{type:'select', key:'zoom', opts:['80%','90%','100%','110%','125%','150%'], value:'100%'}},
+      /* M6 stage 5 — made real, in three choices. Measured on this engine first: with nothing
          chosen it already behaves as "Stop Media with Sound" (WebViewEnvironment.cs). */
       {t:'Auto-Play', d:'Whether a website may start videos and sounds before you have clicked anything. <b>Stop Media with Sound</b> lets a silent video play — the moving pictures many sites use — and keeps anything with sound waiting for you. <b>Never Auto-Play</b> keeps every video and sound still until you press play.', restart:true, ctl:{type:'select', key:'autoplay', opts:['Allow All Auto-Play','Stop Media with Sound','Never Auto-Play'], value:'Stop Media with Sound'}},
-      {t:'Reader', d:'Strip an article back to its text. Open it from the “Aa” button inside the address field, or press Ctrl+Shift+R. Aviary offers it only on pages that actually have an article.', ctl:{type:'none'}},
+
+      /* Beta Prep 2 — SitePermissions.cs. Ask is the engine's own question per site, as before;
+         Block refuses every site without a question and takes back grants given earlier. */
+      {t:'Block pop-ups', group:'What websites may ask for', d:'Stop sites opening windows you did not ask for. Links you click yourself always open.', ctl:{type:'toggle', key:'popups', value:true}},
+      {t:'Location', d:'Whether a website may learn where you are. <b>Ask</b> lets each site ask, and you answer for that site alone. <b>Block</b> refuses every site, without a question.', ctl:{type:'select', key:'permLocation', opts:['Ask','Block'], value:'Ask'}},
+      {t:'Camera', d:'Whether a website may use your camera, for a video call or a photo. <b>Ask</b> or <b>Block</b>, as above.', ctl:{type:'select', key:'permCamera', opts:['Ask','Block'], value:'Ask'}},
+      {t:'Microphone', d:'Whether a website may listen through your microphone. <b>Ask</b> or <b>Block</b>, as above.', ctl:{type:'select', key:'permMicrophone', opts:['Ask','Block'], value:'Ask'}},
+      {t:'Notifications', d:'Whether a website may put notifications on your desktop. Most sites that ask want to keep sending you things after you have left. <b>Ask</b> or <b>Block</b>, as above.', ctl:{type:'select', key:'permNotifications', opts:['Ask','Block'], value:'Ask'}},
+      {t:'Answers you gave to sites', d:'What you answer when a site asks is remembered for that site, in this profile on this computer. A page without a secure connection is never allowed any of these, a private window’s answers are never saved, and choosing <b>Block</b> above also takes back what sites were allowed before. This forgets every site’s saved answer, so each one asks again.', ctl:{type:'button', cmd:'permissionsReset', label:'Forget every answer', danger:true}},
+
+      {t:'Reader', group:'Reader', d:'Strip an article back to its text. Open it from the “Aa” button inside the address field, or press Ctrl+Shift+R. Aviary offers it only on pages that actually have an article.', ctl:{type:'none'}},
       {t:'Reader font', d:'The typeface Reader sets articles in.', ctl:{type:'select', key:'readerFont', opts:['San Francisco','New York','Athelas','Charter','Georgia','Iowan','Palatino','Seravek','Times New Roman'], value:'New York'}},
-      {t:'Reader background', d:'White, Sepia, Grey or Black — independent of the browser’s own theme, exactly as Safari keeps it.', ctl:{type:'select', key:'readerTheme', opts:['White','Sepia','Grey','Black'], value:'White'}}
+      {t:'Reader background', d:'White, Sepia, Grey or Black — independent of the browser’s own theme.', ctl:{type:'select', key:'readerTheme', opts:['White','Sepia','Grey','Black'], value:'White'}},
+
+      {t:'Smallest text size', group:'More about pages', d:'Never draw a website’s text smaller than a size you choose. It is in Accessibility.', ctl:{type:'goto', target:'access', label:'Accessibility'}},
+      {t:'Each website’s own zoom, dark websites, Reader everywhere', d:'Three experiments about how pages are shown, each explained in plain words before you switch it on.', ctl:{type:'goto', target:'experimental', label:'Experimental'}}
     ]},
 
   /* Phase 5 M3 — the ad blocker (FilterEngine.cs, FilterLists.cs, Shields.cs). Brave calls it
      Shields; so does Aviary. Every row here is live. */
   { id:'shields', icon:'shields', name:'Shields', title:'Shields',
-    lede:'Aviary’s ad and tracker blocker. It stops ads and trackers before they load — so they never learn you were there — and hides the empty spaces they leave behind. The shield in the toolbar shows what it stopped on the page you are on, and turns it off for a site that doesn’t work with it.',
+    lede:'Aviary’s ad and tracker blocker. It stops ads and trackers before they load — so they never learn you were there — and closes up the empty spaces they leave. The shield in the toolbar shows what it stopped on the page you are on, and lowers Shields for one site that does not work with them. Everything Shields does happens on this computer.',
     rows:[
-      {t:'Block ads and trackers', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
+      {t:'Block ads and trackers', group:'Protection', d:'__AV_BLOCKCOUNT__', ctl:{type:'toggle', key:'blockTrackers', value:true}},
       {t:'How much to block', d:'<b>Standard</b> stops ads and trackers that come from other companies — the ones that follow you from site to site — and leaves what a site serves itself alone. <b>Strict</b> also stops the ones a site runs itself, and warns you before opening a site the lists say exists only to serve ads or track people. Strict can break parts of some sites. A site you give a setting of its own keeps it whatever you choose here.', ctl:{type:'select', key:'blockMode', opts:['Standard','Strict'], value:'Standard'}},
       {t:'What Shields stopped', d:'<span id="shline">Counting…</span>', more:'shieldstats', ctl:{type:'button', cmd:'shieldsStatsReset', label:'Start again', danger:true}},
       {t:'Sites with their own Shields', d:'Sites you gave their own setting, from the shield in the toolbar. Everything else follows <b>How much to block</b>.', more:'shieldsites', ctl:{type:'button', cmd:'shieldsSitesReset', label:'Forget all', danger:true}},
 
-      {t:'Ads', d:'EasyList: stops ad servers, and hides the boxes ads sit in.', ctl:{type:'toggle', key:'listAds', value:true}},
+      {t:'Ads', group:'The lists', d:'EasyList: stops ad servers, and hides the boxes ads sit in.', ctl:{type:'toggle', key:'listAds', value:true}},
       {t:'Trackers', d:'EasyPrivacy: stops analytics, tracking pixels and the scripts that follow you from site to site.', ctl:{type:'toggle', key:'listTrackers', value:true}},
       {t:'Cookie notices', d:'EasyList Cookie List: hides the “we value your privacy” banners, and blocks the services that put them there. It hides the banner rather than agreeing to anything — some sites will keep asking. It is mostly hiding rules, so it is the more expensive of the two: with it and Social widgets both on, the hiding script every page runs grows from about 790 KB to 2 MB, and from about 2.5 ms to 9 ms.', ctl:{type:'toggle', key:'listCookies', value:false}},
       {t:'Social widgets', d:'Fanboy’s Social: stops Like, Share and comment widgets, which report the page you are on to their own company whether or not you touch them. Sharing buttons and embedded posts may disappear — which is the point, and sometimes a nuisance.', ctl:{type:'toggle', key:'listSocial', value:false}},
       {t:'Filter lists', d:'<span id="listsline"></span>', more:'lists', ctl:{type:'buttons', items:[{cmd:'listsUpdate', label:'Update now'},{cmd:'filtersRestore', label:'Use the shipped lists'}]}},
-      {t:'Keep the lists up to date', d:'Aviary downloads the newest copies of the lists that are switched on, from the people who publish them. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now.', ctl:{type:'select', key:'listsAutoUpdate', opts:['Off','Daily','Weekly'], value:'Off'}},
-      {t:'My filters', d:'Your own rules, in the same syntax as the lists: <code>||ads.example.com^</code> to stop a host, <code>example.com##.banner</code> to hide something, <code>@@||example.com^</code> to let a site through. One per line; a line starting with <code>!</code> is a note. Aviary says which lines it cannot use. If <b>Allow data collection for improvements</b> is on, what you write here is recorded as you wrote it — you chose that in M4.9; it never leaves this computer.', ctl:{type:'text', key:'customFilters', value:''}},
+      {t:'Keep the lists up to date', d:'Aviary downloads the newest copies of the lists that are switched on, from the people who publish them. Nothing about you is sent — it is the same file for everyone. Off, they stay as they are until you press Update now. New trackers appear all the time, so <b>Weekly</b> is worth having.', ctl:{type:'select', key:'listsAutoUpdate', opts:['Off','Daily','Weekly'], value:'Off'}},
 
-      {t:'Hide the spaces ads leave', d:'After an ad is stopped, hide the empty box it sat in, so the page closes up around it. Off, the page keeps its gaps — which is sometimes the better way round, on a site whose layout depends on them.', ctl:{type:'toggle', key:'cosmeticHiding', value:true}},
+      {t:'My filters', group:'Your own rules', d:'Your own rules, in the same syntax as the lists: <code>||ads.example.com^</code> to stop a host, <code>example.com##.banner</code> to hide something, <code>@@||example.com^</code> to let a site through. One per line; a line starting with <code>!</code> is a note. Aviary says which lines it cannot use. If <b>Allow data collection for improvements</b> is on, what you write here is recorded as you wrote it — you chose that in M4.9; it never leaves this computer.', ctl:{type:'text', key:'customFilters', value:''}},
+
+      {t:'Hide the spaces ads leave', group:'On the page', d:'After an ad is stopped, hide the empty box it sat in, so the page closes up around it. Off, the page keeps its gaps — which is sometimes the better way round, on a site whose layout depends on them.', ctl:{type:'toggle', key:'cosmeticHiding', value:true}},
       {t:'Show the number on the shield', d:'The small count on the toolbar shield, showing how many things were stopped on the page you are on. Off, the shield is still there and still stops them.', ctl:{type:'toggle', key:'shieldBadge', value:true}},
       {t:'Warn before ad and tracker sites', d:'In Strict only: when a site is on the lists as one that exists to serve ads or track people, Aviary shows a warning instead of opening it, with a way to open it anyway. Off, Strict blocks what those sites load but opens them.', ctl:{type:'toggle', key:'strictWarning', value:true}},
 
-      /* M6 stage 4: these two were promises here since M3; each is now ONE switch, in Experimental. */
-      {t:'Stronger fingerprint protection', d:'Now an experiment: a tiny, per-site difference in how Aviary draws and plays for the scripts that identify a browser, and a plainer answer about its hardware.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
-      {t:'Block scripts from other sites', d:'Now an experiment: refuse scripts a page loads from anywhere but its own site. It breaks a great many sites, which is why it is its own switch and not part of Strict.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
+      /* M6 stage 4: these were promises here since M3; each is now ONE switch, in Experimental. */
+      {t:'Stronger fingerprint protection', group:'Stronger, as experiments', d:'A tiny, per-site difference in how Aviary draws and plays for the scripts that identify a browser, and a plainer answer about its hardware.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
+      {t:'Block scripts from other sites', d:'Refuse scripts a page loads from anywhere but its own site. It breaks a great many sites, which is why it is its own switch and not part of Strict.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
+      {t:'Stop a site’s own link-click pings', d:'Shields already stops click pings that go to other companies; this stops the site’s own too.', ctl:{type:'goto', target:'experimental', label:'Experimental'}},
+
+      {t:'Links and connections', group:'The rest of your protection', d:'Tracking taken off links, tracking redirects skipped, third-party cookies refused and secure connections first are all in Privacy and security.', ctl:{type:'goto', target:'privacy', label:'Privacy and security'}},
+      {t:'Safety Check', d:'Every protection, Shields included, read back in one list with a button to fix anything that could be safer.', ctl:{type:'goto', target:'safety', label:'Run Safety Check'}},
       {t:'Block this element', d:'Point at anything on a page and hide it for good, the way uBlock Origin’s picker does.', phase:6, ctl:{type:'none'}}
     ]},
 
   { id:'privacy', icon:'privacy', name:'Privacy and security', title:'Privacy and security',
-    lede:'What Aviary keeps, and what it tells sites about you. Every switch on this page does what it says — nothing here is for show. Blocking ads and trackers has its own page: Shields.',
+    lede:'What Aviary keeps, what it tells websites about you, and what it refuses to tell them. Every switch on this page does what it says — nothing here is for show — and nothing on it is sent to Aviary’s maker. Blocking ads and trackers has its own page: Shields.',
     rows:[
+      {t:'Safety Check', group:'At a glance', d:'Every protection on this page and in Shields, checked in one list, with a button to fix anything that could be safer.', ctl:{type:'goto', target:'safety', label:'Run Safety Check'}},
       {t:'Privacy Policy', d:'Read what this build stores, what optional diagnostics record, the Microsoft services involved, and what would need separate consent before future account reporting.', ctl:{type:'goto', target:'privacyPolicy', label:'Read policy'}},
-      {t:'Block link tracking pings', d:'Stops the extra audit request attached to a clicked link, including pings to the same site. The link still opens. Applies while Shields is up; ordinary page requests and background save requests are left to the filter lists.', ctl:{type:'toggle', key:'blockLinkPings', value:true}},
-      /* Phase 5 M2 — privacy that actually works. The three rows marked restart:true are
+
+      /* Phase 5 M2 — privacy that actually works. The rows marked restart:true are
          switches in the browser engine itself, read once when Aviary starts; the page shows a
          note when the saved value differs from what the running engine started with. */
-      {t:'Block third-party cookies', d:'Refuses cookies from sites other than the one you are on — the way ads follow you from one site to the next. Sign-in buttons from other sites may ask you to sign in again.', restart:true, ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
+      {t:'Block third-party cookies', group:'Tracking', d:'Refuses cookies from sites other than the one you are on — the way ads follow you from one site to the next. Sign-in buttons from other sites may ask you to sign in again.', restart:true, ctl:{type:'toggle', key:'thirdPartyCookies', value:true}},
       {t:'Ask sites not to sell or share my data', d:'Sends Global Privacy Control with every request and tells every page’s scripts too. It replaced Do Not Track, and in some places the law requires sites to honour it. One exception: a page some sites ask the browser to load early, through a note sent with the page, goes without it. Aviary stops early loads a page asks for in its own code, which covers most of them.', restart:true, ctl:{type:'toggle', key:'gpc', value:true}},
       {t:'Remove tracking from links', d:'Takes click identifiers such as fbclid and gclid, and utm_ campaign tags, off any link that takes you to a different site — before that site ever sees them. “Copy Link” removes them too.', ctl:{type:'toggle', key:'stripTracking', value:true}},
-      {t:'Always use a secure connection', d:'Asks every site for HTTPS first. If a site has no secure version, Aviary says so and you can choose to continue — a choice it then remembers for that site. Your own computer and local network are left alone.', ctl:{type:'toggle', key:'httpsOnly', value:true}},
+      /* Beta Prep 2 — BounceTracking.cs. */
+      {t:'Skip tracking redirects', d:'Links on Facebook, Instagram, Google, YouTube, Reddit and others do not go straight to the page. They go through the company’s own redirect page first, which notes the click — and often who clicked — and only then sends you on. Where the real address is written in the link, Aviary goes straight there and the redirect page is never asked for. Services that scan a link for danger before letting you through are left alone.', ctl:{type:'toggle', key:'skipBounces', value:true}},
+      {t:'Block link tracking pings', d:'Stops the extra audit request attached to a clicked link, including pings to the same site. The link still opens. Applies while Shields is up; ordinary page requests and background save requests are left to the filter lists.', ctl:{type:'toggle', key:'blockLinkPings', value:true}},
       {t:'Send less about where you came from', d:'When a page links to or loads something from another site, that site learns only which site you came from — never the page you were reading.', ctl:{type:'toggle', key:'trimReferrer', value:true}},
+
+      {t:'Always use a secure connection', group:'Connections', d:'Asks every site for HTTPS first. If a site has no secure version, Aviary says so and you can choose to continue — a choice it then remembers for that site, and that Safety Check can forget. Your own computer and local network are left alone.', ctl:{type:'toggle', key:'httpsOnly', value:true}},
       {t:'Hide my local network address', d:'Stops websites reading your computer’s address on your home or office network through video-calling features. Video calls still work.', restart:true, ctl:{type:'toggle', key:'webrtcProtect', value:true}},
       {t:'Identify as Safari', d:'Sends Safari’s user agent so sites serve their Safari code paths, and hides the extra details a Chromium browser would hand to page scripts. The engine underneath is still Chromium, so a determined site can tell. Applies to pages you load from now on. YouTube is the exception: its player stops with “Something went wrong” when it is told Safari over this engine, so it is always shown Aviary’s own identity.', ctl:{type:'toggle', key:'safariUa', value:true}},
-      {t:'Privacy Report shows', d:'What the Start Page’s Privacy Report counts: the last seven days, or everything since Aviary started counting. Bandwidth and time saved are estimates — each blocked request is counted at a typical size for its kind and 50 ms of loading.', ctl:{type:'select', key:'privacyRange', opts:['Last 7 days','All time'], value:'Last 7 days'}},
-      {t:'Private window', d:'A window that forgets: pages, searches, cookies and site data from it are gone when you close it, and nothing about it is recorded. Ctrl+Shift+N opens one.', ctl:{type:'button', cmd:'privateWindow', label:'Open'}},
-      {t:'Website data', d:'Cookies and storage each site you have visited has kept in this profile, with a way to remove any one site\u2019s.', more:'sitedata', ctl:{type:'button', cmd:'siteData', label:'Show'}},
+      {t:'Camera, microphone, location and notifications', d:'What websites may ask for is in Content, where each can be set to ask or be blocked outright.', ctl:{type:'goto', target:'content', label:'Content'}},
+
+      {t:'Private window', group:'What this computer keeps', d:'A window that forgets: pages, searches, cookies and site data from it are gone when you close it, and nothing about it is recorded. Ctrl+Shift+N opens one.', ctl:{type:'button', cmd:'privateWindow', label:'Open'}},
+      {t:'Website data', d:'Cookies and storage each site you have visited has kept in this profile, with a way to remove any one site’s.', more:'sitedata', ctl:{type:'button', cmd:'siteData', label:'Show'}},
       {t:'Forgetful sites', d:'Sites Aviary forgets on its own — their cookies and everything they store — when you close their last tab, or a set time after. Stay signed in where you want to be; be a stranger everywhere else. Choose it for a site from the <b>shield</b> in the toolbar.<span class="fg" id="forgetlist"></span>', ctl:{type:'none'}},
-      {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear\u2026'}},
+      {t:'Clear browsing data', d:'History, cookies and cached files kept in this profile.', phase:4, ctl:{type:'button', cmd:'clearData', label:'Clear…'}},
       {t:'Cached site icons', d:'__AV_ICONCACHE__', ctl:{type:'button', cmd:'clearFavicons', label:'Clear'}},
-      /* Diagnostics \u2014 PHASE5-PLAN.md M1. Deliberately at the BOTTOM of Privacy and deliberately
+      {t:'Privacy Report shows', d:'What the Start Page’s Privacy Report counts: the last seven days, or everything since Aviary started counting. Bandwidth and time saved are estimates — each blocked request is counted at a typical size for its kind and 50 ms of loading.', ctl:{type:'select', key:'privacyRange', opts:['Last 7 days','All time'], value:'Last 7 days'}},
+
+      /* Diagnostics — PHASE5-PLAN.md M1. Deliberately at the BOTTOM of Privacy and deliberately
          blunt: it records every address, title and search, and the row has to say so in those
          words. Live, not phase-gated: it works now, and every later milestone is measured by it. */
-      {t:'Allow data collection for improvements', d:'Records everything Aviary does \u2014 every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash \u2014 into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
+      {t:'Allow data collection for improvements', group:'Improvement data, kept on this computer only', d:'Records everything Aviary does — every web address you visit, every page title and every search, every request and blocked tracker, every button you press, every error and crash — into a folder on this computer, so problems can be found and fixed. <b>It never leaves this computer.</b> Off until you switch it on.', ctl:{type:'toggle', key:'improvementCollection', value:false}},
       {t:'What Aviary collects', d:'All sixteen categories below. Form submissions, cookie values and clipboard contents are not separate diagnostic sources. The page error filter checks current form text locally, including password inputs, to mask errors; field values are not separately recorded. Secret masking is best effort: addresses, titles and errors can still contain sensitive details. Read the Privacy Policy before sharing any records.', more:'diag', ctl:{type:'none'}},
       {t:'Also measure frame timing', d:'How smoothly Aviary draws, once a minute: how many frames, the usual gap between them, and how many were slow. <b>Off even while collection is on, and it should stay off unless you are chasing a stutter.</b> Windows only offers per-frame times to a program that asks the graphics card to redraw <i>continuously</i> — so measuring smoothness this way is the one measurement in Aviary that costs the very thing it is measuring. Everything else here is free. The figures are marked, so a session measured this way is never compared against a normal one.', ctl:{type:'toggle', key:'frameTiming', value:false}},
-      {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete\u2026', danger:true}]}}
+      {t:'Collected data', d:'<span id="diagstatus"></span><span class="path" id="diagpath"></span>', ctl:{type:'buttons', items:[{cmd:'diagOpen', label:'Open folder'}, {cmd:'diagDelete', label:'Delete…', danger:true}]}}
     ]},
 
   { id:'privacyPolicy', icon:'privacy', name:'Privacy Policy', title:'Privacy Policy', policy:true,
@@ -1388,7 +1544,7 @@ var SECTIONS = [
     ]},
 
   { id:'access', icon:'access', name:'Accessibility', title:'Accessibility',
-    lede:'Aviary follows the Windows contrast themes; both Safari looks have a high-contrast palette built in. Windows’ own scrollbars are always visible in Aviary — the thin overlay kind is not used, so there is nothing here to switch.',
+    lede:'Aviary follows the Windows contrast themes; both looks have a high-contrast palette built in. Windows’ own scrollbars are always visible in Aviary — the thin overlay kind is not used, so there is nothing here to switch.',
     rows:[
       /* Alpha Build 5 M4.5 — all four of these are live. Text size goes through the same CSS
          zoom the website zoom uses (BrowserTab.ApplyZoom), so Reader and the error pages get it
@@ -1542,8 +1698,23 @@ var SECTIONS = [
       {t:'How often to measure', d:'Slower costs Aviary less and steadies the lines; faster catches a spike you would otherwise miss. The figures at the bottom of this page say what the measuring itself costs.', ctl:{type:'select', key:'perfInterval', opts:['Every second','Every 2 seconds','Every 5 seconds'], value:'Every second'}}
     ] },
 
+  /* Beta Prep 2 — Legal (LegalTexts.cs). Grant read and approved every word before it shipped; the
+     two documents open as panes of their own (parent:'legal' keeps them out of the side menu). */
+  { id:'legal', icon:'legal', name:'Legal', title:'Legal',
+    lede:'The agreement between you and Aviary’s maker, in plain words. All of it is part of Aviary itself and can be read offline.',
+    rows:[
+      {t:'Terms of Use', d:'The rules for using Aviary: it is free, it comes as it is with no guarantee, and you are responsible for what you browse and download. Revision <span class="inl" id="lg-terms-rev"></span>.', ctl:{type:'goto', target:'terms', label:'Read'}},
+      {t:'Privacy Policy', d:'What Aviary keeps on this computer, what it never sends, and which other services are involved. Revision <span class="inl" id="lg-policy-rev"></span>.', ctl:{type:'goto', target:'privacyPolicy', label:'Read'}},
+      {t:'Copyright notice', d:'Who owns Aviary, what you may do with it, and what belongs to other people. Revision <span class="inl" id="lg-copy-rev"></span>.', ctl:{type:'goto', target:'copyright', label:'Read'}},
+      {t:'Your agreement', d:'<span id="lg-agreed"></span>', ctl:{type:'none'}}
+    ]},
+  { id:'terms', icon:'legal', name:'Terms of Use', title:'Terms of Use', doc:'terms', parent:'legal',
+    lede:'The rules for using Aviary. Available offline.', rows:[] },
+  { id:'copyright', icon:'legal', name:'Copyright notice', title:'Copyright notice', doc:'copyright', parent:'legal',
+    lede:'Who owns Aviary and what you may do with it. Available offline.', rows:[] },
+
   { id:'about', icon:'about', name:'About Aviary', title:'About Aviary', about:true,
-    lede:'A Safari-inspired browser for Windows 11.', rows:[] }
+    lede:'A browser for Windows 11 that puts your privacy and safety first.', rows:[] }
 ];
 
 function control(row){
@@ -1648,24 +1819,40 @@ function rowHtml(r){
          '</div>' + control(r) + '</div>';
 }
 
+/* Beta Prep 2: a row's group:'…' starts a named group and the rows after it stay in it until the
+   next one that names a group. A pane whose rows name none is one plain card, as before. */
+function groupedRows(rows){
+  var groups = [], last = null;
+  rows.forEach(function(r){
+    var name = r.group || (last ? last.name : '');
+    if (!last || last.name !== name) { last = {name:name, rows:[]}; groups.push(last); }
+    last.rows.push(r);
+  });
+  return groups.map(function(g){
+    return (g.name ? '<h2 class="upd-h">' + g.name + '</h2>' : '') +
+           '<div class="group">' + g.rows.map(rowHtml).join('') + '</div>';
+  }).join('');
+}
+
 /* ── The Quik pane (M7 "Super Quik") ────────────────────────────────────── */
 var BOLT = '<svg class="hero__mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">' +
   '<path d="M13.8 2.6 5.1 13.4h6.3l-1.2 8L18.9 10.6h-6.3l1.2-8Z" stroke="var(--accent)" stroke-width="1.1" stroke-linejoin="round"/></svg>';
 /* What Quik does — ONLY what is built and measured, stage by stage (HANDOFF §28). Nothing promised. */
 var QUIK_DOES = [
-  {t:'Measured on 20 October', d:'On the development PC in Classic, startup took a median <b>735 ms</b> with Quik and <b>973 ms</b> without it — <b>24.4% faster</b>, across ten launches each on the same warmed profile. Twenty prepared new-tab opens took a median <b>8.3 ms</b>. Your results will vary; websites still need time to load.'},
+  {t:'Measured where it was built, on 20 October', d:'On the development PC in Classic, startup took a median <b>735 ms</b> with Quik and <b>973 ms</b> without it — <b>24.4% faster</b>, across ten launches each on the same warmed profile. Twenty prepared new-tab opens took a median <b>8.3 ms</b>. Your own computer’s figures are at the top of this page; websites still need time to load.'},
   {t:'The engine gets a head start', d:'Quik starts the browser engine while the first window is being built and sends the tab’s setup requests together.'},
   {t:'A new tab kept ready', d:'The next Start Page is prepared while you read. Opening a new tab can show it immediately, with one extra page kept in memory.'},
+  {t:'Ready for pages Aviary opens, too', d:'New in Beta Prep 2: a favourite’s “Open in New Tab”, a search for words you selected and a Start Page tile opened in a new tab take the ready tab as well, and are sent straight to their address.'},
   {t:'Less work before the Start Page', d:'Website appearance scripts are registered after the Start Page loads. Network blocking and privacy protections remain active.'},
-  {t:'Glass when you choose it', d:'In Classic, Quik waits to build the Liquid Glass decorations until you switch to that look.'},
-  {t:'Keep recent tabs awake', d:'Tabs you used in the last half hour can stay awake, so returning to them does not need a reload.'},
+  {t:'Glass when you choose it', d:'In Classic, Quik waits to build the Prism 2 decorations until you switch to that look.'},
+  {t:'Keep recent tabs awake', d:'Tabs you used recently — the last half hour, or as long as you choose below — can stay awake, so returning to them does not need a reload.'},
   {t:'A fourth animation speed', d:'<b>Quik</b> — about half the length of Quick, for the whole browser and its own pages. Choose it below.'}
 ];
 /* Beta: what does not work yet, said plainly - each one measured (HANDOFF §28). */
 var QUIK_ISSUES = [
-  {t:'Changing looks with many tabs', d:'Switching between Classic and Liquid Glass still rebuilds open Start Pages and tab decorations. With many tabs, it can briefly pause the window; Quik does not remove that cost yet.'},
+  {t:'Changing looks with many tabs', d:'Switching between Classic and Prism 2 still rebuilds open Start Pages and tab decorations. With many tabs, it can briefly pause the window; Quik does not remove that cost yet.'},
   {t:'When the ready tabs run out', d:'Quik normally keeps <b>one</b> tab ready, or two with Quik Labs. Opening more before replacements finish uses the ordinary path. A fresh window also needs time to prepare its first ready tab.'},
-  {t:'Only an empty new tab is ready', d:'A link opened in a new tab, and a new tab set to open with the page you are on, are made the ordinary way.'}
+  {t:'Links a website opens are not ready tabs', d:'A link you Ctrl+click or middle-click on a page, and a page that opens a tab by itself, are tabs the browser engine makes for that page. So is a new tab set to open with the page you are on. They are made the ordinary way.'}
 ];
 function renderQuik(s){
   var main = s.rows.filter(function(r){ return r.hero; });
@@ -1677,6 +1864,9 @@ function renderQuik(s){
     '<div class="hero__name">A quicker Aviary — and it gets quicker, update by update.</div>' +
     '<div style="height:12px"></div></div>' +
     '<div class="group">' + main.map(rowHtml).join('') + '</div>';
+  /* Beta Prep 2 (QuikStats.cs): what Quik does on THIS computer - filled when the pane is shown. */
+  h += '<h2 class="upd-h">On this computer</h2><div class="group" id="qstats">' +
+       rowHtml({t:'Measuring…', d:'The figures arrive when this page is opened.'}) + '</div>';
   h += '<h2 class="upd-h">What Quik does</h2><div class="group">' + QUIK_DOES.map(rowHtml).join('') + '</div>';
   h += '<h2 class="upd-h">Quik’s settings</h2>' +
     (QUIK.on ? '' : '<p class="lede">These open up once Aviary is running Quik: switch it on above, then restart.</p>') +
@@ -1690,6 +1880,50 @@ function renderQuik(s){
     '</div>';
   return h;
 }
+
+/* Beta Prep 2: Quik's figures for this computer, from the host (QuikStats.cs). Timings only, and
+   every word is set as text. */
+function quikStatsAsk(){ post({type:'command', name:'quikStats'}); }
+window.__aviaryQuikStats = function(q){
+  var box = document.getElementById('qstats');
+  if (!box || !q) { return; }
+  var time = function(ms){ return ms >= 1000 ? (ms / 1000).toFixed(2) + ' s' : (ms < 10 ? ms.toFixed(1) : Math.round(ms)) + ' ms'; };
+  var rows = [];
+
+  rows.push(['This launch', q.launchMs
+    ? time(q.launchMs) + ' from Aviary starting to its first page on screen, ' + (q.on ? 'with Quik.' : 'without Quik.')
+    : 'Not measured yet.']);
+
+  if (q.lastOnMs && q.lastOffMs) {
+    var gain = Math.round((1 - q.lastOnMs / q.lastOffMs) * 100);
+    rows.push(['With Quik and without', 'Last launch with Quik: ' + time(q.lastOnMs) + ' (' + q.lastOnAt + '). Last launch without it: ' +
+      time(q.lastOffMs) + ' (' + q.lastOffAt + '). ' +
+      (gain > 0 ? 'Quik was ' + gain + '% quicker.' : gain < 0 ? 'Quik was ' + (-gain) + '% slower that time.' : 'No difference.') +
+      ' One launch of each is a rough guide: what else the computer was doing counts too.']);
+  } else {
+    rows.push(['With Quik and without', (q.lastOnMs ? 'Last launch with Quik: ' + time(q.lastOnMs) + '. ' : q.lastOffMs ? 'Last launch without Quik: ' + time(q.lastOffMs) + '. ' : '') +
+      'Aviary keeps the last launch time of each kind on this computer. Once it has started both ways, the two are set side by side here.']);
+  }
+
+  rows.push(['New tabs since Aviary opened', !q.tabs ? 'None opened yet.'
+    : q.tabs + (q.tabs === 1 ? ' opened. ' : ' opened. ') +
+      (q.readyTabs ? q.readyTabs + ' from a ready tab, half of them in under ' + time(q.readyMedianMs) + '. ' : '') +
+      (q.madeTabs ? q.madeTabs + ' made on the spot, half of them in under ' + time(q.madeMedianMs) + '.' : '')]);
+
+  if (q.on) {
+    rows.push(['Ready right now', q.readyWaiting === 1 ? '1 tab is made and waiting in this window.'
+      : q.readyWaiting + ' tabs are made and waiting in this window.']);
+  }
+
+  box.textContent = '';
+  rows.forEach(function(r){
+    var row = document.createElement('div'); row.className = 'row';
+    var t = document.createElement('div'); t.className = 'row__t';
+    var b = document.createElement('b'); b.textContent = r[0]; t.appendChild(b);
+    var d = document.createElement('span'); d.textContent = r[1]; t.appendChild(d);
+    row.appendChild(t); box.appendChild(row);
+  });
+};
 
 /* M6: Experimental - the promise, one button that turns everything off, then the rows in their
    groups. The groups come from the rows themselves, in the order they first appear. */
@@ -1851,16 +2085,21 @@ var nav = document.getElementById('nav');
 var main = document.getElementById('main');
 
 SECTIONS.forEach(function(s, i){
-  if (s.id === 'autofill' || s.id === 'updates') nav.appendChild(document.createElement('hr'));
-  var b = document.createElement('button');
-  b.innerHTML = ICON[s.icon] + '<span>' + s.name + '</span>';
-  b.setAttribute('data-target', s.id);
-  if (i === 0) b.setAttribute('aria-current','true');
-  nav.appendChild(b);
+  /* Beta Prep 2: a pane with a parent (Legal's two documents) is reached from its parent's page and
+     has no button of its own in the side menu; showPane lights its parent's instead. */
+  if (!s.parent) {
+    if (s.id === 'autofill' || s.id === 'updates') nav.appendChild(document.createElement('hr'));
+    var b = document.createElement('button');
+    b.innerHTML = ICON[s.icon] + '<span>' + s.name + '</span>';
+    b.setAttribute('data-target', s.id);
+    if (i === 0) b.setAttribute('aria-current','true');
+    nav.appendChild(b);
+  }
 
   var pane = document.createElement('section');
   pane.className = 'pane' + (i === 0 ? ' on' : '');
   pane.id = 'pane-' + s.id;
+  if (s.parent) { pane.setAttribute('data-parent', s.parent); }
 
   var body = '<h1>' + s.title + '</h1><p class="lede">' + s.lede + '</p>';
   if (s.about){
@@ -1873,14 +2112,24 @@ SECTIONS.forEach(function(s, i){
       '<div><dt>Interface</dt><dd>WinUI 3 &middot; Windows App SDK &middot; .NET 9</dd></div>' +
       '<div><dt>Identifies as</dt><dd><code id="ua"></code></dd></div>' +
       '</div></div></div>' +
-      '<p class="lede">Aviary is an independent project. It is not affiliated with Apple, and it is not ' +
+      '<p class="lede">Aviary is an independent project made by Grant at Wally Studios. It is not affiliated with Apple, and it is not ' +
       'Safari &mdash; Apple owns that mark. Windows, WinUI and WebView2 are Microsoft&rsquo;s.</p>' +
-      '<button class="btn" data-goto="privacyPolicy">Privacy Policy</button>';
+      '<div class="btns"><button class="btn" data-goto="terms">Terms of Use</button>' +
+      '<button class="btn" data-goto="privacyPolicy">Privacy Policy</button>' +
+      '<button class="btn" data-goto="copyright">Copyright notice</button></div>';
   } else if (s.policy){
     body += '<article class="group" id="privacy-policy-copy" style="padding:24px;max-width:780px;user-select:text"></article>';
+  } else if (s.doc){
+    /* Beta Prep 2: the Terms of Use and the Copyright notice, drawn as plain text below. */
+    body += '<p><button class="btn" data-goto="legal">&larr; Legal</button></p>' +
+            '<article class="group" id="legal-' + s.doc + '-copy" style="padding:24px;max-width:780px;user-select:text"></article>';
   } else if (s.safety){
-    body += '<div class="sc-head"><b id="sc-sum">Checking…</b><button class="btn" id="sc-again">Check again</button></div>' +
-            '<div class="group" id="sc-list"></div>';
+    /* Beta Prep 2: a score ring, the findings in four groups, and one button that fixes everything fixable. */
+    body += '<div class="group sc-card"><div class="sc-ring" id="sc-ring"><b id="sc-score">–</b></div>' +
+            '<div class="sc-card__t"><b id="sc-sum">Checking…</b><span id="sc-sub"></span></div>' +
+            '<div class="btns"><button class="btn" id="sc-fixall" hidden>Fix everything</button>' +
+            '<button class="btn" id="sc-again">Check again</button></div></div>' +
+            '<div id="sc-list"></div>';
   } else if (s.storage){
     body += renderStorage();
   } else if (s.perf){
@@ -1894,29 +2143,44 @@ SECTIONS.forEach(function(s, i){
   } else if (s.experimental){
     body += renderExperimental(s);
   } else {
-    body += '<div class="group">' + s.rows.map(rowHtml).join('') + '</div>';
+    body += groupedRows(s.rows);
   }
   pane.innerHTML = body;
   main.appendChild(pane);
 });
 
-/* Plain text from the same source as PRIVACY.md. No remote policy, HTML injection or tracking. */
-var policyCopy = document.getElementById('privacy-policy-copy');
-var policy = window.__aviaryPrivacyPolicy;
-if (policyCopy && policy) {
+/* Plain text from the same source as PRIVACY.md. No remote policy, HTML injection or tracking.
+   Beta Prep 2: the Terms of Use and the Copyright notice are drawn the same way, from LegalTexts.cs. */
+function drawLegalDoc(box, doc){
+  if (!box || !doc) { return; }
   var revision = document.createElement('p');
-  revision.textContent = 'Revision: ' + policy.revision;
-  policyCopy.appendChild(revision);
-  var policySummary = document.createElement('p');
-  policySummary.textContent = policy.summary;
-  policyCopy.appendChild(policySummary);
-  (policy.sections || []).forEach(function(section){
-    var h = document.createElement('h2'); h.textContent = section.title; policyCopy.appendChild(h);
+  revision.textContent = 'Revision: ' + doc.revision;
+  box.appendChild(revision);
+  var summary = document.createElement('p');
+  summary.textContent = doc.summary;
+  box.appendChild(summary);
+  (doc.sections || []).forEach(function(section){
+    var h = document.createElement('h2'); h.textContent = section.title; box.appendChild(h);
     (section.paragraphs || []).forEach(function(paragraph){
-      var p = document.createElement('p'); p.textContent = paragraph; policyCopy.appendChild(p);
+      var p = document.createElement('p'); p.textContent = paragraph; box.appendChild(p);
     });
   });
 }
+var policy = window.__aviaryPrivacyPolicy;
+drawLegalDoc(document.getElementById('privacy-policy-copy'), policy);
+var LEGAL = (typeof window.__aviaryLegal === 'object' && window.__aviaryLegal) || {};
+drawLegalDoc(document.getElementById('legal-terms-copy'), LEGAL.terms);
+drawLegalDoc(document.getElementById('legal-copyright-copy'), LEGAL.copyright);
+(function(){
+  function put(id, text){ var el = document.getElementById(id); if (el) { el.textContent = text || ''; } }
+  put('lg-terms-rev', LEGAL.terms && LEGAL.terms.revision);
+  put('lg-copy-rev', LEGAL.copyright && LEGAL.copyright.revision);
+  put('lg-policy-rev', policy && policy.revision);
+  put('lg-agreed', LEGAL.agreedRevision
+    ? 'You agreed to the Terms of Use (revision ' + LEGAL.agreedRevision + ')' + (LEGAL.agreedOn ? ' on ' + LEGAL.agreedOn : '') +
+      '. Aviary keeps that in its settings on this computer and sends it nowhere. If the Terms change, Aviary asks again.'
+    : 'This test copy was started without the “I agree” screen, so no agreement is recorded.');
+})();
 
 /* Website data, from the host: [{site, cookies, bytes}]. */
 function sizeText(b){
@@ -2446,40 +2710,80 @@ function safetyRun(){
 window.__aviarySafety = function(list){
   var box = document.getElementById('sc-list'), sum = document.getElementById('sc-sum');
   if (!box || !sum) { return; }
-  var warn = list.filter(function(f){ return f.level === 'warn'; }).length;
-  sum.textContent = warn === 0 ? 'Everything here is as safe as it can be.'
+  list = Array.isArray(list) ? list : [];
+  var of = function(level){ return list.filter(function(f){ return f.level === level; }); };
+  var warn = of('warn').length, ok = of('ok').length, total = warn + ok;
+  sum.textContent = warn === 0 ? 'Everything Aviary checks is as safe as it can be.'
                   : warn === 1 ? '1 thing could be safer.' : warn + ' things could be safer.';
+
+  /* The score counts only what is plainly safer one way: a choice (info) or an offer (tip) is not a fault. */
+  var sub = document.getElementById('sc-sub'), ring = document.getElementById('sc-ring'), score = document.getElementById('sc-score');
+  if (sub) {
+    var notes = of('info').length, tips = of('tip').length;
+    sub.textContent = ok + ' of ' + total + ' protections are on' +
+      (notes ? ' · ' + notes + (notes === 1 ? ' choice' : ' choices') + ' worth knowing' : '') +
+      (tips ? ' · ' + tips + ' stronger ' + (tips === 1 ? 'setting' : 'settings') + ' on offer' : '') +
+      '. Checked on this computer; nothing is sent anywhere.';
+  }
+  if (ring) {
+    ring.style.setProperty('--p', total ? Math.round(ok / total * 100) : 100);
+    ring.setAttribute('data-level', warn ? 'warn' : 'ok');
+  }
+  if (score) { score.textContent = ok + '/' + total; }
+  var all = document.getElementById('sc-fixall');
+  if (all) {
+    var fixable = of('warn').filter(function(f){ return !!f.fixKey; }).length;
+    all.hidden = fixable < 2;
+    all.disabled = false;
+  }
+
   box.textContent = '';
-  /* The ones to act on first, then the choices worth knowing, then what is already fine. */
-  var rank = {warn:0, info:1, ok:2};
-  list.slice().sort(function(a, b){ return rank[a.level] - rank[b.level]; }).forEach(function(f){
-    var row = document.createElement('div'); row.className = 'row sc-row';
-    var dot = document.createElement('span'); dot.className = 'sc-dot sc-' + f.level;
-    dot.textContent = f.level === 'ok' ? '✓' : f.level === 'warn' ? '!' : 'i';
-    var t = document.createElement('div'); t.className = 'row__t';
-    var b = document.createElement('b'); b.textContent = f.title; t.appendChild(b);
-    if (f.detail) { var d = document.createElement('span'); d.textContent = f.detail; t.appendChild(d); }
-    row.appendChild(dot); row.appendChild(t);
-    if (f.fixLabel) {
-      var btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = f.fixLabel;
-      if (f.fixKey) { btn.setAttribute('data-sc-fix', f.fixKey); }
-      if (f.goto) { btn.setAttribute('data-sc-goto', f.goto); }
-      row.appendChild(btn);
-    }
-    box.appendChild(row);
+  /* The ones to act on first, then the choices worth knowing, then what is on offer, then what is already fine. */
+  [['warn', 'Needs attention', '!'], ['info', 'Worth knowing', 'i'], ['tip', 'Stronger, if you want it', '+'], ['ok', 'Protected', '✓']]
+  .forEach(function(kind){
+    var found = of(kind[0]);
+    if (!found.length) { return; }
+    var h = document.createElement('h2'); h.className = 'upd-h'; h.textContent = kind[1] + ' (' + found.length + ')';
+    box.appendChild(h);
+    var group = document.createElement('div'); group.className = 'group';
+    found.forEach(function(f){
+      var row = document.createElement('div'); row.className = 'row sc-row';
+      row.setAttribute('data-sc-id', f.id); row.setAttribute('data-sc-level', f.level);
+      var dot = document.createElement('span'); dot.className = 'sc-dot sc-' + f.level;
+      dot.textContent = kind[2];
+      var t = document.createElement('div'); t.className = 'row__t';
+      var b = document.createElement('b'); b.textContent = f.title;
+      if (f.area) { var area = document.createElement('i'); area.className = 'sc-area'; area.textContent = f.area; b.appendChild(area); }
+      t.appendChild(b);
+      if (f.detail) { var d = document.createElement('span'); d.textContent = f.detail; t.appendChild(d); }
+      row.appendChild(dot); row.appendChild(t);
+      if (f.fixLabel) {
+        var btn = document.createElement('button'); btn.className = 'btn'; btn.textContent = f.fixLabel;
+        if (f.fixKey) { btn.setAttribute('data-sc-fix', f.fixKey); }
+        if (f.goto) { btn.setAttribute('data-sc-goto', f.goto); }
+        row.appendChild(btn);
+      }
+      group.appendChild(row);
+    });
+    box.appendChild(group);
   });
 };
 main.addEventListener('click', function(e){
   if (e.target.closest('#sc-again')) { safetyRun(); return; }
+  var fixAll = e.target.closest('#sc-fixall');
+  if (fixAll) { fixAll.disabled = true; post({type:'command', name:'safetyFixAll'}); return; }
   var fix = e.target.closest('[data-sc-fix]');
   if (fix) { fix.disabled = true; post({type:'command', name:'safetyFix', arg: fix.getAttribute('data-sc-fix')}); return; }
   var go = e.target.closest('[data-sc-goto]');
   if (go) {
     var target = go.getAttribute('data-sc-goto');
     if (target.indexOf('cmd:') === 0) {
-      go.disabled = true; go.textContent = 'Updating…';
-      post({type:'command', name: target.substring(4)});
-      setTimeout(safetyRun, 6000);
+      /* A command the host runs. Updating the lists takes a few seconds, so the list is read
+         again after it; forgetting the insecure-site choices answers by itself; restart needs no answer. */
+      var name = target.substring(4);
+      go.disabled = true;
+      if (name === 'listsUpdate') { go.textContent = 'Updating…'; setTimeout(safetyRun, 6000); }
+      post({type:'command', name: name});
     } else { showPane(target); }
   }
 });
@@ -2509,6 +2813,14 @@ main.addEventListener('click', function(e){
   if (stop) { stop.disabled = true; post({type:'command', name:'forgetStop', arg: stop.getAttribute('data-forget-stop')}); }
 });
 
+/* Beta Prep 2: light the picture of the look the menu shows. */
+function lookTiles(){
+  var sel = document.querySelector('.sel[data-key="look"] .sel__btn span');
+  var now = sel ? sel.textContent.trim() : saved('look', 'Classic');
+  [].forEach.call(document.querySelectorAll('.looktile'), function(t){
+    t.setAttribute('aria-pressed', t.getAttribute('data-look') === now ? 'true' : 'false');
+  });
+}
 function iconTiles(){
   var sel = document.querySelector('.sel[data-key="appIcon"] .sel__btn span');
   var now = sel ? sel.textContent.trim() : saved('appIcon', 'Blue tile');
@@ -2517,6 +2829,7 @@ function iconTiles(){
   });
 }
 iconTiles();
+lookTiles();
 
 var diagList = document.getElementById('diaglist');
 if (diagList && DIAG.categories){
@@ -2570,9 +2883,11 @@ function staggerRows(pane){
 }
 
 function showPane(id){
-  var b = nav.querySelector('button[data-target="' + id + '"]');
   var pane = document.getElementById('pane-' + id);
-  if (!b || !pane) { return; }
+  if (!pane) { return; }
+  /* A pane with a parent (Legal's documents) lights its parent's button in the side menu. */
+  var b = nav.querySelector('button[data-target="' + (pane.getAttribute('data-parent') || id) + '"]');
+  if (!b) { return; }
   nav.querySelectorAll('button[data-target]').forEach(function(x){ x.removeAttribute('aria-current'); });
   b.setAttribute('aria-current','true');
   placeNavPill(b, false);
@@ -2581,6 +2896,7 @@ function showPane(id){
   pane.classList.add('on');
   main.scrollTop = 0;
   if (id === 'safety') { safetyRun(); }
+  if (id === 'quik') { quikStatsAsk(); }
   storageWatch();
   perfWatch();
 }
@@ -2603,6 +2919,15 @@ function closeAllPopups(except){
 }
 
 main.addEventListener('click', function(e){
+  /* Beta Prep 2: a look picture presses its own row's menu option, so the setting has one sender. */
+  var lookTile = e.target.closest('.looktile');
+  if (lookTile){
+    var wanted = document.querySelector('.sel[data-key="look"] .sel__opt[data-v="' + lookTile.getAttribute('data-look') + '"]');
+    if (wanted && wanted.getAttribute('aria-selected') !== 'true') { wanted.click(); }
+    lookTiles();
+    return;
+  }
+
   /* First: a goto button also wears .btn, and the .btn branch at the bottom posts a command. */
   var go = e.target.closest('button[data-goto]');
   if (go){
@@ -2681,6 +3006,7 @@ main.addEventListener('click', function(e){
     restartNote(host.getAttribute('data-key'), opt.getAttribute('data-v'));
     if (host.getAttribute('data-key') === 'searchEngine') { suggestRow(); }
     if (host.getAttribute('data-key') === 'appIcon') { iconTiles(); }
+    if (host.getAttribute('data-key') === 'look') { lookTiles(); }
     return;
   }
 
@@ -2734,6 +3060,7 @@ window.__aviaryApply = function(key, value){
   syncSelects(key, value, null);
   restartNote(key, String(value));
   if (key === 'searchEngine') { suggestRow(); }
+  if (key === 'look') { lookTiles(); }
 };
 
 /* ══ STORAGE USAGE (M4.5) ═══════════════════════════════════════════════════
@@ -2982,7 +3309,7 @@ function pfDetails(det){
     liveList(det.querySelector('.st-actions'),buttons,function(b){return b.cmd;},function(){var b=document.createElement('button');b.className='btn';return b;},function(b,it){liveText(b,it.label);b.dataset.perfTab=it.cmd;b.disabled=!!(PF_PENDING[it.cmd]&&PF_PENDING[it.cmd]>Date.now());});
   }else{
     var p=det._data,kids=det._kids;
-    liveText(det.querySelector('.pf-explain'),'One Windows process. This row is counted once in Aviary’s total. Its associated tabs share these resources; their displayed process figures must not be added together.');
+    liveText(det.querySelector('.pf-explain'),(p.about?p.about+' ':'')+'One Windows process. This row is counted once in Aviary’s total. Its associated tabs share these resources; their displayed process figures must not be added together.');
     liveFacts(det.querySelector('.live-facts'),[['Process ID',String(p.pid)],['Private resident memory',pfSizeText(p.memory)],['Private committed memory',pfSizeText(p.commit)],['Total working set (includes shared pages)',pfSizeText(p.workingSet)],['Lifetime peak working set',pfSizeText(p.peak)],['Processor, whole computer',pfPctText(p.cpu)],['Graphics, busiest engine',pfPctText(p.gpu)],['Dedicated GPU memory',pfSizeText(p.gpuMemory)],['Open handles',p.handles==null?'Unavailable':String(p.handles)]]);
     liveList(det.querySelector('.st-parts'),kids,function(t){return t.id;},function(){var r=document.createElement('div');r.appendChild(document.createElement('b'));r.appendChild(document.createElement('i'));return r;},function(r,t){liveText(r.firstChild,t.isPrivate?'Private tab':t.title||'Untitled');liveText(r.lastChild,pfState(t));});
     liveText(det.querySelector('.pf-data-note'),kids.length?'Associated main-frame tabs are listed below. Embedded frames may run elsewhere.':'This process has no associated main-frame tab.');
@@ -3029,7 +3356,7 @@ function pfRender(d,append){
   var bl=d.blocker||{},windowLabel=seconds.toFixed(2)+'-second measurement window';
   liveText(document.getElementById('pf-blocker'),baseline?'Collecting the first measurement window.':bl.checks?'Checked '+bl.checks.toLocaleString()+' requests during the '+windowLabel+' · '+bl.average+' µs average · '+bl.worst+' µs worst.':'No Shields checks during the '+windowLabel+'.');
   var se=d.session||{},tabCount=(d.tabs||[]).filter(function(t){return !t.ready;}).length;
-  liveText(document.getElementById('pf-session'),'Running for '+pfDuration(se.uptimeSeconds||0)+' · '+tabCount+' tabs in '+(se.windows||1)+' windows'+(se.startupMs?' · opened in '+(se.startupMs/1000).toFixed(2)+' s':'')+' · '+(se.rules||0).toLocaleString()+' Shields rules.');
+  liveText(document.getElementById('pf-session'),'Running for '+pfDuration(se.uptimeSeconds||0)+' · '+tabCount+(tabCount===1?' tab in ':' tabs in ')+(se.windows||1)+((se.windows||1)===1?' window':' windows')+(se.startupMs?' · opened in '+(se.startupMs/1000).toFixed(2)+' s':'')+' · '+(se.rules||0).toLocaleString()+' Shields rules.');
   liveText(document.getElementById('pf-mem2'),'Private resident '+pfSizeText(d.memory)+' · private committed '+pfSizeText(d.commit)+' · sum of individual process lifetime peaks '+pfSizeText(d.peak)+'. These peaks did not necessarily happen at the same time.');
   var engines=d.gpuEngines||[];
   liveText(document.getElementById('pf-gpuwork'),d.gpu==null?'Windows GPU counters are unavailable or still warming up.':engines.length?engines.map(function(e){return e.name+' '+pfPctText(e.percent);}).join(' · ')+'. Parallel engines are not added for the headline.':'No GPU engine activity above the display threshold in this sample.');

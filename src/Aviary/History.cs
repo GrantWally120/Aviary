@@ -95,6 +95,21 @@ internal static class History
         }
     }
 
+    /// <summary>Whether that exact address is in history (Beta Prep 2: Bird News draws read stories quieter).</summary>
+    public static bool Visited(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+        {
+            return false;
+        }
+
+        Dictionary<string, HistoryEntry> items = Items;
+        lock (Gate)
+        {
+            return items.ContainsKey(url);
+        }
+    }
+
     /// <summary>
     /// Records a visit. Internal pages, blank tabs and non-web schemes are not history —
     /// a list peppered with "Settings" is noise, and Safari does not record its own pages

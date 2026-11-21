@@ -129,7 +129,9 @@ async function evaluate(s, expression) {
       const parts = arg.split('+');
       const code = parts.pop();
       const mods = (parts.includes('alt') ? 1 : 0) | (parts.includes('ctrl') ? 2 : 0) | (parts.includes('shift') ? 8 : 0);
-      const SPECIAL = { Comma: [',', 188], F11: ['F11', 122], Escape: ['Escape', 27], Tab: ['Tab', 9], F7: ['F7', 118] };
+      // Beta Prep 2: Enter and the arrows, for the Start Page search bar's list.
+      const SPECIAL = { Comma: [',', 188], F11: ['F11', 122], Escape: ['Escape', 27], Tab: ['Tab', 9], F7: ['F7', 118],
+                        Enter: ['Enter', 13], ArrowDown: ['ArrowDown', 40], ArrowUp: ['ArrowUp', 38] };
       const letter = code.replace(/^Key/, '');
       const key = SPECIAL[code] ? SPECIAL[code][0] : (parts.includes('shift') ? letter.toUpperCase() : letter.toLowerCase());
       const vk = SPECIAL[code] ? SPECIAL[code][1] : (letter.length === 1 ? letter.toUpperCase().charCodeAt(0) : 0);

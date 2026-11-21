@@ -24,7 +24,9 @@ param(
     [string]$ExtraArgs = "",
     [string]$Size = "1280x860",
     [string]$Exe = "",
-    [switch]$AsShipped
+    [switch]$AsShipped,
+    # Beta Prep 2: leave the "I agree" Terms screen up instead of answering it for the test (terms-gate-test.ps1).
+    [switch]$ShowTerms
 )
 
 $sp = $PSScriptRoot
@@ -116,11 +118,14 @@ public static class Quiet {
 '@
 
 $env:AVIARY_PROFILE_DIR = $profileDir
+# Beta Prep 2: a test instance cannot press "I agree" on the Terms screen, so it is answered for it -
+# only ever together with a scratch AVIARY_PROFILE_DIR (TermsGate in LegalTexts.cs).
+$env:AVIARY_TEST_TERMS = if ($ShowTerms) { $null } else { "accepted" }
 $keepDrawing = if ($AsShipped) { "" } else { "--disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-background-timer-throttling" }
 $env:AVIARY_TEST_BROWSER_ARGS = ("--remote-debugging-port=$Port $keepDrawing " + $ExtraArgs).Trim()
 $fgBefore = [Quiet]::GetForegroundWindow()
 $procId = [Quiet]::Start($Exe, (Split-Path $Exe))
-$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null
+$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null; $env:AVIARY_TEST_TERMS = $null
 
 $h = [IntPtr]::Zero
 for ($i = 0; $i -lt 40 -and $h -eq [IntPtr]::Zero; $i++) {

@@ -338,6 +338,15 @@ internal static class StorageUsage
                 "sites" => "Site choices",
                 "privacy" => "Privacy Report",
                 "pinned" => "Pinned tabs",
+                // Beta Prep 2: every file Aviary writes here has its own name now - two of them used
+                // to sit under "Other Aviary files", which told nobody what they were.
+                "news" => "Bird News headlines",
+                "downloads" => "Downloads list",
+                "tabgroups" => "Tab groups",
+                "startbackground" => "Your Start Page picture",
+                "experiments-safety" => "Experiments’ safety record",
+                "quik-stats" => "Quik’s launch timings",
+                "quik-intro-pending" or "forget-everything-pending" => "Reminders for the next launch",
                 _ => "Other Aviary files",
             });
         }

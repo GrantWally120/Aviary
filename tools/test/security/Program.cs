@@ -15,6 +15,30 @@ if (args.FirstOrDefault() == "policy")
     return;
 }
 
+// Beta Prep 2: the other two published documents, written from the same text Settings shows.
+if (args.FirstOrDefault() == "terms")
+{
+    Console.Write(LegalTexts.Terms.Markdown());
+    return;
+}
+
+if (args.FirstOrDefault() == "copyright")
+{
+    Console.Write(LegalTexts.Copyright.Markdown());
+    return;
+}
+
+// "write-legal": puts all three at the repository root, so they can never be typed by hand.
+if (args.FirstOrDefault() == "write-legal")
+{
+    string top = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../"));
+    File.WriteAllText(Path.Combine(top, "PRIVACY.md"), PrivacyPolicy.Markdown());
+    File.WriteAllText(Path.Combine(top, "TERMS.md"), LegalTexts.Terms.Markdown());
+    File.WriteAllText(Path.Combine(top, "COPYRIGHT.md"), LegalTexts.Copyright.Markdown());
+    Console.WriteLine("Wrote PRIVACY.md, TERMS.md and COPYRIGHT.md in " + top);
+    return;
+}
+
 int passed = 0, failed = 0;
 void Check(string name, bool ok)
 {
@@ -169,6 +193,7 @@ listener.Stop();
 await ScriptChecks.RunAsync(Check);
 await DownloadChecks.RunAsync(Check);
 await AccountChecks.RunAsync(Check);
+BetaPrep2Checks.Run(Check);
 Check("Policy covers future separate sharing consent", PrivacyPolicy.Markdown().Contains("Local recording consent is not consent to send data."));
 Check("Policy discloses Microsoft services", PrivacyPolicy.Markdown().Contains("SmartScreen"));
 string policyPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../../PRIVACY.md"));

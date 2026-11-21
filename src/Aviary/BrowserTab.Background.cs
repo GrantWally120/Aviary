@@ -159,6 +159,7 @@ internal sealed partial class BrowserTab
             double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(OpenRequested).TotalMilliseconds, 2);
             OpenRequested = 0;
             Diagnostics.Perf("tab-open", new { tab = Id, ms, ready = false });
+            QuikStats.TabOpened(ms, ready: false);
             Quik.Test("tab-open " + ms + " ms (made)");
         }
     }

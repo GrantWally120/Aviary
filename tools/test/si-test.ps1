@@ -42,10 +42,11 @@ if ($CloseFirst) {
 }
 
 $env:AVIARY_PROFILE_DIR = Join-Path $sp ("profiles\" + $Profile)
+$env:AVIARY_TEST_TERMS = "accepted"   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
 $env:AVIARY_TEST_BROWSER_ARGS = "--remote-debugging-port=9222"
 $sw = [Diagnostics.Stopwatch]::StartNew()
 $b = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
-$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null
+$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_TERMS = $null; $env:AVIARY_TEST_BROWSER_ARGS = $null
 
 $ended = $b.WaitForExit(15000)
 "second launch pid $($b.Id): " + $(if ($ended) { "ENDED after $($sw.ElapsedMilliseconds) ms, exit code $($b.ExitCode)" } else { "STILL RUNNING after 15 s" })

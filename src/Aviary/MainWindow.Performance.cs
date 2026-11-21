@@ -241,6 +241,22 @@ public sealed partial class MainWindow
             }
         }
 
+        // Beta Prep 2 (ProcessTree.cs): the engine's list leaves out its own crash reporter, and calls
+        // every helper a "Utility". Windows' process list supplies the first; each helper's command
+        // line, where the engine names the service, the second.
+        HashSet<int> known = new(procs.Select(p => p.Pid)) { Environment.ProcessId };
+        List<int> utilities = procs.Where(p => p.Kind == "Utility").Select(p => p.Pid).ToList();
+        (List<LiveStats.Proc> missing, Dictionary<int, string> exact) = await Task.Run(() => ProcessTree.Inspect(known, utilities));
+        for (int i = 0; i < procs.Count; i++)
+        {
+            if (exact.TryGetValue(procs[i].Pid, out string? kind))
+            {
+                procs[i] = procs[i] with { Kind = kind };
+            }
+        }
+
+        procs.AddRange(missing);
+
         LiveStats.SetProcesses(procs);
         return tabsByPid;
     }
@@ -268,7 +284,32 @@ public sealed partial class MainWindow
             "Renderer" => "Pages",
             "Utility" => "Network, storage and sound",
             "SlimRenderer" => "Pages",
+            // Beta Prep 2 (ProcessTree.cs): each helper by the service it really is.
+            "Utility:Network" => "Network service",
+            "Utility:Storage" => "Storage service",
+            "Utility:Audio" => "Sound service",
+            "Utility:Camera" => "Camera service",
+            "Utility:Decoder" => "Data decoder",
+            "Utility:Other" => "Engine helper",
+            ProcessTree.CrashReporter => "Crash reporter",
+            ProcessTree.EngineHelper => "Engine helper",
             _ => kind,
+        };
+
+        // Beta Prep 2: what each kind of process is for, in a sentence, for the row's details.
+        static string KindAbout(string kind) => kind switch
+        {
+            "Aviary" => "Aviary’s own program: its window, toolbar, tabs, Shields and settings.",
+            "Browser" => "The browser engine’s main process. It starts and looks after all the others.",
+            "Gpu" => "Draws every page and Aviary’s glass with the graphics card.",
+            "Renderer" or "SlimRenderer" => "Runs the pages of one or more tabs: their layout, scripts and pictures.",
+            "Utility:Network" => "Makes every network request for every tab. This is the process that talks to websites.",
+            "Utility:Storage" => "Reads and writes what websites store on this computer: cookies, caches and site data.",
+            "Utility:Audio" => "Plays sound for pages. It exists only while something has played.",
+            "Utility:Camera" => "Reaches the camera for a page you allowed to use it.",
+            "Utility:Decoder" => "Unpacks pictures and data safely, apart from the pages that asked for them.",
+            ProcessTree.CrashReporter => "The engine’s crash reporter. It waits in case a page process fails; Aviary keeps what it writes on this computer. It was missing from this list before Beta Prep 2.",
+            _ => "A helper process the browser engine started for one job.",
         };
 
         // Frame-to-process associations can change without a ProcessInfosChanged event (for
@@ -348,12 +389,15 @@ public sealed partial class MainWindow
             ui = new { now = r.UiNowMs, worst = r.UiWorstMs, available = r.UiAvailable },
             blocker = new { average = r.BlockerAverageUs, worst = r.BlockerWorstUs, checks = r.BlockerChecks },
             processes = r.Processes
-                .OrderBy(p => p.Kind switch { "Aviary" => 0, "Browser" => 1, "Gpu" => 2, "Utility" => 3, _ => 4 })
+                .OrderBy(p => p.Kind == "Aviary" ? 0 : p.Kind == "Browser" ? 1 : p.Kind == "Gpu" ? 2
+                              : p.Kind.StartsWith("Utility", StringComparison.Ordinal) ? 3
+                              : p.Kind is ProcessTree.CrashReporter or ProcessTree.EngineHelper ? 5 : 4)
                 .ThenByDescending(p => p.MemoryMB)
                 .Select(p => new
                 {
                     pid = p.Pid,
                     kind = KindName(p.Kind),
+                    about = KindAbout(p.Kind),
                     memory = p.MemoryAvailable ? p.MemoryMB : (double?)null,
                     cpu = p.CpuReady ? p.CpuPercent : (double?)null,
                     gpu = r.GpuAvailable ? p.GpuPercent : (double?)null,

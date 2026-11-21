@@ -19,8 +19,9 @@ foreach ($d in $Delays) {
     if ($d -gt 0) { Start-Sleep -Milliseconds $d }
 
     $env:AVIARY_PROFILE_DIR = Join-Path $sp "profiles\$Profile"
+    $env:AVIARY_TEST_TERMS = "accepted"   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
     $b = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
-    $env:AVIARY_PROFILE_DIR = $null
+    $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_TERMS = $null
 
     $ended = $b.WaitForExit(6000)
     Start-Sleep -Milliseconds 3000

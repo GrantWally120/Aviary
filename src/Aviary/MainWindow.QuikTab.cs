@@ -150,9 +150,44 @@ public sealed partial class MainWindow
         DiagPerf("tab-open", new { tab = tab.Id, ms, ready = true, tabs = _tabs.Count });
         DiagUi("tab-open", new { tab = tab.Id, reason = "new tab (ready)", index = at, tabs = _tabs.Count });
         Quik.Test("tab-open " + ms + " ms (ready)");
+        QuikStats.TabOpened(ms, ready: true);
         QueueReadyTab();
         return true;
     }
+
+    /// <summary>
+    /// Beta Prep 2: a page Aviary itself opens in a new tab - a favourite's "Open in New Tab", "Search
+    /// for…" on a selection, a tile's menu - takes the ready tab too, and is sent to its address. It is
+    /// exactly what typing that address into a new tab has always done to a ready tab, so nothing about
+    /// the page's protection differs; what is saved is making the tab and starting its engine. Links a
+    /// WEBSITE opens (Ctrl+click, target=_blank) are still the engine's own tabs.
+    /// </summary>
+    private bool TakeReadyTabFor(string url, long requested)
+    {
+        if (!ReadyTabWanted || string.IsNullOrWhiteSpace(url)) { return false; }
+        RefreshReadyTabsIfStale();
+        BrowserTab? tab = _readyTabs.FirstOrDefault(t => t.IsReady && !t.IsLoading && t.Notice is null);
+        if (tab is null) { return false; }
+        _readyTabs.Remove(tab);
+        _readyTabBuilt.Remove(tab);
+        int at = NewTabSlot();
+        _tabs.Insert(at, tab);
+        SelectTab(tab);
+        RebuildTabStrip();
+        tab.Navigate(url);
+        UpdateChrome();
+        FocusPage(tab);
+        double ms = Math.Round(System.Diagnostics.Stopwatch.GetElapsedTime(requested).TotalMilliseconds, 2);
+        DiagPerf("tab-open", new { tab = tab.Id, ms, ready = true, tabs = _tabs.Count, forPage = true });
+        DiagUi("tab-open", new { tab = tab.Id, reason = "open in new tab (ready)", index = at, tabs = _tabs.Count });
+        Quik.Test("tab-open " + ms + " ms (ready, for a page)");
+        QuikStats.TabOpened(ms, ready: true);
+        QueueReadyTab();
+        return true;
+    }
+
+    /// <summary>How many ready tabs this window is holding right now, for Settings → Quik.</summary>
+    private int ReadyTabsWaiting => _readyTabs.Count;
 
     private IEnumerable<BrowserTab> TabsAndReady()
     {

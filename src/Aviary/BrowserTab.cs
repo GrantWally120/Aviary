@@ -1913,6 +1913,7 @@ internal sealed partial class BrowserTab
         if (Interlocked.Exchange(ref _firstPage, 1) == 0)
         {
             Diagnostics.Mark("first-page-loaded");
+            QuikStats.FirstPage();   // Beta Prep 2: this launch's time, for Settings → Quik
         }
 
         // M7 Quik: a Start Page tab's Shields scripts, held back until its page had appeared (BrowserTab.Shields.cs).

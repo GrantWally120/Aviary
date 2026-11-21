@@ -1,5 +1,46 @@
 # Aviary — project handoff
 
+> **BETA PREP 2 — made Saturday 21 November 2026 (Claude, for Grant; he asked for all of it in one message). READ FIRST.**
+> **STATE: THE LEGAL WORDING IS APPROVED, AND THIS COMMIT IS BETA PREP 2.** Grant had asked: "I need approval, and I need you to ask me
+> what stuff it is that will be in there, so nothing goes wrong and no unwantedness that I did not read or allow goes through". He was
+> given the Terms of Use, the Copyright notice and the Privacy Policy to read and answered **"Approved"** on 21 November 2026. The same
+> day he said yes, each one by name, to installing it, committing it, pushing it and updating the USB copy. The notes commit right after
+> this one records the installed package, GitHub's build and the USB. When this line changes, change it here. Full account:
+> `docs/BETA-PREP-2-2026-11-21.md`.
+> **What it is:** `BuildInfo.PrepNumber = 2`, version **0.5.2**, its own `prep:2` entry in `UPDATES` (nine changes dated 21 Nov) and a
+> `BP2` entry in `Aviary.html`. Beta Prep 1 (0.5.1) and Alpha Build 5 (0.5.0) are untouched under Earlier builds.
+> **THE LEGAL PAGES — three rules.** (1) Do not change a sentence of the Terms of Use, the Copyright notice or the Privacy Policy without
+> showing Grant the new wording first. (2) When the Terms change, change `LegalTexts.TermsRevision`: the "I agree" screen compares the
+> revision, so everybody is asked again, which section 12 of the Terms promises. (3) Never type `TERMS.md`, `COPYRIGHT.md` or `PRIVACY.md`
+> by hand: `dotnet run --project tools/test/security/SecurityHarness.csproj -c Release -- write-legal` writes all three from the source.
+> His decisions (21 Nov): Terms of Use + Copyright notice only (no separate "not affiliated" or credits page); a must-press "I agree"
+> screen plus Settings → Legal plus a one-time note; the maker is "Grant at Wally Studios"; no email printed until he gives one (do NOT
+> print his personal address); all rights reserved "so far". The draft he was given to read is on his PC only (`docs/legal/`, ignored by Git: it carries notes written to him).
+> **THE "I AGREE" SCREEN** (`MainWindow.Terms.cs`, `TermsGate` in `LegalTexts.cs`): shown before a window makes its first tab, and
+> `CreateTabAsync` returns null until it is answered, so there is no engine behind it. It writes `termsAccepted`, `termsAcceptedOn` and
+> (for the Start Page's one-time note) `legalNoteSeen` to settings.json; Reset settings keeps them. **Tests cannot press it through the
+> DevTools port**, so every launcher in `tools/test` sets `AVIARY_TEST_TERMS=accepted`, honoured only with `AVIARY_PROFILE_DIR`;
+> `launch-quiet.ps1 -ShowTerms` leaves it up and `terms-gate-test.ps1` answers it through UI Automation (18 checks). A new harness that
+> launches Aviary itself must set that variable or it will sit at the screen with no tab.
+> **THE PRIVACY POLICY RULE** (Grant: "update the privacy policy every time we do something that will collect some stuff"): a build that
+> starts to STORE or SEND anything changes `PrivacyPolicy.cs` in the same build — the sentence, a new first line of `Changes`, a new
+> `Revision` — and EVERY build sets `ReviewedForVersion` to its version after re-reading the policy. `release-state-test.js` fails otherwise.
+> **Names:** "Liquid Glass" is **Prism 2** wherever a person reads it (`Looks.cs`; a saved "Liquid Glass" is migrated at load and still
+> understood). Code names for parts stay: `Themes/LiquidGlass.xaml`, `GlassCapsule`. "Safari look" is "Look". "Identify as Safari" keeps
+> its name because it really sends Safari's user agent.
+> **Where the rest is:** the Start Page search bar `MainWindow.StartSearch.cs` + `.find` in `StartPage.cs` (keys `startSearch`,
+> `newTabTyping`); Safety Check's areas, `tip` level and `safetyFixAll` in `SafetyCheck.cs`; `BounceTracking.cs` (`skipBounces`);
+> `SitePermissions.cs` (`permLocation`/`permCamera`/`permMicrophone`/`permNotifications`); Settings rows in named groups (`group:'…'`,
+> `groupedRows`) and panes with `parent:` that have no side-menu button; Bird News topics (`newsTech`/`newsScience`/`newsSport`, off
+> by default), summaries and its own page; `QuikStats.cs` (`quik-stats.json`), `TakeReadyTabFor`, `quikAwakeFor`; `ProcessTree.cs`.
+> **Checked on 21 Nov:** build 0/0; settings audit clean; release-state 21; security 369 (52 new, `BetaPrep2Checks.cs`); filters 125;
+> performance 30; storage 18; terms-gate 18/18 and publish-smoke 18/18, both on the candidate package. `csp-live.js` reports one Start
+> Page `object-src` failure that the installed Beta Prep 1 reports too: with Settings in front the Start Page tab is in the background and
+> the engine never starts the `<object>`, so it is the test's arrangement, not this update. Not checked: a real mouse and keyboard, light mode.
+> **USB:** Grant asked for the USB copy to be updated. It is `F:\Zoo`. **NEVER touch `F:\Zoo mid AB5`** — he keeps it for preservation.
+> **Gotcha for editing:** source files here mix LF and CRLF, and a bash heredoc holding curly quotes or dashes fails in this shell. Write
+> edit scripts with the editor's Write tool and run them with node.
+
 > **BETA PREP 1 — made Sunday 25 October 2026 (Claude, for Grant; he asked for it by name). READ FIRST.**
 > Grant, 24 Oct evening: "make a new update in aviary, name it Beta Prep 1, do all the recent changes as one update; there will be
 > more preps". After the first version he corrected it (25 Oct): **"Beta Prep 1 will replace the current AB5, it's a literal update"**

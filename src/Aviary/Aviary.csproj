@@ -74,6 +74,9 @@
 
   <ItemGroup>
     <Content Include="..\..\PRIVACY.md" Link="PRIVACY.md" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Beta Prep 2: the Terms of Use and the Copyright notice, the same words Settings → Legal shows. -->
+    <Content Include="..\..\TERMS.md" Link="TERMS.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\COPYRIGHT.md" Link="COPYRIGHT.md" CopyToOutputDirectory="PreserveNewest" />
     <!-- Both icons travel with the build: the glass one is only reachable at runtime. -->
     <Content Include="Assets\Aviary.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\Aviary-Glass.ico" CopyToOutputDirectory="PreserveNewest" />

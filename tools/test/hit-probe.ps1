@@ -1,5 +1,5 @@
 # What Windows thinks is under a point of a test Aviary's window - WM_NCHITTEST, no input sent.
-# (M4.5, the Liquid Glass caption buttons.) Points are named toolbar controls, found through UI
+# (M4.5, the Prism 2 caption buttons.) Points are named toolbar controls, found through UI
 # Automation, so the probe follows the layout at any size or scale.
 #   hit-probe.ps1 -ProcessId <pid> [-Names "Minimise,Maximise,Close,Home,Menu"] [-Extra "x,y;x,y"]
 param([int]$ProcessId, [string]$Names = "Minimise,Maximise,Restore,Close", [string]$Extra = "")

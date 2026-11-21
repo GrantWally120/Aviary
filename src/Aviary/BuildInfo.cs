@@ -24,7 +24,7 @@ namespace Aviary;
 /// </summary>
 internal static class BuildInfo
 {
-    public const string Version = "0.5.1";
+    public const string Version = "0.5.2";
 
     /// <summary>
     /// Which "Beta Prep" update this is, 0 for none. A prep is a literal update that sits between the
@@ -34,8 +34,12 @@ internal static class BuildInfo
     /// <see cref="PhaseShipped"/>, so the settings rows' gating is untouched. Preps are numbered 1, 2, ...
     /// until Beta Build 1 starts; the Updates entry is the one in InternalPages.cs with the same
     /// <c>prep</c> number.
+    ///
+    /// <para><b>Beta Prep 2</b> (0.5.2, 21 November 2026) follows it the same way: Beta Prep 1 joins Alpha
+    /// Build 5 under Earlier builds. A prep also has to pass the Privacy Policy rule - PrivacyPolicy.cs
+    /// must say it was read against this version (tools/test/release-state-test.js).</para>
     /// </summary>
-    public const int PrepNumber = 1;
+    public const int PrepNumber = 2;
 
     /// <summary>The phase — the build — currently being made. About and Updates report it.</summary>
     public const int PhaseNumber = 5;

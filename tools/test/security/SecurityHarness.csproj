@@ -26,5 +26,8 @@
     <Compile Include="../../../src/Aviary/OAuthFlow.cs" Link="OAuthFlow.cs" />
     <Compile Include="../../../src/Aviary/InternalPages.cs" Link="InternalPages.cs" />
     <Compile Include="../../../src/Aviary/StartPage.cs" Link="StartPage.cs" />
+    <!-- Beta Prep 2: skipping tracking redirects, and the legal texts with the record of agreeing to them. -->
+    <Compile Include="../../../src/Aviary/BounceTracking.cs" Link="BounceTracking.cs" />
+    <Compile Include="../../../src/Aviary/LegalTexts.cs" Link="LegalTexts.cs" />
   </ItemGroup>
 </Project>

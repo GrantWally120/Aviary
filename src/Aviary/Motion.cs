@@ -88,7 +88,7 @@ internal static class Motion
                 return Style.Fluid;
             }
 
-            return AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase)
+            return Looks.GlassChosen
                 ? Style.Fluid
                 : Style.SmoothFlight;
         }

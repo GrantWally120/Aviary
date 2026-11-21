@@ -12,7 +12,7 @@ namespace Aviary;
 /// four kilobytes, and light and dark are a token swap rather than two images.
 ///
 /// Every colour comes from CSS custom properties that C# fills in from the LIVE theme
-/// dictionary, so this page follows Classic/Liquid Glass and light/dark exactly like the
+/// dictionary, so this page follows Classic/Prism 2 and light/dark exactly like the
 /// XAML does, with no colour hardcoded here.
 /// </summary>
 internal static class StartPage
@@ -55,7 +55,7 @@ internal static class StartPage
   #sky svg{width:100%;height:100%;display:block;}
 
   /* The drawn choices are gradients of the theme's OWN tokens, so each one follows
-     Classic/Liquid Glass and light/dark without a second copy of anything. */
+     Classic/Prism 2 and light/dark without a second copy of anything. */
   #sky[data-bg="dawn"]{background:
     radial-gradient(120% 80% at 18% 108%, color-mix(in srgb,var(--accent) 16%,transparent), transparent 62%),
     radial-gradient(90% 70% at 88% 4%, color-mix(in srgb,var(--accent) 7%,transparent), transparent 58%);}
@@ -84,6 +84,73 @@ internal static class StartPage
   .mark{display:flex;align-items:center;gap:11px;margin-bottom:38px;}
   .mark svg{width:26px;height:26px;}
   .mark b{font-size:17px;font-weight:600;letter-spacing:-.018em;}
+
+  /* ── The search bar (Beta Prep 2) ─────────────────────────────────────────
+     Grant, 21 Nov 2026, after Brave's new tab page: a bar in the middle of the page to search from
+     without going up to the address bar, and whatever you type on this page lands in it. With it
+     on, the mark is centred over it and the page starts a little lower, so the bar sits in the
+     upper middle of the window the way Brave's does. The address bar is still there for addresses. */
+  body[data-find="on"] main{padding-top:max(64px,11vh);}
+  body[data-find="on"] .mark{justify-content:center;margin-bottom:22px;}
+  body[data-find="on"] .mark svg{width:34px;height:34px;}
+  body[data-find="on"] .mark b{font-size:24px;}
+  .find{position:relative;max-width:640px;margin:0 auto 40px;}
+  .find[hidden]{display:none;}
+  .find__box{
+    display:flex;align-items:center;gap:10px;height:50px;padding:0 8px 0 17px;border-radius:25px;
+    border:1px solid var(--line);background:var(--card);
+    box-shadow:0 1px 2px rgba(0,0,0,.05),0 10px 28px rgba(0,0,0,.07);
+    backdrop-filter:blur(18px) saturate(160%);
+    transition:border-color 150ms cubic-bezier(.25,.1,.25,1),box-shadow 150ms cubic-bezier(.25,.1,.25,1);
+  }
+  .find__box:focus-within{
+    border-color:color-mix(in srgb,var(--accent) 62%,var(--line));
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent),0 10px 28px rgba(0,0,0,.09);
+  }
+  .find__box > svg{flex:0 0 auto;width:18px;height:18px;color:var(--ink-2);}
+  .find__in{
+    flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--ink);
+    font:400 15.5px/1.2 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;letter-spacing:-.006em;
+    -webkit-user-select:text;user-select:text;
+  }
+  .find__in::placeholder{color:var(--ink-3);}
+  .find__eng{
+    flex:0 0 auto;border:0;background:var(--well);color:var(--ink-2);font:500 12px/1 inherit;
+    padding:9px 12px;border-radius:99px;cursor:default;white-space:nowrap;
+    transition:background-color 140ms,color 140ms;
+  }
+  .find__eng:hover{background:var(--well-hover);color:var(--ink);}
+  .find__list{
+    position:absolute;left:0;right:0;top:56px;z-index:4;padding:6px;
+    border:1px solid var(--line);border-radius:16px;background:var(--bg);
+    box-shadow:0 2px 6px rgba(0,0,0,.1),0 18px 48px rgba(0,0,0,.22);
+    animation:pop 160ms cubic-bezier(.32,.72,0,1);transform-origin:top center;
+  }
+  .find__list[hidden]{display:none;}
+  .find__opt{
+    display:flex;align-items:center;gap:11px;width:100%;height:36px;padding:0 11px;border:0;border-radius:9px;
+    background:none;font:inherit;color:inherit;text-align:left;cursor:default;
+  }
+  .find__opt:hover,.find__opt[aria-selected="true"]{background:var(--well);}
+  .find__opt svg{flex:0 0 auto;width:15px;height:15px;color:var(--ink-3);}
+  .find__opt b{flex:1;min-width:0;font-weight:500;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .find__opt span{flex:0 0 auto;max-width:42%;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .find__hint{margin:9px 4px 0;text-align:center;font-size:11.5px;color:var(--ink-3);}
+
+  /* The one-time note after "I agree", and whenever the legal pages change (Beta Prep 2). */
+  .lnote{
+    display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:14px;background:var(--card);
+    padding:14px 18px;margin:0 0 30px;
+  }
+  .lnote div{flex:1;min-width:0;}
+  .lnote b{display:block;font-size:14px;font-weight:600;margin-bottom:2px;}
+  .lnote span{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.5;}
+  .lnote button{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--well);color:var(--ink);font:500 12.5px/1 inherit;
+    padding:9px 13px;border-radius:8px;cursor:default;
+  }
+  .lnote button:hover{background:var(--well-hover);}
+  .lnote button[data-legal="seen"]{background:var(--accent);border-color:transparent;color:#fff;}
 
   h2{
     font-size:13px;font-weight:600;letter-spacing:-.002em;color:var(--ink-2);
@@ -183,6 +250,69 @@ internal static class StartPage
   .nw__all{margin-top:12px;border:0;background:transparent;color:var(--accent);font:inherit;font-size:13px;cursor:default;padding:4px 0;}
   .nw__all:hover{text-decoration:underline;}
   .nw__down{color:var(--ink-3);font-size:12px;margin-top:10px;}
+  /* Beta Prep 2 — a story you have already opened is drawn quieter (it is in your history). */
+  .nw__item.is-seen .nw__title{color:var(--ink-2);font-weight:400;}
+  .nw__item.is-seen .nw__src b{color:var(--ink-3);}
+
+  /* ── The Bird News page (Beta Prep 2) ─────────────────────────────────────
+     Its own page now, not the Start Page's section stretched: tabs by place and topic, a filter,
+     a chip for each publisher, the newest story given room, and the rest grouped by when. Every
+     headline and summary is still the publisher's own words. */
+  .nwp__head{display:flex;align-items:flex-end;gap:16px;margin-bottom:18px;}
+  .nwp__head > div{flex:1;min-width:0;}
+  .nwp__h{margin:0 0 4px;font-size:28px;font-weight:600;letter-spacing:-.022em;color:var(--ink);}
+  .nwp__head .nw__meta{margin:0;}
+  .nwp__check{
+    flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--ink);
+    font:500 12.5px/1 inherit;padding:9px 13px;border-radius:8px;cursor:default;transition:background-color 140ms;
+  }
+  .nwp__check:hover{background:var(--well-hover);}
+  .nwp__check:disabled{opacity:.55;}
+  .nwp__bar{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+  .nwp__tabs{display:flex;gap:2px;padding:3px;border-radius:10px;background:var(--well);flex-wrap:wrap;}
+  .nwp__tabs button{
+    border:0;background:transparent;color:var(--ink-2);font:500 12.5px/1 inherit;cursor:default;
+    padding:7px 11px;border-radius:7px;transition:background-color 140ms,color 140ms;
+  }
+  .nwp__tabs button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.12);}
+  .nwp__tabs button small{margin-left:5px;color:var(--ink-3);font-size:11px;font-variant-numeric:tabular-nums;}
+  .nwp__filter{
+    flex:1;min-width:180px;height:32px;border:1px solid var(--line);border-radius:8px;background:var(--card);
+    color:var(--ink);font:400 13px/1 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;padding:0 11px;outline:0;
+    -webkit-user-select:text;user-select:text;
+  }
+  .nwp__filter::placeholder{color:var(--ink-3);}
+  .nwp__filter:focus{border-color:var(--accent);}
+  .nwp__chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;}
+  .nwp__chips button{
+    border:1px solid var(--line);background:transparent;color:var(--ink-3);font:500 11.5px/1 inherit;
+    padding:6px 10px;border-radius:99px;cursor:default;transition:background-color 140ms,color 140ms,border-color 140ms;
+  }
+  .nwp__chips button[aria-pressed="true"]{
+    background:color-mix(in srgb,var(--accent) 13%,transparent);
+    border-color:color-mix(in srgb,var(--accent) 38%,var(--line));color:var(--ink);
+  }
+  .nwp__group{margin:22px 0 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);}
+  .nwp__list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px;}
+  .nws{position:relative;display:flex;min-width:0;}
+  .nws .nw__item{flex:1;min-width:0;padding-right:44px;}
+  .nws__sum{
+    font-size:12.5px;line-height:1.45;color:var(--ink-2);
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .nws__save{
+    position:absolute;right:8px;top:8px;width:28px;height:28px;border-radius:8px;border:0;background:transparent;
+    color:var(--ink-3);display:grid;place-items:center;cursor:default;transition:background-color 140ms,color 140ms;
+  }
+  .nws__save:hover{background:var(--well-hover);color:var(--ink);}
+  .nws__save[aria-pressed="true"]{color:var(--accent);}
+  .nws__save svg{width:15px;height:15px;}
+  .nws--lead{grid-column:1 / -1;}
+  .nws--lead .nw__item{padding:16px 52px 16px 18px;gap:7px;}
+  .nws--lead .nw__title{font-size:20px;line-height:1.28;font-weight:600;-webkit-line-clamp:2;}
+  .nws--lead .nws__sum{font-size:13.5px;}
+  .nwp__none{color:var(--ink-3);font-size:13px;padding:18px 0;}
+
   /* A live update replaces the section in place and must not replay its arrival. */
   #panes > section[data-live]{animation:none;}
 
@@ -284,7 +414,7 @@ internal static class StartPage
   .cust__note{font-size:11.5px;color:var(--ink-2);padding:2px 9px 7px;line-height:1.45;}
 
   /* ── Motion (Alpha Build 5 M4.5) — <html data-motion>: flight (Smooth Flight, Classic's),
-     fluid (Fluid, Liquid Glass's spring) or off (Reduce motion). Set from the page's data and
+     fluid (Fluid, Prism 2's spring) or off (Reduce motion). Set from the page's data and
      re-set by the host whenever the style changes (Motion.cs). */
   /* --m-x is Animation speed (M4.6) - see InternalPages for the same three lines. */
   :root{--m-ease:cubic-bezier(.32,.72,0,1);--m-x:1;--m-dur:calc(380ms * var(--m-x));--m-rise:10px;}
@@ -325,6 +455,16 @@ internal static class StartPage
     </svg>
     <b>Aviary</b>
   </div>
+  <div class="find" id="find" hidden>
+    <div class="find__box">
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.2" stroke="currentColor" stroke-width="1.6"/><path d="m12 12 3.6 3.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      <input class="find__in" id="findIn" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"
+             role="combobox" aria-expanded="false" aria-controls="findList" aria-autocomplete="list" aria-label="Search the web">
+      <button class="find__eng" id="findEng" title="Change the search engine"></button>
+    </div>
+    <div class="find__list" id="findList" role="listbox" hidden></div>
+    <div class="find__hint" id="findHint"></div>
+  </div>
   <div id="panes"></div>
 </main>
 
@@ -349,7 +489,7 @@ document.documentElement.dataset.speed = D.speed || 'standard';
 /* Show keyboard focus clearly (M4.5), the same switch as Settings' own pages. */
 if (D.focusRing) { document.documentElement.dataset.focus = 'clear'; }
 var ICONS = D.iconBase || '';
-var SHOW = D.sections || {favourites:true, news:true, menagerie:true, frequent:true, reading:true, privacy:true};
+var SHOW = D.sections || {search:true, favourites:true, news:true, menagerie:true, frequent:true, reading:true, privacy:true};
 /* Opened to show one section (the Shields popover's "Privacy Report"): shown on this page even
    if Customise hides it — the saved choice is untouched — and scrolled to below. */
 if (D.focus && (D.focus in SHOW)) { SHOW[D.focus] = true; }
@@ -485,32 +625,81 @@ function mixSources(items, per){
   return picked.sort(function(a, b){ return (b.at || 0) - (a.at || 0); });
 }
 
+/* Where a story can sit: by place, by topic (Beta Prep 2, each off until switched on), your own feeds. */
+var NW_TABS = [['all', 'All'], ['world', 'The World'], ['ph', 'The Philippines'], ['tech', 'Technology'],
+               ['science', 'Science'], ['sport', 'Sport'], ['more', 'Your feeds']];
+/* The Bird News page's view: which tab, the filter's words, the publishers switched out of view. */
+var NW = {tab:'all', q:'', off:{}};
+
+function newsNewest(a, b){ return (b.at || 0) - (a.at || 0); }
+/* One story once: a publisher's world desk and its technology desk often carry the same piece. */
+function newsOnce(list){
+  var had = {};
+  return list.filter(function(s){ if (had[s.url]) { return false; } had[s.url] = true; return true; });
+}
+function newsOf(n, key){
+  if (key !== 'all') { return (n[key] || []).slice(); }
+  var all = [];
+  NW_TABS.slice(1).forEach(function(t){ all = all.concat(n[t[0]] || []); });
+  return newsOnce(all.sort(newsNewest));
+}
+
+function newsMeta(n){
+  var meta = n.checkedAt ? 'Updated <b>' + esc(ago(n.checkedAt)) + '</b>' : '';
+  if (n.every) { meta += (meta ? ' · ' : '') + 'checks every ' + (n.every >= 60 ? 'hour' : n.every + ' minutes'); }
+  return meta + (meta ? ' · ' : '') + 'headlines exactly as each site wrote them';
+}
+
+function newsDown(n){
+  var down = (n.feeds || []).filter(function(f){ return f.state === 'failed'; });
+  if (!down.length) { return ''; }
+  return '<div class="nw__down">Not updating right now — ' +
+         down.map(function(f){ return esc(f.name) + ': ' + esc(f.why || 'no answer'); }).join(' · ') +
+         '. Anything already here stays until ' + (down.length === 1 ? 'it answers' : 'they answer') + '.</div>';
+}
+
+/* One story. The Start Page's is the headline alone; the Bird News page adds the publisher's own
+   summary and a + for the Reading List. A story already in your history is drawn quieter. */
+function storyHtml(s, n, full, lead){
+  var seen = s.seen && n.dimRead !== false ? ' is-seen' : '';
+  var card = '<button class="nw__item' + seen + '" data-url="' + esc(s.url) + '" title="' + esc(s.title) + '">' +
+               '<span class="nw__src"><b>' + esc(s.source) + '</b><span>' + esc(ago(s.at)) + '</span></span>' +
+               '<span class="nw__title">' + esc(s.title) + '</span>' +
+               (full && s.summary && n.summaries !== false ? '<span class="nws__sum">' + esc(s.summary) + '</span>' : '') +
+             '</button>';
+  if (!full) { return card; }
+  return '<div class="nws' + (lead ? ' nws--lead' : '') + '">' + card +
+           '<button class="nws__save" data-news-save="' + esc(s.url) + '" aria-pressed="' + (s.saved ? 'true' : 'false') + '" title="' +
+             (s.saved ? 'On your Reading List — press to take it off' : 'Add to your Reading List') + '">' +
+             '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 2.4h8v11.4l-4-2.9-4 2.9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"' +
+             (s.saved ? ' fill="currentColor"' : '') + '/></svg></button>' +
+         '</div>';
+}
+
+/* ── the Start Page's section ── */
 function newsHtml(){
   var n = D.news;
   if (!n || !n.on) { return ''; }
-  var per = NEWS_FULL ? 40 : 4;
-  var cols = [['world', 'The World'], ['ph', 'The Philippines'], ['more', 'Your feeds']];
+  var per = 4;
+  /* Topics and your own feeds share the third column here; the Bird News page gives each its own tab. */
+  var extra = newsOnce([].concat(n.tech || [], n.science || [], n.sport || [], n.more || []).sort(newsNewest));
+  var cols = [['The World', n.world || []], ['The Philippines', n.ph || []], ['More for you', extra]];
   var feeds = n.feeds || [];
   var total = 0;
 
   var body = cols.map(function(c){
-    var items = NEWS_FULL ? (n[c[0]] || []).slice(0, per) : mixSources(n[c[0]] || [], per);
+    var items = mixSources(c[1], per);
     total += items.length;
     if (!items.length) { return ''; }
-    return '<div class="nw__col"><h3>' + esc(c[1]) + '</h3><div class="nw__list">' +
-      items.map(function(s){
-        return '<button class="nw__item" data-url="' + esc(s.url) + '" title="' + esc(s.title) + '">' +
-                 '<span class="nw__src"><b>' + esc(s.source) + '</b><span>' + esc(ago(s.at)) + '</span></span>' +
-                 '<span class="nw__title">' + esc(s.title) + '</span>' +
-               '</button>';
-      }).join('') + '</div></div>';
+    return '<div class="nw__col"><h3>' + esc(c[0]) + '</h3><div class="nw__list">' +
+      items.map(function(s){ return storyHtml(s, n, false, false); }).join('') + '</div></div>';
   }).join('');
 
-  var down = feeds.filter(function(f){ return f.state === 'failed'; });
+  var failed = feeds.some(function(f){ return f.state === 'failed'; });
   var waiting = feeds.some(function(f){ return f.state === 'never'; });
 
   if (!total) {
-    body = '<p class="empty">' + (waiting && !down.length
+    body = '<p class="empty">' + (waiting && !failed
       ? 'Fetching the latest stories…'
       : feeds.length
         ? 'Bird News couldn’t reach any news sites just now. It will try again on its own.'
@@ -519,37 +708,104 @@ function newsHtml(){
     body = '<div class="nw__cols">' + body + '</div>';
   }
 
-  var meta = n.checkedAt ? 'Updated <b>' + esc(ago(n.checkedAt)) + '</b>' : '';
-  if (n.every) { meta += (meta ? ' · ' : '') + 'checks every ' + (n.every >= 60 ? 'hour' : n.every + ' minutes'); }
-  meta += (meta ? ' · ' : '') + 'headlines exactly as each site wrote them';
+  var foot = newsDown(n);
+  if (total) { foot += '<button class="nw__all" data-news-all="1">All the stories in Bird News &rarr;</button>'; }
 
-  var foot = '';
-  if (down.length) {
-    foot += '<div class="nw__down">Not updating right now — ' +
-            down.map(function(f){ return esc(f.name) + ': ' + esc(f.why || 'no answer'); }).join(' · ') +
-            '. Anything already here stays until ' + (down.length === 1 ? 'it answers' : 'they answer') + '.</div>';
+  return section('news', 'Bird News', '<div class="nw__meta">' + newsMeta(n) + '</div>' + body + foot);
+}
+
+/* ── the Bird News page ── */
+function newsWhen(at){
+  if (!at) { return 'Undated'; }
+  var d = new Date(at), now = new Date();
+  if (now.getTime() - at < 3600000) { return 'In the last hour'; }
+  if (d.toDateString() === now.toDateString()) { return 'Earlier today'; }
+  if (d.toDateString() === new Date(now.getTime() - 86400000).toDateString()) { return 'Yesterday'; }
+  return 'Before that';
+}
+
+function newsFullShell(){
+  return '<section data-sec="news" class="nwp" data-live="1">' +
+    '<div class="nwp__head"><div><h1 class="nwp__h">Bird News</h1><div class="nw__meta" id="nwMeta"></div></div>' +
+      '<button class="nwp__check" id="nwCheck" data-news-check="1">Check now</button></div>' +
+    '<div class="nwp__bar"><div class="nwp__tabs" id="nwTabs" role="tablist"></div>' +
+      '<input class="nwp__filter" id="nwFilter" type="text" autocomplete="off" spellcheck="false" ' +
+        'placeholder="Filter headlines" aria-label="Filter headlines"></div>' +
+    '<div class="nwp__chips" id="nwChips"></div>' +
+    '<div id="nwBody"></div><div id="nwFoot"></div>' +
+  '</section>';
+}
+
+function newsFullBody(n){
+  var words = NW.q.toLowerCase().split(/\s+/).filter(Boolean);
+  var list = newsOf(n, NW.tab).filter(function(s){
+    if (NW.off[s.source]) { return false; }
+    if (!words.length) { return true; }
+    var hay = (s.title + ' ' + s.source + ' ' + (s.summary || '')).toLowerCase();
+    return words.every(function(w){ return hay.indexOf(w) >= 0; });
+  }).slice(0, 150);
+
+  if (!list.length) {
+    var feeds = n.feeds || [];
+    return '<p class="nwp__none">' + (words.length || Object.keys(NW.off).length
+      ? 'No headline here matches. Clear the filter, or switch a publisher back on above.'
+      : feeds.some(function(f){ return f.state === 'never'; }) ? 'Fetching the latest stories…'
+      : feeds.length ? 'Nothing here yet. Bird News will try again on its own.'
+      : 'Every feed is switched off. Settings → Bird News turns them on.') + '</p>';
   }
-  if (!NEWS_FULL && total) { foot += '<button class="nw__all" data-news-all="1">All the stories in Bird News &rarr;</button>'; }
 
-  return section('news', 'Bird News', '<div class="nw__meta">' + meta + '</div>' + body + foot);
+  var out = '', group = null, open = false;
+  list.forEach(function(s, i){
+    var lead = i === 0 && !words.length;
+    var when = newsWhen(s.at);
+    if (when !== group) {
+      if (open) { out += '</div>'; }
+      out += '<div class="nwp__group">' + esc(when) + '</div><div class="nwp__list">';
+      group = when; open = true;
+    }
+    out += storyHtml(s, n, true, lead);
+  });
+  return out + (open ? '</div>' : '');
+}
+
+/* Draws, or redraws in place, everything but the filter box - which keeps its words and its caret. */
+function newsFullDraw(){
+  var n = D.news, panes = document.getElementById('panes');
+  if (!n || !n.on) {
+    panes.innerHTML = '<p class="empty">Bird News is switched off. Settings → Bird News turns it on.</p>';
+    return;
+  }
+  if (!document.getElementById('nwBody')) { panes.innerHTML = newsFullShell(); }
+
+  var tabs = NW_TABS.filter(function(t){ return t[0] === 'all' || (n[t[0]] || []).length; });
+  if (!tabs.some(function(t){ return t[0] === NW.tab; })) { NW.tab = 'all'; }
+  document.getElementById('nwMeta').innerHTML = newsMeta(n);
+  document.getElementById('nwTabs').innerHTML = tabs.map(function(t){
+    return '<button role="tab" data-news-tab="' + t[0] + '" aria-selected="' + (t[0] === NW.tab ? 'true' : 'false') + '">' +
+           esc(t[1]) + '<small>' + newsOf(n, t[0]).length + '</small></button>';
+  }).join('');
+
+  /* A chip for every publisher on this tab: pressed is shown, and pressing takes it out of view. */
+  var sources = [];
+  newsOf(n, NW.tab).forEach(function(s){ if (sources.indexOf(s.source) < 0) { sources.push(s.source); } });
+  document.getElementById('nwChips').innerHTML = sources.length < 2 ? '' : sources.map(function(name){
+    return '<button data-news-src="' + esc(name) + '" aria-pressed="' + (NW.off[name] ? 'false' : 'true') + '">' + esc(name) + '</button>';
+  }).join('');
+
+  document.getElementById('nwBody').innerHTML = newsFullBody(n);
+  document.getElementById('nwFoot').innerHTML = newsDown(n);
+  var check = document.getElementById('nwCheck');
+  if (check) { check.disabled = false; check.textContent = 'Check now'; }
 }
 
 /* The host pushes fresh stories in; only this section is redrawn, so a page you are reading
    does not jump or replay its arrival every time the news is checked. */
 window.__aviaryNews = function(n){
   D.news = n;
-  var panes = document.getElementById('panes');
+  if (NEWS_FULL) { newsFullDraw(); return; }
+
   var old = document.querySelector('#panes > section[data-sec="news"]');
   var html = newsHtml();
-
-  /* On the Bird News page the news IS the page: switched off, it says so rather than going blank;
-     switched back on, it fills the page rather than calling the Start Page's full render. */
-  if (NEWS_FULL && !html) {
-    panes.innerHTML = '<p class="empty">Bird News is switched off. Settings → Bird News turns it on.</p>';
-    return;
-  }
-  if (NEWS_FULL && !old) { panes.innerHTML = html; return; }
-
   if (old) {
     if (!html) { old.remove(); return; }
     var holder = document.createElement('div');
@@ -562,18 +818,186 @@ window.__aviaryNews = function(n){
   }
 };
 
+/* The Bird News page's own controls (Beta Prep 2). */
+document.addEventListener('click', function(e){
+  var tab = e.target.closest('[data-news-tab]');
+  if (tab) { e.stopPropagation(); NW.tab = tab.getAttribute('data-news-tab'); NW.off = {}; newsFullDraw(); return; }
+
+  var src = e.target.closest('[data-news-src]');
+  if (src) {
+    e.stopPropagation();
+    var name = src.getAttribute('data-news-src');
+    if (NW.off[name]) { delete NW.off[name]; } else { NW.off[name] = true; }
+    newsFullDraw();
+    return;
+  }
+
+  var check = e.target.closest('[data-news-check]');
+  if (check) {
+    e.stopPropagation();
+    check.disabled = true; check.textContent = 'Checking…';
+    post({type:'newsCheck'});
+    /* The answer redraws the page; if nothing changed there is no answer, so the button wakes by itself. */
+    setTimeout(function(){ check.disabled = false; check.textContent = 'Check now'; }, 6000);
+    return;
+  }
+
+  var save = e.target.closest('[data-news-save]');
+  if (save) {
+    e.stopPropagation();
+    var url = save.getAttribute('data-news-save');
+    var now = save.getAttribute('aria-pressed') !== 'true';
+    NW_TABS.slice(1).forEach(function(t){
+      ((D.news || {})[t[0]] || []).forEach(function(s){ if (s.url === url) { s.saved = now; } });
+    });
+    post({type:'newsSave', url:url});
+    newsFullDraw();
+  }
+}, true);
+document.addEventListener('input', function(e){
+  if (e.target && e.target.id === 'nwFilter') {
+    NW.q = e.target.value;
+    document.getElementById('nwBody').innerHTML = newsFullBody(D.news || {});
+  }
+});
+
 document.addEventListener('click', function(e){
   if (e.target.closest('[data-news-all]')) { e.stopPropagation(); post({type:'newsAll'}); }
 }, true);
 
+/* ── The search bar (Beta Prep 2) ───────────────────────────────────────────
+   What is typed here goes nowhere until Enter - except, when "Search suggestions from the engine"
+   is on, to the chosen engine as you type, under exactly the address bar's rules (the host decides;
+   this page only asks). Everything the host sends back is shown as text, never as markup. */
+var FIND = D.search || {};
+var LEGAL_NOTE_DONE = false;
+var findIn = document.getElementById('findIn');
+var findList = document.getElementById('findList');
+var findItems = [], findAt = -1, findAsked = '', findTimer = 0;
+var FIND_ICON = {
+  search:'<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="4.4" stroke="currentColor" stroke-width="1.5"/><path d="m10.4 10.4 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  site:'<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.6" stroke="currentColor" stroke-width="1.4"/><path d="M2.6 8h10.8M8 2.4c2.6 3.2 2.6 8 0 11.2-2.6-3.2-2.6-8 0-11.2Z" stroke="currentColor" stroke-width="1.2"/></svg>',
+  star:'<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m8 2.2 1.8 3.7 4 .6-2.9 2.8.7 4L8 11.4l-3.6 1.9.7-4-2.9-2.8 4-.6Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg>'
+};
+function findOn(){ return !!SHOW.search && !NEWS_FULL; }
+function findSetup(){
+  var on = findOn();
+  document.getElementById('find').hidden = !on;
+  if (on) { document.body.dataset.find = 'on'; } else { delete document.body.dataset.find; }
+  if (!on) { return; }
+  var engine = FIND.engine || 'the web';
+  findIn.placeholder = (D.isPrivate ? 'Search privately with ' : 'Search with ') + engine;
+  document.getElementById('findEng').textContent = engine;
+  document.getElementById('findHint').textContent =
+    FIND.suggests ? 'Suggestions from ' + engine + ' are on, so what you type here is sent to it as you type.'
+                  : 'Nothing you type here is sent anywhere until you press Enter.';
+}
+function findClose(){
+  findItems = []; findAt = -1;
+  findList.hidden = true; findList.textContent = '';
+  findIn.setAttribute('aria-expanded', 'false');
+}
+function findDraw(){
+  findList.textContent = '';
+  if (!findItems.length) { findClose(); return; }
+  findItems.forEach(function(it, i){
+    var b = document.createElement('button');
+    b.className = 'find__opt'; b.setAttribute('role', 'option'); b.setAttribute('data-find', i);
+    b.setAttribute('aria-selected', i === findAt ? 'true' : 'false');
+    b.innerHTML = FIND_ICON[it.kind === 'search' ? 'search' : it.kind === 'favourite' ? 'star' : 'site'];
+    var t = document.createElement('b'); t.textContent = it.title || it.url || ''; b.appendChild(t);
+    var s = document.createElement('span'); s.textContent = it.note || ''; b.appendChild(s);
+    findList.appendChild(b);
+  });
+  findList.hidden = false;
+  findIn.setAttribute('aria-expanded', 'true');
+}
+/* The host's answer: for these words, your own matches and (only if switched on) the engine's. */
+window.__aviaryFind = function(q, items){
+  if (!findOn() || String(q) !== findIn.value.trim()) { return; }
+  /* Walking the list with the arrow keys: a late answer must not move the row you are on. */
+  if (findAt >= 0) { return; }
+  findItems = Array.isArray(items) ? items.slice(0, 9) : [];
+  findDraw();
+};
+/* The host puts the keyboard here when a new tab opens (Settings → Get started). */
+window.__aviaryFocusFind = function(){ if (findOn()) { findIn.focus(); } };
+function findAsk(){
+  var q = findIn.value.trim();
+  if (q === findAsked) { return; }
+  findAsked = q;
+  if (!q) { findClose(); return; }
+  post({type:'startSearchType', q:q});
+}
+function findGo(i){
+  var it = findItems[i];
+  var q = findIn.value.trim();
+  findClose();
+  if (it) { post({type:'startSearch', q:q, pick:it.kind, value:it.kind === 'search' ? it.title : it.url, index:i}); }
+  else if (q) { post({type:'startSearch', q:q}); }
+}
+findIn.addEventListener('input', function(){
+  findAt = -1;
+  clearTimeout(findTimer);
+  findTimer = setTimeout(findAsk, 60);
+});
+findIn.addEventListener('keydown', function(e){
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+    if (!findItems.length) { return; }
+    e.preventDefault();
+    var n = findItems.length;
+    findAt = e.key === 'ArrowDown' ? (findAt + 1 >= n ? -1 : findAt + 1) : (findAt < 0 ? n - 1 : findAt - 1);
+    findDraw();
+    return;
+  }
+  if (e.key === 'Enter'){ e.preventDefault(); findGo(findAt); return; }
+  if (e.key === 'Escape'){
+    e.stopPropagation();
+    if (!findList.hidden) { findClose(); } else if (findIn.value) { findIn.value = ''; findAsked = ''; } else { findIn.blur(); }
+  }
+});
+findIn.addEventListener('blur', function(){ setTimeout(function(){ if (document.activeElement !== findIn) { findClose(); } }, 140); });
+findList.addEventListener('mousedown', function(e){ e.preventDefault(); });
+findList.addEventListener('click', function(e){
+  var o = e.target.closest('[data-find]');
+  if (o) { e.stopPropagation(); findGo(Number(o.getAttribute('data-find'))); }
+});
+document.getElementById('findEng').addEventListener('click', function(e){ e.stopPropagation(); post({type:'startSearchEngine'}); });
+/* Type anywhere on the page and it lands in the bar: the key that started it is typed there too,
+   because focus has moved by the time the browser acts on it. Shortcuts and other fields are left alone. */
+document.addEventListener('keydown', function(e){
+  if (!findOn() || e.defaultPrevented || e.ctrlKey || e.altKey || e.metaKey) { return; }
+  var t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) { return; }
+  if (e.key.length !== 1 || e.key === ' ') { return; }
+  findIn.focus();
+});
+document.addEventListener('click', function(e){
+  var b = e.target.closest('[data-legal]');
+  if (!b) { return; }
+  e.stopPropagation();
+  LEGAL_NOTE_DONE = true;
+  post({type:'legalNote', action:b.getAttribute('data-legal')});
+  var note = document.getElementById('lnote');
+  if (note) { note.remove(); }
+}, true);
+
 function render(){
   var out = '';
+  findSetup();
 
   /* The Bird News page is this same page opened on the news alone, every story shown. */
-  if (NEWS_FULL) {
-    document.getElementById('panes').innerHTML = newsHtml() ||
-      '<p class="empty">Bird News is switched off. Settings → Bird News turns it on.</p>';
-    return;
+  if (NEWS_FULL) { newsFullDraw(); return; }
+
+  /* Beta Prep 2: said once after "I agree", and once more whenever the legal pages change. */
+  if (D.legalNote && !LEGAL_NOTE_DONE){
+    var changed = D.legalNote === 'changed';
+    out += '<div class="lnote" id="lnote"><div><b>' +
+      (changed ? 'Aviary’s legal pages have changed' : 'Thank you. You’re all set') + '</b><span>' +
+      (changed
+        ? 'The Privacy Policy is now revision ' + esc(D.policyRevision || '') + ' and the Terms of Use revision ' + esc(D.termsRevision || '') + '. Settings → Legal has both, and says what changed.'
+        : 'The Terms of Use, the Privacy Policy and the Copyright notice are always in Settings → Legal, and can be read offline.') +
+      '</span></div><button data-legal="open">Open Legal</button><button data-legal="seen">OK</button></div>';
   }
 
   if (D.isPrivate){
@@ -751,7 +1175,7 @@ document.addEventListener('click', function(e){
 /* ── customise ─────────────────────────────────────────────────────────── */
 /* `menagerie` is the Collection's section id and settings key (startMenagerie) from before its
    rename — kept so a saved choice survives. Only the words changed. */
-var LABELS = {favourites:'Favourites', news:'Bird News', menagerie:'The Collection', frequent:'Frequently Visited',
+var LABELS = {search:'Search bar', favourites:'Favourites', news:'Bird News', menagerie:'The Collection', frequent:'Frequently Visited',
               reading:'Reading List', privacy:'Privacy Report'};
 if (!D.menagerie) { delete LABELS.menagerie; }
 
@@ -851,6 +1275,8 @@ document.addEventListener('contextmenu', function(e){
 
 buildCust();
 render();
+/* A new tab's typing goes to the search bar when Settings says so; the address bar is one click away. */
+if (findOn() && FIND.typing && !D.focus) { findIn.focus(); }
 if (D.focus) {
   var focused = document.querySelector('[data-sec="' + D.focus + '"]');
   if (focused) { focused.scrollIntoView({block:'center'}); }

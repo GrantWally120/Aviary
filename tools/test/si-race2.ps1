@@ -12,8 +12,9 @@ $diag = Join-Path $sp "profiles\$Profile\user.data.improvementcollection"
 function Mine { @(Get-Process Aviary -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$sp*" }) }
 function Start-Test {
     $env:AVIARY_PROFILE_DIR = Join-Path $sp "profiles\$Profile"
+    $env:AVIARY_TEST_TERMS = "accepted"   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
     $p = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
-    $env:AVIARY_PROFILE_DIR = $null
+    $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_TERMS = $null
     $p
 }
 

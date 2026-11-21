@@ -34,8 +34,9 @@ foreach ($delay in $Delays) {
   [System.IO.File]::WriteAllText((Join-Path $prof "settings.json"), '{"improvementCollection":"true"}')
 
   $env:AVIARY_PROFILE_DIR = $prof
+  $env:AVIARY_TEST_TERMS = "accepted"   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
   $p = Start-Process -FilePath (Get-AviaryDevExe $sp) -PassThru
-  $env:AVIARY_PROFILE_DIR = $null
+  $env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_TERMS = $null
 
   for ($i = 0; $i -lt 50 -and $p.MainWindowHandle -eq 0; $i++) { Start-Sleep -Milliseconds 100; $p.Refresh() }
   Start-Sleep -Milliseconds $delay

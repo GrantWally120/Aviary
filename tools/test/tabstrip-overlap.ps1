@@ -1,12 +1,12 @@
-# The 23 Sep 2026 playtest bug #6 (Prism review P2-7): in Liquid Glass with Fluid motion and "New tab position: after the
+# The 23 Sep 2026 playtest bug #6 (Prism review P2-7): in Prism 2 with Fluid motion and "New tab position: after the
 # current tab", a tab inserted mid-strip got no slot of its own and overlapped its neighbours.
 #
 # Launches a scratch instance, makes three tabs, selects the FIRST and opens a new one (it lands second), then again after
 # switching away and closing it, and reads every tab's rectangle through UI Automation. No desktop input: key events go to
 # the pages over DevTools (tools/test/prism/keys.js), the same route the page-level shortcuts use.
 #
-#   tabstrip-overlap.ps1 [-Look "Liquid Glass"|Classic] [-Exe <path>] [-Port 9444] [-Layout "Top bar"]
-param([string]$Look = "Liquid Glass", [string]$Exe = "", [int]$Port = 9444, [string]$Layout = "Top bar", [string]$Profile = "tabstripOverlap")
+#   tabstrip-overlap.ps1 [-Look "Prism 2"|Classic] [-Exe <path>] [-Port 9444] [-Layout "Top bar"]
+param([string]$Look = "Prism 2", [string]$Exe = "", [int]$Port = 9444, [string]$Layout = "Top bar", [string]$Profile = "tabstripOverlap")
 
 $kit = $PSScriptRoot
 Set-Location $kit

@@ -439,7 +439,7 @@ public sealed partial class MainWindow : Window
 
         // Quik in Classic creates the unused glass capsules on the first switch to
         // Liquid Glass. Their setup measured 12–21 ms on the startup path.
-        if (!Quik.On || AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase))
+        if (!Quik.On || Looks.GlassChosen)
         {
             InitialiseGlass();
         }
@@ -452,6 +452,19 @@ public sealed partial class MainWindow : Window
         // Never create the session's first WebView on a minimised window (bug 50).
         await WaitUntilNotMinimisedAsync();
         Diagnostics.Mark("window-shown");
+
+        // Beta Prep 2: the Terms of Use are agreed to before this window makes a tab - on the first
+        // launch, and again when they change (MainWindow.Terms.cs). Not agreeing closes the window.
+        if (!await EnsureTermsAcceptedAsync())
+        {
+            if (_linkWindow)
+            {
+                _linkTab.TrySetResult(null);
+            }
+
+            Close();
+            return;
+        }
 
         // M5 stage 3: a window opened for a link holds that link's tab and nothing else. The tab is
         // handed back EMPTY: for a Shift+click the engine navigates it itself.
@@ -883,6 +896,13 @@ public sealed partial class MainWindow : Window
 
     private async Task<BrowserTab?> CreateTabAsync(bool select, string reason = "new tab", int? slot = null, bool startPage = false)
     {
+        // Beta Prep 2: no tab exists until the Terms of Use are agreed to (TermsGate) - whatever asked
+        // for one: a shortcut pressed behind the "I agree" screen, a second window, a link.
+        if (!TermsGate.Accepted)
+        {
+            return null;
+        }
+
         long created = System.Diagnostics.Stopwatch.GetTimestamp();
         BrowserTab tab = new(_private);
 
@@ -990,6 +1010,12 @@ public sealed partial class MainWindow : Window
             return;
         }
 
+        // Beta Prep 2: a page Aviary itself opens in a new tab takes the ready tab too.
+        if (url is not null && focus is null && Quik.On && TakeReadyTabFor(url, requested))
+        {
+            return;
+        }
+
         bool plainStartPage = Quik.On && startPageOnly;
         // Capture the current page before creating/selecting the new tab. Once creation
         // starts, _active is the empty destination, which has no address to copy.
@@ -1048,6 +1074,16 @@ public sealed partial class MainWindow : Window
     {
         if (plainNewTab && WindowShowing)
         {
+            // Beta Prep 2: with the Start Page search bar taking a new tab’s typing (Settings → Get
+            // started), the keyboard goes into the page and the page puts it in the bar. The address
+            // bar is one click, or Ctrl+L, away. A private window follows the same choice.
+            if (StartSearchTakesTyping && tab.IsStartPage)
+            {
+                FocusPage(tab);
+                FocusStartSearch(tab);
+                return;
+            }
+
             AddressBox.Focus(FocusState.Keyboard);
             return;
         }
@@ -1221,6 +1257,8 @@ public sealed partial class MainWindow : Window
                    // M4.9 (bug 80): the page redacts exactly the keys the host does, from ONE list.
                    + " window.__aviaryPrivateKeys = " + JsonSerializer.Serialize(AppSettings.PrivateKeys) + ";"
                    + " window.__aviaryPrivacyPolicy = " + JsonSerializer.Serialize(PrivacyPolicy.Describe()) + ";"
+                   // Beta Prep 2: the Terms of Use, the Copyright notice, and what this profile agreed to.
+                   + " window.__aviaryLegal = " + JsonSerializer.Serialize(LegalTexts.Describe()) + ";"
                    // M4.9: Forgetful sites, for Privacy.
                    + " window.__aviaryForget = " + JsonSerializer.Serialize(ForgetList()) + ";"
                    // M4.9: Bird News' "Right now" row.
@@ -1378,6 +1416,8 @@ public sealed partial class MainWindow : Window
             now = DateTimeOffset.Now.ToUnixTimeMilliseconds(),
             sections = new
             {
+                // Beta Prep 2: the search bar in the middle of the page (MainWindow.StartSearch.cs).
+                search = StartSearchShown,
                 favourites = AppSettings.Get("startFavourites") != "false",
                 news = BirdsNews.On,
                 menagerie = AppSettings.Get("startMenagerie") != "false",
@@ -1391,8 +1431,14 @@ public sealed partial class MainWindow : Window
             reading,
             privacy = BuildPrivacyPayload(),
             // M4.9: whatever Bird News is holding right now. The page never waits for a fetch.
-            news = BirdsNews.Snapshot(),
+            news = NewsSnapshot(),
             focus,
+            // Beta Prep 2: the search bar’s engine and what typing in it sends; and the one-time note
+            // after "I agree" or a change to the legal pages (never in a private window).
+            search = StartSearchPayload(),
+            legalNote = _private ? string.Empty : TermsGate.NoteDue(),
+            policyRevision = PrivacyPolicy.Revision,
+            termsRevision = LegalTexts.TermsRevision,
         };
 
         // Fetch if what is held has gone stale - never from a private window.
@@ -1468,7 +1514,7 @@ public sealed partial class MainWindow : Window
              + "--rib:" + Hex("AvSidebarBorderBrush", "rgba(0,0,0,.07)") + ";"
              + "--sky:" + Hex("AvSelectedBrush", "rgba(0,122,255,.05)") + ";"
              + "--tile-radius:"
-             + (AppSettings.Get("look") == "Liquid Glass" ? "18px" : "14px") + ";"
+             + (Looks.GlassChosen ? "18px" : "14px") + ";"
              + "}";
     }
 
@@ -1491,7 +1537,7 @@ public sealed partial class MainWindow : Window
         try
         {
             _applyingLook = true;
-            bool glass = look.Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
+            bool glass = Looks.IsGlass(look);
             var merged = Application.Current.Resources.MergedDictionaries;
 
             if (merged.Count > 0)
@@ -2462,7 +2508,7 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private bool Navigate(string input)
+    private bool Navigate(string input, string via = "address bar")
     {
         if (_active is not { IsReady: true } tab)
         {
@@ -2505,12 +2551,12 @@ public sealed partial class MainWindow : Window
                 query = text,
                 engine = AppSettings.Get("searchEngine"),
                 target,
-                via = "address bar",
+                via,
             });
         }
         else
         {
-            DiagBrowse("typed", text, new { tab = tab.Id, typed = text, target });
+            DiagBrowse("typed", text, new { tab = tab.Id, typed = text, target, via });
         }
 
         // M6 stage 3, "Switch to a tab that is already open": an address another tab of this window
@@ -2712,7 +2758,8 @@ public sealed partial class MainWindow : Window
             if (!trusted)
             {
                 if (type is "navigate" or "startSection" or "tileMenu" or "privacyRange" or "newsAll"
-                    or "startBackground")
+                    or "startBackground" or "startSearch" or "startSearchType" or "startSearchEngine" or "legalNote"
+                    or "newsCheck" or "newsSave")
                 {
                     RefuseMessage("Start Page", type, args);
                 }
@@ -2770,6 +2817,67 @@ public sealed partial class MainWindow : Window
                         && bg.GetString() is { Length: > 0 } chosen)
                     {
                         _ = ChooseStartBackgroundAsync(chosen, "start page");
+                    }
+
+                    break;
+
+                // Beta Prep 2: the search bar in the middle of the page (MainWindow.StartSearch.cs).
+                case "startSearchType":
+                    if (root.TryGetProperty("q", out JsonElement typedWords) && typedWords.ValueKind == JsonValueKind.String)
+                    {
+                        StartSearchTyped(sender, typedWords.GetString() ?? string.Empty);
+                    }
+
+                    break;
+
+                case "startSearch":
+                    StartSearchCommit(sender, root);
+                    break;
+
+                case "startSearchEngine":
+                    DiagUi("start-search-engine");
+                    OpenSettingsTab("search");
+                    break;
+
+                // Beta Prep 2: the one-time legal note was answered - "OK", or "Open Legal".
+                case "legalNote":
+                {
+                    TermsGate.NoteSeen();
+                    bool open = root.TryGetProperty("action", out JsonElement act) && act.GetString() == "open";
+                    DiagUi("legal-note", new { open });
+                    if (open)
+                    {
+                        OpenSettingsTab("legal");
+                    }
+
+                    break;
+                }
+
+                // Beta Prep 2: the Bird News page's own "Check now" - the same request as Settings', with
+                // the same thirty-second floor (BirdsNews.ManualGap), so pressing it cannot hammer a site.
+                case "newsCheck":
+                    if (!_private)
+                    {
+                        DiagFeature("birds-news-check", new { from = "bird news page" });
+                        _ = BirdsNews.CheckNowAsync();
+                    }
+
+                    break;
+
+                // Beta Prep 2: a story's "+" - onto the Reading List, or off it again. Only an address
+                // Bird News is really holding, with the publisher's own headline as its title.
+                case "newsSave":
+                    if (root.TryGetProperty("url", out JsonElement saveUrl) && saveUrl.GetString() is { Length: > 0 } story
+                        && BirdsNews.Holds(story, out string headline))
+                    {
+                        if (ReadingList.Contains(story))
+                        {
+                            ReadingList.Remove(story);
+                        }
+                        else
+                        {
+                            ReadingList.Add(headline, story);
+                        }
                     }
 
                     break;
@@ -2838,6 +2946,28 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>Re-renders any open Start Page after its data changed underneath it.</summary>
+    private static async Task RevokePermissionGrantsAsync(CoreWebView2Profile profile, CoreWebView2PermissionKind kind)
+    {
+        try
+        {
+            int revoked = await SitePermissions.RevokeAsync(profile, kind);
+            Diagnostics.Feature("site-permission-blocked", new { kind = kind.ToString(), revoked });
+        }
+        catch (Exception ex)
+        {
+            Diagnostics.Swallowed(ex, "site permissions: take back grants");
+        }
+    }
+
+    /// <summary>Every window’s Start Pages, for a setting they all show (Beta Prep 2).</summary>
+    private static void RefreshEveryStartPage()
+    {
+        foreach (MainWindow window in OpenWindows)
+        {
+            window.RefreshStartPages();
+        }
+    }
+
     private void RefreshStartPages()
     {
         foreach (BrowserTab tab in TabsAndReady())
@@ -2863,7 +2993,8 @@ public sealed partial class MainWindow : Window
     {
         try
         {
-            string json = JsonSerializer.Serialize(BirdsNews.Snapshot());
+            string json = JsonSerializer.Serialize(NewsSnapshot());
+            string status = JsonSerializer.Serialize(BirdsNews.Snapshot());
             foreach (BrowserTab tab in TabsAndReady())
             {
                 if (!tab.IsInternalPage || tab.View.CoreWebView2 is not CoreWebView2 core)
@@ -2877,7 +3008,7 @@ public sealed partial class MainWindow : Window
                 }
                 else if (tab.Title == "Settings")
                 {
-                    _ = core.ExecuteScriptAsync("window.__aviaryNewsStatus && window.__aviaryNewsStatus(" + json + ")");
+                    _ = core.ExecuteScriptAsync("window.__aviaryNewsStatus && window.__aviaryNewsStatus(" + status + ")");
                 }
             }
         }
@@ -2886,6 +3017,15 @@ public sealed partial class MainWindow : Window
             Diagnostics.Swallowed(ex, "birds news: push to pages");
         }
     });
+
+    /// <summary>
+    /// Bird News as this window's pages draw it (Beta Prep 2): each story also says whether it has
+    /// been opened before (history) and whether it is on the Reading List. A private window is told
+    /// neither - its pages show nothing about the normal window's browsing.
+    /// </summary>
+    private object NewsSnapshot() => _private
+        ? BirdsNews.Snapshot()
+        : BirdsNews.Snapshot(History.Visited, ReadingList.Contains);
 
     private void NewTabButton_Click(object sender, RoutedEventArgs e)
     {
@@ -3251,6 +3391,15 @@ public sealed partial class MainWindow : Window
                     break;
 
                 // M4.9: Bird News - its master switch, how often it checks, and which feeds.
+                // Beta Prep 2: how the stories are drawn - nothing is fetched, the pages redraw.
+                case "newsSummaries":
+                case "newsDimRead":
+                    OnNewsChanged();
+                    break;
+
+                case BirdsNews.TechKey:
+                case BirdsNews.ScienceKey:
+                case BirdsNews.SportKey:
                 case BirdsNews.ShowKey:
                 case BirdsNews.RefreshKey:
                 case BirdsNews.CustomKey:
@@ -3307,7 +3456,7 @@ public sealed partial class MainWindow : Window
                     break;
 
                 case "windowButtons":
-                    ApplyLookGeometry(AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase));
+                    ApplyLookGeometry(Looks.GlassChosen);
                     UpdateCaptionSpacer();
                     break;
 
@@ -3367,6 +3516,8 @@ public sealed partial class MainWindow : Window
 
                 case "searchEngine":
                     SearchEngineChanged(value.GetString());
+                    // Beta Prep 2: the Start Page search bar names the engine and says what typing sends.
+                    RefreshEveryStartPage();
                     break;
 
                 case "suggest":
@@ -3376,6 +3527,29 @@ public sealed partial class MainWindow : Window
                     {
                         window.ForgetEngineSuggestions();
                     }
+                    RefreshEveryStartPage();
+                    break;
+
+                // Beta Prep 2: the Start Page search bar, and where a new tab’s typing goes.
+                case StartSearchKey:
+                case NewTabTypingKey:
+                    RefreshEveryStartPage();
+                    break;
+
+                // Beta Prep 2, Content → "What websites may ask for": a kind just set to Block also
+                // takes back the grants sites were given earlier, which the engine would otherwise
+                // go on honouring without asking Aviary (SitePermissions.cs).
+                case "permLocation":
+                case "permCamera":
+                case "permMicrophone":
+                case "permNotifications":
+                    if (SitePermissions.IsBlock(value.GetString() ?? string.Empty)
+                        && SitePermissions.Kinds.TryGetValue(key, out CoreWebView2PermissionKind kind)
+                        && _active?.View.CoreWebView2 is CoreWebView2 engine)
+                    {
+                        _ = RevokePermissionGrantsAsync(engine.Profile, kind);
+                    }
+
                     break;
 
                 case "homeButton":
@@ -3672,6 +3846,80 @@ public sealed partial class MainWindow : Window
 
                     PushSafety(page);
                     break;
+
+                // Beta Prep 2: Settings → Quik's own numbers, measured on this computer (QuikStats.cs).
+                case "quikStats":
+                    _ = page.ExecuteScriptAsync("window.__aviaryQuikStats && window.__aviaryQuikStats("
+                        + JsonSerializer.Serialize(QuikStats.Describe(ReadyTabsWaiting)) + ")");
+                    break;
+
+                // Beta Prep 2: "Fix everything" - every finding that could be safer and has a fix, each
+                // to its safer value and nothing else (the same list one fix may use).
+                case "safetyFixAll":
+                {
+                    List<string> fixedKeys = new();
+                    foreach (SafetyCheck.Finding finding in SafetyCheck.Run())
+                    {
+                        if (finding.Level != "warn" || finding.FixKey is not { } key
+                            || !SafetyCheck.Fixable.TryGetValue(key, out string? value))
+                        {
+                            continue;
+                        }
+
+                        AppSettings.Set(key, value);
+                        using (JsonDocument doc = JsonDocument.Parse(value is "true" or "false" ? value : JsonSerializer.Serialize(value)))
+                        {
+                            ApplySetting(key, doc.RootElement.Clone());
+                        }
+
+                        PushToSettingsPage(key, value == "true" ? true : value == "false" ? false : value);
+                        fixedKeys.Add(key);
+                    }
+
+                    DiagFeature("safety-fix-all", new { keys = fixedKeys });
+                    PushSafety(page);
+                    break;
+                }
+
+                // Beta Prep 2: Safety Check's "Forget them" - the sites allowed to load without a
+                // secure connection. Aviary asks again the next time one has no secure version.
+                case "httpForget":
+                {
+                    List<string> sites = SiteSettings.SitesWith("httpAllowed");
+                    foreach (string site in sites)
+                    {
+                        SiteSettings.Remove(site, "httpAllowed");
+                    }
+
+                    DiagFeature("http-exceptions-forgotten", new { count = sites.Count });
+                    PushSafety(page);
+                    break;
+                }
+
+                // Beta Prep 2: Content's "Forget every site's answers" - every saved Allow and Block a
+                // site was given for location, camera, microphone, notifications and the rest.
+                case "permissionsReset":
+                {
+                    int revoked = 0;
+                    try
+                    {
+                        if (_active?.View.CoreWebView2 is CoreWebView2 any)
+                        {
+                            revoked = await SitePermissions.RevokeAsync(any.Profile, null);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Diagnostics.Swallowed(ex, "site permissions: forget every answer");
+                    }
+
+                    DiagFeature("site-permissions-forgotten", new { count = revoked });
+                    await InformAsync("Site answers forgotten",
+                        revoked == 0 ? "No website had a saved answer."
+                        : revoked == 1 ? "1 saved answer was forgotten. That site will ask again."
+                        : revoked + " saved answers were forgotten. Those sites will ask again.");
+                    break;
+                }
 
                 // ── Bird News (M4.9): "Check now" ──
                 case "newsCheck":

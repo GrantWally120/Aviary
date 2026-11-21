@@ -453,7 +453,7 @@ public sealed partial class MainWindow
     /// </summary>
     private void ApplyContentInsets()
     {
-        bool glass = AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase);
+        bool glass = Looks.GlassChosen;
         bool beside = SidebarGripBar.Visibility == Visibility.Visible;
 
         SidebarGripBar.Width = glass ? 18 : 6;

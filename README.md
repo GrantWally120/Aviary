@@ -1,9 +1,18 @@
 # Aviary
 
-A native Windows browser built with WinUI 3 and Microsoft Edge WebView2. **Beta Prep 1**
-(version 0.5.1, made 25 October 2026) is the current update; it replaces Alpha Build 5 as the build
+A native Windows browser built with WinUI 3 and Microsoft Edge WebView2.
+
+**Beta Prep 2** (version 0.5.2, made 21 November 2026) is the current update: Terms of Use and a
+Copyright notice with an "I agree" screen, a Privacy Policy that is re-read for every build, a search bar in the middle of the
+Start Page, a rebuilt Safety Check, two new protections, Prism 2 as the name of the glass look, a bigger Bird News, Quik's own
+numbers and a Performance page that matches Windows (see [docs/BETA-PREP-2-2026-11-21.md](docs/BETA-PREP-2-2026-11-21.md)).
+Grant read the Terms of Use, the Copyright notice and the Privacy Policy and approved their wording on 21 November 2026,
+before the update was installed, committed or pushed.
+
+**Beta Prep 1**
+(version 0.5.1, made 25 October 2026) is the update before it; it replaced Alpha Build 5 as the build
 you are on and gathers everything done from 21 to 24 October (see
-[docs/BETA-PREP-1-2026-10-24.md](docs/BETA-PREP-1-2026-10-24.md)). It is installed locally and pushed.
+[docs/BETA-PREP-1-2026-10-24.md](docs/BETA-PREP-1-2026-10-24.md)). It was installed locally and pushed.
 Alpha Build 5 was **The Long Run**, version 0.5.0, with all sixteen milestones complete, finished on
 Wednesday 21 October 2026. The AB5
 release and the Settings/privacy/security follow-ups passed Windows CI. The latest

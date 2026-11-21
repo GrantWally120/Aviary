@@ -228,7 +228,7 @@ public sealed partial class MainWindow
 
         ApplyTabLayout();
         RefreshBookmarksBar();
-        ApplyLookGeometry(AppSettings.Get("look").Equals("Liquid Glass", StringComparison.OrdinalIgnoreCase));
+        ApplyLookGeometry(Looks.GlassChosen);
         UpdateCaptionSpacer();
     }
 

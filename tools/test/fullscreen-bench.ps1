@@ -1,8 +1,8 @@
 # Page full screen on and off N times in a TEST Aviary, then print the stalls and any probe lines
 # (M4.5 stage 4 - leaving full screen stalled the UI thread 62-207 ms). No input: the page asks
 # for full screen itself (DevTools evaluates with a user gesture).
-#   fullscreen-bench.ps1 -Profile fsb [-Look "Liquid Glass"] [-Times 5] [-Size 2540x1380]
-param([string]$Profile = "fsb", [string]$Look = "Liquid Glass", [int]$Times = 5, [string]$Size = "2540x1380", [int]$Port = 9333)
+#   fullscreen-bench.ps1 -Profile fsb [-Look "Prism 2"] [-Times 5] [-Size 2540x1380]
+param([string]$Profile = "fsb", [string]$Look = "Prism 2", [int]$Times = 5, [string]$Size = "2540x1380", [int]$Port = 9333)
 
 $kit = $PSScriptRoot; Set-Location $kit; $env:CDP_PORT = "$Port"
 & .\launch-quiet.ps1 -Profile $Profile -Fresh -Port $Port -Size $Size -SettingsJson ('{"improvementCollection":"true","look":"' + $Look + '"}') | Out-Null

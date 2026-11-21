@@ -23,10 +23,11 @@ if (Test-Path $prof) { [System.IO.Directory]::Delete($prof, $true) }
 [System.IO.File]::WriteAllText((Join-Path $prof "settings.json"), '{"improvementCollection":"true"}')
 
 $env:AVIARY_PROFILE_DIR = $prof
+$env:AVIARY_TEST_TERMS = "accepted"   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
 $env:AVIARY_CRASH_TEST = $Mode
 $env:AVIARY_TEST_NATIVE_DETAIL = "1"
 $p = Start-Process -FilePath (Get-AviaryExe $sp) -PassThru
-$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_CRASH_TEST = $null; $env:AVIARY_TEST_NATIVE_DETAIL = $null
+$env:AVIARY_PROFILE_DIR = $null; $env:AVIARY_TEST_TERMS = $null; $env:AVIARY_CRASH_TEST = $null; $env:AVIARY_TEST_NATIVE_DETAIL = $null
 
 # Park every visible window of the process at the bottom, without activating it.
 for ($i = 0; $i -lt 40; $i++) {

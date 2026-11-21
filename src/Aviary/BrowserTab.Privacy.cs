@@ -192,6 +192,22 @@ internal sealed partial class BrowserTab
             List<string>? removed = null;
             bool upgraded = false;
 
+            // ── Beta Prep 2, "Skip tracking redirects" (BounceTracking.cs): a known redirect page whose
+            //    destination is written in the link is never asked for; the tab goes straight there.
+            //    The destination is then treated like any address about to be opened, below. ──
+            if (AppSettings.GetBool(BounceTracking.SettingKey)
+                && !KeepsHistoryEntry(args)
+                && BounceTracking.TryUnwrap(next, out string direct, out string skipped)
+                && Uri.TryCreate(direct, UriKind.Absolute, out Uri? directUri))
+            {
+                next = direct;
+                target = directUri;
+                if (Records)
+                {
+                    Diagnostics.Browse("redirect-skipped", skipped, new { tab = Id, via = skipped, to = direct, redirect = redirected });
+                }
+            }
+
             // ── tracking parameters: only when crossing between sites ──
             if (AppSettings.GetBool("stripTracking")
                 && CrossesSites(from, target)

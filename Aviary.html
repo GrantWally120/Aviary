@@ -6,7 +6,7 @@
 <title>Aviary</title>
 <meta name="description" content="Aviary is a native Windows 11 browser that carries Safari's design language onto WebView2, with the ad blocking and privacy of a Brave-minded browser. Current build: Beta Prep 1.">
 <script>
-/* This page's own look, decided before anything paints: Liquid Glass, unless the reader picked the
+/* This page's own look, decided before anything paints: Prism 2, unless the reader picked the
    Legacy page (the switch in the top bar) or the address asks for one with ?ui=legacy / ?ui=glass. */
 (function(){
   var ui="glass";
@@ -24,7 +24,7 @@
 <style>
 /* ════════════════════════════════════════════════════════════════════════
    AVIARY — project site. Redesigned 14 Sep 2026 as a glass showcase (Grant's pick):
-   the page is built out of the material the browser wears — Phase 0's Liquid Glass,
+   the page is built out of the material the browser wears — Phase 0's Prism 2,
    five layers per capsule — floating over a slow field of colour so the glass has
    something to bend. Two phases, and only two: Phase 1 · Alpha and Phase 2 · Beta,
    each holding its builds. Phase 2 opens with the Beta Preps: literal updates, each
@@ -36,7 +36,7 @@
    badge all follow the latest finished build by themselves).
    Keep it plain local HTML — never publish it as an Artifact (Grant, 6 Sep 2026).
 
-   TWO LOOKS OF ITS OWN (Grant, 18 Sep 2026): Liquid Glass (this stylesheet, `.skin-glass`) and
+   TWO LOOKS OF ITS OWN (Grant, 18 Sep 2026): Prism 2 (this stylesheet, `.skin-glass`) and
    the Legacy page — the design it had until 14 Sep (commit 334dd0d), restored in the second
    stylesheet below as `.v1-skin`, every class prefixed v1- so neither look can leak into the
    other. <html data-ui="glass|legacy"> says which one shows; the switch in each top bar sets it
@@ -438,7 +438,7 @@ a{color:inherit;}
 .facts{display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--txt-3);font:500 12px/1.4 var(--mono);letter-spacing:.04em;text-transform:uppercase;}
 .facts b{color:var(--txt-2);font-weight:600;}
 
-/* ── THE DEMO WINDOW — Aviary, Liquid Glass, pages moving under it ──── */
+/* ── THE DEMO WINDOW — Aviary, Prism 2, pages moving under it ──── */
 .stage{position:relative;border-radius:30px;padding:14px;}
 .stagecol{min-width:0;}
 .stagecap{margin:14px 8px 0;font-size:13px;line-height:1.5;color:var(--txt-2);max-width:46em;}
@@ -491,7 +491,7 @@ a{color:inherit;}
 .tab b{font-weight:500;overflow:hidden;text-overflow:ellipsis;}
 .tab--on{background:var(--tab-active);box-shadow:var(--tab-active-sh);color:var(--txt-1);}
 .fav{width:14px;height:14px;border-radius:4px;flex:0 0 auto;display:grid;place-items:center;font:700 8.5px/1 var(--ui);color:#fff;}
-/* the scroll-edge scrim: Liquid Glass stays legible over busy content by a scrim, never by going opaque */
+/* the scroll-edge scrim: Prism 2 stays legible over busy content by a scrim, never by going opaque */
 .scrim{position:absolute;left:0;right:0;top:0;height:110px;z-index:4;pointer-events:none;
   background:linear-gradient(to bottom,color-mix(in srgb,var(--page) 62%,transparent),transparent);}
 
@@ -706,7 +706,7 @@ a{color:inherit;}
 .js .rv{opacity:0;transform:translateY(18px);transition:opacity 700ms var(--e-glass),transform 900ms var(--e-glass);}
 .js .rv.in{opacity:1;transform:none;}
 
-/* ── THIS PAGE'S LOOK — Liquid Glass or the Legacy page ───────────────── */
+/* ── THIS PAGE'S LOOK — Prism 2 or the Legacy page ───────────────── */
 :root[data-ui="legacy"] .skin-glass,
 :root:not([data-ui="legacy"]) .v1-skin{display:none;}
 /* A segmented control, like the one Aviary switches its own looks with: a sunken well, the
@@ -735,7 +735,7 @@ a{color:inherit;}
    THE LEGACY PAGE — this page as it looked until 14 Sep 2026 (commit 334dd0d), brought back as
    the second of its two looks (Grant, 18 Sep 2026). A glasshouse at dusk in dark, a conservatory
    at noon in light; brass is the only bold colour. The original stylesheet, with every class
-   prefixed v1- and its tokens set only while <html data-ui="legacy">, so it and Liquid Glass
+   prefixed v1- and its tokens set only while <html data-ui="legacy">, so it and Prism 2
    cannot reach each other's markup.
    ════════════════════════════════════════════════════════════════════════ */
 :root[data-ui="legacy"]{
@@ -1143,7 +1143,7 @@ a{color:inherit;}
       <a class="lnk" href="#get" data-hide-xs>Get it</a>
       <span class="sep" aria-hidden="true"></span>
       <div class="uiswitch" role="group" aria-label="This page's look">
-        <button type="button" data-ui-pick="glass" aria-pressed="true" title="This page in Liquid Glass"><span class="long">Liquid </span>Glass</button>
+        <button type="button" data-ui-pick="glass" aria-pressed="true" title="This page in Prism 2"><span class="long">Liquid </span>Glass</button>
         <button type="button" data-ui-pick="legacy" aria-pressed="false" title="This page as it looked until 14 Sep 2026">Legacy</button>
       </div>
       <button class="themebtn" id="themeBtn" type="button" aria-label="Change theme">
@@ -1179,7 +1179,7 @@ a{color:inherit;}
       </div>
 
       <div class="stagecol">
-        <figure class="gl stage" style="margin:0" aria-label="Aviary in its Liquid Glass look, with a page scrolling underneath the toolbar">
+        <figure class="gl stage" style="margin:0" aria-label="Aviary in its Prism 2 look, with a page scrolling underneath the toolbar">
           <span class="grim"></span>
           <div class="win" id="demo" data-look="glass"></div>
         </figure>
@@ -1221,7 +1221,7 @@ a{color:inherit;}
           <span class="grim"></span>
           <div class="win is-light" id="lookGlass"></div>
           <div class="look__body">
-            <h3>Liquid Glass</h3>
+            <h3>Prism 2</h3>
             <div class="era">Safari 26 · macOS Tahoe · shown light</div>
             <p>Chrome that floats above the page rather than sitting on it. In a browser, content scrolls
                underneath and the glass picks up its colour; in the Windows app the bars keep the sheen, ring
@@ -1398,7 +1398,7 @@ a{color:inherit;}
       <a href="#v1-built" data-hide>Built on</a>
       <a href="#v1-get" data-hide-xs>Get it</a>
       <div class="v1-uiswitch" role="group" aria-label="This page's look">
-        <button type="button" data-ui-pick="glass" aria-pressed="false" title="This page in Liquid Glass"><span class="v1-long">Liquid </span>Glass</button>
+        <button type="button" data-ui-pick="glass" aria-pressed="false" title="This page in Prism 2"><span class="v1-long">Liquid </span>Glass</button>
         <button type="button" data-ui-pick="legacy" aria-pressed="true" title="This page as it looked until 14 Sep 2026">Legacy</button>
       </div>
     </nav>
@@ -1491,7 +1491,7 @@ a{color:inherit;}
             </div>
           </div>
           <div class="v1-look__body">
-            <h3>Liquid Glass</h3>
+            <h3>Prism 2</h3>
             <div class="v1-era">Safari 26 · macOS Tahoe · shown light</div>
             <p>Chrome that floats above the page rather than sitting on it. In a browser, content scrolls
                underneath and the glass picks up its colour; in the Windows app the bars keep the sheen, ring
@@ -1552,7 +1552,7 @@ a{color:inherit;}
 
   <hr class="v1-rule">
 
-  <!-- ── BUILT ON — the same facts as the Liquid Glass page ─────────────── -->
+  <!-- ── BUILT ON — the same facts as the Prism 2 page ─────────────── -->
   <section id="v1-built">
     <div class="v1-wrap">
       <div class="v1-sec-h">
@@ -1656,7 +1656,7 @@ document.documentElement.classList.add("js");
    build: it sets `unit:"changes"`, lists what changed (each with a one-line `d`) and has
    no "next". The phase's own state, the rail, the hero pill, the What's new section, the
    Current build badge and the counts all follow from this — in both of this page's looks,
-   Liquid Glass and the Legacy page. The current build is the one being made, or else the
+   Prism 2 and the Legacy page. The current build is the one being made, or else the
    latest one finished (buildNow below). Keep it in step with the app: the prep's number,
    version and changes are the ones in src/Aviary/InternalPages.cs (release-state-test.js
    checks that they agree).
@@ -1672,7 +1672,7 @@ const PHASES=[
         link:{href:"Aviary-Phase0.html", label:"Open the interface study"},
         desc:"Every combination mocked up in a real Windows 11 frame before a line of C#: two looks "+
              "against two tab layouts, in light and dark, on a Windows 11 desktop, with a Safari Start "+
-             "Page inside. Built to be argued with, and it was — the Liquid Glass on this page is its recipe.",
+             "Page inside. Built to be argued with, and it was — the Prism 2 on this page is its recipe.",
         bits:["4 combinations","Light + dark","Live toolbar tinting","Real caption glyphs"]
       },
       {
@@ -1696,7 +1696,7 @@ const PHASES=[
         code:"AB3", title:"Alpha Build 3", sub:"Theming and features", state:"done", when:"6 Sep 2026",
         desc:"Both Safari looks, switchable while the browser is running. Every colour, radius, blur and "+
              "spacing value lives in a token; zero hardcoded colours in any control. It is also the build "+
-             "where Mica finally becomes visible, because Liquid Glass is translucent enough to let the "+
+             "where Mica finally becomes visible, because Prism 2 is translucent enough to let the "+
              "desktop through where Classic's solid plane covers it. Alongside the theming, the first "+
              "quarter of the feature set lands — and every control drawn by Windows rather than by us "+
              "gets replaced, starting with the dropdowns, whose native popups rendered as white boxes "+
@@ -1740,8 +1740,8 @@ const PHASES=[
           {n:"M2.5", t:"The Collection", when:"13 Sep", d:"Grant's own projects inside Aviary, running offline — the whole Wally series and more."},
           {n:"M3",   t:"An ad blocker you control site by site", when:"13 Sep", d:"EasyList and EasyPrivacy, with a shield for every site."},
           {n:"M4",   t:"Brave Search and more safe search engines", when:"14 Sep", d:"Brave Search, Mojeek and Ecosia join; engine suggestions stay off unless you want them."},
-          {n:"M4.5", t:"Smooth Flight", when:"20 Sep", d:"The browser learns to move — Smooth Flight in Classic, Fluid in Liquid Glass — with four filter lists and per-site Shields, live Performance and Storage Usage pages, and the idle freezes explained."},
-          {n:"M4.6", t:"Smooth Fix", when:"20 Sep", d:"Full screen learns to move, every animation gets a speed, Liquid Glass decides where the window buttons sit, Storage and Performance go deeper, four tab choices — and Aviary finally has an icon."},
+          {n:"M4.5", t:"Smooth Flight", when:"20 Sep", d:"The browser learns to move — Smooth Flight in Classic, Fluid in Prism 2 — with four filter lists and per-site Shields, live Performance and Storage Usage pages, and the idle freezes explained."},
+          {n:"M4.6", t:"Smooth Fix", when:"20 Sep", d:"Full screen learns to move, every animation gets a speed, Prism 2 decides where the window buttons sit, Storage and Performance go deeper, four tab choices — and Aviary finally has an icon."},
           {n:"M4.7", t:"Immediate Fix", when:"21 Sep", d:"The menus answer again: M4.6's arrival was applied to the part of a menu that decides where it is, so every menu looked right and ignored every click — the app menu, Settings and the Collection with it."},
           {n:"M4.8", t:"A Iconic Fix", when:"21 Sep", d:"The app icon reaches the taskbar at last, and the row draws which tile you are on. Performance reads like Task Manager — every part on its own line, sortable, with each process's tabs under it. Memory saver stops hinting and puts idle tabs to sleep, handing the memory back."},
           {n:"M4.9", t:"Bird News", when:"24 Sep", d:"Live world and Philippine news on the Start Page, and five picks from Brave, Safari and Chrome — Ctrl+Shift+A to search open tabs, forgetful browsing that clears a site when you close it or five minutes, an hour or a day after, Safety Check in one page with a fix per row, six Start Page backgrounds (five drawn in whichever look you are using, the sixth your own picture), and picture in picture from any video's right-click menu. Memory saver becomes four modes."},
@@ -1785,6 +1785,33 @@ const PHASES=[
           {n:"6", t:"Newer Windows parts", when:"23 Oct", d:"Aviary left the out-of-support Windows App SDK 1.7 for 2.5.1, and Win2D 1.4.0, and ships fewer files — 466 in the SDK part instead of 534."},
           {n:"7", t:"Fresh ad-blocker lists", when:"23 Oct", d:"EasyList and EasyPrivacy were refreshed from easylist.to. They stay fresh by themselves only if Settings → Shields → Keep the lists up to date is switched on."},
           {n:"8", t:"The PARALLAX signup really sends", when:"24 Oct", d:"In the Collection, Join the Quantum Division now actually delivers, through FormSubmit, and tells the visitor honestly whether it worked."}
+        ]
+      },
+      {
+        code:"BP2", title:"Beta Prep 2", sub:"Legal pages, a search bar and stronger protection", state:"done", when:"21 Nov 2026", version:"0.5.2",
+        unit:"changes",
+        blurb:"The second update on the way to Beta Build 1 — version 0.5.2, made on 21 November 2026. It replaces Beta "+
+              "Prep 1 as the build you run: Aviary’s legal pages, a search bar in the middle of the Start Page, and "+
+              "privacy, safety and speed work right across Settings.",
+        notIn:"Accounts, Google sign-in, cloud sync, an installer, automatic updates and macOS. The app is still unsigned.",
+        desc:"The second update after Alpha Build 5, and the build Aviary now calls itself — version 0.5.2. Aviary has "+
+             "Terms of Use and a Copyright notice now, agreed to before the first tab opens; a Privacy Policy that is "+
+             "re-read for every build; a search bar in the middle of the Start Page; a rebuilt Safety Check; two new "+
+             "protections; a much bigger Bird News; Quik’s own numbers for your computer; and a Performance page that "+
+             "matches Windows. The floating glass look is called Prism 2 everywhere. More preps will follow on the way "+
+             "to Beta Build 1.",
+        bits:["Terms of Use and Copyright ✓","Privacy Policy re-read each build ✓","Start Page search bar ✓","Safety Check rebuilt ✓",
+              "Skip tracking redirects ✓","Site permissions ✓","Prism 2 by name ✓","Bird News page ✓","Quik’s own numbers ✓"],
+        milestones:[
+          {n:"1", t:"Terms of Use and a Copyright notice", when:"21 Nov", d:"Aviary’s legal pages, in plain words, in Settings → Legal. Aviary waits for “I agree” before it makes its first tab, and saves only that you agreed, which revision and the date, on your computer."},
+          {n:"2", t:"A Privacy Policy that keeps up", when:"21 Nov", d:"Rewritten for this build, with the build it was read against and a list of its own changes. A check stops a build being made on a policy nobody re-read."},
+          {n:"3", t:"A search bar in the middle of the Start Page", when:"21 Nov", d:"A new tab puts the keyboard in a search bar in the middle of the page, and typing anywhere lands in it. The address bar stays at the top for addresses."},
+          {n:"4", t:"Safety Check, rebuilt", when:"21 Nov", d:"More checks, a score, the findings in four groups, and one button that fixes everything fixable. Stronger settings that cost something are offered, not counted against you."},
+          {n:"5", t:"Two new protections", when:"21 Nov", d:"Skip tracking redirects goes straight to the address written in a link. Location, camera, microphone and notifications can each be blocked for every site."},
+          {n:"6", t:"Settings in groups, and Prism 2 by name", when:"21 Nov", d:"Five long Settings pages now sit under plain headings. Liquid Glass is called Prism 2 everywhere, and “Safari look” is simply Look."},
+          {n:"7", t:"Bird News, much bigger", when:"21 Nov", d:"A page of its own with tabs, a filter, publisher buttons, each publisher’s own summary and a Reading List mark. Three topics are there to switch on."},
+          {n:"8", t:"Quik, with your own numbers", when:"21 Nov", d:"Settings → Quik shows this computer’s launch and new-tab times, and pages Aviary opens in a new tab take the ready tab too."},
+          {n:"9", t:"Performance and Storage, more exact", when:"21 Nov", d:"Performance counts every process, including the engine’s crash reporter it used to leave out, and names each helper for what it is."}
         ]
       },
       {
@@ -2074,7 +2101,7 @@ if(buildNow.milestones){
   v1MsPill.textContent=hasNews?ms.length+" changes":ms.filter(m=>m.when).length+" of "+ms.length+" milestones";
 } else { v1MsPill.remove(); }
 
-/* ── This page's look: Liquid Glass or the Legacy page. The head script has already chosen one
+/* ── This page's look: Prism 2 or the Legacy page. The head script has already chosen one
    before the first paint; switching keeps the reader in the same part of the page. ──────── */
 const root=document.documentElement;
 const PLACES=[["top","v1-top"],["new","v1-new"],["looks","v1-looks"],["phases","v1-phases"],["built","v1-built"],["get","v1-get"]];

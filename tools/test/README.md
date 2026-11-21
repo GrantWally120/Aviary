@@ -1,5 +1,28 @@
 # Aviary test kit
 
+## Beta Prep 2 checks — 21 November 2026
+
+**Every test launcher answers the "I agree" screen.** From Beta Prep 2 Aviary shows its Terms of Use before a profile's first tab,
+and a native dialog cannot be pressed through the DevTools port. So `launch-quiet.ps1`, `launch-m2.ps1`, `m7-launch.ps1`,
+`min-window.ps1`, `native-crash.ps1`, `release-launch.ps1`, `si-race.ps1`, `si-race2.ps1` and `si-test.ps1` set
+`AVIARY_TEST_TERMS=accepted`, which Aviary honours only together with `AVIARY_PROFILE_DIR` (a scratch profile). A new harness that
+starts Aviary itself must do the same, or it will wait at the screen with no engine and no tab.
+
+| Check | What it does |
+|---|---|
+| `terms-gate-test.ps1 [-Exe <path>] [-Port 9471]` | **The "I agree" screen on real fresh profiles**, answered through UI Automation (`launch-quiet.ps1 -ShowTerms` leaves it up). The screen appears with its short version and both documents; while it is up the DevTools port does not answer (no engine, no tab); "I agree" makes the first tab and writes the revision and the day; the Start Page's one-time note; Settings → Legal draws all three documents; the next launch is not asked; "Quit Aviary" closes Aviary and records nothing. **18 checks.** No desktop input. |
+| `security/BetaPrep2Checks.cs` (part of the security harness) | 52 checks from the shipping sources: which links `BounceTracking` goes straight through and which it must leave alone (an ordinary search, a same-site destination, `javascript:`, a link-scanning service, a look-alike host); that `TERMS.md`, `COPYRIGHT.md` and `PRIVACY.md` match the text Settings shows; that the policy describes what the update added; `TermsGate` (an older revision is not this one, the test hook needs a scratch profile, the note is due once); Bird News summaries and that topics are off until switched on. |
+| `dotnet run --project tools/test/security/SecurityHarness.csproj -c Release -- write-legal` | Writes `PRIVACY.md`, `TERMS.md` and `COPYRIGHT.md` at the repository root from `PrivacyPolicy.cs` and `LegalTexts.cs`. Never type them by hand. (`-- terms`, `-- copyright` and `-- policy` print one each.) |
+| `release-state-test.js` | Now 21 checks: Beta Prep 2 after a finished Beta Prep 1, nine changes dated 21 Nov matching the landing page, **the Privacy Policy read against the version being built**, the published Terms at the revision the app asks people to agree to, and the look called Prism 2 wherever people read it. |
+| `cdp.js key` | Knows `Enter`, `ArrowDown` and `ArrowUp` now (the Start Page search bar's list). |
+
+Scripts that seed or pick a look say `Prism 2` (`fullscreen-bench.ps1`, `motion-session.ps1`, `tabstrip-overlap.ps1`); a seeded
+`"look":"Liquid Glass"` still opens the glass look.
+
+`csp-live.js` with Settings in front reports one failure, "Start Page: the engine refused a object-src attempt". The installed
+Beta Prep 1 reports the same: a tab in the background never starts an `<object>`, so nothing is refused. Run it with the Start Page
+in front to see that check pass; it is not a change in the policy.
+
 ## Settings measurement checks — 21 October 2026
 
 `dotnet run --project tools/test/performance/PerformanceHarness.csproj -c Release` exercises

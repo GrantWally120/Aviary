@@ -27,7 +27,23 @@ internal sealed partial class BrowserTab
         // decision cannot become a saved grant. Insecure origins never receive a grant.
         if (IsPrivate) args.SavesInProfile = false;
         if (!SecurityPolicy.IsSecurePermissionOrigin(args.Uri))
+        {
             args.State = CoreWebView2PermissionState.Deny;
+            return;
+        }
+
+        // Beta Prep 2 (Settings → Content → "What websites may ask for"): a kind set to Block is
+        // refused for every site without a question, and the refusal is never saved as a site's own
+        // answer, so switching back to Ask really does ask again.
+        if (SitePermissions.Blocked(args.PermissionKind))
+        {
+            args.State = CoreWebView2PermissionState.Deny;
+            args.SavesInProfile = false;
+            if (Records)
+            {
+                Diagnostics.Browse("permission-blocked", args.PermissionKind.ToString(), new { tab = Id, kind = args.PermissionKind.ToString(), site = HostOf(args.Uri) });
+            }
+        }
     }
 
     private void OnServerCertificateError(CoreWebView2 sender, CoreWebView2ServerCertificateErrorDetectedEventArgs args)

@@ -25,6 +25,7 @@ $launch.FileName = Join-Path $root 'src\Aviary\bin\x64\Release\net9.0-windows10.
 $launch.WorkingDirectory = Split-Path -Parent $launch.FileName
 $launch.UseShellExecute = $false
 $launch.Environment['AVIARY_PROFILE_DIR'] = $profilePath
+$launch.Environment['AVIARY_TEST_TERMS'] = 'accepted'   # Beta Prep 2: answers the Terms screen for a scratch profile (TermsGate)
 $launch.Environment['AVIARY_TEST_BROWSER_ARGS'] = '--remote-debugging-port=' + $Port
 $launch.Environment['AVIARY_QUIK_TEST'] = '1'
 if ($Timers) {

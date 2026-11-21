@@ -10,7 +10,7 @@ namespace Aviary;
 /// What is behind the Start Page (Alpha Build 5 M4.9) — Chrome's idea, from Grant's pick.
 ///
 /// <para>Five of the six choices cost nothing: they are drawn by the page itself out of CSS and the
-/// theme's own tokens, so every one follows Classic/Liquid Glass and light/dark with no second
+/// theme's own tokens, so every one follows Classic/Prism 2 and light/dark with no second
 /// image and no licensing question. That is the same decision the glasshouse was built on.</para>
 ///
 /// <para>The sixth is the person's own picture, and that is what this class is for.</para>
