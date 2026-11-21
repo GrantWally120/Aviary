@@ -17,9 +17,12 @@
 > again: Beta Prep 1 knows it as Liquid Glass and Beta Prep 2 saves it as Prism 2.
 > `.artifact/bp2-candidate-20261121` is the first candidate, built before the commit; the installed package replaced it. Kept until
 > Grant says to remove it.
-> **Still open:** nobody has used it with a real mouse and keyboard; the pages were looked at in dark mode only; Grant's own profile meets
-> the "I agree" screen at its first launch (not pressed for him); the Collection's copy of `Aviary.html` was not re-synced
-> (`tools/library/sync.ps1` reads his Documents folder on drive C, which is off limits unless he says so).
+> **Light mode** was looked at after the install (the installed copy, a scratch profile, Theme: Light): the Start Page with its search
+> bar and Bird News, the Bird News page, Settings → Legal, the Terms of Use, Safety Check and Appearance. All readable, nothing dark on
+> dark; the label on the look picture that is not chosen is a little faint. Pictures: `tools/test/shots/bp2-light-*.png`.
+> **Still open:** nobody has used it with a real mouse and keyboard; Grant's own profile meets the "I agree" screen at its first launch
+> (not pressed for him); the Collection's copy of `Aviary.html` was not re-synced (`tools/library/sync.ps1` reads his Documents folder
+> on drive C, which is off limits unless he says so). GitHub's build #19 passed on the notes commit 48a4fef.
 > When this line changes, change it here. Full account: `docs/BETA-PREP-2-2026-11-21.md`.
 > **What it is:** `BuildInfo.PrepNumber = 2`, version **0.5.2**, its own `prep:2` entry in `UPDATES` (nine changes dated 21 Nov) and a
 > `BP2` entry in `Aviary.html`. Beta Prep 1 (0.5.1) and Alpha Build 5 (0.5.0) are untouched under Earlier builds.
